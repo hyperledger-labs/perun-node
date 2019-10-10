@@ -1,0 +1,8 @@
+#Ignore these files
+vendor/*
+build/workspace_
+
+#But not these
+!vendor/vendor.json
+
+
