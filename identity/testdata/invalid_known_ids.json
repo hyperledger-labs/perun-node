@@ -1,0 +1,5 @@
+[{
+        "on_chain_id": "0xc010c40548c08128c02632e5f7d6455cfb310d03",
+        "listener_ip_addr": "localhost:9601",
+        "listener_endpoint":"/"
+]

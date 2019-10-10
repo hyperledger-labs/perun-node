@@ -1,0 +1,10 @@
+{
+    "ethereum_node_url" : "ws://localhost:8546",
+    "keystore_dir" : "test-keystore",
+    "known_ids_file" : "known_ids.json",
+    "alice_password"   : "",
+    "bob_password"     : "",
+
+    "alice_ethereum_addr": "0x932a74da117eb9288ea759487360cd700e7777e1",
+    "bob_ethereum_addr": "0x815430d6ea7275317d09199a5a5675f017e011ef"
+}

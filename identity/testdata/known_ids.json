@@ -1,0 +1,21 @@
+[{
+        "on_chain_id": "0xc010c40548c08128c02632e5f7d6455cfb310d03",
+        "listener_ip_addr": "localhost:9601",
+        "listener_endpoint":"/"
+    },
+    {
+        "on_chain_id": "0x1abe7d0504c3ae696ddfa80baa04496539695717",
+        "listener_ip_addr": "localhost:9602",
+        "listener_endpoint":"/"
+    },
+    {
+        "on_chain_id": "0x932a74da117eb9288ea759487360cd700e7777e1",
+        "listener_ip_addr": "localhost:9605",
+        "listener_endpoint":"/"
+    },
+    {
+        "on_chain_id": "0x815430d6ea7275317d09199a5a5675f017e011ef",
+        "listener_ip_addr": "localhost:9604",
+        "listener_endpoint":"/"
+    }
+]

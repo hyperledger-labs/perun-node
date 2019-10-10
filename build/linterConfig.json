@@ -1,0 +1,27 @@
+{
+    "Enable": [
+        "goimports",
+        "varcheck",
+        "vet",
+        "gofmt",
+        "misspell",
+        "goconst",
+        "deadcode",
+        "golint",
+        "ineffassign",
+        "nakedret",
+        "unparam",
+        "unused",
+        "staticcheck",
+        "errcheck",
+        "unconvert",
+        "gosimple"
+    ],
+    "Skip": [
+        "workspace_"
+    ],
+    "Vendor": true,
+    "Test":true,
+    "min-occurences": "6",
+    "deadline": "7m"
+}
