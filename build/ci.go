@@ -17,15 +17,12 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"github.com/b4b4r07/go-pipe"
 )
 
 var tempGoPath, tempProjectRoot string
@@ -180,9 +177,7 @@ func fetchVendoredPackages() {
 
 func generatePackagesList() (packagesToTest []string, err error) {
 
-	packagesToTestByteArr := &bytes.Buffer{}
-
-	err = pipe.Command(packagesToTestByteArr,
+	packagesToTestByteArr, err := pipe(
 		exec.Command("go", "list", "./..."),
 		exec.Command("grep", "-v", "-e", "build", "-e", "contract_store", "-e", "mocks", "-e", "walkthrough"),
 	)
