@@ -19,8 +19,12 @@
 // a go development environment or using existing one for this project is not desirable.
 //
 //Available commands are
-//	install				-- installs the dst-go software.
+//	fetchDependencies		-- fetches all needed dependencies
+//	install				-- fetch dependencies and installs the dst-go software.
+//	ciInstall			-- installs the dst-go software
 //	lint				-- runs meta-linter with configuration at linterConfig.json.
-//	test				-- runs unit tests, all flags of "go test" command can be used.
-//	runWalkthrough			-- builds and runs the walkthrough. Specify "simulated" or "real" backend.
+//	test				-- fetch dependencies and runs unit tests, all flags of "go test" command can be used.
+//	ciTest				-- runs unit tests, all flags of "go test" command can be used.
+//	runWalkthrough			-- fetch dependencies, builds and runs the walkthrough. Specify "simulated" or "real" backend.
+//	ciRunWalkthrough		-- builds and runs the walkthrough. Specify "simulated" or "real" backend.
 package main
