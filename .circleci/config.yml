@@ -1,0 +1,64 @@
+version: 2.0
+jobs:
+
+  checkout_deps:
+    docker:
+      - image: circleci/golang:1.12.7-stretch
+    working_directory: /go/src/github.com/direct-state-transfer/dst-go
+    steps:
+      - checkout
+      - run:
+          name: Fetching dependencies
+          command: |
+            make fetchDependencies
+      - save_cache:
+          key: dst-go-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - /go/src/github.com/direct-state-transfer/dst-go
+
+  unit_tests_short:
+    docker:
+      - image: circleci/golang:1.12.7-stretch
+    environment:
+      TEST_RESULTS: /tmp/test-results
+    working_directory: /go/src/github.com/direct-state-transfer/dst-go
+    steps:
+      - run: mkdir -p $TEST_RESULTS
+      - restore_cache:
+          keys:
+             - dst-go-{{ .Branch }}-{{ .Revision }}
+      - run: go get github.com/lib/pq
+      - run: go get github.com/mattes/migrate
+      - run: go get github.com/jstemmer/go-junit-report
+      - run:
+          name: Run unit short tests
+          command: |
+            trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
+            make ciTest testOpts="-v -short" | tee ${TEST_RESULTS}/go-test.out
+      - store_test_results:
+          path: /tmp/test-results
+
+  walkthrough_simulated:
+    docker:
+      - image: circleci/golang:1.12.7-stretch
+    working_directory: /go/src/github.com/direct-state-transfer/dst-go
+    steps:
+      - restore_cache:
+          keys:
+            - dst-go-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Run walktthrough with simulated backend
+          command: |
+            make ciRunWalkthrough walkthroughOpts="--simulated_backend"
+
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - checkout_deps
+      - unit_tests_short:
+          requires:
+            - checkout_deps
+      - walkthrough_simulated:
+          requires:
+            - unit_tests_short

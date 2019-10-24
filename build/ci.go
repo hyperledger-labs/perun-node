@@ -60,16 +60,29 @@ func main() {
 	}
 
 	switch os.Args[1] {
+	case "fetchDependencies":
+		fetchVendoredPackages()
+
 	case "install":
 		fetchVendoredPackages()
+		install()
+
+	case "ciInstall":
 		install()
 
 	case "test":
 		fetchVendoredPackages()
 		triggerUnitTests(packagesList, os.Args[2:])
 
+	case "ciTest":
+		triggerUnitTests(packagesList, os.Args[2:])
+
 	case "runWalkthrough":
 		fetchVendoredPackages()
+		buildWalkthrough()
+		runWalkthrough(os.Args[2:])
+
+	case "ciRunWalkthrough":
 		buildWalkthrough()
 		runWalkthrough(os.Args[2:])
 
