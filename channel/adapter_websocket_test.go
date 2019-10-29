@@ -27,9 +27,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/direct-state-transfer/dst-go/identity"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/direct-state-transfer/dst-go/identity"
 )
 
 func Test_wsStartListener(t *testing.T) {
@@ -81,10 +82,12 @@ func Test_wsConnHandler(t *testing.T) {
 
 			u := url.URL{Scheme: "ws", Host: addr, Path: endpoint}
 
-			c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+			c, response, err := websocket.DefaultDialer.Dial(u.String(), nil)
 			if err != nil {
 				t.Fatalf("Error dialing to listner - %v", err)
 			}
+			_ = response.Body.Close()
+
 			defer func() {
 				_ = c.Close()
 			}()
@@ -152,10 +155,11 @@ func Test_wsConnHandler(t *testing.T) {
 
 			u := url.URL{Scheme: "http", Host: addr, Path: endpoint}
 
-			_, err := http.Post(u.String(), "", bytes.NewReader([]byte{}))
+			response, err := http.Post(u.String(), "", bytes.NewReader([]byte{}))
 			if err != nil {
 				t.Fatalf("Error dialing to listner - %v", err)
 			}
+			_ = response.Body.Close()
 		}
 
 		addr := bobID.ListenerIPAddr
@@ -213,7 +217,7 @@ func mockListenerStub(addr string, endpoint string, t *testing.T) (sh Shutdown, 
 	listnerMux := http.NewServeMux()
 	listnerMux.HandleFunc(endpoint, func(w http.ResponseWriter, r *http.Request) {
 		var upgrader = websocket.Upgrader{}
-		_, err := upgrader.Upgrade(w, r, nil)
+		_, err = upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			t.Logf("upgrade: %v", err)
 			return

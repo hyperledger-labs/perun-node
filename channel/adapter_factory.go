@@ -195,7 +195,7 @@ func closeHandler(pipe handlerPipe) (err error) {
 	}
 
 	pipe.quit <- true
-	//For this to work, quit should be initialised as UNBUFFERED CHANNEL
+	//For this to work, quit should be initialized as UNBUFFERED CHANNEL
 	<-pipe.quit
 
 	return err
@@ -261,7 +261,7 @@ func startListener(selfID identity.OffChainID, maxConn uint32, adapterType Adapt
 	return idVerifiedConn, listener, nil
 }
 
-// NewChannel initialises a new channel connection with peer using the adapterType.
+// NewChannel initializes a new channel connection with peer using the adapterType.
 //
 // selfID is the offchain identity of this user and will be exchanged with the peer when establishing offchain channel.
 // peerID is the offchain identity of the peer with whom the offchain channel needs to be established.

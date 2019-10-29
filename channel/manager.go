@@ -90,7 +90,7 @@ func InitModule(cfg *Config) (err error) {
 	}
 
 	//Initialise connection
-	logger.Debug("Initialising Channel module")
+	logger.Debug("Initializing Channel module")
 
 	return nil
 

@@ -17,13 +17,14 @@
 package main
 
 import (
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+
 	"github.com/direct-state-transfer/dst-go/blockchain"
 	"github.com/direct-state-transfer/dst-go/channel"
 	"github.com/direct-state-transfer/dst-go/config"
 	"github.com/direct-state-transfer/dst-go/identity"
 	"github.com/direct-state-transfer/dst-go/log"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var logger log.LoggerInterface

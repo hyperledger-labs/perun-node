@@ -22,10 +22,11 @@ import (
 	"fmt"
 	"math/big"
 
+	solsha3 "github.com/miguelmota/go-solidity-sha3"
+
 	"github.com/direct-state-transfer/dst-go/ethereum/keystore"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/direct-state-transfer/dst-go/identity"
-	solsha3 "github.com/miguelmota/go-solidity-sha3"
 )
 
 // Size of nonce (in bytes) for session id generation.

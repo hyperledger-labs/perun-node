@@ -42,8 +42,8 @@ type Session struct {
 	maxConn uint32 //Maximum number of off chain connections
 }
 
-// NewSession initialises and returns a user session with ethAddr as owner.
-// It also initialises a listener that can simultaneously have maxConn number of active offchain channels,
+// NewSession initializes and returns a user session with ethAddr as owner.
+// It also initializes a listener that can simultaneously have maxConn number of active offchain channels,
 // and also instances to access keystore at keysdir and idstore in idFile
 func NewSession(ethAddr types.Address, keysDir, idFile string, maxConn uint32) (session Session, err error) {
 

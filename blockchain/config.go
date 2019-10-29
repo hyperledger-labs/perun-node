@@ -19,10 +19,11 @@ package blockchain
 import (
 	"math/big"
 
+	"github.com/spf13/pflag"
+
 	"github.com/direct-state-transfer/dst-go/config"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/direct-state-transfer/dst-go/log"
-	"github.com/spf13/pflag"
 )
 
 var logger log.LoggerInterface

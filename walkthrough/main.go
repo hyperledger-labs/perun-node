@@ -25,13 +25,14 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/fatih/color"
+	"github.com/spf13/cobra"
+
 	"github.com/direct-state-transfer/dst-go/channel"
 	"github.com/direct-state-transfer/dst-go/ethereum/keystore"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/direct-state-transfer/dst-go/identity"
 	"github.com/direct-state-transfer/dst-go/log"
-	"github.com/fatih/color"
-	"github.com/spf13/cobra"
 )
 
 // TestData is the collection of dummy test parameters used for walkthrough execution.
@@ -65,14 +66,18 @@ var (
 
 func setupConfig(filePath string) {
 
-	configFile, err := filepath.Abs(configFile)
+	var err error
+
+	configFile, err = filepath.Abs(filePath)
 	if err != nil {
 		fmt.Println("walkthrough config file path error -", err)
 		os.Exit(1)
 	}
 	fmt.Println("using walkthrough config file -", configFile)
 
-	jsonFile, err := ioutil.ReadFile(configFile)
+	var jsonFile []byte
+
+	jsonFile, err = ioutil.ReadFile(filepath.Clean(configFile))
 	if err != nil {
 		fmt.Println("Cannot open walkthrough config file -", err)
 		os.Exit(1)
@@ -99,7 +104,7 @@ func setupConfig(filePath string) {
 	BalanceList[bobEthereumAddr] = types.EtherToWei(big.NewInt(1000))
 
 	testKeyStorePath = filepath.Join(filepath.Dir(configFile), jsonData.KeystoreDir)
-	testKeyStorePath, err := filepath.Abs(testKeyStorePath)
+	testKeyStorePath, err = filepath.Abs(testKeyStorePath)
 	if err != nil {
 		fmt.Println("test keystore file path error -", err)
 		os.Exit(1)
