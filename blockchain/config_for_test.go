@@ -67,7 +67,8 @@ func TestMain(m *testing.M) {
 
 	flag.StringVar(&configFile, "configFile", defaultConfigFile, "Config file for unit tests")
 	flag.Parse()
-	configFile, err := filepath.Abs(configFile)
+	var err error
+	configFile, err = filepath.Abs(configFile)
 	if err != nil {
 		fmt.Println("test config file path error -", err)
 		os.Exit(1)
@@ -98,7 +99,7 @@ func TestMain(m *testing.M) {
 	balanceList[bobID.OnChainID] = types.EtherToWei(big.NewInt(1000))
 
 	testKeyStorePath = filepath.Join(filepath.Dir(configFile), jsonData.KeystoreDir)
-	testKeyStorePath, err := filepath.Abs(testKeyStorePath)
+	testKeyStorePath, err = filepath.Abs(testKeyStorePath)
 	if err != nil {
 		fmt.Println("test keystore file path error -", err)
 		os.Exit(1)

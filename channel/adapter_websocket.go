@@ -140,10 +140,11 @@ func newWsChannel(addr, endpoint string) (cha *Instance, err error) {
 
 	peerURL := url.URL{Scheme: "ws", Host: addr, Path: endpoint}
 
-	conn, _, err := websocket.DefaultDialer.Dial(peerURL.String(), nil)
+	conn, response, err := websocket.DefaultDialer.Dial(peerURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
+	_ = response.Body.Close()
 
 	ch := &wsChannel{
 		genericChannelAdapter: &genericChannelAdapter{
@@ -209,7 +210,7 @@ func wsReadHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerPi
 				//And Lock will be available for Close()
 				pipe.handlerError <- err
 				go func() {
-					err := ch.Close()
+					err = ch.Close()
 					if err != nil {
 						logger.Error("Error closing channel-", err)
 					}
@@ -257,7 +258,7 @@ func wsWriteHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerP
 				//And Lock will be available for Close()
 				pipe.handlerError <- err
 				go func() {
-					err := ch.Close()
+					err = ch.Close()
 					if err != nil {
 						logger.Error("Error closing channel-", err)
 					}

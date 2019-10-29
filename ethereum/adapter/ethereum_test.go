@@ -24,11 +24,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/direct-state-transfer/dst-go/identity"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/stretchr/testify/mock"
 )
 
 func Test_MakeFilterOpts(t *testing.T) {

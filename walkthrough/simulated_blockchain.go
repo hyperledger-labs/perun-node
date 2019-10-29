@@ -22,12 +22,13 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/fatih/color"
+
 	"github.com/direct-state-transfer/dst-go/blockchain"
 	"github.com/direct-state-transfer/dst-go/channel"
 	"github.com/direct-state-transfer/dst-go/ethereum/adapter"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
-	"github.com/fatih/color"
 )
 
 func simulatedBlockchain(wg *sync.WaitGroup, dispute bool) {
@@ -563,7 +564,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		return
 	}
 
-	_, _ = printer.Printf("Node initialised. Open for incoming channel requests\n")
+	_, _ = printer.Printf("Node initialized. Open for incoming channel requests\n")
 
 	go func(bcInst2 *blockchain.Instance,
 		incomingConnChan chan *channel.Instance, listener channel.Shutdown, wg *sync.WaitGroup) {

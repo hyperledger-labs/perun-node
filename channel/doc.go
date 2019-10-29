@@ -17,6 +17,6 @@
 // Package channel implements node to node (offchain) communication functionality for the node software.
 //
 // It defines the required primitives, message packets & its parsers as well the adapter implementations.
-// The adapter provides functions for initialising listeners that will handle new incoming connections
+// The adapter provides functions for initializing listeners that will handle new incoming connections
 // and to initiate outgoing connections.
 package channel

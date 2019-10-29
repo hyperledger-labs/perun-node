@@ -23,12 +23,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fatih/color"
+
 	"github.com/direct-state-transfer/dst-go/blockchain"
 	"github.com/direct-state-transfer/dst-go/channel"
 	"github.com/direct-state-transfer/dst-go/ethereum/adapter"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
-	"github.com/fatih/color"
 )
 
 func realBlockchain(alice, bob bool, wg *sync.WaitGroup, dispute bool) {
@@ -188,8 +189,8 @@ func realBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute bool)
 	case mscEventInitializing := <-eventsChan.MSCInitializingChan:
 		_, _ = printer.Printf("\nMscEventInitializing : Address sender - %s, Address receiver - %s\n",
 			mscEventInitializing.AddressAlice.String(), mscEventInitializing.AddressBob.String())
-	case err := <-eventsChan.MSCInitalizingSub.Err():
-		_, _ = printer.Printf("\nMscEventInitializing : Error - %s\n", err)
+	case eventErr := <-eventsChan.MSCInitalizingSub.Err():
+		_, _ = printer.Printf("\nMscEventInitializing : Error - %s\n", eventErr)
 	case <-ticker:
 		_, _ = printer.Printf("\nMscEventInitializing : Timedout %s\n", err)
 	}
@@ -584,7 +585,7 @@ func realBlockchainBob(printer *color.Color, wg *sync.WaitGroup) (err error) {
 		return
 	}
 
-	_, _ = printer.Printf("Node initialised. Open for incoming channel requests\n")
+	_, _ = printer.Printf("Node initialized. Open for incoming channel requests\n")
 
 	go func(bcInst2 *blockchain.Instance,
 		incomingConnChan chan *channel.Instance, wg *sync.WaitGroup) {
@@ -737,8 +738,8 @@ func realBlockchainBob(printer *color.Color, wg *sync.WaitGroup) (err error) {
 		case mscEventInitializing := <-eventsChan.MSCInitializingChan:
 			_, _ = printer.Printf("\nMscEventInitializing : Address sender - %s, Address receiver - %s\n",
 				mscEventInitializing.AddressAlice.String(), mscEventInitializing.AddressBob.String())
-		case err := <-eventsChan.MSCInitalizingSub.Err():
-			_, _ = printer.Printf("\nMscEventInitializing : Error - %s\n", err)
+		case eventErr := <-eventsChan.MSCInitalizingSub.Err():
+			_, _ = printer.Printf("\nMscEventInitializing : Error - %s\n", eventErr)
 		case <-ticker:
 			_, _ = printer.Printf("\nMscEventInitializing : Timedout %s\n", err)
 		}

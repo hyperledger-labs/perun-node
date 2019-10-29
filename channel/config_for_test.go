@@ -59,14 +59,16 @@ func TestMain(m *testing.M) {
 
 	//Flag value is ignored, use hardcoded value
 	//Because signatures used in tests are for these keys
-	configFile, err := filepath.Abs(configFile)
+	var err error
+	configFile, err = filepath.Abs(configFile)
 	if err != nil {
 		fmt.Println("test config file path error -", err)
 		os.Exit(1)
 	}
 	fmt.Println("using test config file -", configFile)
 
-	jsonFile, err := ioutil.ReadFile(configFile)
+	var jsonFile []byte
+	jsonFile, err = ioutil.ReadFile(configFile)
 	if err != nil {
 		fmt.Println("Cannot open test_addresses file -", err)
 		os.Exit(1)
@@ -85,7 +87,7 @@ func TestMain(m *testing.M) {
 	bobPassword = jsonData.BobPassword
 
 	testKeyStorePath = filepath.Join(filepath.Dir(configFile), jsonData.KeystoreDir)
-	testKeyStorePath, err := filepath.Abs(testKeyStorePath)
+	testKeyStorePath, err = filepath.Abs(testKeyStorePath)
 	if err != nil {
 		fmt.Println("test keystore file path error -", err)
 		os.Exit(1)

@@ -80,7 +80,7 @@ func Test_loggerInterface_methods_panic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if !assert.NotPanics(t, tt.methodCall) {
-				t.Errorf("panic when *LoggerInterface is set to *Logger_uninitialised")
+				t.Errorf("panic when *LoggerInterface is set to *Logger_uninitialized")
 			}
 		})
 	}
@@ -107,7 +107,7 @@ func Test_loggerInterface_methods_panic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if !assert.Panics(t, tt.methodCall) {
-				t.Errorf("does not panic when *LoggerInterface uninitialised")
+				t.Errorf("does not panic when *LoggerInterface uninitialized")
 			}
 		})
 	}

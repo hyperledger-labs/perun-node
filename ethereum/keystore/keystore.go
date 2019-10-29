@@ -19,9 +19,10 @@ package keystore
 import (
 	"io/ioutil"
 
-	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/ethereum/go-ethereum/accounts"
 	ethereumKeystore "github.com/ethereum/go-ethereum/accounts/keystore"
+
+	"github.com/direct-state-transfer/dst-go/ethereum/types"
 )
 
 // Standard parameter values for N,P in Scrypt algorithm used for encrypting keys stored on disk.

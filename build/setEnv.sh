@@ -18,6 +18,7 @@ fi
 
     if [ ! -L "$tempDir/dst-go" ]; then
      mkdir -p "$tempDir"
+     mkdir -p "$tempGoPath/bin"
      cd "$tempDir"
      ln -s ../../../../../. dst-go
      cd "$root"

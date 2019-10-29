@@ -20,12 +20,13 @@ import (
 	"fmt"
 	"math/big"
 
+	"golang.org/x/net/context"
+
 	"github.com/direct-state-transfer/dst-go/ethereum/adapter"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/direct-state-transfer/dst-go/identity"
 	"github.com/direct-state-transfer/dst-go/log"
-	"golang.org/x/net/context"
 )
 
 var packageName = "blockchain"
@@ -74,7 +75,7 @@ type Instance struct {
 	EventsChan EventsChan
 }
 
-// NewInstance initialises and returns a new blockchain instance.
+// NewInstance initializes and returns a new blockchain instance.
 func NewInstance(conn adapter.ContractBackend, ownerID identity.OffChainID) Instance {
 	return Instance{
 		Conn:    conn,
@@ -299,7 +300,7 @@ func (inst *Instance) StateRegister(Sid, Version *big.Int, BlockedSender *big.In
 }
 
 // VPCClose makes a VPCClose call on the deployed instance of VPC.
-// This call register this user's request to finalise the state of the offchain channel.
+// This call register this user's request to finalize the state of the offchain channel.
 //
 // Sid should be the unique session id of the channel and Version its latest version.
 // AddrSender and AddrReceiver should be the onchain address of the respective users in offchain channel.
@@ -398,9 +399,9 @@ func (inst *Instance) States() (states interface{}, err error) {
 	return states, nil
 }
 
-// InitializeEventsChan initialises subscriptions for all the event defined in offchain protocol.
+// InitializeEventsChan initializes subscriptions for all the event defined in offchain protocol.
 //
-// List of events initialised currently
+// List of events initialized currently
 // MscEventInitialized, MscEventStateRegistering, MscEventStateRegistered, vpcEventClosing, vpcEventClosed, MscEventClosed
 //
 // Only for MSEventInitialing it also starts a filter query to check if the event has occurred in past.
@@ -422,14 +423,14 @@ func (inst *Instance) InitializeEventsChan() (eventsChan EventsChan, err error) 
 		var startBlock = uint64(0)
 		var endBlock = (*uint64)(nil)
 		filterOpts := adapter.MakeFilterOpts(context.TODO(), &startBlock, endBlock)
-		itr, err := bcInst.MSContractInst.FilterEventInitializing(filterOpts)
-		if err != nil {
-			logger.Info("filter event initialzing error - " + err.Error())
+		itr, eventFilteringErr := bcInst.MSContractInst.FilterEventInitializing(filterOpts)
+		if eventFilteringErr != nil {
+			logger.Info("filter event initialzing error - " + eventFilteringErr.Error())
 			return
 		}
 		nextPresent := itr.Next()
 		if nextPresent && itr.Event != nil {
-			eventsChan.MSCInitializingChan <- itr.Event
+			ch <- itr.Event
 		}
 	}(inst, eventsChan.MSCInitializingChan)
 
@@ -484,7 +485,7 @@ func (inst *Instance) InitializeEventsChan() (eventsChan EventsChan, err error) 
 	return eventsChan, nil
 }
 
-// InitModule initialises blockchain module. It initialises logger and also checks if libSignatures Contract at LibSignAddr is valid.
+// InitModule initializes blockchain module. It initializes logger and also checks if libSignatures Contract at LibSignAddr is valid.
 // If libSignAddr is empty, the validity check is skipped.
 func InitModule(cfg *Config) (conn *adapter.RealBackend, libSignAddr types.Address, err error) {
 
@@ -494,7 +495,7 @@ func InitModule(cfg *Config) (conn *adapter.RealBackend, libSignAddr types.Addre
 	}
 
 	//Initialise connection
-	logger.Debug("Initialising Blockchain module")
+	logger.Debug("Initializing Blockchain module")
 	logger.Info("Connecting to blockchain node at ", cfg.gethURL, "...")
 
 	//Establish a connection with blockchain node
@@ -537,7 +538,7 @@ func InitModule(cfg *Config) (conn *adapter.RealBackend, libSignAddr types.Addre
 		logger.Info("Library contract address not specified")
 	}
 
-	logger.Debug("Blockchain module successfully initialised")
+	logger.Debug("Blockchain module successfully initialized")
 
 	return conn, libSignAddr, nil
 }

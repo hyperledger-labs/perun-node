@@ -63,7 +63,9 @@ func TestMain(m *testing.M) {
 
 	flag.StringVar(&configFile, "configFile", defaultConfigFile, "Config file for unit tests")
 	flag.Parse()
-	configFile, err := filepath.Abs(configFile)
+
+	var err error
+	configFile, err = filepath.Abs(configFile)
 	if err != nil {
 		fmt.Println("test config file path error -", err)
 		os.Exit(1)
@@ -96,7 +98,7 @@ func TestMain(m *testing.M) {
 
 	configFileDir := filepath.Dir(configFile)
 	testKeyStorePath = filepath.Join(configFileDir, jsonData.KeystoreDir)
-	testKeyStorePath, err := filepath.Abs(testKeyStorePath)
+	testKeyStorePath, err = filepath.Abs(testKeyStorePath)
 	if err != nil {
 		fmt.Println("test keystore file path error -", err)
 		os.Exit(1)
@@ -113,13 +115,13 @@ func setupLogger() {
 
 	identityLogger, err := log.NewLogger(log.DebugLevel, log.StdoutBackend, "identity-test")
 	if err != nil {
-		fmt.Println("Error initialising identity logger for tests")
+		fmt.Println("Error initializing identity logger for tests")
 	}
 	identity.SetLogger(identityLogger)
 
 	keystoreLogger, err := log.NewLogger(log.DebugLevel, log.StdoutBackend, "keystore-test")
 	if err != nil {
-		fmt.Println("Error initialising keystore logger for tests")
+		fmt.Println("Error initializing keystore logger for tests")
 	}
 	keystore.SetLogger(keystoreLogger)
 }
