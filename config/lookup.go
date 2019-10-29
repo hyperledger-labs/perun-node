@@ -22,8 +22,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/spf13/pflag"
+
+	"github.com/direct-state-transfer/dst-go/ethereum/types"
 )
 
 // FlagInfo represents flag information consisting of flag name, pointer to store its value and a variable to track if the flag was modified.

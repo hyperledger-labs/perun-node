@@ -61,7 +61,8 @@ func TestMain(m *testing.M) {
 
 	//Flag value is ignored, use hardcoded value
 	//Because signatures used in tests are for these keys
-	configFile, err := filepath.Abs(configFile)
+	var err error
+	configFile, err = filepath.Abs(configFile)
 	if err != nil {
 		fmt.Println("test config file path error -", err)
 		os.Exit(1)
@@ -87,7 +88,7 @@ func TestMain(m *testing.M) {
 	bobPassword = jsonData.BobPassword
 
 	testKeyStorePath = filepath.Join(filepath.Dir(configFile), jsonData.KeystoreDir)
-	testKeyStorePath, err := filepath.Abs(testKeyStorePath)
+	testKeyStorePath, err = filepath.Abs(testKeyStorePath)
 	if err != nil {
 		fmt.Println("test keystore file path error -", err)
 		os.Exit(1)
@@ -111,12 +112,12 @@ func setupLogger() {
 	var err error
 	logger, err = log.NewLogger(log.DebugLevel, log.StdoutBackend, "identity-test")
 	if err != nil {
-		fmt.Println("Error initialising logger for tests")
+		fmt.Println("Error initializing logger for tests")
 	}
 
 	keystoreLogger, err := log.NewLogger(log.DebugLevel, log.StdoutBackend, "keystore-test")
 	if err != nil {
-		fmt.Println("Error initialising keystore logger for tests")
+		fmt.Println("Error initializing keystore logger for tests")
 	}
 	keystore.SetLogger(keystoreLogger)
 }

@@ -88,6 +88,7 @@ func main() {
 		runWalkthrough(os.Args[2:])
 
 	case "lint":
+		fetchVendoredPackages()
 		performLint()
 	}
 }
@@ -106,11 +107,17 @@ func installDependencies() (err error) {
 	}
 	fmt.Printf("Successful")
 
-	fmt.Printf("\ngometalinter.v2...\t")
-	cmd = exec.Command("go", "get", "-u", "-v", "gopkg.in/alecthomas/gometalinter.v2")
-	output, err = cmd.CombinedOutput()
+	fmt.Printf("\ngolangci-lint v1.21.0...\t")
+
+	tempGoBin := filepath.Join(tempGoPath, "bin")
+	outputByteArr, err := pipe(
+		// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
+		exec.Command("curl", "-sfL", "https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh"),
+		// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
+		exec.Command("sh", "-s", "--", "-b", tempGoBin, "v1.21.0"),
+	)
 	if err != nil {
-		return fmt.Errorf("failed. Below errors are reported\n\n%s", output)
+		return fmt.Errorf("failed. Below errors are reported\n\n%s", outputByteArr.String())
 	}
 	fmt.Printf("Successful\n\n")
 	return nil
@@ -149,7 +156,8 @@ func fetchVendoredPackages() {
 
 	//Delete all the existing vendored files
 	root := filepath.Join(tempProjectRoot, "vendor")
-	if vendorFile, err := os.Stat(root); os.IsNotExist(err) || !vendorFile.IsDir() {
+	var vendorFile os.FileInfo
+	if vendorFile, err = os.Stat(root); os.IsNotExist(err) || !vendorFile.IsDir() {
 		fmt.Println("Vendor directory missing or it is a file")
 		os.Exit(1)
 	}
@@ -169,6 +177,7 @@ func fetchVendoredPackages() {
 	}
 
 	//Fetch vendored libraries using tool
+	// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
 	cmd = exec.Command(filepath.Join(tempGoPath, "/bin/govendor"), "sync", "-v")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -179,6 +188,7 @@ func fetchVendoredPackages() {
 	}
 
 	//Print the status of vendored libraries
+	// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
 	cmd = exec.Command(filepath.Join(tempGoPath, "/bin/govendor"), "list")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -267,7 +277,7 @@ func buildWalkthrough() {
 		fmt.Println("Walkthrough build failed - ", err)
 		os.Exit(1)
 	}
-	fmt.Println("Successful")
+	fmt.Println("Build Successful")
 }
 
 //Walkthrough
@@ -297,27 +307,17 @@ func performLint() {
 	fmt.Println("----------------------------------------------------------")
 	fmt.Println("                     Linting the code                     ")
 	fmt.Println("----------------------------------------------------------")
-	fmt.Printf("\nInstalling Linters...\t")
-	cmd := exec.Command(filepath.Join(tempGoPath, "/bin/gometalinter.v2"), "--install")
+	fmt.Printf("\nRunning Linters...\t")
+
+	// Configuration is fetched from the file .golangci.yml in project root directory.
+	// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
+	cmd := exec.Command(filepath.Join(tempGoPath, "/bin/golangci-lint"), "run", "./...")
+	cmd.Dir = tempProjectRoot
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Failed. Below warnings and errors are reported\n\n%s\n", output)
 		os.Exit(1)
 	} else {
-		fmt.Printf("Successful")
-	}
-
-	fmt.Printf("\nRunning Linters...\t")
-
-	//Configuration for the linters is stored in a json file.
-	configFile := filepath.Join(tempProjectRoot, "build/linterConfig.json")
-
-	cmd = exec.Command(filepath.Join(tempGoPath, "/bin/gometalinter.v2"), "--config="+configFile, "./...")
-	output, err = cmd.CombinedOutput()
-	if err != nil {
-		fmt.Printf("Failed. Below warnings and errors are reported\n\n%s\n", output)
-		os.Exit(1)
-	} else {
-		fmt.Printf("Successful")
+		fmt.Printf("Successful. No errors detected\n")
 	}
 }

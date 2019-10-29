@@ -25,14 +25,15 @@ import (
 	"testing"
 	"time"
 
+	ethereumTypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/stretchr/testify/mock"
+	"golang.org/x/net/context"
+
 	"github.com/direct-state-transfer/dst-go/ethereum/adapter"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/direct-state-transfer/dst-go/identity"
 	"github.com/direct-state-transfer/dst-go/log"
-	ethereumTypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/stretchr/testify/mock"
-	"golang.org/x/net/context"
 )
 
 type dummySubscription struct {

@@ -23,9 +23,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/direct-state-transfer/dst-go/ethereum/contract"
-	"github.com/direct-state-transfer/dst-go/ethereum/types"
-	"github.com/direct-state-transfer/dst-go/identity"
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
@@ -34,6 +31,10 @@ import (
 	ethereumTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/event"
+
+	"github.com/direct-state-transfer/dst-go/ethereum/contract"
+	"github.com/direct-state-transfer/dst-go/ethereum/types"
+	"github.com/direct-state-transfer/dst-go/identity"
 )
 
 // Transaction wraps the transaction type defined in go-ethereum/core/types.
@@ -106,7 +107,7 @@ func (conn *RealBackend) BackendType() BackendType {
 	return Real
 }
 
-// Commit is dummy implementation to fulfil the ContractBackend interface.
+// Commit is dummy implementation to fulfill the ContractBackend interface.
 func (conn *RealBackend) Commit() {
 }
 
@@ -126,7 +127,7 @@ func (conn *SimulatedBackend) TransactionByHash(ctx context.Context, hash common
 	return &ethereumTypes.Transaction{}, false, fmt.Errorf("DO NOT USE THIS METHOD. Implemented for ContractBackend interface")
 }
 
-// NewRealBackend initialises and returns an blockchain instance with a connection to the blockchain node running at nodeUrl.
+// NewRealBackend initializes and returns an blockchain instance with a connection to the blockchain node running at nodeUrl.
 func NewRealBackend(nodeURL string) (*RealBackend, error) {
 	conn, err := ethclient.Dial(nodeURL)
 	if err != nil {
@@ -135,7 +136,7 @@ func NewRealBackend(nodeURL string) (*RealBackend, error) {
 	return &RealBackend{conn}, nil
 }
 
-// NewSimulatedBackend initialises and returns an blockchain instance with a simulated backend.
+// NewSimulatedBackend initializes and returns an blockchain instance with a simulated backend.
 // It creates two dummy accounts with address and balances (in Wei) as specified in balanceList
 func NewSimulatedBackend(balanceList map[types.Address]*big.Int) *SimulatedBackend {
 
@@ -217,7 +218,7 @@ func MakeTransactOpts(conn ContractTransactor, idWithCredentials identity.OffCha
 }
 
 // DeployContract deploys the contract represented by handle with parameters as defined by params.
-// It initialises and returns a handler that is bound to the instance of the deployed contract.
+// It initializes and returns a handler that is bound to the instance of the deployed contract.
 // For the deploy transaction will be send from the onchain id in idWithCredentials.
 func DeployContract(handle contract.Handler, conn ContractBackend, params []interface{}, idWithCredentials identity.OffChainID) (
 	contractAddr types.Address, tx *Transaction, handler interface{}, err error) {

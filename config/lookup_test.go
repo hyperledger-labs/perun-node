@@ -23,8 +23,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/spf13/pflag"
+
+	"github.com/direct-state-transfer/dst-go/ethereum/types"
 )
 
 func setupNewFlag(flagTypes ...string) *pflag.FlagSet {
@@ -92,7 +93,7 @@ func setupParseFlags(fs *pflag.FlagSet, argsToParse []string) (err error) {
 	for _, arg := range argsToParse {
 
 		stringToParse := fmt.Sprint(arg)
-		err := fs.Parse([]string{stringToParse})
+		err = fs.Parse([]string{stringToParse})
 		if err != nil {
 			break
 		}
@@ -456,18 +457,6 @@ func Test_Lookup(t *testing.T) {
 		},
 
 		//Negative test cases, passes when error is returned
-		{
-			name: "boolFlag_ValueSpecified_FlagUndefined",
-			args: args{
-				flagSet: setupNewFlag(""),
-				flagInfo: []flagInfo{
-					{"boolFlag", new(bool)},
-				},
-			},
-			stringToParse: []string{"--boolFlag=true"},
-			wantChanged:   false,
-			wantErr:       false,
-		},
 		{
 			name: "commonAddressFlag_ValueSpecified",
 			args: args{

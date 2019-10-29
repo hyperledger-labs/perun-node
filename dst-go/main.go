@@ -19,13 +19,14 @@ package main
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/direct-state-transfer/dst-go/blockchain"
 	"github.com/direct-state-transfer/dst-go/channel"
 	"github.com/direct-state-transfer/dst-go/ethereum/adapter"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/direct-state-transfer/dst-go/identity"
 	"github.com/direct-state-transfer/dst-go/log"
-	"github.com/spf13/cobra"
 )
 
 var packageName = "dst-go"
@@ -60,32 +61,33 @@ func nodeInit(cmd *cobra.Command, args []string) {
 
 	logger, err = log.NewLogger(ConfigDefault.Logger.Level, ConfigDefault.Logger.Backend, packageName)
 	if err != nil {
-		fmt.Println("error initialising logger\n", err)
+		fmt.Println("error initializing logger\n", err)
 		return
 	}
 
 	err = identity.InitModule(&ConfigDefault.Identity)
 	if err != nil {
-		logger.Error("error initialising identity module -", err)
+		logger.Error("error initializing identity module -", err)
 		return
 	}
 
 	err = channel.InitModule(&ConfigDefault.Channel)
 	if err != nil {
-		logger.Error("error initialising channel module -", err)
+		logger.Error("error initializing channel module -", err)
 		return
 	}
 
 	BlockchainConn, LibSignAddr, err = blockchain.InitModule(&ConfigDefault.Blockchain)
 	if err != nil {
-		logger.Error("error initialising blockchain module -", err)
+		logger.Error("error initializing blockchain module -", err)
 		return
 	}
 	if err == nil {
-		logger.Info("Node successfully initialised")
+		logger.Info("Node successfully initialized")
 	}
 
 	//TODO : Exit signal from keyboard interrupt and other modules
 	for {
+		logger.Error("The event handler is yet to be implemented")
 	}
 }

@@ -23,9 +23,10 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/direct-state-transfer/dst-go/ethereum/keystore/mocks"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type hashSignaturePairs struct {

@@ -19,9 +19,10 @@ package keystore
 import (
 	"crypto/ecdsa"
 
-	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+
+	"github.com/direct-state-transfer/dst-go/ethereum/types"
 )
 
 // CryptoWrapperInterface defines signatures for cryptography related function that will be used to handle ethereum keys.

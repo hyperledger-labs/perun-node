@@ -16,6 +16,6 @@
 
 // Package blockchain implements blockchain functionality for the node software.
 //
-// It provides ways to initialise and use blockchain connection,
+// It provides ways to initialize and use blockchain connection,
 // deploy contracts, call functions and listen to events.
 package blockchain

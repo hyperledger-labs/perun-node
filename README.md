@@ -198,10 +198,6 @@ Run the below command from the root of the project to perform lint on the projec
 make lint
 ```
 
-Note: Currently gometalinter.v2 is used and the configurations are
-available at [build/linterConfig.json](build/linterConfig.json). It will
-be moved to golangci-lint in future.
-
 ## License
 
 dst-go is open-sourced under the Apache-2.0 license. See the
