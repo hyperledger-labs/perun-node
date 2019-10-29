@@ -41,26 +41,15 @@ This below document explains how to start using direct state transfer software.
 ### Build from source
 
 The following commands can be used to build and install dst-go from its source.
-Once the GOPATH and GOBIN are properly set in the local environment, following commands can be executed.
 
 ```bash
-cd $GOPATH
-cd src
-
-#create directory
-mkdir -p github.com/direct-state-transfer
-cd github.com/direct-state-transfer
-
 #clone dst-go repo
 git clone https://github.com/direct-state-transfer/dst-go.git
 cd dst-go
 
-#install govendor tool to sync vendored dependencies
-go get -u -v github.com/kardianos/govendor
-
 #sync dependencies
-#should be run inside the cloned root of the dst-go repo (~/PATH/dst-go)
-govendor sync -v
+#should be run inside the cloned root of the dst-go repo
+go mod tidy
 
 #Now navigate to dst-go module inside the repo
 cd dst-go
@@ -69,6 +58,7 @@ go install -v
 ```
 
 dst-go is installed in the local machine and the binary will be available at the set GOBIN path.
+If GOBIN is not set, they it can be found at ~/go/bin
 
 ### Build using Make
 
@@ -89,7 +79,7 @@ make help
 make install
 ```
 
-On successful run, the binary will be available at ~/LOCAL_WORKSPACE/dst-go/build/workspace_/bin
+On successful run, the binary will be available at $GOPATH/bin. If $GOPATH is empty, then it can be found in ~/go/bin
 
 ### Build and run walkthrough
 
@@ -134,23 +124,23 @@ This can be run with a geth node (real backend) or with the simulated backend (f
 3. Sample configuration is available at testdata with default keys and key files. To use these, simply add the key files from testdata/test-keystore directory to geth's keystore.
 4. Both Alice's and Bob's account should have minimum of 10 Ethers each to run this walkthrough. (It is currently not yet tested on mainnet.)
 5. If a local geth node is used to run the walkthrough, the mining should be activated to execute transactions.
-6. Make sure that the vendored dependencies using govendor tool are synchronized.
+6. Make sure that the dependencies are synchronized using go mod.
 
 #### Build and run from source
 
 Use the below commands to build and run the walkthrough from source.
 
 ```bash
-cd $GOPATH/src/github.com/direct-state-transfer/dst-go/walkthrough
+cd dst-go/walkthrough
 #build walkthrough
 go build -v
 
 #Run walkthrough
-#Initialize bob's node (should be started first) and let it run..
+#Initialize bob's node (should be started first) and let it run.
 ./walkthrough --real_backend_bob
 
 #Open a new terminal and go to walkthrough dir
-cd $GOPATH/src/github.com/direct-state-transfer/dst-go/walkthrough
+cd dst-go/walkthrough
 
 #Initialize alice's node and commence walkthrough
 ./walkthrough --real_backend_alice
