@@ -54,6 +54,19 @@ contributed, consistent with the style used by this project. If your
 contribution contains code under the copyright of a third party,
 document its origin, license, and copyright holders.
 
+### Maintain Copyright holder / Contributor list
+
+Each contributor is responsible for identifying themselves in the
+[NOTICE](NOTICE) file, the project's list of copyright holders and
+authors. Please add the respective information corresponding to the
+Signed-off-by tag as part of your first pull request.
+
+If you are a developer who is authorized to contribute to DST on behalf
+of your employer, then add your company / organization to the list of
+copyright holders in the [NOTICE](NOTICE) file. As author of a corporate
+contribution you can also add your name and corporate email address as
+in the Signed-off-by tag.
+
 ### Sign the CLA and sign your work
 
 We believe that if successful the DST project should move to a neutral
@@ -82,3 +95,13 @@ If you have set your `user.name` and `user.email` git configs you can
 automatically sign the commit by running the git-commit command with the
 `-s` option.  There may be multiple sign-offs if more than one developer
 was involved in authoring the contribution.
+
+### Individual vs. Corporate Contributors
+
+Often employers or academic institution have ownership over code that is
+written in certain circumstances, so please do due diligence to ensure
+that you have the right to submit the code.
+
+If you are a developer who is authorized to contribute to DST on behalf
+of your employer, then please use your corporate email address in the
+Signed-off-by tag. Otherwise please use a personal email address.
