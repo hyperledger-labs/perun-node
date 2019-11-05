@@ -59,6 +59,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// documentation of commands in doc.go
 	switch os.Args[1] {
 	case "fetchDependencies":
 		fetchVendoredPackages()
