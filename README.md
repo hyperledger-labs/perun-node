@@ -78,13 +78,15 @@ From the local workspace run the following command to clone the dst-go project.
 git clone https://github.com/direct-state-transfer/dst-go.git
 ```
 
-The available make files can be used to build dst-go from source.
+The available make file can be used to build dst-go from source.
 The following commands can be executed from the root repository of the project.
 (~/LOCAL_WORKSPACE/dst-go/)
 
 ```bash
+#To get a list of available build targets
+make help
 #To fetch dependencies and install dst-go
-make
+make install
 ```
 
 On successful run, the binary will be available at ~/LOCAL_WORKSPACE/dst-go/build/workspace_/bin
@@ -162,14 +164,14 @@ The following make commands are available to run the walkthrough sequence.
 
 ```bash
 #To run walkthrough with real backend
-make runWalkthrough walkthroughOpts="--real_backend"
+make runWalkthrough BUILDOPTS="--real_backend"
 
 #To run with simulated backend
 #This will work with the default configuration in testdata
-make runWalkthrough walkthroughOpts="--simulated_backend"
+make runWalkthrough BUILDOPTS="--simulated_backend"
 
 #Multiple options can also be passed as shown below.
-make runWalkthrough backend=real walkthroughOpts="--simulated_backend --dispute --ch_message_print"
+make runWalkthrough BUILDOPTS="--simulated_backend --dispute --ch_message_print"
 ```
 
 ### Testing
@@ -185,7 +187,7 @@ make test
 # option as shown below.
 # Some flags will be enabled by default (-cover and cache=1). Output is
 # non verbose by default.
-make test testOpts="-v -short"
+make test BUILDOPTS="-v -short"
 ```
 
 #### Performing lint
