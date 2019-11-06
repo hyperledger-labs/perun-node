@@ -34,7 +34,7 @@ jobs:
           name: Run unit short tests
           command: |
             trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
-            make ciTest testOpts="-v -short" | tee ${TEST_RESULTS}/go-test.out
+            make ciTest BUILDOPTS="-v -short" | tee ${TEST_RESULTS}/go-test.out
       - store_test_results:
           path: /tmp/test-results
 
@@ -49,7 +49,7 @@ jobs:
       - run:
           name: Run walktthrough with simulated backend
           command: |
-            make ciRunWalkthrough walkthroughOpts="--simulated_backend"
+            make ciRunWalkthrough BUILDOPTS="--simulated_backend"
 
 workflows:
   version: 2

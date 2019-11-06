@@ -14,17 +14,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// build implements commands that will be called from the continuous integration scripts.
-// The commands are also used by makefile to build the project on systems where setting up
-// a go development environment or using existing one for this project is not desirable.
-//
-//Available commands are
-//	fetchDependencies		-- fetches all needed dependencies
-//	install				-- fetch dependencies and installs the dst-go software.
-//	ciInstall			-- installs the dst-go software
-//	lint				-- runs meta-linter with configuration at linterConfig.json.
-//	test				-- fetch dependencies and runs unit tests, all flags of "go test" command can be used.
-//	ciTest				-- runs unit tests, all flags of "go test" command can be used.
-//	runWalkthrough			-- fetch dependencies, builds and runs the walkthrough. Specify "simulated" or "real" backend.
-//	ciRunWalkthrough		-- builds and runs the walkthrough. Specify "simulated" or "real" backend.
+/*
+build implements commands that will be called from the continuous integration scripts.
+The commands are also used by makefile to build the project on systems where setting up
+a go development environment or using existing one for this project is not desirable.
+
+Available commands are:
+
+	install        -- install the dst-go software
+	lint           -- run meta-linter with configuration linterConfig.json
+	test           -- run unit tests, with options as in "go test" command
+	runWalkthrough -- build and run walkthrough. Behavior is configurable with
+	                  options such as "--simulated_backend", "--real_backend",
+	                  etc.
+
+	fetchDependencies -- fetch all dependencies
+	ciInstall         -- as `install` but without fetching dependencies
+	ciTest            -- as `test` but without fetching dependencies
+	ciRunWalkthrough  -- as `runWalkthrough` but without fetching dependencies
+
+*/
 package main

@@ -1,54 +1,33 @@
+# You can set these variables from the command line.
+BUILDOPTS =
 
-.PHONY: dst
+# Internal variables
+__BUILDHELP = (go doc ./build \
+              | grep -E '^    [[:alnum:]_-]+.*?--.*|^         .*')
+__TARGETS = $(shell $(__BUILDHELP) \
+            | awk 'BEGIN {FS=" -- |^      *?"}; $$1 != "" {print $$1}')
 
-fetchDependencies:
-	cd build && go build && cd ..
-	build/setEnv.sh build/build fetchDependencies
-	rm build/build
-	@echo "Done fetching."
+# color definitions for help output
+__BLUE = \033[1;34m
+__NC   = \033[0m
 
-install:
-	cd build && go build && cd ..
-	build/setEnv.sh build/build install
+# Put it first so that "make" without argument is like "make help".
+help:               ## display this help text
+	@echo -n "Please use 'make $(__BLUE)target$(__NC)' where "
+	@echo "$(__BLUE)target$(__NC) is one of"
+	@grep -E '^[[:alnum:]_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+	| awk 'BEGIN {FS = ":.*?## "}; \
+	       {printf "  $(__BLUE)%-17s$(__NC) %s\n", $$1, $$2}'
+	@$(__BUILDHELP) \
+	| awk 'BEGIN {FS=" -- |^      *?"}; \
+	       {gsub(/ /, "", $$1); \
+	        printf "  $(__BLUE)%-17s$(__NC) %s\n", $$1, $$2}'
+
+.PHONY: help Makefile
+
+# $(O) is meant as a shortcut for $(BUILDOPTS).
+$(__TARGETS): Makefile
+	go build -o build/build ./build
+	build/setEnv.sh build/build $@ $(BUILDOPTS) $(0)
 	rm build/build
 	@echo "Done building."
-
-ciInstall:
-	cd build && go build && cd ..
-	build/setEnv.sh build/build ciInstall
-	rm build/build
-	@echo "Done ci building."
-
-test:
-	cd build && go build && cd ..
-	build/setEnv.sh build/build test $(testOpts)
-	rm build/build
-	@echo "Test Completed."
-
-ciTest:
-	cd build && go build && cd ..
-	build/setEnv.sh build/build ciTest $(testOpts)
-	rm build/build
-	@echo "Test Completed."
-
-
-runWalkthrough: 
-	cd build && go build && cd ..
-	build/setEnv.sh build/build runWalkthrough $(walkthroughOpts)
-	rm build/build
-	@echo "walkthrough completed."
-
-ciRunWalkthrough: 
-	cd build && go build && cd ..
-	build/setEnv.sh build/build ciRunWalkthrough $(walkthroughOpts)
-	rm build/build
-	@echo "justrunwalkthrough completed."
-
-lint: 
-	cd build && go build && cd ..
-	build/setEnv.sh build/build lint
-	rm build/build
-	@echo "Performed Lint."
-
-
-target: install
