@@ -55,7 +55,7 @@ func main() {
 
 	packagesList, err := generatePackagesList()
 	if err != nil {
-		fmt.Printf("Error generating package list : %s", err)
+		fmt.Printf("Error generating package list : %s\n", err)
 		os.Exit(1)
 	}
 

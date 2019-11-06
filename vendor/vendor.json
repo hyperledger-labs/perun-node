@@ -138,12 +138,6 @@
 			"revisionTime": "2019-04-26T09:22:21Z"
 		},
 		{
-			"checksumSHA1": "aR8giSwNg7ogfWoUuEqkqmN/HRc=",
-			"path": "github.com/b4b4r07/go-pipe",
-			"revision": "ed1c7948fefc784c9e562b891ee421bb0d803811",
-			"revisionTime": "2019-05-10T19:03:01Z"
-		},
-		{
 			"checksumSHA1": "gZQ6HheWahvZzIc3phBnOwoWHjE=",
 			"origin": "github.com/ethereum/go-ethereum/vendor/github.com/btcsuite/btcd/btcec",
 			"path": "github.com/btcsuite/btcd/btcec",
