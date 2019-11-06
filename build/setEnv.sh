@@ -24,8 +24,8 @@ fi
     fi
    
     # Set up the environment to use the workspace.
-    GOPATH="$tempGoPath"
-    export GOPATH
+    export GOPATH="$tempGoPath"
+    export GOBIN=""
 
     # Change Dir
     cd "$tempDir/dst-go"
