@@ -13,10 +13,8 @@ __NC   = \033[0m
 
 # Put it first so that "make" without argument is like "make help".
 help:               ## display this help text
-	@echo -n "\nUsage:\n\tmake $(__BLUE)target$(__NC) BUILDOPTS=[options]"
-	@echo -n "\n\n\tEg: make test BUILDOPTS='-short'"
-	@echo -n "\n\tNote: When no options to be provided, BUILDOPTS can be omitted.\n"
-	@echo -n "\nThe targets are\n\n"
+	@echo -n "\nUsage:\n\tmake $(__BLUE)<target>$(__NC) [BUILDOPTS='options']"
+	@echo -n "\n\nThe targets are\n\n"
 	@grep -E '^[[:alnum:]_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	| awk 'BEGIN {FS = ":.*?## "}; \
 	       {printf "  $(__BLUE)%-17s$(__NC) %s\n", $$1, $$2}'
@@ -24,6 +22,7 @@ help:               ## display this help text
 	| awk 'BEGIN {FS=" -- |^      *?"}; \
 	       {gsub(/ /, "", $$1); \
 	        printf "  $(__BLUE)%-17s$(__NC) %s\n", $$1, $$2}'
+	@echo -n "\nEg: make test BUILDOPTS='-short'\n\n"
 
 .PHONY: help Makefile
 
