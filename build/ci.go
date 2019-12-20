@@ -18,38 +18,54 @@ package main
 
 import (
 	"fmt"
+	"go/build"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
 )
 
-var tempGoPath, tempProjectRoot string
+var goPath, goBin, projectRootDir string
 
 var (
 	requiredGoVersionMajor = uint8(1)  //Go1.x Required
-	minimumGoVersionMinor  = uint8(10) //Go1.10 Minimum
+	minimumGoVersionMinor  = uint8(11) //Go1.11 Minimum
 )
 
 func main() {
+
+	var err error
+	var workingDir string
+
+	_, programFilePath, _, ok := runtime.Caller(0)
+	if !ok {
+		fmt.Printf("Error in fetching caller information : %s\n", err)
+		os.Exit(1)
+	}
+
+	projectRootDir = path.Dir(path.Dir(programFilePath))
+
+	workingDir, err = os.Getwd()
+	if err != nil {
+		fmt.Printf("Error in fetching current working directory : %s\n", err)
+		os.Exit(1)
+	}
+
+	if projectRootDir != workingDir {
+		fmt.Printf("Error - Program can only be invoked from project root directory\n")
+		os.Exit(1)
+	}
 
 	if len(os.Args) < 1 {
 		fmt.Println("No commands to execute")
 	}
 
-	var err error
-
-	tempGoPath = os.Getenv("GOPATH")
-	if tempGoPath == "" {
-		tempGoPath = filepath.Join(os.Getenv("HOME"), "go")
-	}
-
-	tempProjectRoot, err = os.Getwd()
-	if err != nil {
-		fmt.Printf("Error in fetching current working directory : %s\n", err)
-		os.Exit(1)
-	}
+	//the variable from build package gives the proper gopath
+	//from environment variables if set, else default value (~/go)
+	goPath = build.Default.GOPATH
+	goBin = filepath.Join(goPath, "bin")
 
 	err = checkGoEnv(requiredGoVersionMajor, minimumGoVersionMinor)
 	if err != nil {
@@ -68,8 +84,6 @@ func main() {
 		fmt.Printf("Error generating package list : %s\n", err)
 		os.Exit(1)
 	}
-
-	// documentation of commands in doc.go
 
 	switch os.Args[1] {
 	case "fetchDependencies":
@@ -112,12 +126,11 @@ func installDependencies() (err error) {
 
 	fmt.Printf("\ngolangci-lint v1.21.0...\t")
 
-	tempGoBin := filepath.Join(tempGoPath, "bin")
 	outputByteArr, err := pipe(
 		// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
 		exec.Command("curl", "-sfL", "https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh"),
 		// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
-		exec.Command("sh", "-s", "--", "-b", tempGoBin, "v1.21.0"),
+		exec.Command("sh", "-s", "--", "-b", goBin, "v1.21.0"),
 	)
 	if err != nil {
 		return fmt.Errorf("failed. Below errors are reported\n\n%s", outputByteArr.String())
@@ -193,7 +206,7 @@ func install() {
 		fmt.Println("Build failed - ", err)
 		os.Exit(1)
 	}
-	fmt.Println("Installed successfully at", (filepath.Join(tempGoPath, "/bin/dst-go")))
+	fmt.Println("Installed successfully at", (filepath.Join(goPath, "/bin/dst-go")))
 }
 
 //run unit tests for all packages
@@ -236,7 +249,7 @@ func buildWalkthrough() {
 	fmt.Println("                   Building Walkthrough                   ")
 	fmt.Printf("---------------------------------------------------------- \n\n")
 	cmd := exec.Command("go", "build", "-v")
-	cmd.Dir = filepath.Join(tempProjectRoot, "walkthrough")
+	cmd.Dir = filepath.Join(projectRootDir, "walkthrough")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
@@ -257,7 +270,7 @@ func runWalkthrough(flags []string) {
 
 	cmd := exec.Command("./walkthrough")
 	cmd.Args = append(cmd.Args, flags...)
-	cmd.Dir = filepath.Join(tempProjectRoot, "walkthrough")
+	cmd.Dir = filepath.Join(projectRootDir, "walkthrough")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -278,10 +291,9 @@ func performLint(flags []string) {
 
 	// Configuration is fetched from the file .golangci.yml in project root directory.
 	// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
-	// cmd := exec.Command(filepath.Join(tempGoPath, "/bin/golangci-lint"), "run", "./...")
-	cmd := exec.Command("golangci-lint", "run", "./...")
+	cmd := exec.Command(filepath.Join(goBin, "golangci-lint"), "run", "./...")
 	cmd.Args = append(cmd.Args, flags...)
-	cmd.Dir = tempProjectRoot
+	cmd.Dir = projectRootDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Failed. Below warnings and errors are reported\n\n%s\n", output)
