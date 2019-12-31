@@ -119,7 +119,7 @@ type Instance struct {
 
 }
 
-// Connected returns if the channel connecton is currently active.
+// Connected returns if the channel connection is currently active.
 func (inst *Instance) Connected() bool {
 	if inst.adapter == nil {
 		return false
@@ -169,7 +169,7 @@ func (inst *Instance) PeerID() identity.OffChainID {
 }
 
 // SenderID returns the id of sender in the channel.
-// Sender is the one who initialsed the channel connection.
+// Sender is the one who initialized the channel connection.
 func (inst *Instance) SenderID() identity.OffChainID {
 	switch inst.roleChannel {
 	case Sender:
@@ -331,38 +331,79 @@ func (inst *Instance) MscBaseState() MSCBaseStateSigned {
 	return inst.mscBaseState
 }
 
-// SetCurrentVPCState validates the integrity of newState and if successful, sets the current vpc state of the channel.
-func (inst *Instance) SetCurrentVPCState(newState VPCStateSigned) (err error) {
+// ValidateIncomingState validates the integrity of incoming state and if unsuccessful, returns the reason.
+// Only version number and peer signature are validated.
+func (inst *Instance) ValidateIncomingState(newState VPCStateSigned) (isValid bool, reason string) {
+
+	var peerRole Role
+
+	if inst.RoleChannel() == Sender {
+		peerRole = Receiver
+	} else {
+		peerRole = Sender
+	}
+
+	//Validate integrity of the peer signature on the state
+	isValidPeer, err := newState.VerifySign(inst.PeerID(), peerRole)
+
+	if err != nil {
+		return false, err.Error()
+	}
+	if !isValidPeer {
+		return false, "Invalid peer signature"
+	}
+
+	//when previous state exists, check if the current version number is greater than previous
+	lastVpcStateIndex := len(inst.vpcStatesList) - 1
+	if lastVpcStateIndex != -1 {
+		lastValidStateVersion := inst.vpcStatesList[lastVpcStateIndex].VPCState.Version
+		if newState.VPCState.Version.Cmp(lastValidStateVersion) != 1 {
+			return false, fmt.Sprintf("Current Version number (%s) less than previous (%s)", newState.VPCState.Version.String(), lastValidStateVersion.String())
+		}
+	}
+
+	return true, ""
+}
+
+// ValidateFullState validates the integrity of newState and if unsuccessful, returns the reason.
+// Version number, self and peer signatures are validated.
+func (inst *Instance) ValidateFullState(newState VPCStateSigned) (isValid bool, reason string) {
 
 	//Validate integrity of the sender signature on the state
 	isValidSender, err := newState.VerifySign(inst.SenderID(), Sender)
 	if err != nil {
-		return err
+		return false, "Invalid sender signature - " + err.Error()
 	}
 	if !isValidSender {
-		return fmt.Errorf("Sender signature on VPCState invalid")
+		return false, "Invalid sender signature"
 	}
 
 	//Validate integrity of the receiver signature on the state
 	isValidReceiver, err := newState.VerifySign(inst.ReceiverID(), Receiver)
 	if err != nil {
-		return err
+		return false, "Invalid receiver signature - " + err.Error()
 	}
 	if !isValidReceiver {
-		return fmt.Errorf("Receiver signature on VPCState invalid")
+		return false, "Invalid receiver signature"
 	}
 
-	if lastVpcStateIndex := len(inst.vpcStatesList) - 1; lastVpcStateIndex != -1 {
-
-		//when previous state exists, check if the current version number is greater than previous
+	//when previous state exists, check if the current version number is greater than previous
+	lastVpcStateIndex := len(inst.vpcStatesList) - 1
+	if lastVpcStateIndex != -1 {
 		lastValidStateVersion := inst.vpcStatesList[lastVpcStateIndex].VPCState.Version
 		if newState.VPCState.Version.Cmp(lastValidStateVersion) != 1 {
-			return fmt.Errorf("Current Version number (%s) less than previous (%s)", newState.VPCState.Version.String(), lastValidStateVersion.String())
+			return false, fmt.Sprintf("Current Version number (%s) less than previous (%s)", newState.VPCState.Version.String(), lastValidStateVersion.String())
 		}
 	}
-	logger.Debug("New MSC base state set")
+
+	return true, ""
+}
+
+// SetCurrentVPCState adds newState to vpc state list of the channel.
+// Validity of the state will not be checked, should be done prior to calling this function.
+func (inst *Instance) SetCurrentVPCState(newState VPCStateSigned) {
 	inst.vpcStatesList = append(inst.vpcStatesList, newState)
-	return nil
+	logger.Debug("New MSC base state set")
 }
 
 // CurrentVpcState returns the current vpc state of the channel.

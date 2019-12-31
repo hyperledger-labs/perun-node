@@ -1233,8 +1233,7 @@ func Test_Instance_MSCBaseState(t *testing.T) {
 		})
 	}
 }
-
-func Test_Instance_SetVPCState(t *testing.T) {
+func Test_Instance_SetCurrentVPCState(t *testing.T) {
 	type args struct {
 		vpcState VPCStateSigned
 	}
@@ -1242,8 +1241,220 @@ func Test_Instance_SetVPCState(t *testing.T) {
 		name     string
 		instance *Instance
 		args     args
-		wantErr  bool
-		wantSet  bool
+	}{
+		{
+			name: "valid-state",
+			instance: &Instance{
+				selfID:      aliceID,
+				peerID:      bobID,
+				roleChannel: Sender,
+			},
+			args: args{
+				vpcState: VPCStateSigned{
+					VPCState: VPCState{
+						ID:              []byte("sample-id"),
+						Version:         big.NewInt(1),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(20),
+					},
+					SignSender:   types.Hex2Bytes("14c5811728aed81bc8f7eb1fb71f45d7e7364561f88987da73b9c209b3ec240f2f56f83ad507b425ed096dfbbcacdc2558b6f47c13d91da413ab84f801ee49f61c"),
+					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
+				},
+			},
+		},
+		{
+			name: "invalid-state",
+			instance: &Instance{
+				selfID:      aliceID,
+				peerID:      bobID,
+				roleChannel: Sender,
+			},
+			args: args{
+				vpcState: VPCStateSigned{
+					VPCState: VPCState{
+						ID:              []byte("sample-id"),
+						Version:         big.NewInt(1),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(20),
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.instance.SetCurrentVPCState(tt.args.vpcState)
+
+			currentVPCStateIndex := len(tt.instance.vpcStatesList) - 1
+			if currentVPCStateIndex >= 0 {
+				if !tt.instance.vpcStatesList[currentVPCStateIndex].Equal(tt.args.vpcState) {
+					t.Errorf("Instance.SetCurrentVPCState() not set")
+				}
+			}
+
+		})
+	}
+}
+func Test_Instance_ValidateIncomingState(t *testing.T) {
+	type args struct {
+		vpcState VPCStateSigned
+	}
+	tests := []struct {
+		name      string
+		instance  *Instance
+		args      args
+		wantValid bool
+	}{
+		{
+			name: "valid-1",
+			instance: &Instance{
+				selfID:      aliceID,
+				peerID:      bobID,
+				roleChannel: Sender,
+			},
+			args: args{
+				vpcState: VPCStateSigned{
+					VPCState: VPCState{
+						ID:              []byte("sample-id"),
+						Version:         big.NewInt(1),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(20),
+					},
+					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
+				},
+			},
+			wantValid: true,
+		},
+		{
+			name: "valid-2",
+			instance: &Instance{
+				selfID:      aliceID,
+				peerID:      bobID,
+				roleChannel: Receiver,
+				vpcStatesList: []VPCStateSigned{{
+					VPCState: VPCState{
+						ID:              []byte("sample-id"),
+						Version:         big.NewInt(0),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(20),
+					},
+					SignSender:   types.Hex2Bytes("14c5811728aed81bc8f7eb1fb71f45d7e7364561f88987da73b9c209b3ec240f2f56f83ad507b425ed096dfbbcacdc2558b6f47c13d91da413ab84f801ee49f61c"),
+					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
+				}},
+			},
+			args: args{
+				vpcState: VPCStateSigned{
+					VPCState: VPCState{
+						ID:              []byte("sample-id"),
+						Version:         big.NewInt(1),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(20),
+					},
+					SignSender: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
+				},
+			},
+			wantValid: true,
+		},
+		{
+			name: "invalid-version",
+			instance: &Instance{
+				selfID:      aliceID,
+				peerID:      bobID,
+				roleChannel: Sender,
+				vpcStatesList: []VPCStateSigned{{
+					VPCState: VPCState{
+						ID:              []byte("sample-id"),
+						Version:         big.NewInt(2),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(20),
+					},
+					SignSender:   types.Hex2Bytes("14c5811728aed81bc8f7eb1fb71f45d7e7364561f88987da73b9c209b3ec240f2f56f83ad507b425ed096dfbbcacdc2558b6f47c13d91da413ab84f801ee49f61c"),
+					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
+				}},
+			},
+			args: args{
+				vpcState: VPCStateSigned{
+					VPCState: VPCState{
+						ID:              []byte("sample-id"),
+						Version:         big.NewInt(1),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(20),
+					},
+					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
+				},
+			},
+			wantValid: false,
+		},
+		{
+			name: "invalid-peer-signature",
+			instance: &Instance{
+				selfID:      aliceID,
+				peerID:      bobID,
+				roleChannel: Receiver,
+			},
+			args: args{
+				vpcState: VPCStateSigned{
+					VPCState: VPCState{
+						ID:              []byte("sample-id"),
+						Version:         big.NewInt(1),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(20),
+					},
+					SignSender: []byte("less-than-65-bytes"),
+				},
+			},
+			wantValid: false,
+		},
+		{
+			name: "invalid-peer-signature-2",
+			instance: &Instance{
+				selfID:      aliceID,
+				peerID:      bobID,
+				roleChannel: Sender,
+			},
+			args: args{
+				vpcState: VPCStateSigned{
+					VPCState: VPCState{
+						ID:              []byte("sample-id"),
+						Version:         big.NewInt(1),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(20),
+					},
+					//This SignReceiver is by alice (invalid)
+					SignReceiver: types.Hex2Bytes("14c5811728aed81bc8f7eb1fb71f45d7e7364561f88987da73b9c209b3ec240f2f56f83ad507b425ed096dfbbcacdc2558b6f47c13d91da413ab84f801ee49f61c"),
+				},
+			},
+			wantValid: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			vpcStateInput := tt.args.vpcState
+
+			isValid, reason := tt.instance.ValidateIncomingState(tt.args.vpcState)
+			if tt.wantValid != isValid {
+				t.Errorf("Instance.ValidateIncomingState() = %v, reason = %v wantValid = %v", isValid, reason, tt.wantValid)
+			}
+
+			//Check if input was modified
+			if !vpcStateInput.Equal(tt.args.vpcState) {
+				t.Errorf("Instance.ValidateIncomingState() modified input value. got = %v,  want = %v", tt.args.vpcState, vpcStateInput)
+			}
+
+		})
+	}
+}
+
+func Test_Instance_ValidateFullState(t *testing.T) {
+	type args struct {
+		vpcState VPCStateSigned
+	}
+	tests := []struct {
+		name      string
+		instance  *Instance
+		args      args
+		wantValid bool
 	}{
 		{
 			name: "valid-1",
@@ -1264,8 +1475,7 @@ func Test_Instance_SetVPCState(t *testing.T) {
 					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
 				},
 			},
-			wantErr: false,
-			wantSet: true,
+			wantValid: true,
 		},
 		{
 			name: "valid-2",
@@ -1296,8 +1506,7 @@ func Test_Instance_SetVPCState(t *testing.T) {
 					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
 				},
 			},
-			wantErr: false,
-			wantSet: true,
+			wantValid: true,
 		},
 		{
 			name: "invalid-version",
@@ -1328,8 +1537,7 @@ func Test_Instance_SetVPCState(t *testing.T) {
 					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
 				},
 			},
-			wantErr: true,
-			wantSet: false,
+			wantValid: false,
 		},
 		{
 			name:     "invalid-sender-signature",
@@ -1346,8 +1554,7 @@ func Test_Instance_SetVPCState(t *testing.T) {
 					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
 				},
 			},
-			wantErr: true,
-			wantSet: false,
+			wantValid: false,
 		},
 		{
 			name: "invalid-sender",
@@ -1369,8 +1576,7 @@ func Test_Instance_SetVPCState(t *testing.T) {
 					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
 				},
 			},
-			wantErr: true,
-			wantSet: false,
+			wantValid: false,
 		},
 		{
 			name: "invalid-receiver-signature",
@@ -1391,8 +1597,7 @@ func Test_Instance_SetVPCState(t *testing.T) {
 					SignReceiver: types.Hex2Bytes("less-than-65-bytes"),
 				},
 			},
-			wantErr: true,
-			wantSet: false,
+			wantValid: false,
 		},
 		{
 			name: "invalid-receiver",
@@ -1414,22 +1619,22 @@ func Test_Instance_SetVPCState(t *testing.T) {
 					SignReceiver: types.Hex2Bytes("14c5811728aed81bc8f7eb1fb71f45d7e7364561f88987da73b9c209b3ec240f2f56f83ad507b425ed096dfbbcacdc2558b6f47c13d91da413ab84f801ee49f61c"),
 				},
 			},
-			wantErr: true,
-			wantSet: false,
+			wantValid: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotErr := tt.instance.SetCurrentVPCState(tt.args.vpcState)
-			if tt.wantErr != (gotErr != nil) {
-				t.Errorf("Instance.SetCurrentVPCState() = %v, wantErr = %v", gotErr, tt.wantErr)
+
+			vpcStateInput := tt.args.vpcState
+
+			isValid, reason := tt.instance.ValidateFullState(tt.args.vpcState)
+			if tt.wantValid != isValid {
+				t.Errorf("Instance.ValidateFullState() = %v, reason = %v wantValid = %v", isValid, reason, tt.wantValid)
 			}
 
-			currentVPCStateIndex := len(tt.instance.vpcStatesList) - 1
-			if currentVPCStateIndex >= 0 {
-				if tt.wantSet && !tt.instance.vpcStatesList[currentVPCStateIndex].Equal(tt.args.vpcState) {
-					t.Errorf("Instance.SetCurrentVPCState() not set")
-				}
+			//Check if input was modified
+			if !vpcStateInput.Equal(tt.args.vpcState) {
+				t.Errorf("Instance.ValidateFullState() modified input value. got = %v,  want = %v", tt.args.vpcState, vpcStateInput)
 			}
 
 		})
