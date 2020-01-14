@@ -260,13 +260,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		return
 	}
 
-	isValid, reason := newConnToBob.ValidateFullState(vpcStateSigned01)
-	if !isValid {
-		_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+	err = newConnToBob.SetCurrentVPCState(vpcStateSigned01)
+	if err != nil {
+		_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 		return
 	}
-
-	newConnToBob.SetCurrentVPCState(vpcStateSigned01)
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned01)
 
 	//VPC State version 2 - by bob
@@ -277,7 +275,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		return
 	}
 
-	isValid, reason = newConnToBob.ValidateIncomingState(vpcStateSigned02)
+	isValid, reason := newConnToBob.ValidateIncomingState(vpcStateSigned02)
 	if !isValid {
 		_, _ = printer.Printf("\nIncoming Vpc state invalid - %v\n", reason)
 		return
@@ -294,13 +292,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		return
 	}
 
-	isValid, reason = newConnToBob.ValidateFullState(vpcStateSigned02)
-	if !isValid {
-		_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+	err = newConnToBob.SetCurrentVPCState(vpcStateSigned02)
+	if err != nil {
+		_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 		return
 	}
-
-	newConnToBob.SetCurrentVPCState(vpcStateSigned02)
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned02)
 
 	//VPC State version 3 - by bob
@@ -328,13 +324,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		return
 	}
 
-	isValid, reason = newConnToBob.ValidateFullState(vpcStateSigned03)
-	if !isValid {
-		_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+	err = newConnToBob.SetCurrentVPCState(vpcStateSigned03)
+	if err != nil {
+		_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 		return
 	}
-
-	newConnToBob.SetCurrentVPCState(vpcStateSigned03)
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned03)
 
 	//VPC State version 4 - by alice
@@ -357,13 +351,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		return
 	}
 
-	isValid, reason = newConnToBob.ValidateFullState(vpcStateSigned04)
-	if !isValid {
-		_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+	err = newConnToBob.SetCurrentVPCState(vpcStateSigned04)
+	if err != nil {
+		_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 		return
 	}
-
-	newConnToBob.SetCurrentVPCState(vpcStateSigned04)
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned04)
 
 	//VPC State version 5 - by bob
@@ -391,13 +383,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		return
 	}
 
-	isValid, reason = newConnToBob.ValidateFullState(vpcStateSigned05)
-	if !isValid {
-		_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+	err = newConnToBob.SetCurrentVPCState(vpcStateSigned05)
+	if err != nil {
+		_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 		return
 	}
-
-	newConnToBob.SetCurrentVPCState(vpcStateSigned05)
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned05)
 
 	//VPC State version 6 - by alice
@@ -420,13 +410,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		return
 	}
 
-	isValid, reason = newConnToBob.ValidateFullState(vpcStateSigned06)
-	if !isValid {
-		_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+	err = newConnToBob.SetCurrentVPCState(vpcStateSigned06)
+	if err != nil {
+		_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 		return
 	}
-
-	newConnToBob.SetCurrentVPCState(vpcStateSigned06)
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned06)
 
 	//VPC State version 7 - by bob
@@ -453,13 +441,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		_, _ = printer.Printf("\nvpc state respond error= %v\n", err)
 		return
 	}
-	isValid, reason = newConnToBob.ValidateFullState(vpcStateSigned07)
-	if !isValid {
-		_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+	err = newConnToBob.SetCurrentVPCState(vpcStateSigned07)
+	if err != nil {
+		_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 		return
 	}
-
-	newConnToBob.SetCurrentVPCState(vpcStateSigned07)
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned07)
 
 	//VPC State version 8 - by alice
@@ -482,13 +468,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		return
 	}
 
-	isValid, reason = newConnToBob.ValidateFullState(vpcStateSigned08)
-	if !isValid {
-		_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+	err = newConnToBob.SetCurrentVPCState(vpcStateSigned08)
+	if err != nil {
+		_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 		return
 	}
-
-	newConnToBob.SetCurrentVPCState(vpcStateSigned08)
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned08)
 
 	//VPC State version 9 - by alice
@@ -511,13 +495,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		return
 	}
 
-	isValid, reason = newConnToBob.ValidateFullState(vpcStateSigned09)
-	if !isValid {
-		_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+	err = newConnToBob.SetCurrentVPCState(vpcStateSigned09)
+	if err != nil {
+		_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 		return
 	}
-
-	newConnToBob.SetCurrentVPCState(vpcStateSigned09)
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned09)
 
 	//VPC State version 10 - by bob
@@ -545,13 +527,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		return
 	}
 
-	isValid, reason = newConnToBob.ValidateFullState(vpcStateSigned10)
-	if !isValid {
-		_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+	err = newConnToBob.SetCurrentVPCState(vpcStateSigned10)
+	if err != nil {
+		_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 		return
 	}
-
-	newConnToBob.SetCurrentVPCState(vpcStateSigned10)
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned10)
 
 	//Closing initiated by alice
@@ -845,13 +825,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			return
 		}
 
-		isValid, reason = newConnFromAlice.ValidateFullState(vpcStateSigned01)
-		if !isValid {
-			_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+		err = newConnFromAlice.SetCurrentVPCState(vpcStateSigned01)
+		if err != nil {
+			_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 			return
 		}
-
-		newConnFromAlice.SetCurrentVPCState(vpcStateSigned01)
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned01)
 
 		//VPC State version 2 - by bob
@@ -875,13 +853,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		}
 		_ = status
 
-		isValid, reason = newConnFromAlice.ValidateFullState(vpcStateSigned02)
-		if !isValid {
-			_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+		err = newConnFromAlice.SetCurrentVPCState(vpcStateSigned02)
+		if err != nil {
+			_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 			return
 		}
-
-		newConnFromAlice.SetCurrentVPCState(vpcStateSigned02)
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned02)
 
 		//VPC State version 3 - by bob
@@ -904,13 +880,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			return
 		}
 
-		isValid, reason = newConnFromAlice.ValidateFullState(vpcStateSigned03)
-		if !isValid {
-			_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+		err = newConnFromAlice.SetCurrentVPCState(vpcStateSigned03)
+		if err != nil {
+			_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 			return
 		}
-
-		newConnFromAlice.SetCurrentVPCState(vpcStateSigned03)
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned03)
 
 		//VPC State version 4 - by alice
@@ -938,13 +912,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			return
 		}
 
-		isValid, reason = newConnFromAlice.ValidateFullState(vpcStateSigned04)
-		if !isValid {
-			_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+		err = newConnFromAlice.SetCurrentVPCState(vpcStateSigned04)
+		if err != nil {
+			_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 			return
 		}
-
-		newConnFromAlice.SetCurrentVPCState(vpcStateSigned04)
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned04)
 
 		//VPC State version 5 - by bob
@@ -967,13 +939,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			return
 		}
 
-		isValid, reason = newConnFromAlice.ValidateFullState(vpcStateSigned05)
-		if !isValid {
-			_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+		err = newConnFromAlice.SetCurrentVPCState(vpcStateSigned05)
+		if err != nil {
+			_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 			return
 		}
-
-		newConnFromAlice.SetCurrentVPCState(vpcStateSigned05)
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned05)
 
 		//VPC State version 6 - by alice
@@ -1001,13 +971,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			return
 		}
 
-		isValid, reason = newConnFromAlice.ValidateFullState(vpcStateSigned06)
-		if !isValid {
-			_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+		err = newConnFromAlice.SetCurrentVPCState(vpcStateSigned06)
+		if err != nil {
+			_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 			return
 		}
-
-		newConnFromAlice.SetCurrentVPCState(vpcStateSigned06)
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned06)
 
 		//VPC State version 7 - by bob
@@ -1030,13 +998,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			return
 		}
 
-		isValid, reason = newConnFromAlice.ValidateFullState(vpcStateSigned07)
-		if !isValid {
-			_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+		err = newConnFromAlice.SetCurrentVPCState(vpcStateSigned07)
+		if err != nil {
+			_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 			return
 		}
-
-		newConnFromAlice.SetCurrentVPCState(vpcStateSigned07)
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned07)
 
 		//VPC State version 8 - by alice
@@ -1064,13 +1030,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			return
 		}
 
-		isValid, reason = newConnFromAlice.ValidateFullState(vpcStateSigned08)
-		if !isValid {
-			_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+		err = newConnFromAlice.SetCurrentVPCState(vpcStateSigned08)
+		if err != nil {
+			_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 			return
 		}
-
-		newConnFromAlice.SetCurrentVPCState(vpcStateSigned08)
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned08)
 
 		//VPC State version 9 - by alice
@@ -1098,13 +1062,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			return
 		}
 
-		isValid, reason = newConnFromAlice.ValidateFullState(vpcStateSigned09)
-		if !isValid {
-			_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+		err = newConnFromAlice.SetCurrentVPCState(vpcStateSigned09)
+		if err != nil {
+			_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 			return
 		}
-
-		newConnFromAlice.SetCurrentVPCState(vpcStateSigned09)
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned09)
 
 		//VPC State version 10 - by bob
@@ -1127,13 +1089,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			return
 		}
 
-		isValid, reason = newConnFromAlice.ValidateFullState(vpcStateSigned10)
-		if !isValid {
-			_, _ = printer.Printf("\nVpc state invalid - %v\n", reason)
+		err = newConnFromAlice.SetCurrentVPCState(vpcStateSigned10)
+		if err != nil {
+			_, _ = printer.Printf("\nError in setting current vpc state - %v\n", err)
 			return
 		}
-
-		newConnFromAlice.SetCurrentVPCState(vpcStateSigned10)
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned10)
 
 		//Closing initiated by alice

@@ -400,10 +400,16 @@ func (inst *Instance) ValidateFullState(newState VPCStateSigned) (isValid bool, 
 }
 
 // SetCurrentVPCState adds newState to vpc state list of the channel.
-// Validity of the state will not be checked, should be done prior to calling this function.
-func (inst *Instance) SetCurrentVPCState(newState VPCStateSigned) {
+// Validation of the state concerning the application logic should be done before adding signatures.
+func (inst *Instance) SetCurrentVPCState(newState VPCStateSigned) (err error) {
+
+	isValid, reason := inst.ValidateFullState(newState)
+	if !isValid {
+		return fmt.Errorf("New state is invalid - %s", reason)
+	}
 	inst.vpcStatesList = append(inst.vpcStatesList, newState)
 	logger.Debug("New MSC base state set")
+	return nil
 }
 
 // CurrentVpcState returns the current vpc state of the channel.

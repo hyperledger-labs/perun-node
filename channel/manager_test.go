@@ -1241,6 +1241,7 @@ func Test_Instance_SetCurrentVPCState(t *testing.T) {
 		name     string
 		instance *Instance
 		args     args
+		wantErr  bool
 	}{
 		{
 			name: "valid-state",
@@ -1261,9 +1262,10 @@ func Test_Instance_SetCurrentVPCState(t *testing.T) {
 					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
 				},
 			},
+			wantErr: false,
 		},
 		{
-			name: "invalid-state",
+			name: "invalid-state-missing-two-signature",
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
@@ -1279,19 +1281,95 @@ func Test_Instance_SetCurrentVPCState(t *testing.T) {
 					},
 				},
 			},
+			wantErr: true,
+		},
+		{
+			name: "invalid-state-missing-sender-signature",
+			instance: &Instance{
+				selfID:      aliceID,
+				peerID:      bobID,
+				roleChannel: Sender,
+			},
+			args: args{
+				vpcState: VPCStateSigned{
+					VPCState: VPCState{
+						ID:              []byte("sample-id"),
+						Version:         big.NewInt(1),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(20),
+					},
+					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid-state-missing-receiver-signature",
+			instance: &Instance{
+				selfID:      aliceID,
+				peerID:      bobID,
+				roleChannel: Sender,
+			},
+			args: args{
+				vpcState: VPCStateSigned{
+					VPCState: VPCState{
+						ID:              []byte("sample-id"),
+						Version:         big.NewInt(1),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(20),
+					},
+					SignSender: types.Hex2Bytes("14c5811728aed81bc8f7eb1fb71f45d7e7364561f88987da73b9c209b3ec240f2f56f83ad507b425ed096dfbbcacdc2558b6f47c13d91da413ab84f801ee49f61c"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid-state-lesser-version-number",
+			instance: &Instance{
+				selfID:      aliceID,
+				peerID:      bobID,
+				roleChannel: Sender,
+				vpcStatesList: []VPCStateSigned{
+					{
+						VPCState: VPCState{
+							ID:              []byte("sample-id"),
+							Version:         big.NewInt(4),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(20),
+						},
+						SignSender:   types.Hex2Bytes("14c5811728aed81bc8f7eb1fb71f45d7e7364561f88987da73b9c209b3ec240f2f56f83ad507b425ed096dfbbcacdc2558b6f47c13d91da413ab84f801ee49f61c"),
+						SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
+					},
+				},
+			},
+			args: args{
+				vpcState: VPCStateSigned{
+					VPCState: VPCState{
+						ID:              []byte("sample-id"),
+						Version:         big.NewInt(1),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(20),
+					},
+					SignSender:   types.Hex2Bytes("14c5811728aed81bc8f7eb1fb71f45d7e7364561f88987da73b9c209b3ec240f2f56f83ad507b425ed096dfbbcacdc2558b6f47c13d91da413ab84f801ee49f61c"),
+					SignReceiver: types.Hex2Bytes("1172ed9142808860222ae220d99203a14ab6756ee65de9f091868905dafb195606239f0962886d54b029c08ee26551f057e97254ed3c78a728ac38bf1865ea1f1b"),
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.instance.SetCurrentVPCState(tt.args.vpcState)
+			err := tt.instance.SetCurrentVPCState(tt.args.vpcState)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Instance.SetCurrentVPCState() got error %s, want %t", err, tt.wantErr)
+			}
 
 			currentVPCStateIndex := len(tt.instance.vpcStatesList) - 1
-			if currentVPCStateIndex >= 0 {
+			if (currentVPCStateIndex >= 0) && (tt.wantErr == false) {
 				if !tt.instance.vpcStatesList[currentVPCStateIndex].Equal(tt.args.vpcState) {
 					t.Errorf("Instance.SetCurrentVPCState() not set")
 				}
 			}
-
 		})
 	}
 }
