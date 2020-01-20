@@ -17,6 +17,7 @@
 package identity
 
 import (
+	"bytes"
 	"encoding/json"
 	"reflect"
 	"testing"
@@ -366,12 +367,24 @@ func Test_VerifySignatureEth(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			hashInput := tt.args.hash
+			signInput := tt.args.sign
+
 			gotIsSuccess, err := VerifySignatureEth(tt.args.hash, tt.args.sign, tt.args.ethAddr)
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("VerifySignature() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("VerifySignatureEth() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if gotIsSuccess != tt.wantIsSuccess {
-				t.Errorf("VerifySignature() = %v, want %v", gotIsSuccess, tt.wantIsSuccess)
+				t.Errorf("VerifySignatureEth() = %v, want %v", gotIsSuccess, tt.wantIsSuccess)
+			}
+
+			if !bytes.Equal(hashInput, tt.args.hash) {
+				t.Errorf("VerifySignatureEth() modified input hash. got = %v, want = %v", tt.args.hash, hashInput)
+			}
+
+			if !bytes.Equal(signInput, tt.args.sign) {
+				t.Errorf("VerifySignatureEth() modified input sign. got = %v, want = %v", tt.args.sign, signInput)
 			}
 		})
 	}
