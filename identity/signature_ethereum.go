@@ -72,13 +72,16 @@ func VerifySignatureEth(hash, sign, ethAddr []byte) (isSuccess bool, err error) 
 	}
 
 	if sign[64] != 27 && sign[64] != 28 {
-		return false, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
+		return false, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28) %d", sign[64])
 	}
-	sign[64] -= 27 // Transform yellow paper V from 27/28 to 0/1
 
-	hash = RehashWithEthereumPrefix(hash)
+	//Copy contents of slice before modifying, because slices only hold pointers
+	convertedSign := append([]byte(nil), sign...)
+	convertedSign[64] -= 27 // Transform yellow paper V from 27/28 to 0/1
+
+	convertedHash := RehashWithEthereumPrefix(hash)
 	logger.Debug("Signature Verified")
-	return VerifySignature(hash, sign, ethAddr)
+	return VerifySignature(convertedHash, convertedSign, ethAddr)
 }
 
 // VerifySignature checks if the given ethereum address created the ecdsa signature over hash.
