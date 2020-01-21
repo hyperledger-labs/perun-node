@@ -29,6 +29,6 @@ help:               ## display this help text
 # $(O) is meant as a shortcut for $(BUILDOPTS).
 $(__TARGETS): Makefile
 	go build -o build/build ./build
-	build/setEnv.sh build/build $@ $(BUILDOPTS) $(0)
+	build/build $@ $(BUILDOPTS) $(0)
 	rm build/build
 	@echo "Done building."

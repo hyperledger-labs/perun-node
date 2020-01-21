@@ -18,30 +18,56 @@ package main
 
 import (
 	"fmt"
+	"go/build"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
 )
 
-var tempGoPath, tempProjectRoot string
+var goPath, goBin, projectRootDir string
 
 var (
 	requiredGoVersionMajor = uint8(1)  //Go1.x Required
-	minimumGoVersionMinor  = uint8(10) //Go1.10 Minimum
+	minimumGoVersionMinor  = uint8(11) //Go1.11 Minimum
 )
 
 func main() {
+
+	var err error
+	var workingDir string
+
+	_, programFilePath, _, ok := runtime.Caller(0)
+	if !ok {
+		fmt.Printf("Error in fetching caller information : %s\n", err)
+		os.Exit(1)
+	}
+
+	projectRootDir = path.Dir(path.Dir(programFilePath))
+
+	workingDir, err = os.Getwd()
+	if err != nil {
+		fmt.Printf("Error in fetching current working directory : %s\n", err)
+		os.Exit(1)
+	}
+
+	if projectRootDir != workingDir {
+		fmt.Printf("Error - Program can only be invoked from project root directory\n")
+		os.Exit(1)
+	}
 
 	if len(os.Args) < 1 {
 		fmt.Println("No commands to execute")
 	}
 
-	tempGoPath = os.Getenv("GOPATH")
-	tempProjectRoot = os.Getenv("GOPATH") + os.Getenv("DST_GO_PATH")
+	//the variable from build package gives the proper gopath
+	//from environment variables if set, else default value (~/go)
+	goPath = build.Default.GOPATH
+	goBin = filepath.Join(goPath, "bin")
 
-	err := checkGoEnv(requiredGoVersionMajor, minimumGoVersionMinor)
+	err = checkGoEnv(requiredGoVersionMajor, minimumGoVersionMinor)
 	if err != nil {
 		fmt.Printf("Error in go environment : %s\n", err)
 		os.Exit(1)
@@ -59,7 +85,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// documentation of commands in doc.go
 	switch os.Args[1] {
 	case "fetchDependencies":
 		fetchVendoredPackages()
@@ -88,8 +113,8 @@ func main() {
 		runWalkthrough(os.Args[2:])
 
 	case "lint":
-		fetchVendoredPackages()
-		performLint()
+		// fetchVendoredPackages()
+		performLint(os.Args[2:])
 	}
 }
 
@@ -99,22 +124,13 @@ func installDependencies() (err error) {
 	fmt.Println("                  Installing Dependencies                 ")
 	fmt.Println("----------------------------------------------------------")
 
-	fmt.Printf("\ngovendor...\t")
-	cmd := exec.Command("go", "get", "-u", "-v", "github.com/kardianos/govendor")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed. Below errors are reported\n\n%s", output)
-	}
-	fmt.Printf("Successful")
-
 	fmt.Printf("\ngolangci-lint v1.21.0...\t")
 
-	tempGoBin := filepath.Join(tempGoPath, "bin")
 	outputByteArr, err := pipe(
 		// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
 		exec.Command("curl", "-sfL", "https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh"),
 		// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
-		exec.Command("sh", "-s", "--", "-b", tempGoBin, "v1.21.0"),
+		exec.Command("sh", "-s", "--", "-b", goBin, "v1.21.0"),
 	)
 	if err != nil {
 		return fmt.Errorf("failed. Below errors are reported\n\n%s", outputByteArr.String())
@@ -140,9 +156,6 @@ func checkGoEnv(requiredGoVersionMajor, minimumGoVersionMinor uint8) (err error)
 	if goVersionMinor < minimumGoVersionMinor {
 		return fmt.Errorf("detected go version - %s. Minor version atleast %d required", goVersion, minimumGoVersionMinor)
 	}
-	if tempGoPath == "" {
-		return fmt.Errorf("gopath not found")
-	}
 
 	return nil
 }
@@ -151,50 +164,16 @@ func fetchVendoredPackages() {
 	fmt.Printf("\n----------------------------------------------------------\n")
 	fmt.Println("                Fetching vendored libraries                  ")
 	fmt.Printf("---------------------------------------------------------- \n\n")
-	var filesList []string
 	var err error
 
-	//Delete all the existing vendored files
-	root := filepath.Join(tempProjectRoot, "vendor")
-	var vendorFile os.FileInfo
-	if vendorFile, err = os.Stat(root); os.IsNotExist(err) || !vendorFile.IsDir() {
-		fmt.Println("Vendor directory missing or it is a file")
-		os.Exit(1)
-	}
-	_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if info.Name() != "vendor.json" && info.Name() != "vendor" {
-			filesList = append(filesList, path)
-		}
-		return nil
-	})
-
-	cmd := exec.Command("rm", "-rf")
-	cmd.Args = append(cmd.Args, filesList...)
-	err = cmd.Run()
-	if err != nil {
-		fmt.Println("Delete existing vendored packages failed - ", err)
-		os.Exit(1)
-	}
-
-	//Fetch vendored libraries using tool
+	//Add missing and remove unnecessary dependencies.
 	// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
-	cmd = exec.Command(filepath.Join(tempGoPath, "/bin/govendor"), "sync", "-v")
+	cmd := exec.Command("go", "mod", "tidy", "-v")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		fmt.Println("Govendor sync failed - ", err)
-		os.Exit(1)
-	}
-
-	//Print the status of vendored libraries
-	// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
-	cmd = exec.Command(filepath.Join(tempGoPath, "/bin/govendor"), "list")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		fmt.Println("Govendor list failed - ", err)
+		fmt.Println("go mod tidy failed with error - ", err)
 		os.Exit(1)
 	}
 }
@@ -227,7 +206,7 @@ func install() {
 		fmt.Println("Build failed - ", err)
 		os.Exit(1)
 	}
-	fmt.Println("Installed successfully at", (filepath.Join(tempGoPath, "/bin/dst-go")))
+	fmt.Println("Installed successfully at", (filepath.Join(goPath, "/bin/dst-go")))
 }
 
 //run unit tests for all packages
@@ -269,7 +248,8 @@ func buildWalkthrough() {
 	fmt.Printf("\n----------------------------------------------------------\n")
 	fmt.Println("                   Building Walkthrough                   ")
 	fmt.Printf("---------------------------------------------------------- \n\n")
-	cmd := exec.Command("go", "build", "-o", "./walkthrough/walkthrough", "-v", "./walkthrough")
+	cmd := exec.Command("go", "build", "-v")
+	cmd.Dir = filepath.Join(projectRootDir, "walkthrough")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
@@ -290,7 +270,7 @@ func runWalkthrough(flags []string) {
 
 	cmd := exec.Command("./walkthrough")
 	cmd.Args = append(cmd.Args, flags...)
-	cmd.Dir = tempProjectRoot + "walkthrough"
+	cmd.Dir = filepath.Join(projectRootDir, "walkthrough")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -302,7 +282,7 @@ func runWalkthrough(flags []string) {
 }
 
 //perform Lint
-func performLint() {
+func performLint(flags []string) {
 
 	fmt.Println("----------------------------------------------------------")
 	fmt.Println("                     Linting the code                     ")
@@ -311,13 +291,15 @@ func performLint() {
 
 	// Configuration is fetched from the file .golangci.yml in project root directory.
 	// #nosec G204. To suppress gosec linter warning. The below command is safe to use.
-	cmd := exec.Command(filepath.Join(tempGoPath, "/bin/golangci-lint"), "run", "./...")
-	cmd.Dir = tempProjectRoot
+	cmd := exec.Command(filepath.Join(goBin, "golangci-lint"), "run", "./...")
+	cmd.Args = append(cmd.Args, flags...)
+	cmd.Dir = projectRootDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Failed. Below warnings and errors are reported\n\n%s\n", output)
 		os.Exit(1)
 	} else {
+		fmt.Printf("\n%s\n", output)
 		fmt.Printf("Successful. No errors detected\n")
 	}
 }

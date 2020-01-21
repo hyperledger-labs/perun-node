@@ -4,6 +4,8 @@ jobs:
   checkout_deps:
     docker:
       - image: circleci/golang:1.12.7-stretch
+        environment:
+            GO111MODULE: "on"
     working_directory: /go/src/github.com/direct-state-transfer/dst-go
     steps:
       - checkout
@@ -20,6 +22,7 @@ jobs:
     docker:
       - image: circleci/golang:1.12.7-stretch
     environment:
+      GO111MODULE: "on"
       TEST_RESULTS: /tmp/test-results
     working_directory: /go/src/github.com/direct-state-transfer/dst-go
     steps:
@@ -41,6 +44,8 @@ jobs:
   walkthrough_simulated:
     docker:
       - image: circleci/golang:1.12.7-stretch
+    environment:
+      GO111MODULE: "on"
     working_directory: /go/src/github.com/direct-state-transfer/dst-go
     steps:
       - restore_cache:
