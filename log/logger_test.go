@@ -307,7 +307,7 @@ func Test_NewLogger_logLevel(t *testing.T) {
 	}
 }
 
-var timeDateFormat = `[\d]{4}-[\d]{2}-[\d]{2} [\d]{2}:[\d]{2}:[\d]{2} \+[\d]{4}`
+var timeDateFormat = `[\d]{4}-[\d]{2}-[\d]{2} [\d]{2}:[\d]{2}:[\d]{2} ((\+|-)[\d]{4})|Z`
 
 func Test_Logger_Methods(t *testing.T) {
 	type setupArgs struct {
