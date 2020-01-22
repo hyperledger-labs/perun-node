@@ -19,7 +19,7 @@ package log
 import (
 	"bytes"
 	"io"
-	"strings"
+	"regexp"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -306,6 +306,9 @@ func Test_NewLogger_logLevel(t *testing.T) {
 		})
 	}
 }
+
+var timeDateFormat = `[\d]{4}-[\d]{2}-[\d]{2} [\d]{2}:[\d]{2}:[\d]{2} \+[\d]{4}`
+
 func Test_Logger_Methods(t *testing.T) {
 	type setupArgs struct {
 		logLevel    logrus.Level
@@ -313,49 +316,55 @@ func Test_Logger_Methods(t *testing.T) {
 		packageName string
 	}
 	tests := []struct {
-		name           string
-		setupArgs      setupArgs
-		logFunc        func(LoggerInterface, ...interface{})
-		wantDataLogged bool
+		name          string
+		setupArgs     setupArgs
+		logFunc       func(LoggerInterface, ...interface{})
+		wantLogFormat string
 	}{
 		{name: "Debug_DebugLevel",
-			setupArgs:      setupArgs{logrus.DebugLevel, &bytes.Buffer{}, "test"},
-			logFunc:        LoggerInterface.Debug,
-			wantDataLogged: true},
+			setupArgs:     setupArgs{logrus.DebugLevel, &bytes.Buffer{}, "test"},
+			logFunc:       LoggerInterface.Debug,
+			wantLogFormat: `▶ time="` + timeDateFormat + `" level=debug msg=test-data package=test`},
+
 		{name: "Debug_InfoLevel",
-			setupArgs:      setupArgs{logrus.InfoLevel, &bytes.Buffer{}, "test"},
-			logFunc:        LoggerInterface.Debug,
-			wantDataLogged: false},
+			setupArgs:     setupArgs{logrus.InfoLevel, &bytes.Buffer{}, "test"},
+			logFunc:       LoggerInterface.Debug,
+			wantLogFormat: ""},
+
 		{name: "Debug_ErrorLevel",
-			setupArgs:      setupArgs{logrus.ErrorLevel, &bytes.Buffer{}, "test"},
-			logFunc:        LoggerInterface.Debug,
-			wantDataLogged: false},
+			setupArgs:     setupArgs{logrus.ErrorLevel, &bytes.Buffer{}, "test"},
+			logFunc:       LoggerInterface.Debug,
+			wantLogFormat: ""},
 
 		{name: "Info_DebugLevel",
-			setupArgs:      setupArgs{logrus.DebugLevel, &bytes.Buffer{}, "test"},
-			logFunc:        LoggerInterface.Info,
-			wantDataLogged: true},
+			setupArgs:     setupArgs{logrus.DebugLevel, &bytes.Buffer{}, "test"},
+			logFunc:       LoggerInterface.Info,
+			wantLogFormat: `▶ time="` + timeDateFormat + `" level=info msg=test-data package=test`},
+
 		{name: "Info_InfoLevel",
-			setupArgs:      setupArgs{logrus.InfoLevel, &bytes.Buffer{}, "test"},
-			logFunc:        LoggerInterface.Info,
-			wantDataLogged: true},
+			setupArgs:     setupArgs{logrus.InfoLevel, &bytes.Buffer{}, "test"},
+			logFunc:       LoggerInterface.Info,
+			wantLogFormat: `▶ time="` + timeDateFormat + `" level=info msg=test-data package=test`},
+
 		{name: "Info_ErrorLevel",
-			setupArgs:      setupArgs{logrus.ErrorLevel, &bytes.Buffer{}, "test"},
-			logFunc:        LoggerInterface.Info,
-			wantDataLogged: false},
+			setupArgs:     setupArgs{logrus.ErrorLevel, &bytes.Buffer{}, "test"},
+			logFunc:       LoggerInterface.Info,
+			wantLogFormat: ""},
 
 		{name: "Error_DebugLevel",
-			setupArgs:      setupArgs{logrus.DebugLevel, &bytes.Buffer{}, "test"},
-			logFunc:        LoggerInterface.Error,
-			wantDataLogged: true},
+			setupArgs:     setupArgs{logrus.DebugLevel, &bytes.Buffer{}, "test"},
+			logFunc:       LoggerInterface.Error,
+			wantLogFormat: `▶ time="` + timeDateFormat + `" level=error msg=test-data package=test`},
+
 		{name: "Error_InfoLevel",
-			setupArgs:      setupArgs{logrus.InfoLevel, &bytes.Buffer{}, "test"},
-			logFunc:        LoggerInterface.Error,
-			wantDataLogged: true},
+			setupArgs:     setupArgs{logrus.InfoLevel, &bytes.Buffer{}, "test"},
+			logFunc:       LoggerInterface.Error,
+			wantLogFormat: `▶ time="` + timeDateFormat + `" level=error msg=test-data package=test`},
+
 		{name: "Error_ErrorLevel",
-			setupArgs:      setupArgs{logrus.ErrorLevel, &bytes.Buffer{}, "test"},
-			logFunc:        LoggerInterface.Error,
-			wantDataLogged: true},
+			setupArgs:     setupArgs{logrus.ErrorLevel, &bytes.Buffer{}, "test"},
+			logFunc:       LoggerInterface.Error,
+			wantLogFormat: `▶ time="` + timeDateFormat + `" level=error msg=test-data package=test`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -367,14 +376,12 @@ func Test_Logger_Methods(t *testing.T) {
 
 			tt.logFunc(logger, "test-data")
 
-			gotLog := strings.Split(tt.setupArgs.backend.String(), "\n")
-			gotLogData := false
-			if 2 == len(gotLog) { //Expected log entry + new line
-				gotLogData = true
-			}
+			gotLog := tt.setupArgs.backend.String()
 
-			if gotLogData != tt.wantDataLogged {
-				t.Errorf("Debug() Expected log at %v, got nil", tt.setupArgs.logLevel)
+			logMessageRegex := regexp.MustCompile(tt.wantLogFormat)
+
+			if !logMessageRegex.MatchString(gotLog) {
+				t.Errorf("Debug() Expected log %s, got %s", tt.wantLogFormat, gotLog)
 			}
 
 		})
