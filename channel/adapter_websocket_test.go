@@ -30,6 +30,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/identity"
 )
 
@@ -92,17 +93,17 @@ func Test_wsConnHandler(t *testing.T) {
 				_ = c.Close()
 			}()
 
-			handshakeRequest := chMsgPkt{
+			handshakeRequest := primitives.ChMsgPkt{
 				Version:   "0.1",
-				MessageID: MsgIdentityRequest,
-				Message:   jsonMsgIdentity{bobID},
+				MessageID: primitives.MsgIdentityRequest,
+				Message:   primitives.JSONMsgIdentity{ID: bobID},
 			}
-			wantHandshakeResponse := chMsgPkt{
+			wantHandshakeResponse := primitives.ChMsgPkt{
 				Version:   "0.1",
-				MessageID: MsgIdentityResponse,
-				Message:   jsonMsgIdentity{aliceID},
+				MessageID: primitives.MsgIdentityResponse,
+				Message:   primitives.JSONMsgIdentity{ID: aliceID},
 			}
-			gotHandshakeResponse := chMsgPkt{}
+			gotHandshakeResponse := primitives.ChMsgPkt{}
 
 			err = c.WriteJSON(handshakeRequest)
 			if err != nil {
@@ -273,10 +274,10 @@ func mockListenerStub(addr string, endpoint string, t *testing.T) (sh Shutdown, 
 // 	}
 
 // 	// Check message echo
-// 	sampleMessage := chMsgPkt{
+// 	sampleMessage := primitives.ChMsgPkt{
 // 		Version:   "1.0",
-// 		MessageID: MsgIdentityRequest,
-// 		Message:   jsonMsgIdentity{},
+// 		MessageID: primitives.MsgIdentityRequest,
+// 		Message:   primitives.JSONMsgIdentity{},
 // 	}
 
 // 	err = conn.Write(sampleMessage)

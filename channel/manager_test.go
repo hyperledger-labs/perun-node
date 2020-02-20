@@ -22,6 +22,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/direct-state-transfer/dst-go/identity"
@@ -392,7 +393,7 @@ func Test_Instance_SenderID(t *testing.T) {
 			name: "valid-nil",
 			instance: &Instance{
 				selfID:      identity.OffChainID{},
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			want: identity.OffChainID{},
 		},
@@ -400,7 +401,7 @@ func Test_Instance_SenderID(t *testing.T) {
 			name: "valid-not-nil-self",
 			instance: &Instance{
 				selfID:      aliceID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			want: aliceID,
 		},
@@ -408,14 +409,14 @@ func Test_Instance_SenderID(t *testing.T) {
 			name: "valid-not-nil-peer",
 			instance: &Instance{
 				peerID:      aliceID,
-				roleChannel: Receiver,
+				roleChannel: primitives.Receiver,
 			},
 			want: aliceID,
 		},
 		{
 			name: "invalid-role",
 			instance: &Instance{
-				roleChannel: Role("invalid-role"),
+				roleChannel: primitives.Role("invalid-role"),
 			},
 			want: identity.OffChainID{},
 		},
@@ -439,7 +440,7 @@ func Test_Instance_ReceiverID(t *testing.T) {
 			name: "valid-nil",
 			instance: &Instance{
 				selfID:      identity.OffChainID{},
-				roleChannel: Receiver,
+				roleChannel: primitives.Receiver,
 			},
 			want: identity.OffChainID{},
 		},
@@ -447,7 +448,7 @@ func Test_Instance_ReceiverID(t *testing.T) {
 			name: "valid-not-nil-self",
 			instance: &Instance{
 				selfID:      aliceID,
-				roleChannel: Receiver,
+				roleChannel: primitives.Receiver,
 			},
 			want: aliceID,
 		},
@@ -455,14 +456,14 @@ func Test_Instance_ReceiverID(t *testing.T) {
 			name: "valid-not-nil-peer",
 			instance: &Instance{
 				peerID:      aliceID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			want: aliceID,
 		},
 		{
 			name: "invalid-role",
 			instance: &Instance{
-				roleChannel: Role("invalid-role"),
+				roleChannel: primitives.Role("invalid-role"),
 			},
 			want: identity.OffChainID{},
 		},
@@ -478,7 +479,7 @@ func Test_Instance_ReceiverID(t *testing.T) {
 }
 func Test_Instance_SetRoleChannel(t *testing.T) {
 	type args struct {
-		roleChannel Role
+		roleChannel primitives.Role
 	}
 	tests := []struct {
 		name     string
@@ -490,7 +491,7 @@ func Test_Instance_SetRoleChannel(t *testing.T) {
 			name:     "valid-Sender",
 			instance: &Instance{},
 			args: args{
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			wantSet: true,
 		},
@@ -498,7 +499,7 @@ func Test_Instance_SetRoleChannel(t *testing.T) {
 			name:     "valid-Receiver",
 			instance: &Instance{},
 			args: args{
-				roleChannel: Receiver,
+				roleChannel: primitives.Receiver,
 			},
 			wantSet: true,
 		},
@@ -506,7 +507,7 @@ func Test_Instance_SetRoleChannel(t *testing.T) {
 			name:     "invalid-role",
 			instance: &Instance{},
 			args: args{
-				roleChannel: Role("invalid-role"),
+				roleChannel: primitives.Role("invalid-role"),
 			},
 			wantSet: false,
 		},
@@ -525,28 +526,28 @@ func Test_Instance_RoleChannel(t *testing.T) {
 	tests := []struct {
 		name     string
 		instance *Instance
-		want     Role
+		want     primitives.Role
 	}{
 		{
 			name: "valid-Sender",
 			instance: &Instance{
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
-			want: Sender,
+			want: primitives.Sender,
 		},
 		{
 			name: "valid-Receiver",
 			instance: &Instance{
-				roleChannel: Receiver,
+				roleChannel: primitives.Receiver,
 			},
-			want: Receiver,
+			want: primitives.Receiver,
 		},
 		{
 			name: "invalid-Role",
 			instance: &Instance{
-				roleChannel: Role("invalid-role"),
+				roleChannel: primitives.Role("invalid-role"),
 			},
-			want: Role("invalid-role"),
+			want: primitives.Role("invalid-role"),
 		},
 	}
 	for _, tt := range tests {
@@ -561,7 +562,7 @@ func Test_Instance_RoleChannel(t *testing.T) {
 
 func Test_Instance_SetRoleClosing(t *testing.T) {
 	type args struct {
-		roleClosing Role
+		roleClosing primitives.Role
 	}
 	tests := []struct {
 		name     string
@@ -573,7 +574,7 @@ func Test_Instance_SetRoleClosing(t *testing.T) {
 			name:     "valid-Sender",
 			instance: &Instance{},
 			args: args{
-				roleClosing: Sender,
+				roleClosing: primitives.Sender,
 			},
 			wantSet: true,
 		},
@@ -581,7 +582,7 @@ func Test_Instance_SetRoleClosing(t *testing.T) {
 			name:     "valid-Receiver",
 			instance: &Instance{},
 			args: args{
-				roleClosing: Receiver,
+				roleClosing: primitives.Receiver,
 			},
 			wantSet: true,
 		},
@@ -589,7 +590,7 @@ func Test_Instance_SetRoleClosing(t *testing.T) {
 			name:     "invalid-role",
 			instance: &Instance{},
 			args: args{
-				roleClosing: Role("invalid-role"),
+				roleClosing: primitives.Role("invalid-role"),
 			},
 			wantSet: false,
 		},
@@ -608,28 +609,28 @@ func Test_Instance_RoleClosing(t *testing.T) {
 	tests := []struct {
 		name     string
 		instance *Instance
-		want     Role
+		want     primitives.Role
 	}{
 		{
 			name: "valid-Sender",
 			instance: &Instance{
-				roleClosing: Sender,
+				roleClosing: primitives.Sender,
 			},
-			want: Sender,
+			want: primitives.Sender,
 		},
 		{
 			name: "valid-Receiver",
 			instance: &Instance{
-				roleClosing: Receiver,
+				roleClosing: primitives.Receiver,
 			},
-			want: Receiver,
+			want: primitives.Receiver,
 		},
 		{
 			name: "invalid-Role",
 			instance: &Instance{
-				roleClosing: Role("invalid-role"),
+				roleClosing: primitives.Role("invalid-role"),
 			},
-			want: Role("invalid-role"),
+			want: primitives.Role("invalid-role"),
 		},
 	}
 	for _, tt := range tests {
@@ -897,7 +898,7 @@ func Test_Instance_Status(t *testing.T) {
 
 func Test_Instance_SetSessionID(t *testing.T) {
 	type args struct {
-		sessionID SessionID
+		sessionID primitives.SessionID
 	}
 	tests := []struct {
 		name     string
@@ -910,7 +911,7 @@ func Test_Instance_SetSessionID(t *testing.T) {
 			name:     "invalid-nil,session-id",
 			instance: &Instance{},
 			args: args{
-				sessionID: SessionID{},
+				sessionID: primitives.SessionID{},
 			},
 			wantErr: true,
 			wantSet: false,
@@ -919,7 +920,7 @@ func Test_Instance_SetSessionID(t *testing.T) {
 			name:     "invalid-nil-id",
 			instance: &Instance{},
 			args: args{
-				sessionID: SessionID{
+				sessionID: primitives.SessionID{
 					SidComplete:     big.NewInt(0).SetBytes(types.Hex2Bytes("e7b9f1350657e7c272508a7cc9451766473bc4c00ece53ea71ac1485e7a7769c")),
 					SidSenderPart:   types.Hex2Bytes("fa5a62c4471e12cb2390d3cf31b40a3dc3ba89a5da69203d0064fca83e14fafa"),
 					SidReceiverPart: types.Hex2Bytes("4e1f45d6f62c11356dd567d018b40e2e64056c5d0e0b1bdcfa0aa8615e853530"),
@@ -952,19 +953,19 @@ func Test_Instance_SessionID(t *testing.T) {
 	tests := []struct {
 		name     string
 		instance *Instance
-		want     SessionID
+		want     primitives.SessionID
 	}{
 		{
 			name: "valid-nil",
 			instance: &Instance{
-				sessionID: SessionID{},
+				sessionID: primitives.SessionID{},
 			},
-			want: SessionID{},
+			want: primitives.SessionID{},
 		},
 		{
 			name: "valid-non-nil",
 			instance: &Instance{
-				sessionID: SessionID{
+				sessionID: primitives.SessionID{
 					SidComplete:     big.NewInt(0).SetBytes(types.Hex2Bytes("e7b9f1350657e7c272508a7cc9451766473bc4c00ece53ea71ac1485e7a7769c")),
 					SidSenderPart:   types.Hex2Bytes("fa5a62c4471e12cb2390d3cf31b40a3dc3ba89a5da69203d0064fca83e14fafa"),
 					SidReceiverPart: types.Hex2Bytes("4e1f45d6f62c11356dd567d018b40e2e64056c5d0e0b1bdcfa0aa8615e853530"),
@@ -975,7 +976,7 @@ func Test_Instance_SessionID(t *testing.T) {
 					Locked:          true,
 				},
 			},
-			want: SessionID{
+			want: primitives.SessionID{
 				SidComplete:     big.NewInt(0).SetBytes(types.Hex2Bytes("e7b9f1350657e7c272508a7cc9451766473bc4c00ece53ea71ac1485e7a7769c")),
 				SidSenderPart:   types.Hex2Bytes("fa5a62c4471e12cb2390d3cf31b40a3dc3ba89a5da69203d0064fca83e14fafa"),
 				SidReceiverPart: types.Hex2Bytes("4e1f45d6f62c11356dd567d018b40e2e64056c5d0e0b1bdcfa0aa8615e853530"),
@@ -1052,7 +1053,7 @@ func Test_Instance_ContractStore(t *testing.T) {
 
 func Test_Instance_SetMSCBaseState(t *testing.T) {
 	type args struct {
-		mscBaseState MSCBaseStateSigned
+		mscBaseState primitives.MSCBaseStateSigned
 	}
 	tests := []struct {
 		name     string
@@ -1066,11 +1067,11 @@ func Test_Instance_SetMSCBaseState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				mscBaseState: MSCBaseStateSigned{
-					MSContractBaseState: MSCBaseState{
+				mscBaseState: primitives.MSCBaseStateSigned{
+					MSContractBaseState: primitives.MSCBaseState{
 						VpcAddress:      aliceID.OnChainID,
 						Sid:             big.NewInt(123456),
 						BlockedSender:   big.NewInt(10),
@@ -1088,9 +1089,9 @@ func Test_Instance_SetMSCBaseState(t *testing.T) {
 			name:     "invalid-sender-signature",
 			instance: &Instance{},
 			args: args{
-				mscBaseState: MSCBaseStateSigned{
+				mscBaseState: primitives.MSCBaseStateSigned{
 
-					MSContractBaseState: MSCBaseState{
+					MSContractBaseState: primitives.MSCBaseState{
 						VpcAddress:      aliceID.OnChainID,
 						Sid:             big.NewInt(123456),
 						BlockedSender:   big.NewInt(10),
@@ -1109,11 +1110,11 @@ func Test_Instance_SetMSCBaseState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				mscBaseState: MSCBaseStateSigned{
-					MSContractBaseState: MSCBaseState{
+				mscBaseState: primitives.MSCBaseStateSigned{
+					MSContractBaseState: primitives.MSCBaseState{
 						VpcAddress:      aliceID.OnChainID,
 						Sid:             big.NewInt(123456),
 						BlockedSender:   big.NewInt(10),
@@ -1133,11 +1134,11 @@ func Test_Instance_SetMSCBaseState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				mscBaseState: MSCBaseStateSigned{
-					MSContractBaseState: MSCBaseState{
+				mscBaseState: primitives.MSCBaseStateSigned{
+					MSContractBaseState: primitives.MSCBaseState{
 						VpcAddress:      aliceID.OnChainID,
 						Sid:             big.NewInt(123456),
 						BlockedSender:   big.NewInt(10),
@@ -1156,11 +1157,11 @@ func Test_Instance_SetMSCBaseState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				mscBaseState: MSCBaseStateSigned{
-					MSContractBaseState: MSCBaseState{
+				mscBaseState: primitives.MSCBaseStateSigned{
+					MSContractBaseState: primitives.MSCBaseState{
 						VpcAddress:      aliceID.OnChainID,
 						Sid:             big.NewInt(123456),
 						BlockedSender:   big.NewInt(10),
@@ -1194,13 +1195,13 @@ func Test_Instance_MSCBaseState(t *testing.T) {
 	tests := []struct {
 		name     string
 		instance *Instance
-		want     MSCBaseStateSigned
+		want     primitives.MSCBaseStateSigned
 	}{
 		{
 			name: "valid",
 			instance: &Instance{
-				mscBaseState: MSCBaseStateSigned{
-					MSContractBaseState: MSCBaseState{
+				mscBaseState: primitives.MSCBaseStateSigned{
+					MSContractBaseState: primitives.MSCBaseState{
 						VpcAddress:      aliceID.OnChainID,
 						Sid:             big.NewInt(123456),
 						BlockedSender:   big.NewInt(10),
@@ -1211,8 +1212,8 @@ func Test_Instance_MSCBaseState(t *testing.T) {
 					SignReceiver: []byte("sign-receiver"),
 				},
 			},
-			want: MSCBaseStateSigned{
-				MSContractBaseState: MSCBaseState{
+			want: primitives.MSCBaseStateSigned{
+				MSContractBaseState: primitives.MSCBaseState{
 					VpcAddress:      aliceID.OnChainID,
 					Sid:             big.NewInt(123456),
 					BlockedSender:   big.NewInt(10),
@@ -1235,7 +1236,7 @@ func Test_Instance_MSCBaseState(t *testing.T) {
 }
 func Test_Instance_SetCurrentVPCState(t *testing.T) {
 	type args struct {
-		vpcState VPCStateSigned
+		vpcState primitives.VPCStateSigned
 	}
 	tests := []struct {
 		name     string
@@ -1248,11 +1249,11 @@ func Test_Instance_SetCurrentVPCState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1269,11 +1270,11 @@ func Test_Instance_SetCurrentVPCState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1288,11 +1289,11 @@ func Test_Instance_SetCurrentVPCState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1308,11 +1309,11 @@ func Test_Instance_SetCurrentVPCState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1328,10 +1329,10 @@ func Test_Instance_SetCurrentVPCState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
-				vpcStatesList: []VPCStateSigned{
+				roleChannel: primitives.Sender,
+				vpcStatesList: []primitives.VPCStateSigned{
 					{
-						VPCState: VPCState{
+						VPCState: primitives.VPCState{
 							ID:              []byte("sample-id"),
 							Version:         big.NewInt(4),
 							BlockedSender:   big.NewInt(10),
@@ -1343,8 +1344,8 @@ func Test_Instance_SetCurrentVPCState(t *testing.T) {
 				},
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1375,7 +1376,7 @@ func Test_Instance_SetCurrentVPCState(t *testing.T) {
 }
 func Test_Instance_ValidateIncomingState(t *testing.T) {
 	type args struct {
-		vpcState VPCStateSigned
+		vpcState primitives.VPCStateSigned
 	}
 	tests := []struct {
 		name      string
@@ -1388,11 +1389,11 @@ func Test_Instance_ValidateIncomingState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1408,9 +1409,9 @@ func Test_Instance_ValidateIncomingState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Receiver,
-				vpcStatesList: []VPCStateSigned{{
-					VPCState: VPCState{
+				roleChannel: primitives.Receiver,
+				vpcStatesList: []primitives.VPCStateSigned{{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(0),
 						BlockedSender:   big.NewInt(10),
@@ -1421,8 +1422,8 @@ func Test_Instance_ValidateIncomingState(t *testing.T) {
 				}},
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1438,9 +1439,9 @@ func Test_Instance_ValidateIncomingState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
-				vpcStatesList: []VPCStateSigned{{
-					VPCState: VPCState{
+				roleChannel: primitives.Sender,
+				vpcStatesList: []primitives.VPCStateSigned{{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(2),
 						BlockedSender:   big.NewInt(10),
@@ -1451,8 +1452,8 @@ func Test_Instance_ValidateIncomingState(t *testing.T) {
 				}},
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1468,11 +1469,11 @@ func Test_Instance_ValidateIncomingState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Receiver,
+				roleChannel: primitives.Receiver,
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1488,11 +1489,11 @@ func Test_Instance_ValidateIncomingState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1526,7 +1527,7 @@ func Test_Instance_ValidateIncomingState(t *testing.T) {
 
 func Test_Instance_ValidateFullState(t *testing.T) {
 	type args struct {
-		vpcState VPCStateSigned
+		vpcState primitives.VPCStateSigned
 	}
 	tests := []struct {
 		name      string
@@ -1539,11 +1540,11 @@ func Test_Instance_ValidateFullState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1560,9 +1561,9 @@ func Test_Instance_ValidateFullState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
-				vpcStatesList: []VPCStateSigned{{
-					VPCState: VPCState{
+				roleChannel: primitives.Sender,
+				vpcStatesList: []primitives.VPCStateSigned{{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(0),
 						BlockedSender:   big.NewInt(10),
@@ -1573,8 +1574,8 @@ func Test_Instance_ValidateFullState(t *testing.T) {
 				}},
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1591,9 +1592,9 @@ func Test_Instance_ValidateFullState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
-				vpcStatesList: []VPCStateSigned{{
-					VPCState: VPCState{
+				roleChannel: primitives.Sender,
+				vpcStatesList: []primitives.VPCStateSigned{{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(2),
 						BlockedSender:   big.NewInt(10),
@@ -1604,8 +1605,8 @@ func Test_Instance_ValidateFullState(t *testing.T) {
 				}},
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1621,8 +1622,8 @@ func Test_Instance_ValidateFullState(t *testing.T) {
 			name:     "invalid-sender-signature",
 			instance: &Instance{},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1639,11 +1640,11 @@ func Test_Instance_ValidateFullState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1661,11 +1662,11 @@ func Test_Instance_ValidateFullState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1682,11 +1683,11 @@ func Test_Instance_ValidateFullState(t *testing.T) {
 			instance: &Instance{
 				selfID:      aliceID,
 				peerID:      bobID,
-				roleChannel: Sender,
+				roleChannel: primitives.Sender,
 			},
 			args: args{
-				vpcState: VPCStateSigned{
-					VPCState: VPCState{
+				vpcState: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1723,13 +1724,13 @@ func Test_Instance_CurrentVpcState(t *testing.T) {
 	tests := []struct {
 		name     string
 		instance *Instance
-		want     VPCStateSigned
+		want     primitives.VPCStateSigned
 	}{
 		{
 			name: "valid",
 			instance: &Instance{
-				vpcStatesList: []VPCStateSigned{{
-					VPCState: VPCState{
+				vpcStatesList: []primitives.VPCStateSigned{{
+					VPCState: primitives.VPCState{
 						ID:              []byte("sample-id"),
 						Version:         big.NewInt(1),
 						BlockedSender:   big.NewInt(10),
@@ -1738,8 +1739,8 @@ func Test_Instance_CurrentVpcState(t *testing.T) {
 					SignSender:   []byte("sign-sender"),
 					SignReceiver: []byte("sign-receiver"),
 				}}},
-			want: VPCStateSigned{
-				VPCState: VPCState{
+			want: primitives.VPCStateSigned{
+				VPCState: primitives.VPCState{
 					ID:              []byte("sample-id"),
 					Version:         big.NewInt(1),
 					BlockedSender:   big.NewInt(10),
