@@ -202,14 +202,14 @@ func closeHandler(pipe handlerPipe) (err error) {
 	return err
 }
 
-func startListener(selfID identity.OffChainID, maxConn uint32, adapterType AdapterType) (idVerifiedConn chan *Instance,
+func startListener(selfID identity.OffChainID, maxConn uint32, adapterType AdapterType) (newIncomingConn chan ReadWriteCloser,
 	listener Shutdown, err error) {
 
 	if adapterType != WebSocket {
 		return nil, nil, fmt.Errorf("Unsupported adapter type - %s", string(adapterType))
 	}
 
-	idVerifiedConn = make(chan *Instance, maxConn)
+	newIncomingConn = make(chan ReadWriteCloser, maxConn)
 
 	localAddr, err := selfID.ListenerLocalAddr()
 	if err != nil {
@@ -218,58 +218,17 @@ func startListener(selfID identity.OffChainID, maxConn uint32, adapterType Adapt
 	}
 
 	//Only websocket adapter is supported currently
-	listener, inConn, err := wsStartListener(localAddr, selfID.ListenerEndpoint, maxConn)
+	listener, err = wsStartListener(localAddr, selfID.ListenerEndpoint, newIncomingConn)
 	if err != nil {
 		logger.Debug("Error starting listen and serve,", err.Error())
 		return nil, nil, err
 	}
 
-	go func() {
-		for {
-			newConn := <-inConn
-			//Role of user in incoming connections is receiver
-			newConn.SetRoleChannel(primitives.Receiver)
-
-			peerID, err := newConn.IdentityRead()
-			if err != nil {
-				err2 := newConn.Close()
-				if err2 != nil {
-					logger.Error("Error reading peer id-", err, "connection dropped with error -", err2)
-				} else {
-					logger.Error("Error reading peer id-", err, "connection dropped with no error")
-				}
-				return
-			}
-
-			err = newConn.IdentityRespond(selfID)
-			if err != nil {
-				err2 := newConn.Close()
-				if err2 != nil {
-					logger.Error("Error sending self id-", err, "connection dropped with error -", err2)
-				} else {
-					logger.Error("Error sending self id-", err, "connection dropped with no error")
-				}
-				return
-			}
-
-			//Set self and peer id and return connection to id verified connections channel
-			newConn.setSelfID(selfID)
-			newConn.setPeerID(peerID)
-			idVerifiedConn <- newConn
-		}
-	}()
-
-	return idVerifiedConn, listener, nil
+	return newIncomingConn, listener, nil
 }
 
-// NewChannel initializes a new channel connection with peer using the adapterType.
-//
-// selfID is the offchain identity of this user and will be exchanged with the peer when establishing offchain channel.
-// peerID is the offchain identity of the peer with whom the offchain channel needs to be established.
-//
-// An identity exchange is performed after establishing a connection between the two node software instances and
-// if it fails, an error is returned.
-func NewChannel(selfID, peerID identity.OffChainID, adapterType AdapterType) (conn *Instance, err error) {
+// NewChannelConn initializes and returns a new channel connection (as ReadWriteCloser interface) with peer using the adapterType.
+func NewChannelConn(peerID identity.OffChainID, adapterType AdapterType) (conn ReadWriteCloser, err error) {
 
 	switch adapterType {
 	case WebSocket:
@@ -278,35 +237,9 @@ func NewChannel(selfID, peerID identity.OffChainID, adapterType AdapterType) (co
 			logger.Error("Websockets connection dial error:", err)
 			return nil, err
 		}
-		conn.SetRoleChannel(primitives.Sender)
 	case Mock:
 	default:
 	}
-
-	//Verify peer identity for all real adapter types
-	if adapterType != Mock {
-
-		var gotPeerID identity.OffChainID
-		gotPeerID, err = conn.IdentityRequest(selfID)
-		if err != nil {
-			err = fmt.Errorf("Test connection failed")
-			return nil, err
-		}
-
-		if !identity.Equal(peerID, gotPeerID) {
-			errClose := conn.Close()
-			if errClose != nil {
-				err = fmt.Errorf("other id mismatch. error in closing conn - %s", errClose.Error())
-			} else {
-				err = fmt.Errorf("other id mismatch")
-			}
-			return nil, err
-		}
-
-	}
-
-	conn.setSelfID(selfID)
-	conn.setPeerID(peerID)
 
 	return conn, nil
 }

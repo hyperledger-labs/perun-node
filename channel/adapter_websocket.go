@@ -65,10 +65,8 @@ type Shutdown interface {
 	Shutdown(context.Context) error
 }
 
-func wsStartListener(addr, endpoint string, maxConn uint32) (
-	sh Shutdown, inConn chan *Instance, err error) {
-
-	inConn = make(chan *Instance, maxConn)
+func wsStartListener(addr, endpoint string, inConn chan ReadWriteCloser) (
+	sh Shutdown, err error) {
 
 	listnerMux := http.NewServeMux()
 	listnerMux.HandleFunc(endpoint, func(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +86,7 @@ func wsStartListener(addr, endpoint string, maxConn uint32) (
 	//errors when listening has failed to start
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		return srv, nil, err
+		return srv, err
 	}
 
 	go func() {
@@ -103,10 +101,10 @@ func wsStartListener(addr, endpoint string, maxConn uint32) (
 		}
 	}()
 
-	return srv, inConn, nil
+	return srv, nil
 }
 
-func wsConnHandler(inConn chan *Instance, w http.ResponseWriter, r *http.Request) {
+func wsConnHandler(inConn chan ReadWriteCloser, w http.ResponseWriter, r *http.Request) {
 
 	var upgrader = websocket.Upgrader{}
 
@@ -131,14 +129,10 @@ func wsConnHandler(inConn chan *Instance, w http.ResponseWriter, r *http.Request
 	go wsWriteHandler(wsConfig, ch.wsConn, ch.writeHandlerPipe, ch)
 	go wsReadHandler(wsConfig, ch.wsConn, ch.readHandlerPipe, ch)
 
-	cha := &Instance{
-		adapter: ch,
-	}
-
-	inConn <- cha
+	inConn <- ch
 }
 
-func newWsChannel(addr, endpoint string) (cha *Instance, err error) {
+func newWsChannel(addr, endpoint string) (_ ReadWriteCloser, err error) {
 
 	peerURL := url.URL{Scheme: "ws", Host: addr, Path: endpoint}
 
@@ -161,11 +155,7 @@ func newWsChannel(addr, endpoint string) (cha *Instance, err error) {
 	go wsWriteHandler(wsConfig, ch.wsConn, ch.writeHandlerPipe, ch)
 	go wsReadHandler(wsConfig, ch.wsConn, ch.readHandlerPipe, ch)
 
-	cha = &Instance{
-		adapter: ch,
-	}
-
-	return cha, err
+	return ch, err
 }
 
 func wsReadHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerPipe, ch Closer) {
