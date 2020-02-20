@@ -18,4 +18,4 @@
 //
 // It defines structure of a state, session id and functions to generate them.
 // It also defines message packets,  its marshallers and unmarshallers.
-package channel
+package primitives
