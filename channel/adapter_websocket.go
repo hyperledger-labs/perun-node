@@ -18,27 +18,25 @@ package channel
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/gorilla/websocket"
-
-	"github.com/direct-state-transfer/dst-go/channel/primitives"
 )
 
 type wsConnInterface interface {
-	Close() error
-
 	SetWriteDeadline(time.Time) error
 	WriteMessage(int, []byte) error
-	WriteJSON(interface{}) error
 
-	ReadJSON(interface{}) error
 	SetReadLimit(int64)
 	SetPongHandler(func(string) error)
 	SetReadDeadline(time.Time) error
+	ReadMessage() (int, []byte, error)
+
+	Close() error
 }
 
 type wsConfigType struct {
@@ -142,7 +140,7 @@ func newWsChannel(addr, endpoint string) (_ ReadWriteCloser, err error) {
 	}
 	_ = response.Body.Close()
 
-	ch := &wsChannel{
+	wsCh := &wsChannel{
 		genericChannelAdapter: &genericChannelAdapter{
 			connected:        true,
 			writeHandlerPipe: newHandlerPipe(handlerPipeModeWrite),
@@ -152,10 +150,10 @@ func newWsChannel(addr, endpoint string) (_ ReadWriteCloser, err error) {
 	}
 
 	//start read and write handler go routines
-	go wsWriteHandler(wsConfig, ch.wsConn, ch.writeHandlerPipe, ch)
-	go wsReadHandler(wsConfig, ch.wsConn, ch.readHandlerPipe, ch)
+	go wsWriteHandler(wsConfig, wsCh.wsConn, wsCh.writeHandlerPipe, wsCh)
+	go wsReadHandler(wsConfig, wsCh.wsConn, wsCh.readHandlerPipe, wsCh)
 
-	return ch, err
+	return wsCh, err
 }
 
 func wsReadHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerPipe, ch Closer) {
@@ -179,7 +177,10 @@ func wsReadHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerPi
 		return wsConn.SetReadDeadline(time.Now().Add(wsConfig.pongWait))
 	})
 
-	var message primitives.ChMsgPkt
+	var (
+		message     []byte
+		messageType int
+	)
 
 	//Timeperiod to do repeat reads
 	ticker := time.NewTicker(100 * time.Millisecond)
@@ -189,15 +190,24 @@ func wsReadHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerPi
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			//ReadJSON caused only two types of error
-			//1. Close error - when websocket connections is closed. It is permanent
-			//2. io.UnexpectedEOF error - due to json parsing
-			err := wsConn.ReadJSON(&message)
 
-			if err != nil && websocket.IsUnexpectedCloseError(err) {
-				//Websocket connection closed
-				logger.Info("Connection closed by peer -", err)
+			messageType, message, err = wsConn.ReadMessage()
+
+			//Error handling from websocket read
+			//1. ReadMessage internally calls NextReader and io.Readall
+			//   a. Errors from Nextreader are permanent. So exit when it returns error
+			//	 b. Errors from Readall is received only due to buffer overflow die to insufficient memory.
+			//      All other errors within Readall will result in panic.
+
+			if err != nil {
 				ticker.Stop()
+
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					logger.Error("Connection closed with unexpected error -", err)
+				} else {
+					logger.Info("Connection closed by peer -", err)
+				}
+
 				//If receiver has obtained lock, signal handler error it so that it exists
 				//And Lock will be available for Close()
 				pipe.handlerError <- err
@@ -208,6 +218,12 @@ func wsReadHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerPi
 					}
 				}()
 				return
+			}
+
+			_ = messageType
+			if err == nil && messageType != websocket.BinaryMessage {
+				message = []byte{}
+				err = fmt.Errorf("Only BinaryMessage type is supported by websockets adapter")
 			}
 
 			msgPacket := jsonMsgPacket{message, err}
@@ -229,7 +245,6 @@ func wsWriteHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerP
 		logger.Debug("Exiting messageSender")
 		pipe.quit <- true
 	}()
-
 	for {
 		select {
 		case msgPacket := <-pipe.msgPacket:
@@ -241,12 +256,17 @@ func wsWriteHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerP
 				return
 			}
 
-			err = wsConn.WriteJSON(msgPacket.message)
-			if err != nil && websocket.IsUnexpectedCloseError(err) {
-				//Websocket connection closed
-				logger.Info("Connection closed by peer -", err)
-				ticker.Stop()
-				//If writer has obtained lock, signal handler error it so that it exists
+			err = wsConn.WriteMessage(websocket.BinaryMessage, msgPacket.message)
+
+			if err != nil {
+
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					logger.Error("Connection closed with unexpected error -", err)
+				} else {
+					logger.Info("Connection closed by peer -", err)
+				}
+
+				//If receiver has obtained lock, signal handler error it so that it exists
 				//And Lock will be available for Close()
 				pipe.handlerError <- err
 				go func() {
@@ -257,6 +277,7 @@ func wsWriteHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerP
 				}()
 				return
 			}
+
 			msgPacket.err = err
 			pipe.msgPacket <- msgPacket
 

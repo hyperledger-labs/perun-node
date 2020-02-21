@@ -17,6 +17,7 @@
 package channel
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -24,11 +25,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/direct-state-transfer/dst-go/identity"
 )
+
+const testChannelMessageProtocolVersion = "0.1"
 
 var testTime time.Time
 var contractStoreVersionForTest = []byte("8b9df51d7a7343a92133f24aaa1ba544d92eac1ccd66c731aa243e3273cb0f69")
@@ -38,175 +43,122 @@ func init() {
 		time.RFC3339, "2012-11-01T22:08:41+00:00")
 }
 
-type jsonMsgTypeForTest struct{}
-
-var MsgIDForTest primitives.MessageID = "junk-message-type-for-test"
-
-//ChReadMock sends a mock packet to read
-//It takes an initialized channel and should be invoked as go-routine
-func ChReadMock(ch *genericChannelAdapter, responseMsg jsonMsgPacket, wg *sync.WaitGroup) {
-
-	defer wg.Done()
-
-	//channel is guarded by mutex in Read/Write and other calls,
-	//so use pipes directly
-
-	ch.readHandlerPipe.msgPacket <- responseMsg
+func marshalChMsgPkt(pkt primitives.ChMsgPkt) []byte {
+	byteArray, err := json.Marshal(pkt)
+	if err != nil {
+		byteArray = []byte{}
+	}
+	return byteArray
 }
 
-//ChWriteMock waits for a message write to occur, responds to it
-//It takes an initialized channel and should be invoked as go-routine
-func ChWriteMock(t *testing.T, ch *genericChannelAdapter, expectRequest primitives.ChMsgPkt, expectMatchInMock bool, respondWithErr error, wg *sync.WaitGroup) {
-
-	defer wg.Done()
-
-	//channel is guarded by mutex in Read/Write and other calls,
-	//so use pipes directly
-
-	inMsg1 := <-ch.writeHandlerPipe.msgPacket
-
-	//Write expects a response from handler with error status
-	inMsg1.err = respondWithErr
-	ch.writeHandlerPipe.msgPacket <- inMsg1
-
-	if respondWithErr != nil {
-		return
-	}
-
-	if expectMatchInMock != compareMsg(inMsg1.message, expectRequest) {
-		t.Fatalf("inMsg1 = %v, want %v", inMsg1.message, expectRequest)
-	}
-}
-
-//ChWriteReadMock waits for a message write to occur, responds to it
-//Then also it sends a mock packet to read
-//It takes an initialized channel and should be invoked as go-routine
-func ChWriteReadMock(t *testing.T, ch *genericChannelAdapter, expectRequestMsg primitives.ChMsgPkt, responseMsg jsonMsgPacket, respondWithErr error, expectRequestMsgMatch bool, wg *sync.WaitGroup) {
-
-	defer wg.Done()
-
-	//channel is guarded by mutex in Read/Write and other calls,
-	//so use pipes directly
-
-	inMsg1 := <-ch.writeHandlerPipe.msgPacket
-
-	//Write expects a response from handler with error status
-	inMsg1.err = respondWithErr
-	ch.writeHandlerPipe.msgPacket <- inMsg1
-
-	if respondWithErr != nil {
-		return
-	}
-
-	if expectRequestMsgMatch != compareMsg(inMsg1.message, expectRequestMsg) {
-		t.Errorf("inMsg1 = %+v, want %+v", inMsg1.message, expectRequestMsg)
-	}
-
-	ch.readHandlerPipe.msgPacket <- responseMsg
-}
-
-func compareMsg(msg1, msg2 primitives.ChMsgPkt) bool {
-
-	if (reflect.TypeOf(msg1) == reflect.TypeOf(msg2)) &&
-		(msg1.MessageID == msg2.MessageID) &&
-		reflect.DeepEqual(msg1.Message, msg2.Message) {
-		return true
-	}
-	return false
-}
-func Test_channel_IdentityRequest(t *testing.T) {
+func Test_Instance_IdentityRequest(t *testing.T) {
 	type args struct {
 		selfID identity.OffChainID
 	}
 	tests := []struct {
-		name              string
-		args              args
-		expectRequest     primitives.ChMsgPkt
-		expectMatchInMock bool
-		mockResponse      jsonMsgPacket
-		responseError     error
-		wantErr           bool
-		wantPeerID        identity.OffChainID
+		name string
+		args args
+
+		mockWriteExpectMsg primitives.ChMsgPkt
+		mockWriteReturnErr error
+		mockReadReturnMsg  primitives.ChMsgPkt
+		mockReadReturnErr  error
+
+		wantErr    bool
+		wantPeerID identity.OffChainID
 	}{
 		{
 			name: "valid-1",
 			args: args{
 				selfID: aliceID,
 			},
-			expectRequest: primitives.ChMsgPkt{
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgIdentityRequest,
+				Message:   primitives.JSONMsgIdentity{ID: aliceID}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgIdentityResponse,
+				Message:   primitives.JSONMsgIdentity{ID: bobID}},
+			mockReadReturnErr: nil,
+
+			wantErr:    false,
+			wantPeerID: bobID,
+		},
+		{
+			name: "write-error",
+			args: args{
+				selfID: aliceID,
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgIdentityRequest,
 				Message:   primitives.JSONMsgIdentity{ID: aliceID},
 			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgIdentityResponse,
-					Message: primitives.JSONMsgIdentity{
-						ID: aliceID,
-					},
-				}},
-			wantErr:    false,
-			wantPeerID: aliceID,
-		},
-		{
-			name: "invalid-message-id",
-			args: args{
-				selfID: aliceID,
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgIdentityRequest,
-				Message: primitives.JSONMsgIdentity{
-					ID: aliceID,
-				}},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MessageID("invalid-message-id"),
-				}},
+			mockWriteReturnErr: fmt.Errorf("mock-error"),
+
 			wantErr: true,
-		},
-		{
-			name: "invalid-message-id",
-			args: args{
-				selfID: aliceID,
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgIdentityRequest,
-				Message: primitives.JSONMsgIdentity{
-					ID: aliceID,
-				}},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgIdentityResponse,
-					Message:   nil,
-				}},
-			wantErr: true,
-		},
-		{
-			name:          "write-error",
-			args:          args{},
-			responseError: fmt.Errorf("write-error"),
-			wantErr:       true,
 		},
 		{
 			name: "read-error",
-			args: args{},
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{},
-				err:     fmt.Errorf("read-error")},
+			args: args{
+				selfID: aliceID,
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgIdentityRequest,
+				Message:   primitives.JSONMsgIdentity{ID: aliceID},
+			},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg:  primitives.ChMsgPkt{},
+			mockReadReturnErr:  fmt.Errorf("mock-error"),
+
+			wantErr: true,
+		},
+		{
+			name: "message-id-mismatch",
+			args: args{
+				selfID: aliceID,
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgIdentityRequest,
+				Message: primitives.JSONMsgIdentity{
+					ID: aliceID,
+				}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDRequest,
+				Message:   primitives.JSONMsgSessionID{},
+			},
+			mockReadReturnErr: nil,
+
 			wantErr: true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
 
-			wg.Add(1)
-			go ChWriteReadMock(t, adapter, tt.expectRequest, tt.mockResponse, tt.responseError, tt.expectMatchInMock, wg)
+			mockAdapter := MockReadWriteCloser{}
+
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
+
+			_ = timestampProvider.SetLocation("Local")
+
+			tt.mockWriteExpectMsg.Version = testChannelMessageProtocolVersion
+			tt.mockWriteExpectMsg.Timestamp = timestamp
+
+			mockAdapter.On("Write", marshalChMsgPkt((tt.mockWriteExpectMsg))).Return(tt.mockWriteReturnErr)
+			mockAdapter.On("Read").Return(marshalChMsgPkt(tt.mockReadReturnMsg), tt.mockReadReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			gotPeerID, err := ch.IdentityRequest(tt.args.selfID)
 			if err != nil {
@@ -219,82 +171,65 @@ func Test_channel_IdentityRequest(t *testing.T) {
 			if !reflect.DeepEqual(gotPeerID, tt.wantPeerID) {
 				t.Errorf("channel.IdentityRequest() = %v, want %v", gotPeerID, tt.wantPeerID)
 			}
-			wg.Wait() //Wait for mock object to exit
 		})
 	}
 }
-func Test_channel_IdentityRead(t *testing.T) {
+
+func Test_Instance_IdentityRead(t *testing.T) {
 	tests := []struct {
-		name            string
-		mockResponse    jsonMsgPacket
-		wantErr         bool
-		wantPeerID      identity.OffChainID
-		wantPeerIDMatch bool
+		name string
+
+		mockReadReturnMsg primitives.ChMsgPkt
+		mockReadReturnErr error
+
+		wantErr    bool
+		wantPeerID identity.OffChainID
 	}{
 		{
-			name: "valid-1",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgIdentityRequest,
-					Message: primitives.JSONMsgIdentity{
-						ID: aliceID,
-					},
-				}},
-			wantErr:         false,
-			wantPeerID:      aliceID,
-			wantPeerIDMatch: true,
+			name: "valid",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgIdentityRequest,
+				Message: primitives.JSONMsgIdentity{
+					ID: aliceID}},
+			mockReadReturnErr: nil,
+			wantErr:           false,
+			wantPeerID:        aliceID,
 		},
 		{
 			name: "read-error",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{},
-				err:     fmt.Errorf("read-error")},
-			wantErr: true,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgIdentityRequest,
+				Message: primitives.JSONMsgIdentity{
+					ID: aliceID}},
+			mockReadReturnErr: fmt.Errorf("mock-error"),
+			wantErr:           true,
 		},
 		{
-			name: "id-mismatch",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgIdentityRequest,
-					Message: primitives.JSONMsgIdentity{
-						ID: bobID,
-					},
-				}},
-			wantErr:         false,
-			wantPeerID:      aliceID,
-			wantPeerIDMatch: false,
-		},
-		{
-			name: "invalid-message-id",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MessageID("invalid-message-id"),
-				}},
-			wantErr:         true,
-			wantPeerID:      aliceID,
-			wantPeerIDMatch: false,
-		},
-		{
-			name: "invalid-message",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgIdentityRequest,
-					Message:   nil,
-				}},
-			wantErr:         true,
-			wantPeerID:      aliceID,
-			wantPeerIDMatch: false,
+			name: "message-id-mismatch",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrRequest,
+				Message:   primitives.JSONMsgContractAddr{}},
+			mockReadReturnErr: nil,
+			wantErr:           true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
 
-			wg.Add(1)
-			go ChReadMock(adapter, tt.mockResponse, wg)
+			_ = timestampProvider.SetLocation("Local")
+
+			mockAdapter := MockReadWriteCloser{}
+			mockAdapter.On("Read").Return(marshalChMsgPkt(tt.mockReadReturnMsg), tt.mockReadReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			gotPeerID, err := ch.IdentityRead()
 			if err != nil {
@@ -304,100 +239,80 @@ func Test_channel_IdentityRead(t *testing.T) {
 				}
 				return
 			}
-			if !reflect.DeepEqual(gotPeerID, tt.wantPeerID) && tt.wantPeerIDMatch {
+			if !reflect.DeepEqual(gotPeerID, tt.wantPeerID) {
 				t.Errorf("channel.IdentityRead() = %v, want %v", gotPeerID, tt.wantPeerID)
 			}
 
-			wg.Wait()
 		})
 	}
 }
 
-func Test_channel_IdentityRespond(t *testing.T) {
+func Test_Instance_IdentityRespond(t *testing.T) {
 	type args struct {
 		selfID identity.OffChainID
 	}
 	tests := []struct {
-		name              string
-		args              args
-		expectResponse    primitives.ChMsgPkt
-		expectMatchInMock bool
-		responseError     error
-		wantErr           bool
+		name string
+		args args
+
+		mockWriteExpectMsg primitives.ChMsgPkt
+		mockWriteReturnErr error
+
+		wantErr bool
 	}{
 		{
 			name: "valid-1",
 			args: args{
-				selfID: aliceID,
-			},
-			expectResponse: primitives.ChMsgPkt{
+				selfID: aliceID},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgIdentityResponse,
 				Message: primitives.JSONMsgIdentity{
 					ID: aliceID,
 				},
 			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           true,
-		},
-		{
-			name: "id-mismatch",
-			args: args{
-				selfID: bobID,
-			},
-			expectResponse: primitives.ChMsgPkt{
-				MessageID: primitives.MsgIdentityResponse,
-				Message: primitives.JSONMsgIdentity{
-					ID: aliceID,
-				},
-			},
-			expectMatchInMock: false,
-			responseError:     nil,
-			wantErr:           true,
-		},
-		{
-			name: "wrong-msg-id",
-			args: args{
-				selfID: aliceID,
-			},
-			expectResponse: primitives.ChMsgPkt{
-				MessageID: MsgIDForTest,
-			},
-			expectMatchInMock: false,
-			responseError:     nil,
-			wantErr:           true,
-		},
-		{
-			name: "wrong-message-packet-type",
-			args: args{
-				selfID: aliceID,
-			},
-			expectResponse: primitives.ChMsgPkt{
-				MessageID: primitives.MsgIdentityResponse,
-				Message:   jsonMsgTypeForTest{},
-			},
-			expectMatchInMock: false,
-			responseError:     nil,
-			wantErr:           true,
+			mockWriteReturnErr: nil,
+
+			wantErr: false,
 		},
 		{
 			name: "write-error",
 			args: args{
-				selfID: aliceID,
+				selfID: aliceID},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgIdentityResponse,
+				Message: primitives.JSONMsgIdentity{
+					ID: aliceID,
+				},
 			},
-			responseError: fmt.Errorf("write-error"),
-			wantErr:       true,
+			mockWriteReturnErr: fmt.Errorf("mock-error"),
+
+			wantErr: true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
 
-			wg.Add(1)
-			go ChWriteMock(t, adapter, tt.expectResponse, tt.expectMatchInMock, tt.responseError, wg)
+			mockAdapter := MockReadWriteCloser{}
+
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
+
+			_ = timestampProvider.SetLocation("Local")
+
+			tt.mockWriteExpectMsg.Version = testChannelMessageProtocolVersion
+			tt.mockWriteExpectMsg.Timestamp = timestamp
+
+			mockAdapter.On("Write", marshalChMsgPkt((tt.mockWriteExpectMsg))).Return(tt.mockWriteReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			err := ch.IdentityRespond(tt.args.selfID)
 			if err != nil {
@@ -407,52 +322,49 @@ func Test_channel_IdentityRespond(t *testing.T) {
 				}
 				return
 			}
-			wg.Wait()
 		})
 	}
 }
-
-func Test_channel_NewChannelRequest(t *testing.T) {
+func Test_Instance_NewChannelRequest(t *testing.T) {
 	type args struct {
 		msgProtocolVersion   string
 		contractStoreVersion []byte
 	}
 	tests := []struct {
-		name              string
-		args              args
-		expectRequest     primitives.ChMsgPkt
-		expectMatchInMock bool
-		mockResponse      jsonMsgPacket
-		responseError     error
-		wantErr           bool
-		wantAccept        primitives.MessageStatus
-		wantReason        string
+		name string
+		args args
+
+		mockWriteExpectMsg primitives.ChMsgPkt
+		mockWriteReturnErr error
+		mockReadReturnMsg  primitives.ChMsgPkt
+		mockReadReturnErr  error
+
+		wantErr    bool
+		wantAccept primitives.MessageStatus
+		wantReason string
 	}{
 		{
 			name: "accept",
 			args: args{
 				msgProtocolVersion:   "1.0",
-				contractStoreVersion: []byte("v1.0"),
-			},
-			expectRequest: primitives.ChMsgPkt{
+				contractStoreVersion: []byte("v1.0")},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgNewChannelRequest,
 				Message: primitives.JSONMsgNewChannel{
 					MsgProtocolVersion:   "1.0",
 					ContractStoreVersion: []byte("v1.0"),
-					Status:               primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgNewChannelResponse,
-					Message: primitives.JSONMsgNewChannel{
-						MsgProtocolVersion:   "1.0",
-						ContractStoreVersion: []byte("v1.0"),
-						Status:               primitives.MessageStatusAccept,
-						Reason:               "",
-					},
-				}},
+					Status:               primitives.MessageStatusRequire}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgNewChannelResponse,
+				Message: primitives.JSONMsgNewChannel{
+					MsgProtocolVersion:   "1.0",
+					ContractStoreVersion: []byte("v1.0"),
+					Status:               primitives.MessageStatusAccept,
+					Reason:               ""}},
+			mockReadReturnErr: nil,
+
 			wantErr:    false,
 			wantAccept: primitives.MessageStatusAccept,
 			wantReason: "",
@@ -461,154 +373,155 @@ func Test_channel_NewChannelRequest(t *testing.T) {
 			name: "decline",
 			args: args{
 				msgProtocolVersion:   "1.0",
-				contractStoreVersion: []byte("v1.0"),
-			},
-			expectRequest: primitives.ChMsgPkt{
+				contractStoreVersion: []byte("v1.0")},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgNewChannelRequest,
 				Message: primitives.JSONMsgNewChannel{
 					MsgProtocolVersion:   "1.0",
 					ContractStoreVersion: []byte("v1.0"),
-					Status:               primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgNewChannelResponse,
-					Message: primitives.JSONMsgNewChannel{
-						MsgProtocolVersion:   "1.0",
-						ContractStoreVersion: []byte("v1.0"),
-						Status:               primitives.MessageStatusDecline,
-						Reason:               "wrong-version",
-					},
-				}},
+					Status:               primitives.MessageStatusRequire}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgNewChannelResponse,
+				Message: primitives.JSONMsgNewChannel{
+					MsgProtocolVersion:   "1.0",
+					ContractStoreVersion: []byte("v1.0"),
+					Status:               primitives.MessageStatusDecline,
+					Reason:               "decline-for-test"}},
+			mockReadReturnErr: nil,
+
 			wantErr:    false,
 			wantAccept: primitives.MessageStatusDecline,
-			wantReason: "wrong-version",
+			wantReason: "decline-for-test",
 		},
 		{
-			name: "msgProtocolVersion-modified-by-peer",
+			name: "write-error",
 			args: args{
 				msgProtocolVersion:   "1.0",
-				contractStoreVersion: []byte("v1.0"),
-			},
-			expectRequest: primitives.ChMsgPkt{
+				contractStoreVersion: []byte("v1.0")},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgNewChannelRequest,
 				Message: primitives.JSONMsgNewChannel{
 					MsgProtocolVersion:   "1.0",
 					ContractStoreVersion: []byte("v1.0"),
-					Status:               primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgNewChannelResponse,
-					Message: primitives.JSONMsgNewChannel{
-						MsgProtocolVersion:   "2.0",
-						ContractStoreVersion: []byte("v1.0"),
-						Status:               primitives.MessageStatusAccept,
-						Reason:               "",
-					},
-				}},
+					Status:               primitives.MessageStatusRequire}},
+			mockWriteReturnErr: fmt.Errorf("mock-error"),
+
 			wantErr: true,
-		},
-		{
-			name: "contractStoreVersion-modified-by-peer",
-			args: args{
-				msgProtocolVersion:   "1.0",
-				contractStoreVersion: []byte("v1.0"),
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgNewChannelRequest,
-				Message: primitives.JSONMsgNewChannel{
-					MsgProtocolVersion:   "1.0",
-					ContractStoreVersion: []byte("v1.0"),
-					Status:               primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgNewChannelResponse,
-					Message: primitives.JSONMsgNewChannel{
-						MsgProtocolVersion:   "1.0",
-						ContractStoreVersion: []byte("v2.0"),
-						Status:               primitives.MessageStatusAccept,
-						Reason:               "",
-					},
-				}},
-			wantErr: true,
-		},
-		{
-			name: "invalid-message-id",
-			args: args{
-				msgProtocolVersion:   "1.0",
-				contractStoreVersion: []byte("v1.0"),
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgNewChannelRequest,
-				Message: primitives.JSONMsgNewChannel{
-					ContractStoreVersion: []byte("v1.0"),
-					MsgProtocolVersion:   "1.0",
-					Status:               "require",
-					Reason:               "",
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MessageID("invalid-message-id"),
-				}},
-			wantErr: true,
-		},
-		{
-			name: "invalid-message",
-			args: args{
-				msgProtocolVersion:   "1.0",
-				contractStoreVersion: []byte("v1.0"),
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgNewChannelRequest,
-				Message: primitives.JSONMsgNewChannel{
-					ContractStoreVersion: []byte("v1.0"),
-					MsgProtocolVersion:   "1.0",
-					Status:               "require",
-					Reason:               "",
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgNewChannelResponse,
-					Message:   nil,
-				}},
-			wantErr: true,
-		},
-		{
-			name:          "write-error",
-			args:          args{},
-			responseError: fmt.Errorf("write-error"),
-			wantErr:       true,
 		},
 		{
 			name: "read-error",
-			args: args{},
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{},
-				err:     fmt.Errorf("read-error")},
+			args: args{
+				msgProtocolVersion:   "1.0",
+				contractStoreVersion: []byte("v1.0")},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgNewChannelRequest,
+				Message: primitives.JSONMsgNewChannel{
+					MsgProtocolVersion:   "1.0",
+					ContractStoreVersion: []byte("v1.0"),
+					Status:               primitives.MessageStatusRequire}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg:  primitives.ChMsgPkt{},
+			mockReadReturnErr:  fmt.Errorf("mock-error"),
+
+			wantErr: true,
+		},
+		{
+			name: "message-id-mismatch",
+			args: args{
+				msgProtocolVersion:   "1.0",
+				contractStoreVersion: []byte("v1.0")},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgNewChannelRequest,
+				Message: primitives.JSONMsgNewChannel{
+					MsgProtocolVersion:   "1.0",
+					ContractStoreVersion: []byte("v1.0"),
+					Status:               primitives.MessageStatusRequire}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDRequest,
+				Message:   primitives.JSONMsgSessionID{},
+			},
+			mockReadReturnErr: nil,
+
+			wantErr: true,
+		},
+		{
+			name: "contract-version-mismatch",
+			args: args{
+				msgProtocolVersion:   "1.0",
+				contractStoreVersion: []byte("v2.0")},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgNewChannelRequest,
+				Message: primitives.JSONMsgNewChannel{
+					MsgProtocolVersion:   "1.0",
+					ContractStoreVersion: []byte("v2.0"),
+					Status:               primitives.MessageStatusRequire}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgNewChannelResponse,
+				Message: primitives.JSONMsgNewChannel{
+					MsgProtocolVersion:   "1.0",
+					ContractStoreVersion: []byte("v1.0"),
+					Status:               primitives.MessageStatusAccept,
+					Reason:               ""}},
+			mockReadReturnErr: nil,
+
+			wantErr: true,
+		},
+		{
+			name: "protocol-version-mismatch",
+			args: args{
+				msgProtocolVersion:   "2.0",
+				contractStoreVersion: []byte("v1.0")},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgNewChannelRequest,
+				Message: primitives.JSONMsgNewChannel{
+					MsgProtocolVersion:   "2.0",
+					ContractStoreVersion: []byte("v1.0"),
+					Status:               primitives.MessageStatusRequire}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgNewChannelResponse,
+				Message: primitives.JSONMsgNewChannel{
+					MsgProtocolVersion:   "1.0",
+					ContractStoreVersion: []byte("v1.0"),
+					Status:               primitives.MessageStatusAccept,
+					Reason:               ""}},
+			mockReadReturnErr: nil,
+
 			wantErr: true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
 
-			wg.Add(1)
-			go ChWriteReadMock(t, adapter, tt.expectRequest, tt.mockResponse, tt.responseError, tt.expectMatchInMock, wg)
+			mockAdapter := MockReadWriteCloser{}
+
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
+
+			_ = timestampProvider.SetLocation("Local")
+
+			tt.mockWriteExpectMsg.Version = testChannelMessageProtocolVersion
+			tt.mockWriteExpectMsg.Timestamp = timestamp
+
+			mockAdapter.On("Write", marshalChMsgPkt((tt.mockWriteExpectMsg))).Return(tt.mockWriteReturnErr)
+			mockAdapter.On("Read").Return(marshalChMsgPkt(tt.mockReadReturnMsg), tt.mockReadReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			gotAccept, gotReason, err := ch.NewChannelRequest(tt.args.msgProtocolVersion, tt.args.contractStoreVersion)
 			if err != nil {
@@ -624,84 +537,84 @@ func Test_channel_NewChannelRequest(t *testing.T) {
 			if gotReason != tt.wantReason {
 				t.Errorf("channel.NewChannelRequest() gotReason = %v, want %v", gotReason, tt.wantReason)
 			}
-			wg.Wait()
 		})
 	}
 }
 
-func Test_channel_NewChannelRead(t *testing.T) {
+func Test_Instance_NewChannelRead(t *testing.T) {
 	tests := []struct {
-		name                     string
-		mockResponse             jsonMsgPacket
+		name string
+
+		mockReadReturnMsg primitives.ChMsgPkt
+		mockReadReturnErr error
+
 		wantErr                  bool
 		wantMsgProtocolVersion   string
 		wantContractStoreVersion []byte
 	}{
 		{
 			name: "valid-1",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgNewChannelRequest,
-					Message: primitives.JSONMsgNewChannel{
-						MsgProtocolVersion:   "1.0",
-						ContractStoreVersion: contractStoreVersionForTest,
-						Status:               primitives.MessageStatusRequire,
-					},
-				}},
+
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgNewChannelRequest,
+				Message: primitives.JSONMsgNewChannel{
+					MsgProtocolVersion:   "1.0",
+					ContractStoreVersion: contractStoreVersionForTest,
+					Status:               primitives.MessageStatusRequire}},
+			mockReadReturnErr: nil,
+
 			wantErr:                  false,
 			wantMsgProtocolVersion:   "1.0",
 			wantContractStoreVersion: contractStoreVersionForTest,
 		},
 		{
 			name: "read-error",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{},
-				err:     fmt.Errorf("read-error"),
-			},
-			wantErr: true,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgNewChannelRequest,
+				Message: primitives.JSONMsgNewChannel{
+					MsgProtocolVersion:   "1.0",
+					ContractStoreVersion: contractStoreVersionForTest,
+					Status:               primitives.MessageStatusRequire}},
+			mockReadReturnErr: fmt.Errorf("mock-error"),
+			wantErr:           true,
 		},
 		{
-			name: "invalid-message-id",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MessageID("invalid-message-id"),
-				}},
-			wantErr:                  true,
-			wantContractStoreVersion: contractStoreVersionForTest,
+			name: "message-id-mismatch",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrRequest,
+				Message:   primitives.JSONMsgMSCBaseState{}},
+			mockReadReturnErr: nil,
+			wantErr:           true,
 		},
 		{
-			name: "invalid-message",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgNewChannelRequest,
-					Message:   nil,
-				}},
-			wantErr:                  true,
-			wantContractStoreVersion: contractStoreVersionForTest,
-		},
-		{
-			name: "invalid-status",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgNewChannelRequest,
-					Message: primitives.JSONMsgNewChannel{
-						MsgProtocolVersion:   "1.0",
-						ContractStoreVersion: contractStoreVersionForTest,
-						Status:               primitives.MessageStatus("invalid-message-status"),
-					},
-				}},
-			wantErr: true,
+			name: "status-is-not-require",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgNewChannelRequest,
+				Message: primitives.JSONMsgNewChannel{
+					MsgProtocolVersion:   "1.0",
+					ContractStoreVersion: contractStoreVersionForTest,
+					Status:               primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+			wantErr:           true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
 
-			wg.Add(1)
-			go ChReadMock(adapter, tt.mockResponse, wg)
+			_ = timestampProvider.SetLocation("Local")
+
+			mockAdapter := MockReadWriteCloser{}
+			mockAdapter.On("Read").Return(marshalChMsgPkt(tt.mockReadReturnMsg), tt.mockReadReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			msgProtocolVersion, contractStoreVersion, err := ch.NewChannelRead()
 			if err != nil {
@@ -720,12 +633,11 @@ func Test_channel_NewChannelRead(t *testing.T) {
 				t.Errorf("channel.NewChannelRead() msgProtocolVersion = %v, wantMsgProtocolVersion %v", msgProtocolVersion, tt.wantMsgProtocolVersion)
 			}
 
-			wg.Wait()
 		})
 	}
 }
 
-func Test_channel_NewChannelRespond(t *testing.T) {
+func Test_Instance_NewChannelRespond(t *testing.T) {
 	type args struct {
 		msgProtocolVersion   string
 		contractStoreVersion []byte
@@ -733,121 +645,121 @@ func Test_channel_NewChannelRespond(t *testing.T) {
 		reason               string
 	}
 	tests := []struct {
-		name              string
-		args              args
-		expectResponse    primitives.ChMsgPkt
-		expectMatchInMock bool
-		responseError     error
-		wantErr           bool
+		name string
+		args args
+
+		mockWriteExpectMsg primitives.ChMsgPkt
+		mockWriteReturnErr error
+
+		wantErr bool
 	}{
 		{
-			name: "accept",
+			name: "valid-accept",
 			args: args{
 				msgProtocolVersion:   "1.0",
 				contractStoreVersion: contractStoreVersionForTest,
 				accept:               primitives.MessageStatusAccept,
-				reason:               "",
-			},
-			expectResponse: primitives.ChMsgPkt{
+				reason:               ""},
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgNewChannelResponse,
 				Message: primitives.JSONMsgNewChannel{
 					MsgProtocolVersion:   "1.0",
 					ContractStoreVersion: contractStoreVersionForTest,
 					Status:               primitives.MessageStatusAccept,
-					Reason:               "",
-				},
-			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           false,
+					Reason:               ""}},
+			mockWriteReturnErr: nil,
+			wantErr:            false,
 		},
 		{
-			name: "decline",
+			name: "valid-decline",
 			args: args{
 				msgProtocolVersion:   "1.0",
 				contractStoreVersion: contractStoreVersionForTest,
 				accept:               primitives.MessageStatusDecline,
-				reason:               "",
-			},
-			expectResponse: primitives.ChMsgPkt{
+				reason:               ""},
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgNewChannelResponse,
 				Message: primitives.JSONMsgNewChannel{
 					MsgProtocolVersion:   "1.0",
 					ContractStoreVersion: contractStoreVersionForTest,
 					Status:               primitives.MessageStatusDecline,
-					Reason:               "",
-				},
-			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           false,
+					Reason:               ""}},
+			mockWriteReturnErr: nil,
+			wantErr:            false,
 		},
 		{
-			name: "decline-expect-wrong-reason",
+			name: "invalid-status-require",
 			args: args{
 				msgProtocolVersion:   "1.0",
 				contractStoreVersion: contractStoreVersionForTest,
-				accept:               primitives.MessageStatusDecline,
-				reason:               "",
-			},
-			expectResponse: primitives.ChMsgPkt{
-				MessageID: primitives.MsgNewChannelResponse,
-				Message: primitives.JSONMsgNewChannel{
-					MsgProtocolVersion:   "1.0",
-					ContractStoreVersion: contractStoreVersionForTest,
-					Status:               primitives.MessageStatusDecline,
-					Reason:               "some-random-reason",
-				},
-			},
-			expectMatchInMock: false,
-			responseError:     nil,
-			wantErr:           false,
+				accept:               primitives.MessageStatusRequire,
+				reason:               ""},
+			wantErr: true,
 		},
 		{
 			name: "write-error",
 			args: args{
-				msgProtocolVersion:   "",
-				contractStoreVersion: []byte{},
+				msgProtocolVersion:   "1.0",
+				contractStoreVersion: contractStoreVersionForTest,
 				accept:               primitives.MessageStatusAccept,
-				reason:               "",
-			},
-			responseError: fmt.Errorf("write-error"),
-			wantErr:       true,
+				reason:               ""},
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgNewChannelResponse,
+				Message: primitives.JSONMsgNewChannel{
+					MsgProtocolVersion:   "1.0",
+					ContractStoreVersion: contractStoreVersionForTest,
+					Status:               primitives.MessageStatusAccept,
+					Reason:               ""}},
+			mockWriteReturnErr: fmt.Errorf("mock-error"),
+			wantErr:            true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
 
-			wg.Add(1)
-			go ChWriteMock(t, adapter, tt.expectResponse, tt.expectMatchInMock, tt.responseError, wg)
+			mockAdapter := MockReadWriteCloser{}
+
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
+
+			_ = timestampProvider.SetLocation("Local")
+
+			tt.mockWriteExpectMsg.Version = testChannelMessageProtocolVersion
+			tt.mockWriteExpectMsg.Timestamp = timestamp
+
+			mockAdapter.On("Write", marshalChMsgPkt((tt.mockWriteExpectMsg))).Return(tt.mockWriteReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			err := ch.NewChannelRespond(tt.args.msgProtocolVersion, tt.args.contractStoreVersion, tt.args.accept, tt.args.reason)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("channel.NewChannelRespond() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			wg.Wait()
 		})
 	}
 }
-
-func Test_channel_ContractAddrRequest(t *testing.T) {
+func Test_Instance_ContractAddrRequest(t *testing.T) {
 	type args struct {
 		addr types.Address
 		id   contract.Handler
 	}
 	tests := []struct {
-		name              string
-		args              args
-		expectRequest     primitives.ChMsgPkt
-		expectMatchInMock bool
-		mockResponse      jsonMsgPacket
-		responseError     error
-		wantErr           bool
-		wantStatus        primitives.MessageStatus
+		name string
+		args args
+
+		mockWriteExpectMsg primitives.ChMsgPkt
+		mockWriteReturnErr error
+		mockReadReturnMsg  primitives.ChMsgPkt
+		mockReadReturnErr  error
+
+		wantErr    bool
+		wantStatus primitives.MessageStatus
 	}{
 		{
 			name: "accept",
@@ -855,24 +767,22 @@ func Test_channel_ContractAddrRequest(t *testing.T) {
 				addr: types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
 				id:   contract.Store.LibSignatures(),
 			},
-			expectRequest: primitives.ChMsgPkt{
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgContractAddrRequest,
 				Message: primitives.JSONMsgContractAddr{
 					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
 					ContractType: contract.Store.LibSignatures(),
-					Status:       "require",
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgContractAddrResponse,
-					Message: primitives.JSONMsgContractAddr{
-						Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-						ContractType: contract.Store.LibSignatures(),
-						Status:       primitives.MessageStatusAccept,
-					},
-				}},
+					Status:       "require"}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrResponse,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+					ContractType: contract.Store.LibSignatures(),
+					Status:       primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+
 			wantErr:    false,
 			wantStatus: primitives.MessageStatusAccept,
 		},
@@ -882,120 +792,159 @@ func Test_channel_ContractAddrRequest(t *testing.T) {
 				addr: types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
 				id:   contract.Store.LibSignatures(),
 			},
-			expectRequest: primitives.ChMsgPkt{
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgContractAddrRequest,
 				Message: primitives.JSONMsgContractAddr{
 					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
 					ContractType: contract.Store.LibSignatures(),
-					Status:       "require",
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgContractAddrResponse,
-					Message: primitives.JSONMsgContractAddr{
-						Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-						ContractType: contract.Store.LibSignatures(),
-						Status:       primitives.MessageStatusDecline,
-					},
-				}},
+					Status:       "require"}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrResponse,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+					ContractType: contract.Store.LibSignatures(),
+					Status:       primitives.MessageStatusDecline}},
+			mockReadReturnErr: nil,
+
 			wantErr:    false,
 			wantStatus: primitives.MessageStatusDecline,
 		},
 		{
-			name: "contract-type-modified-by-peer",
+			name: "write-error",
 			args: args{
 				addr: types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
 				id:   contract.Store.LibSignatures(),
 			},
-			expectRequest: primitives.ChMsgPkt{
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgContractAddrRequest,
 				Message: primitives.JSONMsgContractAddr{
 					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
 					ContractType: contract.Store.LibSignatures(),
-					Status:       "require",
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgContractAddrResponse,
-					Message: primitives.JSONMsgContractAddr{
-						Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-						ContractType: contract.Store.MSContract(),
-						Status:       primitives.MessageStatusDecline,
-					},
-				}},
+					Status:       "require"}},
+			mockWriteReturnErr: fmt.Errorf("mock-error"),
+
 			wantErr: true,
-		},
-		{
-			name: "invalid-message-id",
-			args: args{
-				addr: types.Address{},
-				id:   contract.Store.LibSignatures(),
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgContractAddrRequest,
-				Message: primitives.JSONMsgContractAddr{
-					Addr:         types.Address{},
-					ContractType: contract.Store.LibSignatures(),
-					Status:       "require",
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MessageID("invalid-message-od"),
-				}},
-			wantErr: true,
-		},
-		{
-			name: "invalid-message",
-			args: args{
-				addr: types.Address{},
-				id:   contract.Store.LibSignatures(),
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgContractAddrRequest,
-				Message: primitives.JSONMsgContractAddr{
-					Addr:         types.Address{},
-					ContractType: contract.Store.LibSignatures(),
-					Status:       "require",
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgContractAddrResponse,
-					Message:   nil,
-				}},
-			wantErr: true,
-		},
-		{
-			name:          "write-error",
-			args:          args{},
-			responseError: fmt.Errorf("write-error"),
-			wantErr:       true,
 		},
 		{
 			name: "read-error",
-			args: args{},
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{},
-				err:     fmt.Errorf("read-error")},
+			args: args{
+				addr: types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+				id:   contract.Store.LibSignatures(),
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrRequest,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+					ContractType: contract.Store.LibSignatures(),
+					Status:       "require"}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrResponse,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+					ContractType: contract.Store.LibSignatures(),
+					Status:       primitives.MessageStatusAccept}},
+			mockReadReturnErr: fmt.Errorf("mock-error"),
+
+			wantErr: true,
+		},
+		{
+			name: "message-id-mismatch",
+			args: args{
+				addr: types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+				id:   contract.Store.LibSignatures(),
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrRequest,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+					ContractType: contract.Store.LibSignatures(),
+					Status:       "require"}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDRequest,
+				Message:   primitives.JSONMsgSessionID{}},
+			mockReadReturnErr: nil,
+
+			wantErr: true,
+		},
+		{
+			name: "contract-type-mismatch",
+			args: args{
+				addr: types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+				id:   contract.Store.LibSignatures(),
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrRequest,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+					ContractType: contract.Store.LibSignatures(),
+					Status:       "require"}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrResponse,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+					ContractType: contract.Store.MSContract(),
+					Status:       primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+
+			wantErr: true,
+		},
+		{
+			name: "contract-addr-mismatch",
+			args: args{
+				addr: types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+				id:   contract.Store.LibSignatures(),
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrRequest,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+					ContractType: contract.Store.LibSignatures(),
+					Status:       "require"}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrResponse,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("9cB3cD41C00847b3655B5bEB82A27648de737C39"),
+					ContractType: contract.Store.LibSignatures(),
+					Status:       primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+
 			wantErr: true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
 
-			wg.Add(1)
-			go ChWriteReadMock(t, adapter, tt.expectRequest, tt.mockResponse, tt.responseError, tt.expectMatchInMock, wg)
+			mockAdapter := MockReadWriteCloser{}
+
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
+
+			_ = timestampProvider.SetLocation("Local")
+
+			tt.mockWriteExpectMsg.Version = testChannelMessageProtocolVersion
+			tt.mockWriteExpectMsg.Timestamp = timestamp
+
+			mockAdapter.On("Write", marshalChMsgPkt((tt.mockWriteExpectMsg))).Return(tt.mockWriteReturnErr)
+			mockAdapter.On("Read").Return(marshalChMsgPkt(tt.mockReadReturnMsg), tt.mockReadReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			gotStatus, err := ch.ContractAddrRequest(tt.args.addr, tt.args.id)
 			if err != nil {
@@ -1008,98 +957,82 @@ func Test_channel_ContractAddrRequest(t *testing.T) {
 			if gotStatus != tt.wantStatus {
 				t.Errorf("channel.SendContractAddr() = %v, want %v", gotStatus, tt.wantStatus)
 			}
-			wg.Wait()
 		})
 	}
 }
 
-func Test_channel_ContractAddrRead(t *testing.T) {
+func Test_Instance_ContractAddrRead(t *testing.T) {
 	tests := []struct {
-		name         string
-		mockResponse jsonMsgPacket
-		wantErr      bool
-		wantAddr     types.Address
-		wantID       contract.Handler
+		name string
+
+		mockReadReturnMsg primitives.ChMsgPkt
+		mockReadReturnErr error
+
+		wantErr  bool
+		wantAddr types.Address
+		wantID   contract.Handler
 	}{
 		{
 			name: "valid",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgContractAddrRequest,
-					Message: primitives.JSONMsgContractAddr{
-						Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-						ContractType: contract.Store.LibSignatures(),
-						Status:       primitives.MessageStatusRequire,
-					},
-				}},
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrRequest,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+					ContractType: contract.Store.LibSignatures(),
+					Status:       primitives.MessageStatusRequire}},
 			wantErr:  false,
 			wantAddr: types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
 			wantID:   contract.Store.LibSignatures(),
 		},
 		{
-			name: "invalid-status-accept",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgContractAddrRequest,
-					Message: primitives.JSONMsgContractAddr{
-						Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-						ContractType: contract.Store.LibSignatures(),
-						Status:       primitives.MessageStatusAccept,
-					}},
-			},
-			wantErr:  true,
-			wantAddr: types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-			wantID:   contract.Store.LibSignatures(),
-		},
-		{
-			name: "invalid-status-decline",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgContractAddrRequest,
-					Message: primitives.JSONMsgContractAddr{
-						Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-						ContractType: contract.Store.LibSignatures(),
-						Status:       primitives.MessageStatusDecline,
-					}},
-			},
-			wantErr:  true,
-			wantAddr: types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-			wantID:   contract.Store.LibSignatures(),
-		},
-		{
 			name: "read-error",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{},
-				err:     fmt.Errorf("read-error")},
-			wantErr: true,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrRequest,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+					ContractType: contract.Store.LibSignatures(),
+					Status:       primitives.MessageStatusRequire}},
+			mockReadReturnErr: fmt.Errorf("mock-error"),
+			wantErr:           true,
 		},
 		{
-			name: "invalid-message-id",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MessageID("invalid-message-id"),
-				}},
-			wantErr: true,
+			name: "message-id-mismatch",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgMSCBaseStateRequest,
+				Message:   primitives.JSONMsgMSCBaseState{}},
+			mockReadReturnErr: nil,
+			wantErr:           true,
 		},
 		{
-			name: "invalid-message",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgContractAddrRequest,
-					Message:   nil,
-				}},
-			wantErr: true,
+			name: "status-is-not-require",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrRequest,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+					ContractType: contract.Store.LibSignatures(),
+					Status:       primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+			wantErr:           true,
 		},
 	}
 	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
 
-			wg.Add(1)
-			go ChReadMock(adapter, tt.mockResponse, wg)
+			_ = timestampProvider.SetLocation("Local")
+
+			mockAdapter := MockReadWriteCloser{}
+			mockAdapter.On("Read").Return(marshalChMsgPkt(tt.mockReadReturnMsg), tt.mockReadReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			gotAddr, gotID, err := ch.ContractAddrRead()
 			if err != nil {
@@ -1112,7 +1045,7 @@ func Test_channel_ContractAddrRead(t *testing.T) {
 			if !reflect.DeepEqual(gotAddr, tt.wantAddr) {
 				t.Errorf("channel.ReadContractAddr() gotAddr = %v, want %v", gotAddr, tt.wantAddr)
 			}
-			if !reflect.DeepEqual(gotID, tt.wantID) {
+			if !gotID.Equal(tt.wantID) {
 				t.Errorf("channel.ReadContractAddr() gotId = %v, want %v", gotID, tt.wantID)
 			}
 
@@ -1120,19 +1053,21 @@ func Test_channel_ContractAddrRead(t *testing.T) {
 		})
 	}
 }
-func Test_channel_ContractAddrRespond(t *testing.T) {
+
+func Test_Instance_ContractAddrRespond(t *testing.T) {
 	type args struct {
 		addr   types.Address
 		id     contract.Handler
 		status primitives.MessageStatus
 	}
 	tests := []struct {
-		name              string
-		args              args
-		expectResponse    primitives.ChMsgPkt
-		expectMatchInMock bool
-		responseError     error
-		wantErr           bool
+		name string
+		args args
+
+		mockWriteExpectMsg primitives.ChMsgPkt
+		mockWriteReturnErr error
+
+		wantErr bool
 	}{
 		{
 			name: "valid-accept",
@@ -1141,7 +1076,7 @@ func Test_channel_ContractAddrRespond(t *testing.T) {
 				id:     contract.Store.LibSignatures(),
 				status: primitives.MessageStatusAccept,
 			},
-			expectResponse: primitives.ChMsgPkt{
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgContractAddrResponse,
 				Message: primitives.JSONMsgContractAddr{
 					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
@@ -1149,9 +1084,8 @@ func Test_channel_ContractAddrRespond(t *testing.T) {
 					Status:       primitives.MessageStatusAccept,
 				},
 			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           false,
+			mockWriteReturnErr: nil,
+			wantErr:            false,
 		},
 		{
 			name: "valid-decline",
@@ -1160,7 +1094,7 @@ func Test_channel_ContractAddrRespond(t *testing.T) {
 				id:     contract.Store.LibSignatures(),
 				status: primitives.MessageStatusDecline,
 			},
-			expectResponse: primitives.ChMsgPkt{
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgContractAddrResponse,
 				Message: primitives.JSONMsgContractAddr{
 					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
@@ -1168,40 +1102,59 @@ func Test_channel_ContractAddrRespond(t *testing.T) {
 					Status:       primitives.MessageStatusDecline,
 				},
 			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           false,
+			mockWriteReturnErr: nil,
+			wantErr:            false,
 		},
 		{
-			name: "invalid-status",
+			name: "invalid-status-require",
 			args: args{
 				addr:   types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
 				id:     contract.Store.LibSignatures(),
-				status: primitives.MessageStatus("some-invalid-status"),
+				status: primitives.MessageStatusRequire,
 			},
-			responseError: nil,
-			wantErr:       true,
+			wantErr: true,
 		},
 		{
 			name: "write-error",
 			args: args{
-				addr:   types.Address{},
+				addr:   types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
 				id:     contract.Store.LibSignatures(),
 				status: primitives.MessageStatusAccept,
 			},
-			responseError: fmt.Errorf("write-error"),
-			wantErr:       true,
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrResponse,
+				Message: primitives.JSONMsgContractAddr{
+					Addr:         types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+					ContractType: contract.Store.LibSignatures(),
+					Status:       primitives.MessageStatusAccept,
+				},
+			},
+			mockWriteReturnErr: fmt.Errorf("mock-error"),
+			wantErr:            true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
 
-			wg.Add(1)
-			go ChWriteMock(t, adapter, tt.expectResponse, tt.expectMatchInMock, tt.responseError, wg)
+			mockAdapter := MockReadWriteCloser{}
+
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
+
+			_ = timestampProvider.SetLocation("Local")
+
+			tt.mockWriteExpectMsg.Version = testChannelMessageProtocolVersion
+			tt.mockWriteExpectMsg.Timestamp = timestamp
+
+			mockAdapter.On("Write", marshalChMsgPkt((tt.mockWriteExpectMsg))).Return(tt.mockWriteReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			err := ch.ContractAddrRespond(tt.args.addr, tt.args.id, tt.args.status)
 			if err != nil {
@@ -1211,28 +1164,29 @@ func Test_channel_ContractAddrRespond(t *testing.T) {
 				}
 				return
 			}
-			wg.Wait()
 		})
 	}
 }
 
-func Test_channel_NewMSCBaseStateRequest(t *testing.T) {
+func Test_Instance_NewMSCBaseStateRequest(t *testing.T) {
 	type args struct {
 		newState primitives.MSCBaseStateSigned
 	}
 	tests := []struct {
-		name              string
-		args              args
-		expectRequest     primitives.ChMsgPkt
-		expectMatchInMock bool
-		mockResponse      jsonMsgPacket
-		responseError     error
+		name string
+		args args
+
+		mockWriteExpectMsg primitives.ChMsgPkt
+		mockWriteReturnErr error
+		mockReadReturnMsg  primitives.ChMsgPkt
+		mockReadReturnErr  error
+
 		wantErr           bool
 		wantResponseState primitives.MSCBaseStateSigned
 		wantStatus        primitives.MessageStatus
 	}{
 		{
-			name: "valid-accept",
+			name: "accept",
 			args: args{
 				newState: primitives.MSCBaseStateSigned{
 					MSContractBaseState: primitives.MSCBaseState{
@@ -1240,13 +1194,12 @@ func Test_channel_NewMSCBaseStateRequest(t *testing.T) {
 						Sid:             big.NewInt(10),
 						BlockedSender:   big.NewInt(10),
 						BlockedReceiver: big.NewInt(10),
-						Version:         big.NewInt(10),
-					},
+						Version:         big.NewInt(10)},
 					SignSender:   []byte("sender-signature"),
-					SignReceiver: []byte(""),
-				},
+					SignReceiver: []byte("")},
 			},
-			expectRequest: primitives.ChMsgPkt{
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgMSCBaseStateRequest,
 				Message: primitives.JSONMsgMSCBaseState{
 					SignedStateVal: primitives.MSCBaseStateSigned{
@@ -1260,28 +1213,25 @@ func Test_channel_NewMSCBaseStateRequest(t *testing.T) {
 						SignSender:   []byte("sender-signature"),
 						SignReceiver: []byte(""),
 					},
-					Status: primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgMSCBaseStateResponse,
-					Message: primitives.JSONMsgMSCBaseState{
-						SignedStateVal: primitives.MSCBaseStateSigned{
-							MSContractBaseState: primitives.MSCBaseState{
-								VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-								Sid:             big.NewInt(10),
-								BlockedSender:   big.NewInt(10),
-								BlockedReceiver: big.NewInt(10),
-								Version:         big.NewInt(10),
-							},
-							SignSender:   []byte("sender-signature"),
-							SignReceiver: []byte("receiver-signature"),
+					Status: primitives.MessageStatusRequire}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgMSCBaseStateResponse,
+				Message: primitives.JSONMsgMSCBaseState{
+					SignedStateVal: primitives.MSCBaseStateSigned{
+						MSContractBaseState: primitives.MSCBaseState{
+							VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+							Sid:             big.NewInt(10),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
 						},
-						Status: primitives.MessageStatusAccept,
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("receiver-signature"),
 					},
-				}},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+
 			wantErr: false,
 			wantResponseState: primitives.MSCBaseStateSigned{
 				MSContractBaseState: primitives.MSCBaseState{
@@ -1297,7 +1247,7 @@ func Test_channel_NewMSCBaseStateRequest(t *testing.T) {
 			wantStatus: primitives.MessageStatusAccept,
 		},
 		{
-			name: "valid-decline",
+			name: "decline",
 			args: args{
 				newState: primitives.MSCBaseStateSigned{
 					MSContractBaseState: primitives.MSCBaseState{
@@ -1305,13 +1255,12 @@ func Test_channel_NewMSCBaseStateRequest(t *testing.T) {
 						Sid:             big.NewInt(10),
 						BlockedSender:   big.NewInt(10),
 						BlockedReceiver: big.NewInt(10),
-						Version:         big.NewInt(10),
-					},
+						Version:         big.NewInt(10)},
 					SignSender:   []byte("sender-signature"),
-					SignReceiver: []byte(""),
-				},
+					SignReceiver: []byte("")},
 			},
-			expectRequest: primitives.ChMsgPkt{
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgMSCBaseStateRequest,
 				Message: primitives.JSONMsgMSCBaseState{
 					SignedStateVal: primitives.MSCBaseStateSigned{
@@ -1328,25 +1277,24 @@ func Test_channel_NewMSCBaseStateRequest(t *testing.T) {
 					Status: primitives.MessageStatusRequire,
 				},
 			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgMSCBaseStateResponse,
-					Message: primitives.JSONMsgMSCBaseState{
-						SignedStateVal: primitives.MSCBaseStateSigned{
-							MSContractBaseState: primitives.MSCBaseState{
-								VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-								Sid:             big.NewInt(10),
-								BlockedSender:   big.NewInt(10),
-								BlockedReceiver: big.NewInt(10),
-								Version:         big.NewInt(10),
-							},
-							SignSender:   []byte("sender-signature"),
-							SignReceiver: []byte(""),
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgMSCBaseStateResponse,
+				Message: primitives.JSONMsgMSCBaseState{
+					SignedStateVal: primitives.MSCBaseStateSigned{
+						MSContractBaseState: primitives.MSCBaseState{
+							VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+							Sid:             big.NewInt(10),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
 						},
-						Status: primitives.MessageStatusDecline,
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("receiver-signature"),
 					},
-				}},
+					Status: primitives.MessageStatusDecline}},
+			mockReadReturnErr: nil,
+
 			wantErr: false,
 			wantResponseState: primitives.MSCBaseStateSigned{
 				MSContractBaseState: primitives.MSCBaseState{
@@ -1357,12 +1305,12 @@ func Test_channel_NewMSCBaseStateRequest(t *testing.T) {
 					Version:         big.NewInt(10),
 				},
 				SignSender:   []byte("sender-signature"),
-				SignReceiver: []byte(""),
+				SignReceiver: []byte("receiver-signature"),
 			},
 			wantStatus: primitives.MessageStatusDecline,
 		},
 		{
-			name: "msc-base-state-modified-by-peer",
+			name: "write-error",
 			args: args{
 				newState: primitives.MSCBaseStateSigned{
 					MSContractBaseState: primitives.MSCBaseState{
@@ -1370,13 +1318,12 @@ func Test_channel_NewMSCBaseStateRequest(t *testing.T) {
 						Sid:             big.NewInt(10),
 						BlockedSender:   big.NewInt(10),
 						BlockedReceiver: big.NewInt(10),
-						Version:         big.NewInt(10),
-					},
+						Version:         big.NewInt(10)},
 					SignSender:   []byte("sender-signature"),
-					SignReceiver: []byte(""),
-				},
+					SignReceiver: []byte("")},
 			},
-			expectRequest: primitives.ChMsgPkt{
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgMSCBaseStateRequest,
 				Message: primitives.JSONMsgMSCBaseState{
 					SignedStateVal: primitives.MSCBaseStateSigned{
@@ -1393,90 +1340,178 @@ func Test_channel_NewMSCBaseStateRequest(t *testing.T) {
 					Status: primitives.MessageStatusRequire,
 				},
 			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgMSCBaseStateResponse,
-					Message: primitives.JSONMsgMSCBaseState{
-						SignedStateVal: primitives.MSCBaseStateSigned{
-							MSContractBaseState: primitives.MSCBaseState{
-								VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-								Sid:             big.NewInt(1000),
-								BlockedSender:   big.NewInt(10),
-								BlockedReceiver: big.NewInt(10),
-								Version:         big.NewInt(10),
-							},
-							SignSender:   []byte("sender-signature"),
-							SignReceiver: []byte("receiver-signature"),
-						},
-						Status: primitives.MessageStatusAccept,
-					},
-				}},
+			mockWriteReturnErr: fmt.Errorf("mock-error"),
+
 			wantErr: true,
-		},
-		{
-			name: "invalid-message-id",
-			args: args{
-				newState: primitives.MSCBaseStateSigned{},
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgMSCBaseStateRequest,
-				Message: primitives.JSONMsgMSCBaseState{
-					SignedStateVal: primitives.MSCBaseStateSigned{},
-					Status:         primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MessageID("invalid-message-id"),
-				}},
-			wantErr: true,
-		},
-		{
-			name: "invalid-message",
-			args: args{
-				newState: primitives.MSCBaseStateSigned{},
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgMSCBaseStateRequest,
-				Message: primitives.JSONMsgMSCBaseState{
-					SignedStateVal: primitives.MSCBaseStateSigned{},
-					Status:         primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgMSCBaseStateResponse,
-					Message:   nil,
-				}},
-			wantErr: true,
-		},
-		{
-			name:          "write-error",
-			args:          args{},
-			responseError: fmt.Errorf("write-error"),
-			wantErr:       true,
 		},
 		{
 			name: "read-error",
-			args: args{},
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{},
-				err:     fmt.Errorf("read-error")},
+			args: args{
+				newState: primitives.MSCBaseStateSigned{
+					MSContractBaseState: primitives.MSCBaseState{
+						VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+						Sid:             big.NewInt(10),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(10),
+						Version:         big.NewInt(10)},
+					SignSender:   []byte("sender-signature"),
+					SignReceiver: []byte("")},
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgMSCBaseStateRequest,
+				Message: primitives.JSONMsgMSCBaseState{
+					SignedStateVal: primitives.MSCBaseStateSigned{
+						MSContractBaseState: primitives.MSCBaseState{
+							VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+							Sid:             big.NewInt(10),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
+						},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte(""),
+					},
+					Status: primitives.MessageStatusRequire,
+				},
+			},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgMSCBaseStateResponse,
+				Message: primitives.JSONMsgMSCBaseState{
+					SignedStateVal: primitives.MSCBaseStateSigned{
+						MSContractBaseState: primitives.MSCBaseState{
+							VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+							Sid:             big.NewInt(10),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
+						},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("receiver-signature"),
+					},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: fmt.Errorf("mock-error"),
+
+			wantErr: true,
+		},
+		{
+			name: "message-id-mismatch",
+			args: args{
+				newState: primitives.MSCBaseStateSigned{
+					MSContractBaseState: primitives.MSCBaseState{
+						VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+						Sid:             big.NewInt(10),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(10),
+						Version:         big.NewInt(10)},
+					SignSender:   []byte("sender-signature"),
+					SignReceiver: []byte("")},
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgMSCBaseStateRequest,
+				Message: primitives.JSONMsgMSCBaseState{
+					SignedStateVal: primitives.MSCBaseStateSigned{
+						MSContractBaseState: primitives.MSCBaseState{
+							VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+							Sid:             big.NewInt(10),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
+						},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte(""),
+					},
+					Status: primitives.MessageStatusRequire,
+				},
+			},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrRequest,
+				Message:   primitives.JSONMsgContractAddr{}},
+			mockReadReturnErr: nil,
+
+			wantErr: true,
+		},
+		{
+			name: "state-mismatch",
+			args: args{
+				newState: primitives.MSCBaseStateSigned{
+					MSContractBaseState: primitives.MSCBaseState{
+						VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+						Sid:             big.NewInt(10),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(10),
+						Version:         big.NewInt(10)},
+					SignSender:   []byte("sender-signature"),
+					SignReceiver: []byte("")},
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgMSCBaseStateRequest,
+				Message: primitives.JSONMsgMSCBaseState{
+					SignedStateVal: primitives.MSCBaseStateSigned{
+						MSContractBaseState: primitives.MSCBaseState{
+							VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+							Sid:             big.NewInt(10),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
+						},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte(""),
+					},
+					Status: primitives.MessageStatusRequire,
+				},
+			},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgMSCBaseStateResponse,
+				Message: primitives.JSONMsgMSCBaseState{
+					SignedStateVal: primitives.MSCBaseStateSigned{
+						MSContractBaseState: primitives.MSCBaseState{
+							//
+							//Address modified by user
+							//
+							VpcAddress:      types.HexToAddress("C00A2764847b3655B5bEB829cB3cD418de737C39"),
+							Sid:             big.NewInt(10),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
+						},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("receiver-signature"),
+					},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+
 			wantErr: true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
 
-			wg.Add(1)
-			go ChWriteReadMock(t, adapter, tt.expectRequest, tt.mockResponse, tt.responseError, tt.expectMatchInMock, wg)
+			mockAdapter := MockReadWriteCloser{}
+
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
+
+			_ = timestampProvider.SetLocation("Local")
+
+			tt.mockWriteExpectMsg.Version = testChannelMessageProtocolVersion
+			tt.mockWriteExpectMsg.Timestamp = timestamp
+
+			mockAdapter.On("Write", marshalChMsgPkt((tt.mockWriteExpectMsg))).Return(tt.mockWriteReturnErr)
+			mockAdapter.On("Read").Return(marshalChMsgPkt(tt.mockReadReturnMsg), tt.mockReadReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			gotResponseState, gotStatus, err := ch.NewMSCBaseStateRequest(tt.args.newState)
 			if err != nil {
@@ -1492,39 +1527,37 @@ func Test_channel_NewMSCBaseStateRequest(t *testing.T) {
 			if gotStatus != tt.wantStatus {
 				t.Errorf("channel.NewMSCBaseStateRequest() gotStatus = %v, want %v", gotStatus, tt.wantStatus)
 			}
-			wg.Wait()
 		})
 	}
 }
 
-func Test_channel_NewMSCBaseStateRead(t *testing.T) {
+func Test_Instance_NewMSCBaseStateRead(t *testing.T) {
 	tests := []struct {
-		name         string
-		mockResponse jsonMsgPacket
-		wantErr      bool
-		wantState    primitives.MSCBaseStateSigned
+		name string
+
+		mockReadReturnMsg primitives.ChMsgPkt
+		mockReadReturnErr error
+
+		wantErr   bool
+		wantState primitives.MSCBaseStateSigned
 	}{
 		{
 			name: "valid",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgMSCBaseStateRequest,
-					Message: primitives.JSONMsgMSCBaseState{
-						SignedStateVal: primitives.MSCBaseStateSigned{
-							MSContractBaseState: primitives.MSCBaseState{
-								VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-								Sid:             big.NewInt(10),
-								BlockedSender:   big.NewInt(10),
-								BlockedReceiver: big.NewInt(10),
-								Version:         big.NewInt(10),
-							},
-							SignSender:   []byte("sender-signature"),
-							SignReceiver: []byte(""),
-						},
-						Status: primitives.MessageStatusRequire,
-					},
-				}},
-			wantErr: false,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgMSCBaseStateRequest,
+				Message: primitives.JSONMsgMSCBaseState{
+					SignedStateVal: primitives.MSCBaseStateSigned{
+						MSContractBaseState: primitives.MSCBaseState{
+							VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+							Sid:             big.NewInt(10),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10)},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("")},
+					Status: primitives.MessageStatusRequire}},
+			mockReadReturnErr: nil,
+			wantErr:           false,
 			wantState: primitives.MSCBaseStateSigned{
 				MSContractBaseState: primitives.MSCBaseState{
 					VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
@@ -1539,82 +1572,66 @@ func Test_channel_NewMSCBaseStateRead(t *testing.T) {
 		},
 		{
 			name: "read-error",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{},
-				err:     fmt.Errorf("read-error")},
-			wantErr: true,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgMSCBaseStateRequest,
+				Message: primitives.JSONMsgMSCBaseState{
+					SignedStateVal: primitives.MSCBaseStateSigned{
+						MSContractBaseState: primitives.MSCBaseState{
+							VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+							Sid:             big.NewInt(10),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10)},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("")},
+					Status: primitives.MessageStatusRequire}},
+			mockReadReturnErr: fmt.Errorf("mock-error"),
+			wantErr:           true,
 		},
 		{
-			name: "invalid-message-id",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MessageID("invalid-message-id"),
-				}},
-			wantErr: true,
+			name: "message-id-mismatch",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgIdentityRequest,
+				Message:   primitives.JSONMsgIdentity{}},
+			mockReadReturnErr: nil,
+			wantErr:           true,
 		},
 		{
-			name: "invalid-message",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgMSCBaseStateRequest,
-					Message:   nil,
-				}},
-			wantErr: true,
-		},
-		{
-			name: "invalid-status-accept",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgMSCBaseStateRequest,
-					Message: primitives.JSONMsgMSCBaseState{
-						SignedStateVal: primitives.MSCBaseStateSigned{
-							MSContractBaseState: primitives.MSCBaseState{
-								VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-								Sid:             big.NewInt(10),
-								BlockedSender:   big.NewInt(10),
-								BlockedReceiver: big.NewInt(10),
-								Version:         big.NewInt(10),
-							},
-							SignSender:   []byte("sender-signature"),
-							SignReceiver: []byte(""),
-						},
-						Status: primitives.MessageStatusAccept,
-					},
-				}},
-			wantErr: true,
-		},
-		{
-			name: "invalid-status-decline",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgMSCBaseStateRequest,
-					Message: primitives.JSONMsgMSCBaseState{
-						SignedStateVal: primitives.MSCBaseStateSigned{
-							MSContractBaseState: primitives.MSCBaseState{
-								VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
-								Sid:             big.NewInt(10),
-								BlockedSender:   big.NewInt(10),
-								BlockedReceiver: big.NewInt(10),
-								Version:         big.NewInt(10),
-							},
-							SignSender:   []byte("sender-signature"),
-							SignReceiver: []byte(""),
-						},
-						Status: primitives.MessageStatusDecline,
-					},
-				}},
-			wantErr: true,
+			name: "status-is-not-require",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgMSCBaseStateRequest,
+				Message: primitives.JSONMsgMSCBaseState{
+					SignedStateVal: primitives.MSCBaseStateSigned{
+						MSContractBaseState: primitives.MSCBaseState{
+							VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+							Sid:             big.NewInt(10),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10)},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("")},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+			wantErr:           true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
 
-			wg.Add(1)
-			go ChReadMock(adapter, tt.mockResponse, wg)
+			_ = timestampProvider.SetLocation("Local")
+
+			mockAdapter := MockReadWriteCloser{}
+			mockAdapter.On("Read").Return(marshalChMsgPkt(tt.mockReadReturnMsg), tt.mockReadReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			gotState, err := ch.NewMSCBaseStateRead()
 			if err != nil {
@@ -1627,23 +1644,23 @@ func Test_channel_NewMSCBaseStateRead(t *testing.T) {
 			if !gotState.Equal(tt.wantState) {
 				t.Errorf("channel.NewMSCBaseStateRead() = %v, want %v", gotState, tt.wantState)
 			}
-			wg.Wait()
 		})
 	}
 }
 
-func Test_channel_NewMSCBaseStateRespond(t *testing.T) {
+func Test_Instance_NewMSCBaseStateRespond(t *testing.T) {
 	type args struct {
 		state  primitives.MSCBaseStateSigned
 		status primitives.MessageStatus
 	}
 	tests := []struct {
-		name              string
-		args              args
-		expectResponse    primitives.ChMsgPkt
-		expectMatchInMock bool
-		responseError     error
-		wantErr           bool
+		name string
+		args args
+
+		mockWriteExpectMsg primitives.ChMsgPkt
+		mockWriteReturnErr error
+
+		wantErr bool
 	}{
 		{
 			name: "valid-accept",
@@ -1654,14 +1671,12 @@ func Test_channel_NewMSCBaseStateRespond(t *testing.T) {
 						Sid:             big.NewInt(10),
 						BlockedSender:   big.NewInt(10),
 						BlockedReceiver: big.NewInt(10),
-						Version:         big.NewInt(10),
-					},
+						Version:         big.NewInt(10)},
 					SignSender:   []byte("sender-signature"),
-					SignReceiver: []byte("receiver-signature"),
-				},
-				status: primitives.MessageStatusAccept,
-			},
-			expectResponse: primitives.ChMsgPkt{
+					SignReceiver: []byte("receiver-signature")},
+				status: primitives.MessageStatusAccept},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgMSCBaseStateResponse,
 				Message: primitives.JSONMsgMSCBaseState{
 					SignedStateVal: primitives.MSCBaseStateSigned{
@@ -1670,17 +1685,12 @@ func Test_channel_NewMSCBaseStateRespond(t *testing.T) {
 							Sid:             big.NewInt(10),
 							BlockedSender:   big.NewInt(10),
 							BlockedReceiver: big.NewInt(10),
-							Version:         big.NewInt(10),
-						},
+							Version:         big.NewInt(10)},
 						SignSender:   []byte("sender-signature"),
-						SignReceiver: []byte("receiver-signature"),
-					},
-					Status: primitives.MessageStatusAccept,
-				},
-			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           false,
+						SignReceiver: []byte("receiver-signature")},
+					Status: primitives.MessageStatusAccept}},
+			mockWriteReturnErr: nil,
+			wantErr:            false,
 		},
 		{
 			name: "valid-decline",
@@ -1691,14 +1701,12 @@ func Test_channel_NewMSCBaseStateRespond(t *testing.T) {
 						Sid:             big.NewInt(10),
 						BlockedSender:   big.NewInt(10),
 						BlockedReceiver: big.NewInt(10),
-						Version:         big.NewInt(10),
-					},
+						Version:         big.NewInt(10)},
 					SignSender:   []byte("sender-signature"),
-					SignReceiver: []byte("receiver-signature"),
-				},
-				status: primitives.MessageStatusDecline,
-			},
-			expectResponse: primitives.ChMsgPkt{
+					SignReceiver: []byte("receiver-signature")},
+				status: primitives.MessageStatusDecline},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgMSCBaseStateResponse,
 				Message: primitives.JSONMsgMSCBaseState{
 					SignedStateVal: primitives.MSCBaseStateSigned{
@@ -1707,17 +1715,12 @@ func Test_channel_NewMSCBaseStateRespond(t *testing.T) {
 							Sid:             big.NewInt(10),
 							BlockedSender:   big.NewInt(10),
 							BlockedReceiver: big.NewInt(10),
-							Version:         big.NewInt(10),
-						},
+							Version:         big.NewInt(10)},
 						SignSender:   []byte("sender-signature"),
-						SignReceiver: []byte("receiver-signature"),
-					},
-					Status: primitives.MessageStatusDecline,
-				},
-			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           false,
+						SignReceiver: []byte("receiver-signature")},
+					Status: primitives.MessageStatusDecline}},
+			mockWriteReturnErr: nil,
+			wantErr:            true,
 		},
 		{
 			name: "invalid-status-require",
@@ -1728,14 +1731,27 @@ func Test_channel_NewMSCBaseStateRespond(t *testing.T) {
 						Sid:             big.NewInt(10),
 						BlockedSender:   big.NewInt(10),
 						BlockedReceiver: big.NewInt(10),
-						Version:         big.NewInt(10),
-					},
+						Version:         big.NewInt(10)},
 					SignSender:   []byte("sender-signature"),
-					SignReceiver: []byte("receiver-signature"),
-				},
-				status: primitives.MessageStatusRequire,
-			},
-			expectResponse: primitives.ChMsgPkt{
+					SignReceiver: []byte("receiver-signature")},
+				status: primitives.MessageStatusRequire},
+			wantErr: true,
+		},
+		{
+			name: "write-error",
+			args: args{
+				state: primitives.MSCBaseStateSigned{
+					MSContractBaseState: primitives.MSCBaseState{
+						VpcAddress:      types.HexToAddress("847b3655B5bEB829cB3cD41C00A27648de737C39"),
+						Sid:             big.NewInt(10),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(10),
+						Version:         big.NewInt(10)},
+					SignSender:   []byte("sender-signature"),
+					SignReceiver: []byte("receiver-signature")},
+				status: primitives.MessageStatusAccept},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgMSCBaseStateResponse,
 				Message: primitives.JSONMsgMSCBaseState{
 					SignedStateVal: primitives.MSCBaseStateSigned{
@@ -1744,37 +1760,36 @@ func Test_channel_NewMSCBaseStateRespond(t *testing.T) {
 							Sid:             big.NewInt(10),
 							BlockedSender:   big.NewInt(10),
 							BlockedReceiver: big.NewInt(10),
-							Version:         big.NewInt(10),
-						},
+							Version:         big.NewInt(10)},
 						SignSender:   []byte("sender-signature"),
-						SignReceiver: []byte("receiver-signature"),
-					},
-					Status: primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           true,
-		},
-		{
-			name: "write-error",
-			args: args{
-				state:  primitives.MSCBaseStateSigned{},
-				status: primitives.MessageStatusRequire,
-			},
-			responseError: fmt.Errorf("write-error"),
-			wantErr:       true,
+						SignReceiver: []byte("receiver-signature")},
+					Status: primitives.MessageStatusAccept}},
+			mockWriteReturnErr: fmt.Errorf("mock-error"),
+			wantErr:            true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
 
-			wg.Add(1)
-			go ChWriteMock(t, adapter, tt.expectResponse, tt.expectMatchInMock, tt.responseError, wg)
+			mockAdapter := MockReadWriteCloser{}
+
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
+
+			_ = timestampProvider.SetLocation("Local")
+
+			tt.mockWriteExpectMsg.Version = testChannelMessageProtocolVersion
+			tt.mockWriteExpectMsg.Timestamp = timestamp
+
+			mockAdapter.On("Write", marshalChMsgPkt((tt.mockWriteExpectMsg))).Return(tt.mockWriteReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			err := ch.NewMSCBaseStateRespond(tt.args.state, tt.args.status)
 			if err != nil {
@@ -1784,28 +1799,29 @@ func Test_channel_NewMSCBaseStateRespond(t *testing.T) {
 				}
 				return
 			}
-			wg.Wait()
 		})
 	}
 }
 
-func Test_channel_NewVPCStateRequest(t *testing.T) {
+func Test_Instance_NewVPCStateRequest(t *testing.T) {
 	type args struct {
 		newStateSigned primitives.VPCStateSigned
 	}
 	tests := []struct {
-		name              string
-		args              args
-		expectRequest     primitives.ChMsgPkt
-		expectMatchInMock bool
-		mockResponse      jsonMsgPacket
-		responseError     error
+		name string
+		args args
+
+		mockWriteExpectMsg primitives.ChMsgPkt
+		mockWriteReturnErr error
+		mockReadReturnMsg  primitives.ChMsgPkt
+		mockReadReturnErr  error
+
 		wantErr           bool
 		wantResponseState primitives.VPCStateSigned
 		wantStatus        primitives.MessageStatus
 	}{
 		{
-			name: "valid-accept",
+			name: "accept",
 			args: args{
 				newStateSigned: primitives.VPCStateSigned{
 					VPCState: primitives.VPCState{
@@ -1815,10 +1831,9 @@ func Test_channel_NewVPCStateRequest(t *testing.T) {
 						Version:         big.NewInt(10),
 					},
 					SignSender:   []byte("sender-signature"),
-					SignReceiver: []byte(""),
-				},
-			},
-			expectRequest: primitives.ChMsgPkt{
+					SignReceiver: []byte("")}},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgVPCStateRequest,
 				Message: primitives.JSONMsgVPCState{
 					SignedStateVal: primitives.VPCStateSigned{
@@ -1829,29 +1844,25 @@ func Test_channel_NewVPCStateRequest(t *testing.T) {
 							Version:         big.NewInt(10),
 						},
 						SignSender:   []byte("sender-signature"),
-						SignReceiver: []byte(""),
-					},
-					Status: primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgVPCStateResponse,
-					Message: primitives.JSONMsgVPCState{
-						SignedStateVal: primitives.VPCStateSigned{
-							VPCState: primitives.VPCState{
-								ID:              []byte("some-valid-id"),
-								BlockedSender:   big.NewInt(10),
-								BlockedReceiver: big.NewInt(10),
-								Version:         big.NewInt(10),
-							},
-							SignSender:   []byte("sender-signature"),
-							SignReceiver: []byte("receiver-signature"),
+						SignReceiver: []byte("")},
+					Status: primitives.MessageStatusRequire}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgVPCStateResponse,
+				Message: primitives.JSONMsgVPCState{
+					SignedStateVal: primitives.VPCStateSigned{
+						VPCState: primitives.VPCState{
+							ID:              []byte("some-valid-id"),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
 						},
-						Status: primitives.MessageStatusAccept,
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("receiver-signature"),
 					},
-				}},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+
 			wantErr: false,
 			wantResponseState: primitives.VPCStateSigned{
 				VPCState: primitives.VPCState{
@@ -1866,7 +1877,7 @@ func Test_channel_NewVPCStateRequest(t *testing.T) {
 			wantStatus: primitives.MessageStatusAccept,
 		},
 		{
-			name: "valid-decline",
+			name: "decline",
 			args: args{
 				newStateSigned: primitives.VPCStateSigned{
 					VPCState: primitives.VPCState{
@@ -1876,10 +1887,9 @@ func Test_channel_NewVPCStateRequest(t *testing.T) {
 						Version:         big.NewInt(10),
 					},
 					SignSender:   []byte("sender-signature"),
-					SignReceiver: []byte(""),
-				},
-			},
-			expectRequest: primitives.ChMsgPkt{
+					SignReceiver: []byte("")}},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgVPCStateRequest,
 				Message: primitives.JSONMsgVPCState{
 					SignedStateVal: primitives.VPCStateSigned{
@@ -1890,29 +1900,25 @@ func Test_channel_NewVPCStateRequest(t *testing.T) {
 							Version:         big.NewInt(10),
 						},
 						SignSender:   []byte("sender-signature"),
-						SignReceiver: []byte(""),
-					},
-					Status: primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgVPCStateResponse,
-					Message: primitives.JSONMsgVPCState{
-						SignedStateVal: primitives.VPCStateSigned{
-							VPCState: primitives.VPCState{
-								ID:              []byte("some-valid-id"),
-								BlockedSender:   big.NewInt(10),
-								BlockedReceiver: big.NewInt(10),
-								Version:         big.NewInt(10),
-							},
-							SignSender:   []byte("sender-signature"),
-							SignReceiver: []byte(""),
+						SignReceiver: []byte("")},
+					Status: primitives.MessageStatusRequire}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgVPCStateResponse,
+				Message: primitives.JSONMsgVPCState{
+					SignedStateVal: primitives.VPCStateSigned{
+						VPCState: primitives.VPCState{
+							ID:              []byte("some-valid-id"),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
 						},
-						Status: primitives.MessageStatusDecline,
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("receiver-signature"),
 					},
-				}},
+					Status: primitives.MessageStatusDecline}},
+			mockReadReturnErr: nil,
+
 			wantErr: false,
 			wantResponseState: primitives.VPCStateSigned{
 				VPCState: primitives.VPCState{
@@ -1922,60 +1928,12 @@ func Test_channel_NewVPCStateRequest(t *testing.T) {
 					Version:         big.NewInt(10),
 				},
 				SignSender:   []byte("sender-signature"),
-				SignReceiver: []byte(""),
+				SignReceiver: []byte("receiver-signature"),
 			},
 			wantStatus: primitives.MessageStatusDecline,
 		},
 		{
-			name: "invalid-message-id",
-			args: args{
-				newStateSigned: primitives.VPCStateSigned{
-					VPCState: primitives.VPCState{},
-				},
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgVPCStateRequest,
-				Message: primitives.JSONMsgVPCState{
-					SignedStateVal: primitives.VPCStateSigned{
-						VPCState: primitives.VPCState{},
-					},
-					Status: primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MessageID("invalid-message-id"),
-				}},
-			wantErr: true,
-		},
-		{
-			name: "invalid-message",
-			args: args{
-				newStateSigned: primitives.VPCStateSigned{
-					VPCState: primitives.VPCState{},
-				},
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgVPCStateRequest,
-				Message: primitives.JSONMsgVPCState{
-					SignedStateVal: primitives.VPCStateSigned{
-						VPCState: primitives.VPCState{},
-					},
-					Status: primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgVPCStateResponse,
-					Message:   nil,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "vpc-state-modified-by-peer",
+			name: "write-error",
 			args: args{
 				newStateSigned: primitives.VPCStateSigned{
 					VPCState: primitives.VPCState{
@@ -1985,10 +1943,9 @@ func Test_channel_NewVPCStateRequest(t *testing.T) {
 						Version:         big.NewInt(10),
 					},
 					SignSender:   []byte("sender-signature"),
-					SignReceiver: []byte(""),
-				},
-			},
-			expectRequest: primitives.ChMsgPkt{
+					SignReceiver: []byte("")}},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgVPCStateRequest,
 				Message: primitives.JSONMsgVPCState{
 					SignedStateVal: primitives.VPCStateSigned{
@@ -1999,55 +1956,161 @@ func Test_channel_NewVPCStateRequest(t *testing.T) {
 							Version:         big.NewInt(10),
 						},
 						SignSender:   []byte("sender-signature"),
-						SignReceiver: []byte(""),
-					},
-					Status: primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgVPCStateResponse,
-					Message: primitives.JSONMsgVPCState{
-						SignedStateVal: primitives.VPCStateSigned{
-							VPCState: primitives.VPCState{
-								ID:              []byte("some-valid-id"),
-								BlockedSender:   big.NewInt(1000),
-								BlockedReceiver: big.NewInt(10),
-								Version:         big.NewInt(10),
-							},
-							SignSender:   []byte("sender-signature"),
-							SignReceiver: []byte("receiver-signature"),
-						},
-						Status: primitives.MessageStatusAccept,
-					},
-				}},
+						SignReceiver: []byte("")},
+					Status: primitives.MessageStatusRequire}},
+			mockWriteReturnErr: fmt.Errorf("mock-error"),
+
 			wantErr: true,
-		},
-		{
-			name:          "write-error",
-			args:          args{},
-			responseError: fmt.Errorf("write-error"),
-			wantErr:       true,
 		},
 		{
 			name: "read-error",
-			args: args{},
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{},
-				err:     fmt.Errorf("read-error")},
+			args: args{
+				newStateSigned: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
+						ID:              []byte("some-valid-id"),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(10),
+						Version:         big.NewInt(10),
+					},
+					SignSender:   []byte("sender-signature"),
+					SignReceiver: []byte("")}},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgVPCStateRequest,
+				Message: primitives.JSONMsgVPCState{
+					SignedStateVal: primitives.VPCStateSigned{
+						VPCState: primitives.VPCState{
+							ID:              []byte("some-valid-id"),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
+						},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("")},
+					Status: primitives.MessageStatusRequire}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgVPCStateResponse,
+				Message: primitives.JSONMsgVPCState{
+					SignedStateVal: primitives.VPCStateSigned{
+						VPCState: primitives.VPCState{
+							ID:              []byte("some-valid-id"),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
+						},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("receiver-signature"),
+					},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: fmt.Errorf("mock-error"),
+
+			wantErr: true,
+		},
+		{
+			name: "message-id-mismatch",
+			args: args{
+				newStateSigned: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
+						ID:              []byte("some-valid-id"),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(10),
+						Version:         big.NewInt(10),
+					},
+					SignSender:   []byte("sender-signature"),
+					SignReceiver: []byte("")}},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgVPCStateRequest,
+				Message: primitives.JSONMsgVPCState{
+					SignedStateVal: primitives.VPCStateSigned{
+						VPCState: primitives.VPCState{
+							ID:              []byte("some-valid-id"),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
+						},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("")},
+					Status: primitives.MessageStatusRequire}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgIdentityRequest,
+				Message:   primitives.JSONMsgIdentity{}},
+			mockReadReturnErr: nil,
+
+			wantErr: true,
+		},
+		{
+			name: "state-mismatch",
+			args: args{
+				newStateSigned: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
+						ID:              []byte("some-valid-id"),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(10),
+						Version:         big.NewInt(10),
+					},
+					SignSender:   []byte("sender-signature"),
+					SignReceiver: []byte("")}},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgVPCStateRequest,
+				Message: primitives.JSONMsgVPCState{
+					SignedStateVal: primitives.VPCStateSigned{
+						VPCState: primitives.VPCState{
+							ID:              []byte("some-valid-id"),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
+						},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("")},
+					Status: primitives.MessageStatusRequire}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgVPCStateResponse,
+				Message: primitives.JSONMsgVPCState{
+					SignedStateVal: primitives.VPCStateSigned{
+						VPCState: primitives.VPCState{
+							ID:              []byte("some-valid-id-modified-by-peer"),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10),
+						},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("receiver-signature"),
+					},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+
 			wantErr: true,
 		},
 	}
-	wg := &sync.WaitGroup{}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
 
-			wg.Add(1)
-			go ChWriteReadMock(t, adapter, tt.expectRequest, tt.mockResponse, tt.responseError, tt.expectMatchInMock, wg)
+			mockAdapter := MockReadWriteCloser{}
+
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
+
+			_ = timestampProvider.SetLocation("Local")
+
+			tt.mockWriteExpectMsg.Version = testChannelMessageProtocolVersion
+			tt.mockWriteExpectMsg.Timestamp = timestamp
+
+			mockAdapter.On("Write", marshalChMsgPkt((tt.mockWriteExpectMsg))).Return(tt.mockWriteReturnErr)
+			mockAdapter.On("Read").Return(marshalChMsgPkt(tt.mockReadReturnMsg), tt.mockReadReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			gotResponseState, gotStatus, err := ch.NewVPCStateRequest(tt.args.newStateSigned)
 			if err != nil {
@@ -2063,38 +2126,36 @@ func Test_channel_NewVPCStateRequest(t *testing.T) {
 			if gotStatus != tt.wantStatus {
 				t.Errorf("channel.NewVPCStateRequest() gotStatus = %v, want %v", gotStatus, tt.wantStatus)
 			}
-			wg.Wait()
 		})
 	}
 }
 
-func Test_channel_NewVPCStateRead(t *testing.T) {
+func Test_Instance_NewVPCStateRead(t *testing.T) {
 	tests := []struct {
-		name         string
-		mockResponse jsonMsgPacket
-		wantErr      bool
-		wantState    primitives.VPCStateSigned
+		name string
+
+		mockReadReturnMsg primitives.ChMsgPkt
+		mockReadReturnErr error
+
+		wantErr   bool
+		wantState primitives.VPCStateSigned
 	}{
 		{
 			name: "valid",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgVPCStateRequest,
-					Message: primitives.JSONMsgVPCState{
-						SignedStateVal: primitives.VPCStateSigned{
-							VPCState: primitives.VPCState{
-								ID:              []byte("some-valid-id"),
-								BlockedSender:   big.NewInt(10),
-								BlockedReceiver: big.NewInt(10),
-								Version:         big.NewInt(10),
-							},
-							SignSender:   []byte("sender-signature"),
-							SignReceiver: []byte(""),
-						},
-						Status: primitives.MessageStatusRequire,
-					},
-				}},
-			wantErr: false,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgVPCStateRequest,
+				Message: primitives.JSONMsgVPCState{
+					SignedStateVal: primitives.VPCStateSigned{
+						VPCState: primitives.VPCState{
+							ID:              []byte("some-valid-id"),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10)},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("")},
+					Status: primitives.MessageStatusRequire}},
+			mockReadReturnErr: nil,
+			wantErr:           false,
 			wantState: primitives.VPCStateSigned{
 				VPCState: primitives.VPCState{
 					ID:              []byte("some-valid-id"),
@@ -2108,80 +2169,64 @@ func Test_channel_NewVPCStateRead(t *testing.T) {
 		},
 		{
 			name: "read-error",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{},
-				err:     fmt.Errorf("read-error")},
-			wantErr: true,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgVPCStateRequest,
+				Message: primitives.JSONMsgVPCState{
+					SignedStateVal: primitives.VPCStateSigned{
+						VPCState: primitives.VPCState{
+							ID:              []byte("some-valid-id"),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10)},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("")},
+					Status: primitives.MessageStatusRequire}},
+			mockReadReturnErr: fmt.Errorf("mock-error"),
+			wantErr:           true,
 		},
 		{
-			name: "invalid-message-id",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MessageID("invalid-message-id"),
-				}},
-			wantErr: true,
+			name: "message-id-mismatch",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgContractAddrRequest,
+				Message:   primitives.JSONMsgContractAddr{}},
+			mockReadReturnErr: nil,
+			wantErr:           true,
 		},
 		{
-			name: "invalid-message",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgVPCStateRequest,
-					Message:   nil,
-				}},
-			wantErr: true,
-		},
-		{
-			name: "invalid-status-accept",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgVPCStateRequest,
-					Message: primitives.JSONMsgVPCState{
-						SignedStateVal: primitives.VPCStateSigned{
-							VPCState: primitives.VPCState{
-								ID:              []byte("some-valid-id"),
-								BlockedSender:   big.NewInt(10),
-								BlockedReceiver: big.NewInt(10),
-								Version:         big.NewInt(10),
-							},
-							SignSender:   []byte("sender-signature"),
-							SignReceiver: []byte(""),
-						},
-						Status: primitives.MessageStatusAccept,
-					},
-				}},
-			wantErr: true,
-		},
-		{
-			name: "invalid-status-decline",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgVPCStateRequest,
-					Message: primitives.JSONMsgVPCState{
-						SignedStateVal: primitives.VPCStateSigned{
-							VPCState: primitives.VPCState{
-								ID:              []byte("some-valid-id"),
-								BlockedSender:   big.NewInt(10),
-								BlockedReceiver: big.NewInt(10),
-								Version:         big.NewInt(10),
-							},
-							SignSender:   []byte("sender-signature"),
-							SignReceiver: []byte(""),
-						},
-						Status: primitives.MessageStatusDecline,
-					},
-				}},
-			wantErr: true,
+			name: "status-is-not-require",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgVPCStateRequest,
+				Message: primitives.JSONMsgVPCState{
+					SignedStateVal: primitives.VPCStateSigned{
+						VPCState: primitives.VPCState{
+							ID:              []byte("some-valid-id"),
+							BlockedSender:   big.NewInt(10),
+							BlockedReceiver: big.NewInt(10),
+							Version:         big.NewInt(10)},
+						SignSender:   []byte("sender-signature"),
+						SignReceiver: []byte("")},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+			wantErr:           true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
 
-			wg.Add(1)
-			go ChReadMock(adapter, tt.mockResponse, wg)
+			_ = timestampProvider.SetLocation("Local")
+
+			mockAdapter := MockReadWriteCloser{}
+			mockAdapter.On("Read").Return(marshalChMsgPkt(tt.mockReadReturnMsg), tt.mockReadReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			gotState, err := ch.NewVPCStateRead()
 			if err != nil {
@@ -2194,23 +2239,23 @@ func Test_channel_NewVPCStateRead(t *testing.T) {
 			if !gotState.Equal(tt.wantState) {
 				t.Errorf("channel.NewVPCStateRead() = %v, want %v", gotState, tt.wantState)
 			}
-			wg.Wait()
 		})
 	}
 }
 
-func Test_channel_NewVPCStateRespond(t *testing.T) {
+func Test_Instance_NewVPCStateRespond(t *testing.T) {
 	type args struct {
 		state  primitives.VPCStateSigned
 		status primitives.MessageStatus
 	}
 	tests := []struct {
-		name              string
-		args              args
-		expectResponse    primitives.ChMsgPkt
-		expectMatchInMock bool
-		responseError     error
-		wantErr           bool
+		name string
+		args args
+
+		mockWriteExpectMsg primitives.ChMsgPkt
+		mockWriteReturnErr error
+
+		wantErr bool
 	}{
 		{
 			name: "valid-accept",
@@ -2220,14 +2265,11 @@ func Test_channel_NewVPCStateRespond(t *testing.T) {
 						ID:              []byte("some-valid-id"),
 						BlockedSender:   big.NewInt(10),
 						BlockedReceiver: big.NewInt(10),
-						Version:         big.NewInt(10),
-					},
+						Version:         big.NewInt(10)},
 					SignSender:   []byte("sender-signature"),
-					SignReceiver: []byte("receiver-signature"),
-				},
-				status: primitives.MessageStatusAccept,
-			},
-			expectResponse: primitives.ChMsgPkt{
+					SignReceiver: []byte("receiver-signature")},
+				status: primitives.MessageStatusAccept},
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgVPCStateResponse,
 				Message: primitives.JSONMsgVPCState{
 					SignedStateVal: primitives.VPCStateSigned{
@@ -2235,17 +2277,12 @@ func Test_channel_NewVPCStateRespond(t *testing.T) {
 							ID:              []byte("some-valid-id"),
 							BlockedSender:   big.NewInt(10),
 							BlockedReceiver: big.NewInt(10),
-							Version:         big.NewInt(10),
-						},
+							Version:         big.NewInt(10)},
 						SignSender:   []byte("sender-signature"),
-						SignReceiver: []byte("receiver-signature"),
-					},
-					Status: primitives.MessageStatusAccept,
-				},
-			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           false,
+						SignReceiver: []byte("receiver-signature")},
+					Status: primitives.MessageStatusAccept}},
+			mockWriteReturnErr: nil,
+			wantErr:            false,
 		},
 		{
 			name: "valid-decline",
@@ -2255,14 +2292,11 @@ func Test_channel_NewVPCStateRespond(t *testing.T) {
 						ID:              []byte("some-valid-id"),
 						BlockedSender:   big.NewInt(10),
 						BlockedReceiver: big.NewInt(10),
-						Version:         big.NewInt(10),
-					},
+						Version:         big.NewInt(10)},
 					SignSender:   []byte("sender-signature"),
-					SignReceiver: []byte("receiver-signature"),
-				},
-				status: primitives.MessageStatusDecline,
-			},
-			expectResponse: primitives.ChMsgPkt{
+					SignReceiver: []byte("receiver-signature")},
+				status: primitives.MessageStatusDecline},
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgVPCStateResponse,
 				Message: primitives.JSONMsgVPCState{
 					SignedStateVal: primitives.VPCStateSigned{
@@ -2270,34 +2304,40 @@ func Test_channel_NewVPCStateRespond(t *testing.T) {
 							ID:              []byte("some-valid-id"),
 							BlockedSender:   big.NewInt(10),
 							BlockedReceiver: big.NewInt(10),
-							Version:         big.NewInt(10),
-						},
+							Version:         big.NewInt(10)},
 						SignSender:   []byte("sender-signature"),
-						SignReceiver: []byte("receiver-signature"),
-					},
-					Status: primitives.MessageStatusDecline,
-				},
-			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           false,
+						SignReceiver: []byte("receiver-signature")},
+					Status: primitives.MessageStatusDecline}},
+			mockWriteReturnErr: nil,
+			wantErr:            false,
 		},
 		{
-			name: "invalid-status-require",
+			name: "invalid-require",
 			args: args{
 				state: primitives.VPCStateSigned{
 					VPCState: primitives.VPCState{
 						ID:              []byte("some-valid-id"),
 						BlockedSender:   big.NewInt(10),
 						BlockedReceiver: big.NewInt(10),
-						Version:         big.NewInt(10),
-					},
+						Version:         big.NewInt(10)},
 					SignSender:   []byte("sender-signature"),
-					SignReceiver: []byte("receiver-signature"),
-				},
-				status: primitives.MessageStatusRequire,
-			},
-			expectResponse: primitives.ChMsgPkt{
+					SignReceiver: []byte("receiver-signature")},
+				status: primitives.MessageStatusRequire},
+			wantErr: true,
+		},
+		{
+			name: "write-error",
+			args: args{
+				state: primitives.VPCStateSigned{
+					VPCState: primitives.VPCState{
+						ID:              []byte("some-valid-id"),
+						BlockedSender:   big.NewInt(10),
+						BlockedReceiver: big.NewInt(10),
+						Version:         big.NewInt(10)},
+					SignSender:   []byte("sender-signature"),
+					SignReceiver: []byte("receiver-signature")},
+				status: primitives.MessageStatusAccept},
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgVPCStateResponse,
 				Message: primitives.JSONMsgVPCState{
 					SignedStateVal: primitives.VPCStateSigned{
@@ -2305,37 +2345,36 @@ func Test_channel_NewVPCStateRespond(t *testing.T) {
 							ID:              []byte("some-valid-id"),
 							BlockedSender:   big.NewInt(10),
 							BlockedReceiver: big.NewInt(10),
-							Version:         big.NewInt(10),
-						},
+							Version:         big.NewInt(10)},
 						SignSender:   []byte("sender-signature"),
-						SignReceiver: []byte("receiver-signature"),
-					},
-					Status: primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           true,
-		},
-		{
-			name: "write-error",
-			args: args{
-				state:  primitives.VPCStateSigned{},
-				status: primitives.MessageStatusRequire,
-			},
-			responseError: fmt.Errorf("write-error"),
-			wantErr:       true,
+						SignReceiver: []byte("receiver-signature")},
+					Status: primitives.MessageStatusAccept}},
+			mockWriteReturnErr: fmt.Errorf("mock-error"),
+			wantErr:            true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
 
-			wg.Add(1)
-			go ChWriteMock(t, adapter, tt.expectResponse, tt.expectMatchInMock, tt.responseError, wg)
+			mockAdapter := MockReadWriteCloser{}
+
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
+
+			_ = timestampProvider.SetLocation("Local")
+
+			tt.mockWriteExpectMsg.Version = testChannelMessageProtocolVersion
+			tt.mockWriteExpectMsg.Timestamp = timestamp
+
+			mockAdapter.On("Write", marshalChMsgPkt((tt.mockWriteExpectMsg))).Return(tt.mockWriteReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			err := ch.NewVPCStateRespond(tt.args.state, tt.args.status)
 			if err != nil {
@@ -2345,28 +2384,28 @@ func Test_channel_NewVPCStateRespond(t *testing.T) {
 				}
 				return
 			}
-			wg.Wait()
 		})
 	}
 }
-
-func Test_channel_SessionIdRequest(t *testing.T) {
+func Test_Instance_SessionIdRequest(t *testing.T) {
 	type args struct {
 		sid primitives.SessionID
 	}
 	tests := []struct {
-		name              string
-		args              args
-		expectRequest     primitives.ChMsgPkt
-		expectMatchInMock bool
-		mockResponse      jsonMsgPacket
-		responseError     error
-		wantErr           bool
-		wantStatus        primitives.MessageStatus
-		wantSessionID     primitives.SessionID
+		name string
+		args args
+
+		mockWriteExpectMsg primitives.ChMsgPkt
+		mockWriteReturnErr error
+		mockReadReturnMsg  primitives.ChMsgPkt
+		mockReadReturnErr  error
+
+		wantErr       bool
+		wantStatus    primitives.MessageStatus
+		wantSessionID primitives.SessionID
 	}{
 		{
-			name: "valid-accept",
+			name: "accept",
 			args: args{
 				sid: primitives.SessionID{
 					SidSenderPart: []byte("sid-sender-part"),
@@ -2375,7 +2414,8 @@ func Test_channel_SessionIdRequest(t *testing.T) {
 					Locked:        false,
 				},
 			},
-			expectRequest: primitives.ChMsgPkt{
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgSessionIDRequest,
 				Message: primitives.JSONMsgSessionID{
 					Sid: primitives.SessionID{
@@ -2387,23 +2427,21 @@ func Test_channel_SessionIdRequest(t *testing.T) {
 					Status: primitives.MessageStatusRequire,
 				},
 			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgSessionIDResponse,
-					Message: primitives.JSONMsgSessionID{
-						Sid: primitives.SessionID{
-							SidSenderPart:   []byte("sid-sender-part"),
-							AddrSender:      aliceID.OnChainID,
-							NonceSender:     big.NewInt(10).Bytes(),
-							SidReceiverPart: []byte("sid-receiver-part"),
-							AddrReceiver:    bobID.OnChainID,
-							NonceReceiver:   big.NewInt(20).Bytes(),
-							Locked:          false,
-						},
-						Status: primitives.MessageStatusAccept,
-					},
-				}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDResponse,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart:   []byte("sid-sender-part"),
+						AddrSender:      aliceID.OnChainID,
+						NonceSender:     big.NewInt(10).Bytes(),
+						SidReceiverPart: []byte("sid-receiver-part"),
+						AddrReceiver:    bobID.OnChainID,
+						NonceReceiver:   big.NewInt(20).Bytes(),
+						Locked:          false},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+
 			wantErr:    false,
 			wantStatus: primitives.MessageStatusAccept,
 			wantSessionID: primitives.SessionID{
@@ -2417,7 +2455,7 @@ func Test_channel_SessionIdRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "valid-decline",
+			name: "decline",
 			args: args{
 				sid: primitives.SessionID{
 					SidSenderPart: []byte("sid-sender-part"),
@@ -2426,7 +2464,8 @@ func Test_channel_SessionIdRequest(t *testing.T) {
 					Locked:        false,
 				},
 			},
-			expectRequest: primitives.ChMsgPkt{
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgSessionIDRequest,
 				Message: primitives.JSONMsgSessionID{
 					Sid: primitives.SessionID{
@@ -2438,89 +2477,36 @@ func Test_channel_SessionIdRequest(t *testing.T) {
 					Status: primitives.MessageStatusRequire,
 				},
 			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgSessionIDResponse,
-					Message: primitives.JSONMsgSessionID{
-						Sid: primitives.SessionID{
-							SidSenderPart: []byte("sid-sender-part"),
-							AddrSender:    aliceID.OnChainID,
-							NonceSender:   big.NewInt(10).Bytes(),
-							Locked:        false,
-						},
-						Status: primitives.MessageStatusDecline,
-					},
-				}},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDResponse,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart:   []byte("sid-sender-part"),
+						AddrSender:      aliceID.OnChainID,
+						NonceSender:     big.NewInt(10).Bytes(),
+						SidReceiverPart: []byte("sid-receiver-part"),
+						AddrReceiver:    bobID.OnChainID,
+						NonceReceiver:   big.NewInt(20).Bytes(),
+						Locked:          false},
+					Status: primitives.MessageStatusDecline}},
+			mockReadReturnErr: nil,
+
 			wantErr:    false,
 			wantStatus: primitives.MessageStatusDecline,
 			wantSessionID: primitives.SessionID{
-				SidSenderPart: []byte("sid-sender-part"),
-				AddrSender:    aliceID.OnChainID,
-				NonceSender:   big.NewInt(10).Bytes(),
-				Locked:        false,
+				SidSenderPart:   []byte("sid-sender-part"),
+				AddrSender:      aliceID.OnChainID,
+				NonceSender:     big.NewInt(10).Bytes(),
+				SidReceiverPart: []byte("sid-receiver-part"),
+				AddrReceiver:    bobID.OnChainID,
+				NonceReceiver:   big.NewInt(20).Bytes(),
+				Locked:          false,
 			},
 		},
 		{
 			name: "write-error",
 			args: args{
-				sid: primitives.SessionID{},
-			},
-			responseError: fmt.Errorf("write-error"),
-			wantErr:       true,
-		},
-		{
-			name: "read-error",
-			args: args{
-				sid: primitives.SessionID{},
-			},
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{},
-				err:     fmt.Errorf("read-error")},
-			wantErr: true,
-		},
-		{
-			name: "invalid-message-id",
-			args: args{
-				sid: primitives.SessionID{},
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgSessionIDRequest,
-				Message: primitives.JSONMsgSessionID{
-					Sid:    primitives.SessionID{},
-					Status: primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MessageID("invalid-message-id"),
-				}},
-			wantErr: true,
-		},
-		{
-			name: "invalid-message",
-			args: args{
-				sid: primitives.SessionID{},
-			},
-			expectRequest: primitives.ChMsgPkt{
-				MessageID: primitives.MsgSessionIDRequest,
-				Message: primitives.JSONMsgSessionID{
-					Sid:    primitives.SessionID{},
-					Status: primitives.MessageStatusRequire,
-				},
-			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgSessionIDResponse,
-					Message:   nil,
-				}},
-			wantErr: true,
-		},
-		{
-			name: "peer-modifies-sender-component",
-			args: args{
 				sid: primitives.SessionID{
 					SidSenderPart: []byte("sid-sender-part"),
 					AddrSender:    aliceID.OnChainID,
@@ -2528,7 +2514,8 @@ func Test_channel_SessionIdRequest(t *testing.T) {
 					Locked:        false,
 				},
 			},
-			expectRequest: primitives.ChMsgPkt{
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgSessionIDRequest,
 				Message: primitives.JSONMsgSessionID{
 					Sid: primitives.SessionID{
@@ -2540,35 +2527,230 @@ func Test_channel_SessionIdRequest(t *testing.T) {
 					Status: primitives.MessageStatusRequire,
 				},
 			},
-			expectMatchInMock: true,
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgSessionIDResponse,
-					Message: primitives.JSONMsgSessionID{
-						Sid: primitives.SessionID{
-							SidSenderPart:   []byte("sid-modified-sender-part"),
-							AddrSender:      aliceID.OnChainID,
-							NonceSender:     big.NewInt(10).Bytes(),
-							SidReceiverPart: []byte("sid-receiver-part"),
-							AddrReceiver:    bobID.OnChainID,
-							NonceReceiver:   big.NewInt(20).Bytes(),
-							Locked:          false,
-						},
-						Status: primitives.MessageStatusAccept,
+			mockWriteReturnErr: fmt.Errorf("mock-error"),
+			wantErr:            true,
+		},
+		{
+			name: "read-error",
+			args: args{
+				sid: primitives.SessionID{
+					SidSenderPart: []byte("sid-sender-part"),
+					AddrSender:    aliceID.OnChainID,
+					NonceSender:   big.NewInt(10).Bytes(),
+					Locked:        false,
+				},
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDRequest,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart: []byte("sid-sender-part"),
+						AddrSender:    aliceID.OnChainID,
+						NonceSender:   big.NewInt(10).Bytes(),
+						Locked:        false,
 					},
-				}},
+					Status: primitives.MessageStatusRequire,
+				},
+			},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDResponse,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart:   []byte("sid-sender-part"),
+						AddrSender:      aliceID.OnChainID,
+						NonceSender:     big.NewInt(10).Bytes(),
+						SidReceiverPart: []byte("sid-receiver-part"),
+						AddrReceiver:    bobID.OnChainID,
+						NonceReceiver:   big.NewInt(20).Bytes(),
+						Locked:          false},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: fmt.Errorf("mock-error"),
+
+			wantErr: true,
+		},
+		{
+			name: "message-id-mismatch",
+			args: args{
+				sid: primitives.SessionID{
+					SidSenderPart: []byte("sid-sender-part"),
+					AddrSender:    aliceID.OnChainID,
+					NonceSender:   big.NewInt(10).Bytes(),
+					Locked:        false,
+				},
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDRequest,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart: []byte("sid-sender-part"),
+						AddrSender:    aliceID.OnChainID,
+						NonceSender:   big.NewInt(10).Bytes(),
+						Locked:        false,
+					},
+					Status: primitives.MessageStatusRequire,
+				},
+			},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgIdentityRequest,
+				Message:   primitives.JSONMsgIdentity{}},
+			mockReadReturnErr: nil,
+
+			wantErr: true,
+		},
+		{
+			name: "sender-part-modified",
+			args: args{
+				sid: primitives.SessionID{
+					SidSenderPart: []byte("sid-sender-part"),
+					AddrSender:    aliceID.OnChainID,
+					NonceSender:   big.NewInt(10).Bytes(),
+					Locked:        false,
+				},
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDRequest,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart: []byte("sid-sender-part"),
+						AddrSender:    aliceID.OnChainID,
+						NonceSender:   big.NewInt(10).Bytes(),
+						Locked:        false,
+					},
+					Status: primitives.MessageStatusRequire,
+				},
+			},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDResponse,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						//
+						// Sender Part Modified
+						SidSenderPart:   []byte("sid-sender-part-modified"),
+						AddrSender:      aliceID.OnChainID,
+						NonceSender:     big.NewInt(10).Bytes(),
+						SidReceiverPart: []byte("sid-receiver-part"),
+						AddrReceiver:    bobID.OnChainID,
+						NonceReceiver:   big.NewInt(20).Bytes(),
+						Locked:          false},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+
+			wantErr: true,
+		},
+		{
+			name: "sender-addr-modified",
+			args: args{
+				sid: primitives.SessionID{
+					SidSenderPart: []byte("sid-sender-part"),
+					AddrSender:    aliceID.OnChainID,
+					NonceSender:   big.NewInt(10).Bytes(),
+					Locked:        false,
+				},
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDRequest,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart: []byte("sid-sender-part"),
+						AddrSender:    aliceID.OnChainID,
+						NonceSender:   big.NewInt(10).Bytes(),
+						Locked:        false,
+					},
+					Status: primitives.MessageStatusRequire,
+				},
+			},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDResponse,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart: []byte("sid-sender-part"),
+						//
+						// Sender Addr Modified
+						AddrSender:      bobID.OnChainID,
+						NonceSender:     big.NewInt(10).Bytes(),
+						SidReceiverPart: []byte("sid-receiver-part"),
+						AddrReceiver:    bobID.OnChainID,
+						NonceReceiver:   big.NewInt(20).Bytes(),
+						Locked:          false},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+
+			wantErr: true,
+		},
+		{
+			name: "sender-nonce-modified",
+			args: args{
+				sid: primitives.SessionID{
+					SidSenderPart: []byte("sid-sender-part"),
+					AddrSender:    aliceID.OnChainID,
+					NonceSender:   big.NewInt(10).Bytes(),
+					Locked:        false,
+				},
+			},
+
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDRequest,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart: []byte("sid-sender-part"),
+						AddrSender:    aliceID.OnChainID,
+						NonceSender:   big.NewInt(10).Bytes(),
+						Locked:        false,
+					},
+					Status: primitives.MessageStatusRequire,
+				},
+			},
+			mockWriteReturnErr: nil,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDResponse,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart: []byte("sid-sender-part"),
+						AddrSender:    aliceID.OnChainID,
+						//
+						// Sender Nonce Modified
+						NonceSender:     big.NewInt(100).Bytes(),
+						SidReceiverPart: []byte("sid-receiver-part"),
+						AddrReceiver:    bobID.OnChainID,
+						NonceReceiver:   big.NewInt(20).Bytes(),
+						Locked:          false},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+
 			wantErr: true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
 
-			wg.Add(1)
-			go ChWriteReadMock(t, adapter, tt.expectRequest, tt.mockResponse, tt.responseError, tt.expectMatchInMock, wg)
+			mockAdapter := MockReadWriteCloser{}
+
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
+
+			_ = timestampProvider.SetLocation("Local")
+
+			tt.mockWriteExpectMsg.Version = testChannelMessageProtocolVersion
+			tt.mockWriteExpectMsg.Timestamp = timestamp
+
+			mockAdapter.On("Write", marshalChMsgPkt((tt.mockWriteExpectMsg))).Return(tt.mockWriteReturnErr)
+			mockAdapter.On("Read").Return(marshalChMsgPkt(tt.mockReadReturnMsg), tt.mockReadReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			gotSessionID, gotStatus, err := ch.SessionIDRequest(tt.args.sid)
 			if err != nil {
@@ -2584,34 +2766,34 @@ func Test_channel_SessionIdRequest(t *testing.T) {
 			if !gotSessionID.Equal(tt.wantSessionID) {
 				t.Errorf("channel.SessionIdRequest() = %v, want %v", gotSessionID, tt.wantSessionID)
 			}
-			wg.Wait()
 		})
 	}
 }
 
-func Test_channel_SessionIdRead(t *testing.T) {
+func Test_Instance_SessionIdRead(t *testing.T) {
 	tests := []struct {
-		name         string
-		mockResponse jsonMsgPacket
-		wantErr      bool
-		wantSid      primitives.SessionID
+		name string
+
+		mockReadReturnMsg primitives.ChMsgPkt
+		mockReadReturnErr error
+
+		wantErr bool
+		wantSid primitives.SessionID
 	}{
 		{
-			name: "valid-1",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgSessionIDRequest,
-					Message: primitives.JSONMsgSessionID{
-						Sid: primitives.SessionID{
-							SidSenderPart: []byte("sid-sender-part"),
-							AddrSender:    aliceID.OnChainID,
-							NonceSender:   big.NewInt(10).Bytes(),
-							Locked:        false,
-						},
-						Status: primitives.MessageStatusRequire,
+			name: "valid",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDRequest,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart: []byte("sid-sender-part"),
+						AddrSender:    aliceID.OnChainID,
+						NonceSender:   big.NewInt(10).Bytes(),
+						Locked:        false,
 					},
-				}},
-			wantErr: false,
+					Status: primitives.MessageStatusRequire}},
+			mockReadReturnErr: nil,
+			wantErr:           false,
 			wantSid: primitives.SessionID{
 				SidSenderPart: []byte("sid-sender-part"),
 				AddrSender:    aliceID.OnChainID,
@@ -2621,58 +2803,60 @@ func Test_channel_SessionIdRead(t *testing.T) {
 		},
 		{
 			name: "read-error",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{},
-				err:     fmt.Errorf("read-error"),
-			},
-			wantErr: true,
-		},
-		{
-			name: "messageId-error",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MessageID("invalid-message-id"),
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "message-error",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgSessionIDRequest,
-					Message:   nil,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid-status-accept",
-			mockResponse: jsonMsgPacket{
-				message: primitives.ChMsgPkt{
-					MessageID: primitives.MsgSessionIDRequest,
-					Message: primitives.JSONMsgSessionID{
-						Sid: primitives.SessionID{
-							SidSenderPart: []byte("sid-sender-part"),
-							AddrSender:    aliceID.OnChainID,
-							NonceSender:   big.NewInt(10).Bytes(),
-							Locked:        false,
-						},
-						Status: primitives.MessageStatusAccept,
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDRequest,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart: []byte("sid-sender-part"),
+						AddrSender:    aliceID.OnChainID,
+						NonceSender:   big.NewInt(10).Bytes(),
+						Locked:        false,
 					},
-				}},
-			wantErr: true,
+					Status: primitives.MessageStatusRequire}},
+			mockReadReturnErr: fmt.Errorf("mock-error"),
+			wantErr:           true,
+		},
+		{
+			name: "message-id-mismatch",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgIdentityRequest,
+				Message:   primitives.JSONMsgIdentity{}},
+			mockReadReturnErr: nil,
+			wantErr:           true,
+		},
+		{
+			name: "status-is-not-require",
+			mockReadReturnMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDRequest,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart: []byte("sid-sender-part"),
+						AddrSender:    aliceID.OnChainID,
+						NonceSender:   big.NewInt(10).Bytes(),
+						Locked:        false,
+					},
+					Status: primitives.MessageStatusAccept}},
+			mockReadReturnErr: nil,
+			wantErr:           true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
 
-			wg.Add(1)
-			go ChReadMock(adapter, tt.mockResponse, wg)
+			_ = timestampProvider.SetLocation("Local")
+
+			mockAdapter := MockReadWriteCloser{}
+			mockAdapter.On("Read").Return(marshalChMsgPkt(tt.mockReadReturnMsg), tt.mockReadReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			gotSid, err := ch.SessionIDRead()
 			if err != nil {
@@ -2686,23 +2870,23 @@ func Test_channel_SessionIdRead(t *testing.T) {
 				t.Errorf("channel.SessionIdRead() gotSid = %v, want %v", gotSid, tt.wantSid)
 			}
 
-			wg.Wait()
 		})
 	}
 }
 
-func Test_channel_SessionIdRespond(t *testing.T) {
+func Test_Instance_SessionIdRespond(t *testing.T) {
 	type args struct {
 		sid    primitives.SessionID
 		status primitives.MessageStatus
 	}
 	tests := []struct {
-		name              string
-		args              args
-		expectResponse    primitives.ChMsgPkt
-		expectMatchInMock bool
-		responseError     error
-		wantErr           bool
+		name string
+		args args
+
+		mockWriteExpectMsg primitives.ChMsgPkt
+		mockWriteReturnErr error
+
+		wantErr bool
 	}{
 		{
 			name: "valid-accept",
@@ -2714,11 +2898,9 @@ func Test_channel_SessionIdRespond(t *testing.T) {
 					SidReceiverPart: []byte("sid-receiver-part"),
 					AddrReceiver:    bobID.OnChainID,
 					NonceReceiver:   big.NewInt(20).Bytes(),
-					Locked:          false,
-				},
-				status: primitives.MessageStatusAccept,
-			},
-			expectResponse: primitives.ChMsgPkt{
+					Locked:          false},
+				status: primitives.MessageStatusAccept},
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgSessionIDResponse,
 				Message: primitives.JSONMsgSessionID{
 					Sid: primitives.SessionID{
@@ -2728,14 +2910,10 @@ func Test_channel_SessionIdRespond(t *testing.T) {
 						SidReceiverPart: []byte("sid-receiver-part"),
 						AddrReceiver:    bobID.OnChainID,
 						NonceReceiver:   big.NewInt(20).Bytes(),
-						Locked:          false,
-					},
-					Status: primitives.MessageStatusAccept,
-				},
-			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           false,
+						Locked:          false},
+					Status: primitives.MessageStatusAccept}},
+			mockWriteReturnErr: nil,
+			wantErr:            false,
 		},
 		{
 			name: "valid-decline",
@@ -2747,11 +2925,9 @@ func Test_channel_SessionIdRespond(t *testing.T) {
 					SidReceiverPart: []byte("sid-receiver-part"),
 					AddrReceiver:    bobID.OnChainID,
 					NonceReceiver:   big.NewInt(20).Bytes(),
-					Locked:          false,
-				},
-				status: primitives.MessageStatusDecline,
-			},
-			expectResponse: primitives.ChMsgPkt{
+					Locked:          false},
+				status: primitives.MessageStatusDecline},
+			mockWriteExpectMsg: primitives.ChMsgPkt{
 				MessageID: primitives.MsgSessionIDResponse,
 				Message: primitives.JSONMsgSessionID{
 					Sid: primitives.SessionID{
@@ -2761,51 +2937,75 @@ func Test_channel_SessionIdRespond(t *testing.T) {
 						SidReceiverPart: []byte("sid-receiver-part"),
 						AddrReceiver:    bobID.OnChainID,
 						NonceReceiver:   big.NewInt(20).Bytes(),
-						Locked:          false,
-					},
-					Status: primitives.MessageStatusDecline,
-				},
-			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           false,
+						Locked:          false},
+					Status: primitives.MessageStatusDecline}},
+			mockWriteReturnErr: nil,
+			wantErr:            true,
 		},
 		{
-			name: "invalid-status",
+			name: "invalid-status-require",
 			args: args{
-				sid:    primitives.SessionID{},
-				status: primitives.MessageStatus("invalid-status"),
-			},
-			expectResponse: primitives.ChMsgPkt{
-				MessageID: primitives.MsgSessionIDResponse,
-				Message: primitives.JSONMsgSessionID{
-					Sid:    primitives.SessionID{},
-					Status: primitives.MessageStatus("invalid-status"),
-				},
-			},
-			expectMatchInMock: true,
-			responseError:     nil,
-			wantErr:           true,
+				sid: primitives.SessionID{
+					SidSenderPart:   []byte("sid-sender-part"),
+					AddrSender:      aliceID.OnChainID,
+					NonceSender:     big.NewInt(10).Bytes(),
+					SidReceiverPart: []byte("sid-receiver-part"),
+					AddrReceiver:    bobID.OnChainID,
+					NonceReceiver:   big.NewInt(20).Bytes(),
+					Locked:          false},
+				status: primitives.MessageStatusRequire},
+			wantErr: true,
 		},
 		{
 			name: "write-error",
 			args: args{
-				sid:    primitives.SessionID{},
-				status: primitives.MessageStatusDecline,
-			},
-			responseError: fmt.Errorf("write-error"),
-			wantErr:       true,
+				sid: primitives.SessionID{
+					SidSenderPart:   []byte("sid-sender-part"),
+					AddrSender:      aliceID.OnChainID,
+					NonceSender:     big.NewInt(10).Bytes(),
+					SidReceiverPart: []byte("sid-receiver-part"),
+					AddrReceiver:    bobID.OnChainID,
+					NonceReceiver:   big.NewInt(20).Bytes(),
+					Locked:          false},
+				status: primitives.MessageStatusAccept},
+			mockWriteExpectMsg: primitives.ChMsgPkt{
+				MessageID: primitives.MsgSessionIDResponse,
+				Message: primitives.JSONMsgSessionID{
+					Sid: primitives.SessionID{
+						SidSenderPart:   []byte("sid-sender-part"),
+						AddrSender:      aliceID.OnChainID,
+						NonceSender:     big.NewInt(10).Bytes(),
+						SidReceiverPart: []byte("sid-receiver-part"),
+						AddrReceiver:    bobID.OnChainID,
+						NonceReceiver:   big.NewInt(20).Bytes(),
+						Locked:          false},
+					Status: primitives.MessageStatusAccept}},
+			mockWriteReturnErr: fmt.Errorf("mock-error"),
+			wantErr:            true,
 		},
 	}
-	wg := &sync.WaitGroup{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ch, adapter := setupMockChannel()
-			adapter.connected = true
+			timestamp := time.Now()
 
-			wg.Add(1)
-			go ChWriteMock(t, adapter, tt.expectResponse, tt.expectMatchInMock, tt.responseError, wg)
+			mockAdapter := MockReadWriteCloser{}
+
+			timestampProvider := mockClock{}
+			timestampProvider.On("Now").Return(timestamp)
+			timestampProvider.On("SetLocation", mock.Anything).Return(nil)
+
+			_ = timestampProvider.SetLocation("Local")
+
+			tt.mockWriteExpectMsg.Version = testChannelMessageProtocolVersion
+			tt.mockWriteExpectMsg.Timestamp = timestamp
+
+			mockAdapter.On("Write", marshalChMsgPkt((tt.mockWriteExpectMsg))).Return(tt.mockWriteReturnErr)
+
+			ch := &Instance{
+				timestampProvider: &timestampProvider,
+				adapter:           &mockAdapter,
+			}
 
 			err := ch.SessionIDRespond(tt.args.sid, tt.args.status)
 			if err != nil {
@@ -2815,7 +3015,6 @@ func Test_channel_SessionIdRespond(t *testing.T) {
 				}
 				return
 			}
-			wg.Wait()
 		})
 	}
 }
