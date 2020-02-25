@@ -558,3 +558,43 @@ func Test_chMsgPkt_UnmarshalJSON(t *testing.T) {
 		})
 	}
 }
+
+func Test_ContainsStatus(t *testing.T) {
+	type args struct {
+		list          []MessageStatus
+		requiredValue MessageStatus
+	}
+	tests := []struct {
+		name       string
+		args       args
+		wantStatus bool
+	}{
+		{
+			name: "status_present",
+			args: args{
+				list:          []MessageStatus{MessageStatusAccept, MessageStatusDecline},
+				requiredValue: MessageStatusAccept,
+			},
+			wantStatus: true,
+		},
+		{
+			name: "status_not_present",
+			args: args{
+				list:          []MessageStatus{MessageStatusAccept, MessageStatusDecline},
+				requiredValue: MessageStatusRequire,
+			},
+			wantStatus: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			gotStatus := ContainsStatus(tt.args.list, tt.args.requiredValue)
+			if gotStatus != tt.wantStatus {
+				t.Errorf("ContainsStatus() got %t, want %t", gotStatus, tt.wantStatus)
+			}
+		})
+	}
+
+}

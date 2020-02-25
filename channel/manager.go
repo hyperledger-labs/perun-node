@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/direct-state-transfer/dst-go/channel/adapter"
+	"github.com/direct-state-transfer/dst-go/channel/adapter/websocket"
 	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
 	"github.com/direct-state-transfer/dst-go/identity"
@@ -81,6 +83,8 @@ func InitModule(cfg *Config) (err error) {
 		return err
 	}
 
+	websocket.SetLogger(logger)
+
 	//Initialise connection
 	logger.Debug("Initializing Channel module")
 
@@ -113,7 +117,7 @@ func (t *timeProvider) Now() time.Time {
 // It groups all the properties of the channel such as identity and role of each user,
 // current and all previous values of channel state.
 type Instance struct {
-	adapter ReadWriteCloser
+	adapter adapter.ReadWriteCloser
 
 	timestampProvider clock
 
@@ -481,13 +485,13 @@ func (inst *Instance) CurrentVpcState() primitives.VPCStateSigned {
 // Channel session has a listener running in the background with defined adapterType.
 // All new incoming connections are processed by the session and if successful made available on idVerifiedConn channel.
 // The higher layers of code can listen for new connections on this idVerifiedConn channel and use it for further communications.
-func NewSession(selfID identity.OffChainID, adapterType AdapterType, maxConn uint32) (idVerifiedConn chan *Instance,
-	listener Shutdown, err error) {
+func NewSession(selfID identity.OffChainID, adapterType adapter.CommunicationProtocol, maxConn uint32) (idVerifiedConn chan *Instance,
+	listener adapter.Shutdown, err error) {
 
-	var newConn chan ReadWriteCloser //newConn will receive incoming connections, that will be used after id verification
+	var newConn chan adapter.ReadWriteCloser //newConn will receive incoming connections, that will be used after id verification
 
 	//Start a new listener
-	newConn, listener, err = startListener(selfID, maxConn, adapterType)
+	newConn, listener, err = StartListener(selfID, maxConn, adapterType)
 	if err != nil {
 		logger.Error("Error starting listener", err)
 		return nil, nil, err
@@ -497,7 +501,7 @@ func NewSession(selfID identity.OffChainID, adapterType AdapterType, maxConn uin
 
 	go identityVerifierInConn(selfID, newConn, idVerifiedConn)
 
-	if err = loopbackTest(selfID, WebSocket); err != nil {
+	if err = loopbackTest(selfID, adapter.WebSocket); err != nil {
 		return nil, nil, fmt.Errorf("Loopback test error - %s", err.Error())
 	}
 
@@ -507,9 +511,37 @@ func NewSession(selfID identity.OffChainID, adapterType AdapterType, maxConn uin
 	return idVerifiedConn, listener, nil
 }
 
+// StartListener initializes a listener for accepting connections in the protocol specified by adapterType.
+// The listener is started at the endpoint and address of the listenerID and can hold utmost maxConn number of
+// unprocessed connections in the newIncomingConn channel.
+func StartListener(listenerID identity.OffChainID, maxConn uint32, communicationProtocol adapter.CommunicationProtocol) (newIncomingConn chan adapter.ReadWriteCloser,
+	listener adapter.Shutdown, err error) {
+
+	if communicationProtocol != adapter.WebSocket {
+		return nil, nil, fmt.Errorf("Unsupported adapter type - %s", string(communicationProtocol))
+	}
+
+	newIncomingConn = make(chan adapter.ReadWriteCloser, maxConn)
+
+	localAddr, err := listenerID.ListenerLocalAddr()
+	if err != nil {
+		logger.Error("Error in listening on address:", localAddr)
+		return nil, nil, err
+	}
+
+	//Only websocket adapter is supported currently
+	listener, err = websocket.WsStartListener(localAddr, listenerID.ListenerEndpoint, newIncomingConn)
+	if err != nil {
+		logger.Debug("Error starting listen and serve,", err.Error())
+		return nil, nil, err
+	}
+
+	return newIncomingConn, listener, nil
+}
+
 // identityVerifierInConn performs identity exchange for new incoming connections.
 // It also sets the identity parameters onto the instance.
-func identityVerifierInConn(selfID identity.OffChainID, newIncomingChan chan ReadWriteCloser, idVerifiedConn chan *Instance) {
+func identityVerifierInConn(selfID identity.OffChainID, newIncomingChan chan adapter.ReadWriteCloser, idVerifiedConn chan *Instance) {
 
 	for {
 
@@ -548,7 +580,7 @@ func identityVerifierInConn(selfID identity.OffChainID, newIncomingChan chan Rea
 
 }
 
-func loopbackTest(selfID identity.OffChainID, adapterType AdapterType) (err error) {
+func loopbackTest(selfID identity.OffChainID, adapterType adapter.CommunicationProtocol) (err error) {
 
 	//Do a loopback test
 	ch, err := NewChannel(selfID, selfID, adapterType)
@@ -566,7 +598,7 @@ func loopbackTest(selfID identity.OffChainID, adapterType AdapterType) (err erro
 
 // NewChannel initializes a new channel connection with peer using the adapterType.
 // Upon successful connection, identity verification is done.
-func NewChannel(selfID, peerID identity.OffChainID, adapterType AdapterType) (conn *Instance, err error) {
+func NewChannel(selfID, peerID identity.OffChainID, adapterType adapter.CommunicationProtocol) (conn *Instance, err error) {
 
 	connAdapter, err := NewChannelConn(peerID, adapterType)
 	if err != nil {
@@ -585,11 +617,28 @@ func NewChannel(selfID, peerID identity.OffChainID, adapterType AdapterType) (co
 	}
 
 	//Verify peer identity for all real adapter types
-	if adapterType != Mock {
+	if adapterType != adapter.Mock {
 		err = identityVerifierOutConn(selfID, peerID, conn)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	return conn, nil
+}
+
+// NewChannelConn initializes and returns a new channel connection (as ReadWriteCloser interface) with peer using the adapterType.
+func NewChannelConn(peerID identity.OffChainID, adapterType adapter.CommunicationProtocol) (conn adapter.ReadWriteCloser, err error) {
+
+	switch adapterType {
+	case adapter.WebSocket:
+		conn, err = websocket.NewWsChannel(peerID.ListenerIPAddr, peerID.ListenerEndpoint)
+		if err != nil {
+			logger.Error("Websockets connection dial error:", err)
+			return nil, err
+		}
+	case adapter.Mock:
+	default:
 	}
 
 	return conn, nil

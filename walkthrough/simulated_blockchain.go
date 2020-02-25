@@ -26,6 +26,7 @@ import (
 
 	"github.com/direct-state-transfer/dst-go/blockchain"
 	"github.com/direct-state-transfer/dst-go/channel"
+	channelAdapter "github.com/direct-state-transfer/dst-go/channel/adapter"
 	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/ethereum/adapter"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
@@ -64,7 +65,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		return
 	}
 
-	newConnToBob, err := channel.NewChannel(aliceID, bobID, channel.WebSocket)
+	newConnToBob, err := channel.NewChannel(aliceID, bobID, channelAdapter.WebSocket)
 	if err != nil {
 		_, _ = printer.Printf("\nnew channel to bob error= %v\n", err)
 		return
@@ -595,7 +596,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 
 	//Initialize a new channel listener for bob
 	maxConn := uint32(100)
-	incomingConnChan, listener, err := channel.NewSession(bobID, channel.WebSocket, maxConn)
+	incomingConnChan, listener, err := channel.NewSession(bobID, channelAdapter.WebSocket, maxConn)
 	if err != nil {
 		_, _ = printer.Printf("\nNew channel session error - %v\n", err)
 		return
@@ -604,7 +605,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 	_, _ = printer.Printf("Node initialized. Open for incoming channel requests\n")
 
 	go func(bcInst2 *blockchain.Instance,
-		incomingConnChan chan *channel.Instance, listener channel.Shutdown, wg *sync.WaitGroup) {
+		incomingConnChan chan *channel.Instance, listener channelAdapter.Shutdown, wg *sync.WaitGroup) {
 		defer wg.Done()
 
 		newConnFromAlice := <-incomingConnChan

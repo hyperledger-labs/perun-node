@@ -20,8 +20,15 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os/exec"
+	"reflect"
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/mock"
+
+	"github.com/direct-state-transfer/dst-go/channel/adapter"
+	"github.com/direct-state-transfer/dst-go/channel/adapter/websocket"
 	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
@@ -67,8 +74,8 @@ func Test_Instance_Connected(t *testing.T) {
 		{
 			name: "valid-connected",
 			instance: &Instance{
-				adapter: &genericChannelAdapter{
-					connected: true,
+				adapter: &adapter.GenericChannelAdapter{
+					IsConnected: true,
 				},
 			},
 			want: true,
@@ -76,8 +83,8 @@ func Test_Instance_Connected(t *testing.T) {
 		{
 			name: "valid-not-connected",
 			instance: &Instance{
-				adapter: &genericChannelAdapter{
-					connected: false,
+				adapter: &adapter.GenericChannelAdapter{
+					IsConnected: false,
 				},
 			},
 			want: false,
@@ -96,6 +103,185 @@ func Test_Instance_Connected(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_Instance_Read(t *testing.T) {
+
+	t.Run("Success_LoggingEnabled", func(t *testing.T) {
+
+		ReadWriteLogging = true
+
+		retMessageBytes := []byte(`{
+				"version":"1.0",
+				"message_id":"MsgNewChannelResponse",
+				"message":{
+						"status":"accept",
+						"reason":"ok"},
+				"timestamp":"0001-01-01T00:00:00Z"}`)
+		retErr := error(nil)
+		wantMessage := primitives.ChMsgPkt{
+			Version:   "1.0",
+			MessageID: primitives.MsgNewChannelResponse,
+			Message: primitives.JSONMsgNewChannel{
+				Status: primitives.MessageStatusAccept,
+				Reason: "ok",
+			}}
+		wantErr := false
+
+		adapter := &MockReadWriteCloser{}
+		adapter.On("Read").Return(retMessageBytes, retErr)
+
+		inst := Instance{
+			adapter: adapter,
+		}
+
+		gotMessage, gotErr := inst.Read()
+
+		adapter.AssertExpectations(t)
+
+		if !reflect.DeepEqual(wantMessage, gotMessage) {
+			t.Fatalf("Instance.Read() gotMessage = %v, wantMessage = %v", gotMessage, wantMessage)
+		}
+
+		if wantErr != (gotErr != nil) {
+			t.Fatalf("Instance.Read() gotErr = %v, wantErr = %v", gotErr, wantErr)
+		}
+
+	})
+
+	t.Run("Error_Read", func(t *testing.T) {
+
+		ReadWriteLogging = true
+
+		retMessageBytes := []byte(`{
+				"version":"1.0",
+				"message_id":"MsgNewChannelResponse",
+				"message":{
+						"status":"accept",
+						"reason":"ok"},
+				"timestamp":"0001-01-01T00:00:00Z"}`)
+		retErr := fmt.Errorf("mockError")
+		wantErr := true
+
+		adapter := &MockReadWriteCloser{}
+		adapter.On("Read").Return(retMessageBytes, retErr)
+
+		inst := Instance{
+			adapter: adapter,
+		}
+
+		_, gotErr := inst.Read()
+
+		adapter.AssertExpectations(t)
+
+		if wantErr != (gotErr != nil) {
+			t.Fatalf("Instance.Read() gotErr = %v, wantErr = %v", gotErr, wantErr)
+		}
+
+	})
+	t.Run("UnMarshall_Error", func(t *testing.T) {
+
+		ReadWriteLogging = true
+
+		//Json is invalid because first field and value are unquoted
+		retMessageBytes := []byte(`{
+				version:1.0,
+				"message_id":"MsgNewChannelResponse",
+				"message":{
+						"status":"accept",
+						"reason":"ok"},
+				"timestamp":"0001-01-01T00:00:00Z"}`)
+		retErr := error(nil)
+		wantErr := true
+
+		adapter := &MockReadWriteCloser{}
+		adapter.On("Read").Return(retMessageBytes, retErr)
+
+		inst := Instance{
+			adapter: adapter,
+		}
+
+		_, gotErr := inst.Read()
+
+		adapter.AssertExpectations(t)
+
+		if wantErr != (gotErr != nil) {
+			t.Fatalf("Instance.Read() gotErr = %v, wantErr = %v", gotErr, wantErr)
+		}
+
+	})
+}
+
+func Test_Instance_Write(t *testing.T) {
+
+	t.Run("Success_LoggingEnabled", func(t *testing.T) {
+
+		ReadWriteLogging = true
+
+		message := primitives.ChMsgPkt{
+			Version:   "1.0",
+			MessageID: primitives.MsgNewChannelResponse,
+			Message: primitives.JSONMsgNewChannel{
+				Status: primitives.MessageStatusAccept,
+				Reason: "ok",
+			}}
+		retErr := error(nil)
+		wantErr := false
+
+		adapter := &MockReadWriteCloser{}
+		adapter.On("Write", mock.Anything).Return(retErr)
+
+		timestampProvider := timeProvider{}
+		timestampProvider.SetLocation("Local")
+
+		inst := Instance{
+			timestampProvider: &timestampProvider,
+			adapter:           adapter,
+		}
+
+		gotErr := inst.Write(message)
+		adapter.AssertExpectations(t)
+
+		if wantErr != (gotErr != nil) {
+			t.Fatalf("Instance.Write() gotErr = %v, wantErr = %v", gotErr, wantErr)
+		}
+
+	})
+
+	t.Run("Error_Write", func(t *testing.T) {
+
+		ReadWriteLogging = true
+
+		message := primitives.ChMsgPkt{
+			Version:   "1.0",
+			MessageID: primitives.MsgNewChannelResponse,
+			Message: primitives.JSONMsgNewChannel{
+				Status: primitives.MessageStatusAccept,
+				Reason: "ok",
+			}}
+		retErr := fmt.Errorf("mock error")
+		wantErr := true
+
+		adapter := &MockReadWriteCloser{}
+		adapter.On("Write", mock.Anything).Return(retErr)
+
+		timestampProvider := timeProvider{}
+		timestampProvider.SetLocation("Local")
+
+		inst := Instance{
+			timestampProvider: &timestampProvider,
+			adapter:           adapter,
+		}
+
+		gotErr := inst.Write(message)
+		adapter.AssertExpectations(t)
+
+		if wantErr != (gotErr != nil) {
+			t.Fatalf("Instance.Write() gotErr = %v, wantErr = %v", gotErr, wantErr)
+		}
+
+	})
+
 }
 
 func Test_Instance_Close(t *testing.T) {
@@ -1764,7 +1950,7 @@ func Test_Instance_CurrentVpcState(t *testing.T) {
 func Test_NewSession(t *testing.T) {
 	type args struct {
 		selfID      identity.OffChainID
-		adapterType AdapterType
+		adapterType adapter.CommunicationProtocol
 		maxConn     uint32
 	}
 	tests := []struct {
@@ -1781,7 +1967,7 @@ func Test_NewSession(t *testing.T) {
 					ListenerIPAddr:   bobID.ListenerIPAddr,
 					ListenerEndpoint: "/listen-new-session-test-1",
 				},
-				adapterType: WebSocket,
+				adapterType: adapter.WebSocket,
 				maxConn:     100,
 			},
 			wantErr:  false,
@@ -1795,7 +1981,7 @@ func Test_NewSession(t *testing.T) {
 					ListenerIPAddr:   invalidOffchainAddr,
 					ListenerEndpoint: "/listen-new-session-test-2",
 				},
-				adapterType: WebSocket,
+				adapterType: adapter.WebSocket,
 				maxConn:     100,
 			},
 			wantErr:  true,
@@ -1809,7 +1995,7 @@ func Test_NewSession(t *testing.T) {
 					ListenerIPAddr:   bobID.ListenerIPAddr,
 					ListenerEndpoint: "/listen-new-session-test-1",
 				},
-				adapterType: AdapterType("invalid-adapter-type"),
+				adapterType: adapter.CommunicationProtocol("invalid-adapter-type"),
 				maxConn:     100,
 			},
 			wantErr:  true,
@@ -1832,4 +2018,54 @@ func Test_NewSession(t *testing.T) {
 
 		})
 	}
+}
+
+func Test_startListener(t *testing.T) {
+
+	t.Run("valid_websocket_adapter", func(t *testing.T) {
+
+		_ = exec.Command("fuser", "-k 9602/tcp").Run() //setup
+		defer func() {
+			_ = exec.Command("fuser", "-k 9602/tcp").Run() //teardown
+		}()
+
+		inConnChannel, listener, err := StartListener(bobID, 10, adapter.WebSocket)
+		_, _ = inConnChannel, listener
+		if err != nil {
+			t.Fatalf("wsStartListener() err = %v, want nil", err)
+		}
+		time.Sleep(200 * time.Millisecond) //Wait till the listener starts
+		defer func() {
+			_ = listener.Shutdown(context.Background())
+		}()
+
+		//Send in new connection
+		_, err = websocket.NewWsChannel(bobID.ListenerIPAddr, bobID.ListenerEndpoint)
+		if err != nil {
+			t.Fatalf("Test on startListener - newWsChannel() err = %v, want nil", err)
+		}
+	})
+
+	t.Run("websocket_invalid_listener_address", func(t *testing.T) {
+
+		invalidID := identity.OffChainID{
+			ListenerIPAddr: "abc:jkl:xyz",
+		}
+		inConnChannel, listener, err := StartListener(invalidID, 10, adapter.WebSocket)
+		_, _ = inConnChannel, listener
+		if err == nil {
+			t.Fatalf("wsStartListener() err = nil, want non nil")
+		}
+	})
+
+	t.Run("invalid_adapter", func(t *testing.T) {
+
+		blankID := identity.OffChainID{}
+		inConnChannel, listener, err := StartListener(blankID, 10, adapter.CommunicationProtocol("invalid-adapter"))
+		_, _ = inConnChannel, listener
+		if err == nil {
+			t.Fatalf("wsStartListener() err = nil, want non nil")
+		}
+	})
+
 }
