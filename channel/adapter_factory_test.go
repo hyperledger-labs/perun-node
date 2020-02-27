@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/identity"
 )
 
@@ -59,7 +60,7 @@ func Test_genericChannelAdapter_Read(t *testing.T) {
 		mockCh, mockAdapter := setupMockChannel()
 		mockAdapter.connected = true
 		testMsgPacket := jsonMsgPacket{
-			message: chMsgPkt{Version: "0.1", MessageID: "test-msg"},
+			message: primitives.ChMsgPkt{Version: "0.1", MessageID: "test-msg"},
 			err:     nil}
 
 		flushMessagePipe(mockAdapter.readHandlerPipe)
@@ -143,7 +144,7 @@ func Test_genericChannelAdapter_Write(t *testing.T) {
 		flushMessagePipe(mockAdapter.writeHandlerPipe)
 		mockAdapter.writeHandlerPipe.handlerError <- fakeHandlerError
 
-		err := mockCh.adapter.Write(chMsgPkt{})
+		err := mockCh.adapter.Write(primitives.ChMsgPkt{})
 		if err != fakeHandlerError {
 			t.Errorf("Handler Error is not properly received by Send Message - %v", err)
 		}
@@ -159,16 +160,16 @@ func Test_genericChannelAdapter_Write(t *testing.T) {
 
 		mockCh, mockAdapter := setupMockChannel()
 		mockAdapter.connected = true
-		testMsg := chMsgPkt{
+		testMsg := primitives.ChMsgPkt{
 			Version:   "0.1",
 			MessageID: "test-msg",
 		}
-		var gotJSONMsg chMsgPkt
+		var gotJSONMsg primitives.ChMsgPkt
 
 		flushMessagePipe(mockAdapter.writeHandlerPipe)
 
 		//mock to echo the message packet
-		go func(gotJsonMsg *chMsgPkt, msgPacketCh chan jsonMsgPacket) {
+		go func(gotJsonMsg *primitives.ChMsgPkt, msgPacketCh chan jsonMsgPacket) {
 
 			gotMsgPacket := <-msgPacketCh
 			*gotJsonMsg = gotMsgPacket.message
@@ -194,7 +195,7 @@ func Test_genericChannelAdapter_Write(t *testing.T) {
 
 		mockCh, mockAdapter := setupMockChannel()
 		mockAdapter.connected = true
-		testMsg := chMsgPkt{
+		testMsg := primitives.ChMsgPkt{
 			Version:   "0.1",
 			MessageID: "test-msg",
 		}
@@ -221,7 +222,7 @@ func Test_genericChannelAdapter_Write(t *testing.T) {
 		mockCh, mockAdapter := setupMockChannel()
 		mockAdapter.connected = false
 
-		err := mockCh.adapter.Write(chMsgPkt{})
+		err := mockCh.adapter.Write(primitives.ChMsgPkt{})
 		if err == nil {
 			t.Errorf("sendMessage(). not failing on no connection")
 		}
@@ -399,7 +400,7 @@ func Test_startListener(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Test on startListener - newWsChannel() err = %v, want nil", err)
 		}
-		err = ch.adapter.Write(chMsgPkt{})
+		err = ch.adapter.Write(primitives.ChMsgPkt{})
 		if err != nil {
 			t.Fatalf("Test on startListener - write() err = %v, want nil", err)
 		}
@@ -510,7 +511,7 @@ func Test_NewChannel(t *testing.T) {
 			go func() {
 				for {
 					newConn := <-inConn
-					err := newConn.adapter.Write(chMsgPkt{})
+					err := newConn.adapter.Write(primitives.ChMsgPkt{})
 					_ = err
 				}
 			}()

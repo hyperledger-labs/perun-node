@@ -24,6 +24,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"github.com/direct-state-transfer/dst-go/channel/primitives"
 )
 
 type wsConnInterface interface {
@@ -187,7 +189,7 @@ func wsReadHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerPi
 		return wsConn.SetReadDeadline(time.Now().Add(wsConfig.pongWait))
 	})
 
-	var message chMsgPkt
+	var message primitives.ChMsgPkt
 
 	//Timeperiod to do repeat reads
 	ticker := time.NewTicker(100 * time.Millisecond)
