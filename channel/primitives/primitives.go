@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package channel
+package primitives
 
 import (
 	"bytes"
@@ -27,6 +27,20 @@ import (
 	"github.com/direct-state-transfer/dst-go/ethereum/keystore"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/direct-state-transfer/dst-go/identity"
+)
+
+// Role is the role of the user in an activity (such as opening, closing) on channel.
+type Role string
+
+// Enumeration of allowed values for role in activity on channel.
+const (
+	// Sender is the one who initializes the activity on the channel.
+	// The activity can be Opening or Closing the channel.
+	Sender Role = Role("Sender")
+
+	// Receiver is the user other than the one who initializes the activity on the channel.
+	// The activity can be Opening or Closing the channel.
+	Receiver Role = Role("Receiver")
 )
 
 // Size of nonce (in bytes) for session id generation.
@@ -148,7 +162,6 @@ func (sid *SessionID) GenerateCompleteSid() (err error) {
 	sid.SidComplete = big.NewInt(0).SetBytes(sidCompleteBytes)
 
 	sid.Locked = true
-	logger.Info("Complete Session ID generated successfully")
 	return nil
 }
 

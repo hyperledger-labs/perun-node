@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/identity"
 )
 
@@ -49,8 +50,8 @@ type genericChannelAdapter struct {
 // Any channel adapter should implement these methods as it will be used by higher levels of code.
 type ReadWriteCloser interface {
 	Connected() bool
-	Read() (chMsgPkt, error)
-	Write(chMsgPkt) error
+	Read() (primitives.ChMsgPkt, error)
+	Write(primitives.ChMsgPkt) error
 	Close() error
 }
 
@@ -66,7 +67,7 @@ type handlerPipe struct {
 }
 
 type jsonMsgPacket struct {
-	message chMsgPkt
+	message primitives.ChMsgPkt
 	err     error
 }
 
@@ -78,14 +79,14 @@ func (ch *genericChannelAdapter) Connected() (isConnected bool) {
 // Read returns any new message that has been received by the read handler of this channel.
 //
 // If connection is not active, an error is returned.
-func (ch *genericChannelAdapter) Read() (message chMsgPkt, err error) {
+func (ch *genericChannelAdapter) Read() (message primitives.ChMsgPkt, err error) {
 
 	ch.access.Lock()
 	defer ch.access.Unlock()
 
 	if !ch.connected {
 		err = fmt.Errorf("Channel already closed")
-		return chMsgPkt{}, err
+		return primitives.ChMsgPkt{}, err
 	}
 
 	select {
@@ -106,7 +107,7 @@ func (ch *genericChannelAdapter) Read() (message chMsgPkt, err error) {
 // Write sends the message to the write handler of this channel to be sent on the channel.
 //
 // If connection is not active, an error is returned.
-func (ch *genericChannelAdapter) Write(message chMsgPkt) (err error) {
+func (ch *genericChannelAdapter) Write(message primitives.ChMsgPkt) (err error) {
 
 	ch.access.Lock()
 	defer ch.access.Unlock()
@@ -227,7 +228,7 @@ func startListener(selfID identity.OffChainID, maxConn uint32, adapterType Adapt
 		for {
 			newConn := <-inConn
 			//Role of user in incoming connections is receiver
-			newConn.SetRoleChannel(Receiver)
+			newConn.SetRoleChannel(primitives.Receiver)
 
 			peerID, err := newConn.IdentityRead()
 			if err != nil {
@@ -277,7 +278,7 @@ func NewChannel(selfID, peerID identity.OffChainID, adapterType AdapterType) (co
 			logger.Error("Websockets connection dial error:", err)
 			return nil, err
 		}
-		conn.SetRoleChannel(Sender)
+		conn.SetRoleChannel(primitives.Sender)
 	case Mock:
 	default:
 	}

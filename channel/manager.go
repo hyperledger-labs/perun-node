@@ -20,26 +20,13 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
 	"github.com/direct-state-transfer/dst-go/identity"
 	"github.com/direct-state-transfer/dst-go/log"
 )
 
 var packageName = "channel"
-
-// Role is the role of the user in an activity (such as opening, closing) on channel.
-type Role string
-
-// Enumeration of allowed values for role in activity on channel.
-const (
-	// Sender is the one who initializes the activity on the channel.
-	// The activity can be Opening or Closing the channel.
-	Sender Role = Role("Sender")
-
-	// Receiver is the user other than the one who initializes the activity on the channel.
-	// The activity can be Opening or Closing the channel.
-	Receiver Role = Role("Receiver")
-)
 
 // ClosingMode represents the closing mode for the vpc state channel.
 // It determines what the node software will do when a channel closing notification is received.
@@ -106,14 +93,14 @@ type Instance struct {
 
 	selfID      identity.OffChainID //Identity of the self
 	peerID      identity.OffChainID //Identity of the peer
-	roleChannel Role                //Role in channel. Takes only predefined constants
-	roleClosing Role                //Role in closing. Takes only predefined constants
+	roleChannel primitives.Role     //Role in channel. Takes only predefined constants
+	roleClosing primitives.Role     //Role in closing. Takes only predefined constants
 
-	status        Status             //Status of the channel
-	contractStore contract.StoreType //ContractStore used for this channel
-	sessionID     SessionID          //Session Id agreed for this offchain transaction
-	mscBaseState  MSCBaseStateSigned //MSContract Base state to use for state register
-	vpcStatesList []VPCStateSigned   //List of all vpc state
+	status        Status                        //Status of the channel
+	contractStore contract.StoreType            //ContractStore used for this channel
+	sessionID     primitives.SessionID          //Session Id agreed for this offchain transaction
+	mscBaseState  primitives.MSCBaseStateSigned //MSContract Base state to use for state register
+	vpcStatesList []primitives.VPCStateSigned   //List of all vpc state
 
 	access sync.Mutex //Access control when setting connection status
 
@@ -172,9 +159,9 @@ func (inst *Instance) PeerID() identity.OffChainID {
 // Sender is the one who initialized the channel connection.
 func (inst *Instance) SenderID() identity.OffChainID {
 	switch inst.roleChannel {
-	case Sender:
+	case primitives.Sender:
 		return inst.selfID
-	case Receiver:
+	case primitives.Receiver:
 		return inst.peerID
 	default:
 		return identity.OffChainID{}
@@ -185,9 +172,9 @@ func (inst *Instance) SenderID() identity.OffChainID {
 // Receiver is the one who received a new channel connection request and accepted it.
 func (inst *Instance) ReceiverID() identity.OffChainID {
 	switch inst.roleChannel {
-	case Receiver:
+	case primitives.Receiver:
 		return inst.selfID
-	case Sender:
+	case primitives.Sender:
 		return inst.peerID
 	default:
 		return identity.OffChainID{}
@@ -195,28 +182,28 @@ func (inst *Instance) ReceiverID() identity.OffChainID {
 }
 
 // SetRoleChannel sets the role of the self user in the channel.
-func (inst *Instance) SetRoleChannel(role Role) {
-	if role == Sender || role == Receiver {
+func (inst *Instance) SetRoleChannel(role primitives.Role) {
+	if role == primitives.Sender || role == primitives.Receiver {
 		inst.roleChannel = role
 	}
 }
 
 // RoleChannel returns the role of the self user in the channel.
-func (inst *Instance) RoleChannel() Role {
+func (inst *Instance) RoleChannel() primitives.Role {
 	return inst.roleChannel
 }
 
 // SetRoleClosing sets the role of the self user in the channel closing procedure.
 // If this user initializes the closing procedure, role is sender else it is receiver.
-func (inst *Instance) SetRoleClosing(role Role) {
-	if role == Sender || role == Receiver {
+func (inst *Instance) SetRoleClosing(role primitives.Role) {
+	if role == primitives.Sender || role == primitives.Receiver {
 		inst.roleClosing = role
 	}
 }
 
 // RoleClosing returns the role of the self user in the channel closing procedure.
 // If this user initializes the closing procedure, role is sender else it is receiver.
-func (inst *Instance) RoleClosing() Role {
+func (inst *Instance) RoleClosing() primitives.Role {
 	return inst.roleClosing
 }
 
@@ -276,7 +263,7 @@ func (inst *Instance) Status() Status {
 
 // SetSessionID validates and sets the session id in channel instance.
 // If validation fails, the values is not set in channel instance and an error is returned.
-func (inst *Instance) SetSessionID(sessionID SessionID) (err error) {
+func (inst *Instance) SetSessionID(sessionID primitives.SessionID) (err error) {
 	isValid, err := sessionID.Validate()
 	if !isValid {
 		return fmt.Errorf("Session id invalid - %v", err.Error())
@@ -286,7 +273,7 @@ func (inst *Instance) SetSessionID(sessionID SessionID) (err error) {
 }
 
 // SessionID returns the session id of the channel.
-func (inst *Instance) SessionID() SessionID {
+func (inst *Instance) SessionID() primitives.SessionID {
 	return inst.sessionID
 }
 
@@ -302,10 +289,10 @@ func (inst *Instance) ContractStore() contract.StoreType {
 }
 
 // SetMSCBaseState validates the integrity of newState and if successful, sets the msc base state of the channel.
-func (inst *Instance) SetMSCBaseState(newState MSCBaseStateSigned) (err error) {
+func (inst *Instance) SetMSCBaseState(newState primitives.MSCBaseStateSigned) (err error) {
 
 	//Validate integrity of the sender signature on the state
-	isValidSender, err := newState.VerifySign(inst.SenderID(), Sender)
+	isValidSender, err := newState.VerifySign(inst.SenderID(), primitives.Sender)
 	if err != nil {
 		return err
 	}
@@ -314,7 +301,7 @@ func (inst *Instance) SetMSCBaseState(newState MSCBaseStateSigned) (err error) {
 	}
 
 	//Validate integrity of the receiver signature on the state
-	isValidReceiver, err := newState.VerifySign(inst.ReceiverID(), Receiver)
+	isValidReceiver, err := newState.VerifySign(inst.ReceiverID(), primitives.Receiver)
 	if err != nil {
 		return err
 	}
@@ -327,20 +314,20 @@ func (inst *Instance) SetMSCBaseState(newState MSCBaseStateSigned) (err error) {
 }
 
 // MscBaseState returns the msc base state of the channel.
-func (inst *Instance) MscBaseState() MSCBaseStateSigned {
+func (inst *Instance) MscBaseState() primitives.MSCBaseStateSigned {
 	return inst.mscBaseState
 }
 
 // ValidateIncomingState validates the integrity of incoming state and if unsuccessful, returns the reason.
 // Only version number and peer signature are validated.
-func (inst *Instance) ValidateIncomingState(newState VPCStateSigned) (isValid bool, reason string) {
+func (inst *Instance) ValidateIncomingState(newState primitives.VPCStateSigned) (isValid bool, reason string) {
 
-	var peerRole Role
+	var peerRole primitives.Role
 
-	if inst.RoleChannel() == Sender {
-		peerRole = Receiver
+	if inst.RoleChannel() == primitives.Sender {
+		peerRole = primitives.Receiver
 	} else {
-		peerRole = Sender
+		peerRole = primitives.Sender
 	}
 
 	//Validate integrity of the peer signature on the state
@@ -367,10 +354,10 @@ func (inst *Instance) ValidateIncomingState(newState VPCStateSigned) (isValid bo
 
 // ValidateFullState validates the integrity of newState and if unsuccessful, returns the reason.
 // Version number, self and peer signatures are validated.
-func (inst *Instance) ValidateFullState(newState VPCStateSigned) (isValid bool, reason string) {
+func (inst *Instance) ValidateFullState(newState primitives.VPCStateSigned) (isValid bool, reason string) {
 
 	//Validate integrity of the sender signature on the state
-	isValidSender, err := newState.VerifySign(inst.SenderID(), Sender)
+	isValidSender, err := newState.VerifySign(inst.SenderID(), primitives.Sender)
 	if err != nil {
 		return false, "Invalid sender signature - " + err.Error()
 	}
@@ -379,7 +366,7 @@ func (inst *Instance) ValidateFullState(newState VPCStateSigned) (isValid bool, 
 	}
 
 	//Validate integrity of the receiver signature on the state
-	isValidReceiver, err := newState.VerifySign(inst.ReceiverID(), Receiver)
+	isValidReceiver, err := newState.VerifySign(inst.ReceiverID(), primitives.Receiver)
 	if err != nil {
 		return false, "Invalid receiver signature - " + err.Error()
 	}
@@ -401,7 +388,7 @@ func (inst *Instance) ValidateFullState(newState VPCStateSigned) (isValid bool, 
 
 // SetCurrentVPCState adds newState to vpc state list of the channel.
 // Validation of the state concerning the application logic should be done before adding signatures.
-func (inst *Instance) SetCurrentVPCState(newState VPCStateSigned) (err error) {
+func (inst *Instance) SetCurrentVPCState(newState primitives.VPCStateSigned) (err error) {
 
 	isValid, reason := inst.ValidateFullState(newState)
 	if !isValid {
@@ -413,7 +400,7 @@ func (inst *Instance) SetCurrentVPCState(newState VPCStateSigned) (err error) {
 }
 
 // CurrentVpcState returns the current vpc state of the channel.
-func (inst *Instance) CurrentVpcState() VPCStateSigned {
+func (inst *Instance) CurrentVpcState() primitives.VPCStateSigned {
 	return inst.vpcStatesList[len(inst.vpcStatesList)-1]
 }
 

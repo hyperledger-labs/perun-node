@@ -26,6 +26,7 @@ import (
 
 	"github.com/direct-state-transfer/dst-go/blockchain"
 	"github.com/direct-state-transfer/dst-go/channel"
+	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/ethereum/adapter"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
@@ -70,18 +71,18 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 	}
 	_, _ = printer.Printf("\n\nFound user at %s\n\n", newConnToBob.PeerID())
 
-	status, reason, err := newConnToBob.NewChannelRequest(channel.Version, contract.Store.SHA256Sum())
+	status, reason, err := newConnToBob.NewChannelRequest(primitives.Version, contract.Store.SHA256Sum())
 	if err != nil {
 		_, _ = printer.Printf("\nnew channel request to bob error= %v\n", err)
 		return
 	}
-	if status != channel.MessageStatusAccept {
+	if status != primitives.MessageStatusAccept {
 		_, _ = printer.Printf("\nnew channel request non accepted by bob, got status - %s, reason -%s\n", status, reason)
 		return
 	}
 	_, _ = printer.Printf("\n\nNew outgoing channel established with %s\n\n", newConnToBob.PeerID())
 
-	sid := channel.NewSessionID(aliceID.OnChainID, bobID.OnChainID)
+	sid := primitives.NewSessionID(aliceID.OnChainID, bobID.OnChainID)
 	err = sid.GenerateSenderPart(aliceID.OnChainID)
 	if err != nil {
 		_, _ = printer.Printf("\nGenerate sid sender part error %v\n", err)
@@ -92,7 +93,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		_, _ = printer.Printf("\nsession id request error %v\n", err)
 		return
 	}
-	if status != channel.MessageStatusAccept {
+	if status != primitives.MessageStatusAccept {
 		_, _ = printer.Printf("\nsession id declined by peer -%v\n", err)
 		return
 	}
@@ -128,7 +129,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		_, _ = printer.Printf("\nContract Address Request (LibSignatures) error %v\n", err)
 		return
 	}
-	if status != channel.MessageStatusAccept {
+	if status != primitives.MessageStatusAccept {
 		_, _ = printer.Printf("\nContract Address (LibSignature) not accepted by peer - %s\n", status)
 		return
 	}
@@ -148,7 +149,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		_, _ = printer.Printf("\nContract Address Request (VPC) error %v\n", err)
 		return
 	}
-	if status != channel.MessageStatusAccept {
+	if status != primitives.MessageStatusAccept {
 		_, _ = printer.Printf("\nContract Address (vpc) not accepted by peer - %s\n", status)
 		return
 	}
@@ -168,7 +169,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		_, _ = printer.Printf("\nContract Address Request (mscontract) error %v\n", err)
 		return
 	}
-	if status != channel.MessageStatusAccept {
+	if status != primitives.MessageStatusAccept {
 		_, _ = printer.Printf("\nContract Address (ms contract) not accepted by peer - %s\n", status)
 		return
 	}
@@ -190,8 +191,8 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		mscEventInitialized.CashAlice.String(), mscEventInitialized.CashBob.String())
 
 	//MSC Base State - by alice
-	mscBaseStateSignedPartial := channel.MSCBaseStateSigned{
-		MSContractBaseState: channel.MSCBaseState{
+	mscBaseStateSignedPartial := primitives.MSCBaseStateSigned{
+		MSContractBaseState: primitives.MSCBaseState{
 			VpcAddress:      bcInst.VPCAddr(),
 			Sid:             sid.SidComplete,
 			BlockedSender:   types.EtherToWei(big.NewInt(10)),
@@ -199,7 +200,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 			Version:         big.NewInt(1),
 		}}
 	aliceID.SetCredentials(testKeystore, alicePassword)
-	if err = mscBaseStateSignedPartial.AddSign(aliceID, channel.Sender); err != nil {
+	if err = mscBaseStateSignedPartial.AddSign(aliceID, primitives.Sender); err != nil {
 		_, _ = printer.Printf("\nSigning msc base state error - %v\n", err)
 		return
 	}
@@ -234,15 +235,15 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 	_, _ = printer.Printf("\nMscEventStateRegistered - Cash sender - %s, Cash receiver -%s\n",
 		mscEventStateRegistered.BlockedAlice.String(), mscEventStateRegistered.BlockedBob.String())
 
-	vpcStateID := channel.VPCStateID{
+	vpcStateID := primitives.VPCStateID{
 		AddSender:    aliceEthereumAddr,
 		AddrReceiver: bobEthereumAddr,
 		SID:          sid.SidComplete,
 	}
 
 	//VPC State version 1 - by alice
-	vpcStateSignedPartial01 := channel.VPCStateSigned{
-		VPCState: channel.VPCState{
+	vpcStateSignedPartial01 := primitives.VPCStateSigned{
+		VPCState: primitives.VPCState{
 			ID:              vpcStateID.SoliditySHA3(),
 			Version:         big.NewInt(1),
 			BlockedSender:   types.EtherToWei(big.NewInt(9)),
@@ -250,7 +251,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		},
 	}
 	aliceID.SetCredentials(testKeystore, alicePassword)
-	if err = vpcStateSignedPartial01.AddSign(aliceID, channel.Sender); err != nil {
+	if err = vpcStateSignedPartial01.AddSign(aliceID, primitives.Sender); err != nil {
 		_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 		return
 	}
@@ -282,11 +283,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 	}
 
 	aliceID.SetCredentials(testKeystore, alicePassword)
-	if err = vpcStateSigned02.AddSign(aliceID, channel.Sender); err != nil {
+	if err = vpcStateSigned02.AddSign(aliceID, primitives.Sender); err != nil {
 		_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 		return
 	}
-	err = newConnToBob.NewVPCStateRespond(vpcStateSigned02, channel.MessageStatusAccept)
+	err = newConnToBob.NewVPCStateRespond(vpcStateSigned02, primitives.MessageStatusAccept)
 	if err != nil {
 		_, _ = printer.Printf("\nVpc state respond error - %v\n", err)
 		return
@@ -314,11 +315,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 	}
 
 	aliceID.SetCredentials(testKeystore, alicePassword)
-	if err = vpcStateSigned03.AddSign(aliceID, channel.Sender); err != nil {
+	if err = vpcStateSigned03.AddSign(aliceID, primitives.Sender); err != nil {
 		_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 		return
 	}
-	err = newConnToBob.NewVPCStateRespond(vpcStateSigned03, channel.MessageStatusAccept)
+	err = newConnToBob.NewVPCStateRespond(vpcStateSigned03, primitives.MessageStatusAccept)
 	if err != nil {
 		_, _ = printer.Printf("\nvpc state respond error= %v\n", err)
 		return
@@ -332,8 +333,8 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned03)
 
 	//VPC State version 4 - by alice
-	vpcStateSignedPartial04 := channel.VPCStateSigned{
-		VPCState: channel.VPCState{
+	vpcStateSignedPartial04 := primitives.VPCStateSigned{
+		VPCState: primitives.VPCState{
 			ID:              vpcStateID.SoliditySHA3(),
 			Version:         big.NewInt(4),
 			BlockedSender:   types.EtherToWei(big.NewInt(6)),
@@ -341,7 +342,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		},
 	}
 	aliceID.SetCredentials(testKeystore, alicePassword)
-	if err = vpcStateSignedPartial04.AddSign(aliceID, channel.Sender); err != nil {
+	if err = vpcStateSignedPartial04.AddSign(aliceID, primitives.Sender); err != nil {
 		_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 		return
 	}
@@ -373,11 +374,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 	}
 
 	aliceID.SetCredentials(testKeystore, alicePassword)
-	if err = vpcStateSigned05.AddSign(aliceID, channel.Sender); err != nil {
+	if err = vpcStateSigned05.AddSign(aliceID, primitives.Sender); err != nil {
 		_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 		return
 	}
-	err = newConnToBob.NewVPCStateRespond(vpcStateSigned05, channel.MessageStatusAccept)
+	err = newConnToBob.NewVPCStateRespond(vpcStateSigned05, primitives.MessageStatusAccept)
 	if err != nil {
 		_, _ = printer.Printf("\nvpc state respond error= %v\n", err)
 		return
@@ -391,8 +392,8 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned05)
 
 	//VPC State version 6 - by alice
-	vpcStateSignedPartial06 := channel.VPCStateSigned{
-		VPCState: channel.VPCState{
+	vpcStateSignedPartial06 := primitives.VPCStateSigned{
+		VPCState: primitives.VPCState{
 			ID:              vpcStateID.SoliditySHA3(),
 			Version:         big.NewInt(6),
 			BlockedSender:   types.EtherToWei(big.NewInt(4)),
@@ -400,7 +401,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		},
 	}
 	aliceID.SetCredentials(testKeystore, alicePassword)
-	if err = vpcStateSignedPartial06.AddSign(aliceID, channel.Sender); err != nil {
+	if err = vpcStateSignedPartial06.AddSign(aliceID, primitives.Sender); err != nil {
 		_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 		return
 	}
@@ -432,11 +433,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 	}
 
 	aliceID.SetCredentials(testKeystore, alicePassword)
-	if err = vpcStateSigned07.AddSign(aliceID, channel.Sender); err != nil {
+	if err = vpcStateSigned07.AddSign(aliceID, primitives.Sender); err != nil {
 		_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 		return
 	}
-	err = newConnToBob.NewVPCStateRespond(vpcStateSigned07, channel.MessageStatusAccept)
+	err = newConnToBob.NewVPCStateRespond(vpcStateSigned07, primitives.MessageStatusAccept)
 	if err != nil {
 		_, _ = printer.Printf("\nvpc state respond error= %v\n", err)
 		return
@@ -449,8 +450,8 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned07)
 
 	//VPC State version 8 - by alice
-	vpcStateSignedPartial08 := channel.VPCStateSigned{
-		VPCState: channel.VPCState{
+	vpcStateSignedPartial08 := primitives.VPCStateSigned{
+		VPCState: primitives.VPCState{
 			ID:              vpcStateID.SoliditySHA3(),
 			Version:         big.NewInt(8),
 			BlockedSender:   types.EtherToWei(big.NewInt(2)),
@@ -458,7 +459,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		},
 	}
 	aliceID.SetCredentials(testKeystore, alicePassword)
-	if err = vpcStateSignedPartial08.AddSign(aliceID, channel.Sender); err != nil {
+	if err = vpcStateSignedPartial08.AddSign(aliceID, primitives.Sender); err != nil {
 		_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 		return
 	}
@@ -476,8 +477,8 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned08)
 
 	//VPC State version 9 - by alice
-	vpcStateSignedPartial09 := channel.VPCStateSigned{
-		VPCState: channel.VPCState{
+	vpcStateSignedPartial09 := primitives.VPCStateSigned{
+		VPCState: primitives.VPCState{
 			ID:              vpcStateID.SoliditySHA3(),
 			Version:         big.NewInt(9),
 			BlockedSender:   types.EtherToWei(big.NewInt(1)),
@@ -485,7 +486,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 		},
 	}
 	aliceID.SetCredentials(testKeystore, alicePassword)
-	if err = vpcStateSignedPartial09.AddSign(aliceID, channel.Sender); err != nil {
+	if err = vpcStateSignedPartial09.AddSign(aliceID, primitives.Sender); err != nil {
 		_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 		return
 	}
@@ -517,11 +518,11 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 	}
 
 	aliceID.SetCredentials(testKeystore, alicePassword)
-	if err = vpcStateSigned10.AddSign(aliceID, channel.Sender); err != nil {
+	if err = vpcStateSigned10.AddSign(aliceID, primitives.Sender); err != nil {
 		_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 		return
 	}
-	err = newConnToBob.NewVPCStateRespond(vpcStateSigned10, channel.MessageStatusAccept)
+	err = newConnToBob.NewVPCStateRespond(vpcStateSigned10, primitives.MessageStatusAccept)
 	if err != nil {
 		_, _ = printer.Printf("\nvpc state respond error= %v\n", err)
 		return
@@ -535,7 +536,7 @@ func simulatedBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute 
 	_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned10)
 
 	//Closing initiated by alice
-	var vpcClosingState channel.VPCStateSigned
+	var vpcClosingState primitives.VPCStateSigned
 	if dispute {
 		//Call close with an older state in order to create dispute
 		vpcClosingState = vpcStateSigned06
@@ -616,7 +617,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			return
 		}
 
-		err = newConnFromAlice.NewChannelRespond(msgProtocolVersion, contractStoreVersion, channel.MessageStatusAccept, "")
+		err = newConnFromAlice.NewChannelRespond(msgProtocolVersion, contractStoreVersion, primitives.MessageStatusAccept, "")
 		if err != nil {
 			_, _ = printer.Printf("\nNew channel respond error - %v\n", err)
 			return
@@ -637,7 +638,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			_, _ = printer.Printf("\nSessionId generate complete sid error - %s\n", err)
 		}
 
-		err = newConnFromAlice.SessionIDRespond(newSid, channel.MessageStatusAccept)
+		err = newConnFromAlice.SessionIDRespond(newSid, primitives.MessageStatusAccept)
 		if err != nil {
 			_, _ = printer.Printf("\nSessionIdRespond error - %s\n", err)
 		}
@@ -658,7 +659,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		if err != nil {
 			_, _ = printer.Printf("\n Set LibSignatures address error %v\n", err)
 
-			err = newConnFromAlice.ContractAddrRespond(libSignAddr, libSignHandlerType, channel.MessageStatusDecline)
+			err = newConnFromAlice.ContractAddrRespond(libSignAddr, libSignHandlerType, primitives.MessageStatusDecline)
 			if err != nil {
 				_, _ = printer.Printf("\nContract Address Respond (LibSignature) error - %v\n", err)
 				return
@@ -666,7 +667,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			_, _ = printer.Printf("\nDeclined libsignatures address from peer - %s\n", libSignAddr.Hex())
 			return
 		}
-		err = newConnFromAlice.ContractAddrRespond(libSignAddr, libSignHandlerType, channel.MessageStatusAccept)
+		err = newConnFromAlice.ContractAddrRespond(libSignAddr, libSignHandlerType, primitives.MessageStatusAccept)
 		if err != nil {
 			_, _ = printer.Printf("\nContract Address Respond (LibSignatures) error - %v\n", err)
 			return
@@ -683,7 +684,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		if err != nil {
 			_, _ = printer.Printf("\n Set vpc address error %v\n", err)
 
-			err = newConnFromAlice.ContractAddrRespond(vpcAddr, vpcHandlerType, channel.MessageStatusDecline)
+			err = newConnFromAlice.ContractAddrRespond(vpcAddr, vpcHandlerType, primitives.MessageStatusDecline)
 			if err != nil {
 				_, _ = printer.Printf("\nContract Addresss Respond (vpc) error - %v\n", err)
 				return
@@ -691,7 +692,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			_, _ = printer.Printf("\nDeclined vpc address from peer - %s\n", vpcAddr.Hex())
 			return
 		}
-		err = newConnFromAlice.ContractAddrRespond(vpcAddr, vpcHandlerType, channel.MessageStatusAccept)
+		err = newConnFromAlice.ContractAddrRespond(vpcAddr, vpcHandlerType, primitives.MessageStatusAccept)
 		if err != nil {
 			_, _ = printer.Printf("\nContract Address Respond (vpc) error - %v\n", err)
 			return
@@ -708,7 +709,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		if err != nil {
 			_, _ = printer.Printf("\n Set mscontract address error %v\n", err)
 
-			err = newConnFromAlice.ContractAddrRespond(mscontractAddr, mscontractHandlerType, channel.MessageStatusDecline)
+			err = newConnFromAlice.ContractAddrRespond(mscontractAddr, mscontractHandlerType, primitives.MessageStatusDecline)
 			if err != nil {
 				_, _ = printer.Printf("\nContract Addresss Respond (ms contract) error - %v\n", err)
 				return
@@ -716,7 +717,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			_, _ = printer.Printf("\nDeclined ms contract address from peer - %s\n", mscontractAddr.Hex())
 			return
 		}
-		err = newConnFromAlice.ContractAddrRespond(mscontractAddr, mscontractHandlerType, channel.MessageStatusAccept)
+		err = newConnFromAlice.ContractAddrRespond(mscontractAddr, mscontractHandlerType, primitives.MessageStatusAccept)
 		if err != nil {
 			_, _ = printer.Printf("\nContract Address Respond (ms contract) error - %v\n", err)
 			return
@@ -758,12 +759,12 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		}
 
 		bobID.SetCredentials(testKeystore, bobPassword)
-		if err = mscBaseStateSigned.AddSign(bobID, channel.Receiver); err != nil {
+		if err = mscBaseStateSigned.AddSign(bobID, primitives.Receiver); err != nil {
 			_, _ = printer.Printf("\nSigning Msc base state error - %v\n", err)
 			return
 		}
 
-		err = newConnFromAlice.NewMSCBaseStateRespond(mscBaseStateSigned, channel.MessageStatusAccept)
+		err = newConnFromAlice.NewMSCBaseStateRespond(mscBaseStateSigned, primitives.MessageStatusAccept)
 		if err != nil {
 			_, _ = printer.Printf("\nMsc base state respond error - %v\n", err)
 			return
@@ -794,7 +795,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		_, _ = printer.Printf("\nMscEventStateRegistered - Cash sender - %s, Cash receiver - %s\n",
 			mscEventStateRegistered.BlockedAlice.String(), mscEventStateRegistered.BlockedBob.String())
 
-		vpcStateID := channel.VPCStateID{
+		vpcStateID := primitives.VPCStateID{
 			AddSender:    aliceEthereumAddr,
 			AddrReceiver: bobEthereumAddr,
 			SID:          newSid.SidComplete,
@@ -815,11 +816,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		}
 
 		bobID.SetCredentials(testKeystore, bobPassword)
-		if err = vpcStateSigned01.AddSign(bobID, channel.Receiver); err != nil {
+		if err = vpcStateSigned01.AddSign(bobID, primitives.Receiver); err != nil {
 			_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 			return
 		}
-		err = newConnFromAlice.NewVPCStateRespond(vpcStateSigned01, channel.MessageStatusAccept)
+		err = newConnFromAlice.NewVPCStateRespond(vpcStateSigned01, primitives.MessageStatusAccept)
 		if err != nil {
 			_, _ = printer.Printf("\nvpc state respond error= %v\n", err)
 			return
@@ -833,8 +834,8 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned01)
 
 		//VPC State version 2 - by bob
-		vpcStateSignedPartial02 := channel.VPCStateSigned{
-			VPCState: channel.VPCState{
+		vpcStateSignedPartial02 := primitives.VPCStateSigned{
+			VPCState: primitives.VPCState{
 				ID:              vpcStateID.SoliditySHA3(),
 				Version:         big.NewInt(2),
 				BlockedSender:   types.EtherToWei(big.NewInt(8)),
@@ -842,7 +843,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			},
 		}
 		bobID.SetCredentials(testKeystore, bobPassword)
-		if err = vpcStateSignedPartial02.AddSign(bobID, channel.Receiver); err != nil {
+		if err = vpcStateSignedPartial02.AddSign(bobID, primitives.Receiver); err != nil {
 			_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 			return
 		}
@@ -861,8 +862,8 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned02)
 
 		//VPC State version 3 - by bob
-		vpcStateSignedPartial03 := channel.VPCStateSigned{
-			VPCState: channel.VPCState{
+		vpcStateSignedPartial03 := primitives.VPCStateSigned{
+			VPCState: primitives.VPCState{
 				ID:              vpcStateID.SoliditySHA3(),
 				Version:         big.NewInt(3),
 				BlockedSender:   types.EtherToWei(big.NewInt(7)),
@@ -870,7 +871,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			},
 		}
 		bobID.SetCredentials(testKeystore, bobPassword)
-		if err = vpcStateSignedPartial03.AddSign(bobID, channel.Receiver); err != nil {
+		if err = vpcStateSignedPartial03.AddSign(bobID, primitives.Receiver); err != nil {
 			_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 			return
 		}
@@ -902,11 +903,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		}
 
 		bobID.SetCredentials(testKeystore, bobPassword)
-		if err = vpcStateSigned04.AddSign(bobID, channel.Receiver); err != nil {
+		if err = vpcStateSigned04.AddSign(bobID, primitives.Receiver); err != nil {
 			_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 			return
 		}
-		err = newConnFromAlice.NewVPCStateRespond(vpcStateSigned04, channel.MessageStatusAccept)
+		err = newConnFromAlice.NewVPCStateRespond(vpcStateSigned04, primitives.MessageStatusAccept)
 		if err != nil {
 			_, _ = printer.Printf("\nvpc state respond error= %v\n", err)
 			return
@@ -920,8 +921,8 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned04)
 
 		//VPC State version 5 - by bob
-		vpcStateSignedPartial05 := channel.VPCStateSigned{
-			VPCState: channel.VPCState{
+		vpcStateSignedPartial05 := primitives.VPCStateSigned{
+			VPCState: primitives.VPCState{
 				ID:              vpcStateID.SoliditySHA3(),
 				Version:         big.NewInt(5),
 				BlockedSender:   types.EtherToWei(big.NewInt(5)),
@@ -929,7 +930,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			},
 		}
 		bobID.SetCredentials(testKeystore, bobPassword)
-		if err = vpcStateSignedPartial05.AddSign(bobID, channel.Receiver); err != nil {
+		if err = vpcStateSignedPartial05.AddSign(bobID, primitives.Receiver); err != nil {
 			_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 			return
 		}
@@ -961,11 +962,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		}
 
 		bobID.SetCredentials(testKeystore, bobPassword)
-		if err = vpcStateSigned06.AddSign(bobID, channel.Receiver); err != nil {
+		if err = vpcStateSigned06.AddSign(bobID, primitives.Receiver); err != nil {
 			_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 			return
 		}
-		err = newConnFromAlice.NewVPCStateRespond(vpcStateSigned06, channel.MessageStatusAccept)
+		err = newConnFromAlice.NewVPCStateRespond(vpcStateSigned06, primitives.MessageStatusAccept)
 		if err != nil {
 			_, _ = printer.Printf("\nvpc state respond error= %v\n", err)
 			return
@@ -979,8 +980,8 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned06)
 
 		//VPC State version 7 - by bob
-		vpcStateSignedPartial07 := channel.VPCStateSigned{
-			VPCState: channel.VPCState{
+		vpcStateSignedPartial07 := primitives.VPCStateSigned{
+			VPCState: primitives.VPCState{
 				ID:              vpcStateID.SoliditySHA3(),
 				Version:         big.NewInt(7),
 				BlockedSender:   types.EtherToWei(big.NewInt(3)),
@@ -988,7 +989,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			},
 		}
 		bobID.SetCredentials(testKeystore, bobPassword)
-		if err = vpcStateSignedPartial07.AddSign(bobID, channel.Receiver); err != nil {
+		if err = vpcStateSignedPartial07.AddSign(bobID, primitives.Receiver); err != nil {
 			_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 			return
 		}
@@ -1020,11 +1021,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		}
 
 		bobID.SetCredentials(testKeystore, bobPassword)
-		if err = vpcStateSigned08.AddSign(bobID, channel.Receiver); err != nil {
+		if err = vpcStateSigned08.AddSign(bobID, primitives.Receiver); err != nil {
 			_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 			return
 		}
-		err = newConnFromAlice.NewVPCStateRespond(vpcStateSigned08, channel.MessageStatusAccept)
+		err = newConnFromAlice.NewVPCStateRespond(vpcStateSigned08, primitives.MessageStatusAccept)
 		if err != nil {
 			_, _ = printer.Printf("\nvpc state respond error= %v\n", err)
 			return
@@ -1052,11 +1053,11 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		}
 
 		bobID.SetCredentials(testKeystore, bobPassword)
-		if err = vpcStateSigned09.AddSign(bobID, channel.Receiver); err != nil {
+		if err = vpcStateSigned09.AddSign(bobID, primitives.Receiver); err != nil {
 			_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 			return
 		}
-		err = newConnFromAlice.NewVPCStateRespond(vpcStateSigned09, channel.MessageStatusAccept)
+		err = newConnFromAlice.NewVPCStateRespond(vpcStateSigned09, primitives.MessageStatusAccept)
 		if err != nil {
 			_, _ = printer.Printf("\nvpc state respond error= %v\n", err)
 			return
@@ -1070,8 +1071,8 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 		_, _ = printer.Printf("\nVpc state - %+v\n", vpcStateSigned09)
 
 		//VPC State version 10 - by bob
-		vpcStateSignedPartial10 := channel.VPCStateSigned{
-			VPCState: channel.VPCState{
+		vpcStateSignedPartial10 := primitives.VPCStateSigned{
+			VPCState: primitives.VPCState{
 				ID:              vpcStateID.SoliditySHA3(),
 				Version:         big.NewInt(10),
 				BlockedSender:   types.EtherToWei(big.NewInt(0)),
@@ -1079,7 +1080,7 @@ func simulatedBlockchainBob(bcInst *blockchain.Instance,
 			},
 		}
 		bobID.SetCredentials(testKeystore, bobPassword)
-		if err = vpcStateSignedPartial10.AddSign(bobID, channel.Receiver); err != nil {
+		if err = vpcStateSignedPartial10.AddSign(bobID, primitives.Receiver); err != nil {
 			_, _ = printer.Printf("\nSigning vpc state error - %v\n", err)
 			return
 		}
