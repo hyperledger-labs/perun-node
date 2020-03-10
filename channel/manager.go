@@ -411,26 +411,122 @@ func (inst *Instance) CurrentVpcState() primitives.VPCStateSigned {
 func NewSession(selfID identity.OffChainID, adapterType AdapterType, maxConn uint32) (idVerifiedConn chan *Instance,
 	listener Shutdown, err error) {
 
+	var newConn chan ReadWriteCloser //newConn will receive incoming connections, that will be used after id verification
+
 	//Start a new listener
-	idVerifiedConn, listener, err = startListener(selfID, maxConn, adapterType)
+	newConn, listener, err = startListener(selfID, maxConn, adapterType)
 	if err != nil {
 		logger.Error("Error starting listener", err)
 		return nil, nil, err
 	}
 
-	//Do a loopback test
-	ch, err := NewChannel(selfID, selfID, WebSocket)
-	if err != nil {
-		logger.Error("Channel self check - Error in outgoing connection -", err)
-		return nil, nil, err
+	idVerifiedConn = make(chan *Instance, maxConn)
+
+	go identityVerifierInConn(selfID, newConn, idVerifiedConn)
+
+	if err = loopbackTest(selfID, WebSocket); err != nil {
+		return nil, nil, fmt.Errorf("Loopback test error - %s", err.Error())
 	}
-	err = ch.Close()
-	if err != nil {
-		logger.Error("Channel self check - Error in closing channel:", err)
-		return nil, nil, err
-	}
+
 	<-idVerifiedConn //Remove the loopback test connection
 
 	logger.Debug("Channel self check success")
 	return idVerifiedConn, listener, nil
+}
+
+// identityVerifierInConn performs identity exchange for new incoming connections.
+// It also sets the identity parameters onto the instance.
+func identityVerifierInConn(selfID identity.OffChainID, newConnChan chan ReadWriteCloser, idVerifiedConn chan *Instance) {
+
+	for {
+		newConn := &Instance{
+			adapter: <-newConnChan,
+		}
+		peerID, err := newConn.IdentityRead()
+		if err != nil {
+			err2 := newConn.Close()
+			logger.Error("error reading peer id-", err, "connection dropped with error -", err2)
+			return
+		}
+		err = newConn.IdentityRespond(selfID)
+		if err != nil {
+			err2 := newConn.Close()
+			logger.Error("error sending self id-", err, "connection dropped with error -", err2)
+			return
+		}
+
+		newConn.SetRoleChannel(primitives.Receiver)
+		newConn.setSelfID(selfID)
+		newConn.setPeerID(peerID)
+
+		idVerifiedConn <- newConn
+	}
+
+}
+
+func loopbackTest(selfID identity.OffChainID, adapterType AdapterType) (err error) {
+
+	//Do a loopback test
+	ch, err := NewChannel(selfID, selfID, adapterType)
+	if err != nil {
+		logger.Error("Channel self check - Error in outgoing connection -", err)
+		return err
+	}
+	err = ch.Close()
+	if err != nil {
+		logger.Error("Channel self check - Error in closing channel:", err)
+		return err
+	}
+	return err
+}
+
+// NewChannel initializes a new channel connection with peer using the adapterType.
+// Upon successful connection, identity verification is done.
+func NewChannel(selfID, peerID identity.OffChainID, adapterType AdapterType) (conn *Instance, err error) {
+
+	connAdapter, err := NewChannelConn(peerID, adapterType)
+	if err != nil {
+		return nil, err
+	}
+
+	conn = &Instance{
+		adapter: connAdapter,
+	}
+
+	//Verify peer identity for all real adapter types
+	if adapterType != Mock {
+		err = identityVerifierOutConn(selfID, peerID, conn)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return conn, nil
+}
+
+// identityVerifierOutConn performs identity exchange for new outgoing connections.
+// It also verifies the identity of the peer and sets the identity parameters onto the instance.
+func identityVerifierOutConn(selfID, expectedPeerID identity.OffChainID, conn *Instance) (err error) {
+
+	gotPeerID, err := conn.IdentityRequest(selfID)
+	if err != nil {
+		err = fmt.Errorf("Test connection failed")
+		return err
+	}
+
+	if !identity.Equal(expectedPeerID, gotPeerID) {
+		errClose := conn.Close()
+		if errClose != nil {
+			err = fmt.Errorf("other id mismatch. error in closing conn - %s", errClose.Error())
+		} else {
+			err = fmt.Errorf("other id mismatch")
+		}
+		return err
+	}
+
+	conn.SetRoleChannel(primitives.Sender)
+	conn.setSelfID(selfID)
+	conn.setPeerID(expectedPeerID)
+
+	return nil
 }

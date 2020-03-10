@@ -17,29 +17,26 @@
 package channel
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
-
-	"github.com/direct-state-transfer/dst-go/channel/primitives"
-	"github.com/direct-state-transfer/dst-go/identity"
 )
 
 func Test_wsStartListener(t *testing.T) {
 
 	t.Run("invalid_address", func(t *testing.T) {
 
-		sh, inConnChannel, err := wsStartListener("abc:jkl", "test-endpoint", 10)
-		_, _ = sh, inConnChannel
+		inConnChannel := make(chan ReadWriteCloser, 10)
+
+		sh, err := wsStartListener("abc:jkl", "test-endpoint", inConnChannel)
+		_ = sh
 		if err == nil {
 			t.Errorf("wsStartListener() want non nil error, got nil")
 		} else {
@@ -49,8 +46,10 @@ func Test_wsStartListener(t *testing.T) {
 
 	t.Run("nil_address", func(t *testing.T) {
 
-		sh, inConnChannel, err := wsStartListener("", "test-endpoint", 10)
-		_, _ = sh, inConnChannel
+		inConnChannel := make(chan ReadWriteCloser, 10)
+
+		sh, err := wsStartListener("", "test-endpoint", inConnChannel)
+		_ = sh
 		if err == nil {
 			t.Errorf("wsStartListener() want non nil error, got nil")
 		} else {
@@ -60,8 +59,10 @@ func Test_wsStartListener(t *testing.T) {
 
 	t.Run("success_with_shutdown", func(t *testing.T) {
 
-		sh, inConnChannel, err := wsStartListener("localhost:6170", "test-endpoint", 10)
-		_, _ = sh, inConnChannel
+		inConnChannel := make(chan ReadWriteCloser, 10)
+
+		sh, err := wsStartListener("localhost:6170", "test-endpoint", inConnChannel)
+		_ = sh
 		if err != nil {
 			t.Errorf("wsStartListener() err = %v, want nil", err)
 		}
@@ -79,7 +80,7 @@ func Test_wsStartListener(t *testing.T) {
 func Test_wsConnHandler(t *testing.T) {
 
 	t.Run("valid_client", func(t *testing.T) {
-		validClient := func(t *testing.T, addr, endpoint string, bobID identity.OffChainID) {
+		validClient := func(t *testing.T, addr, endpoint string) {
 
 			u := url.URL{Scheme: "ws", Host: addr, Path: endpoint}
 
@@ -92,42 +93,15 @@ func Test_wsConnHandler(t *testing.T) {
 			defer func() {
 				_ = c.Close()
 			}()
-
-			handshakeRequest := primitives.ChMsgPkt{
-				Version:   "0.1",
-				MessageID: primitives.MsgIdentityRequest,
-				Message:   primitives.JSONMsgIdentity{ID: bobID},
-			}
-			wantHandshakeResponse := primitives.ChMsgPkt{
-				Version:   "0.1",
-				MessageID: primitives.MsgIdentityResponse,
-				Message:   primitives.JSONMsgIdentity{ID: aliceID},
-			}
-			gotHandshakeResponse := primitives.ChMsgPkt{}
-
-			err = c.WriteJSON(handshakeRequest)
-			if err != nil {
-				t.Fatalf("Error writing response to listner : %v", err)
-			}
-
-			err = c.ReadJSON(&gotHandshakeResponse)
-			if err != nil {
-				t.Fatalf("Error reading response from listner : %v", err)
-			}
-
-			//Reset timestamp to nil before comparison.
-			gotHandshakeResponse.Timestamp = time.Time{}
-			if !reflect.DeepEqual(gotHandshakeResponse, wantHandshakeResponse) {
-				t.Fatalf("Test signature mismatch.want %v, got %v", wantHandshakeResponse, gotHandshakeResponse)
-			}
 		}
 
 		addr := aliceID.ListenerIPAddr
 		endpoint := aliceID.ListenerEndpoint
 
-		maxConn := uint32(100)
-
-		cs, listener, err := startListener(aliceID, maxConn, WebSocket)
+		maxConn := uint32(10)
+		inConnChan := make(chan ReadWriteCloser, maxConn)
+		//Start Listener for Alice
+		listener, err := wsStartListener(addr, endpoint, inConnChan)
 		if err != nil {
 			t.Fatalf("startListener error - %v, want nil", err.Error())
 		}
@@ -135,13 +109,14 @@ func Test_wsConnHandler(t *testing.T) {
 			_ = listener.Shutdown(context.Background())
 		}()
 
+		//Send connection requests to Alice
 		gotConnections := 0
 		for i := 1; i < 4; i++ {
 			ticker := time.After(500 * time.Millisecond)
 
-			validClient(t, addr, endpoint, bobID)
+			validClient(t, addr, endpoint)
 			select {
-			case <-cs:
+			case <-inConnChan:
 				gotConnections = gotConnections + 1
 			case <-ticker:
 				t.Errorf("want %d number of connections on listener, got %d", i, gotConnections)
@@ -150,36 +125,6 @@ func Test_wsConnHandler(t *testing.T) {
 
 	})
 
-	t.Run("invalid_client_protocol", func(t *testing.T) {
-
-		invalidClientProtocol := func(t *testing.T, addr, endpoint string) {
-
-			u := url.URL{Scheme: "http", Host: addr, Path: endpoint}
-
-			response, err := http.Post(u.String(), "", bytes.NewReader([]byte{}))
-			if err != nil {
-				t.Fatalf("Error dialing to listner - %v", err)
-			}
-			_ = response.Body.Close()
-		}
-
-		addr := bobID.ListenerIPAddr
-		endpoint := bobID.ListenerEndpoint
-
-		maxConn := uint32(100)
-
-		_, listener, err := startListener(bobID, maxConn, WebSocket)
-		if err != nil {
-			t.Fatalf("startListener error - %v, want nil", err.Error())
-		}
-		defer func() {
-			_ = listener.Shutdown(context.Background())
-		}()
-
-		invalidClientProtocol(t, addr, endpoint)
-		time.Sleep(200 * time.Millisecond) //Wait till goroutines exit
-
-	})
 }
 
 func Test_newWsChannel(t *testing.T) {
