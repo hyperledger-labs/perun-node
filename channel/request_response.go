@@ -28,7 +28,7 @@ import (
 
 // IdentityRequest sends an identity request and waits for identity response from the peer node.
 // If response is successfully received, it returns the peer id in the response message.
-func (ch *Instance) IdentityRequest(selfID identity.OffChainID) (peerID identity.OffChainID, err error) {
+func (inst *Instance) IdentityRequest(selfID identity.OffChainID) (peerID identity.OffChainID, err error) {
 
 	idRequestMsg := primitives.ChMsgPkt{
 		Version:   primitives.Version,
@@ -36,12 +36,12 @@ func (ch *Instance) IdentityRequest(selfID identity.OffChainID) (peerID identity
 		Message:   primitives.JSONMsgIdentity{ID: selfID},
 	}
 
-	err = ch.adapter.Write(idRequestMsg)
+	err = inst.Write(idRequestMsg)
 	if err != nil {
 		return peerID, err
 	}
 
-	response, err := ch.adapter.Read()
+	response, err := inst.Read()
 	if err != nil {
 		return peerID, err
 	}
@@ -51,20 +51,18 @@ func (ch *Instance) IdentityRequest(selfID identity.OffChainID) (peerID identity
 		return peerID, fmt.Errorf(errMsg)
 	}
 
-	msg, ok := response.Message.(primitives.JSONMsgIdentity)
-	if !ok {
-		errMsg := ("Message packet type error")
-		return peerID, fmt.Errorf(errMsg)
-	}
+	//This error should always be nil, since unmarshal function should ensure that,
+	//DataType of Message field is in agreement with value of MessageID field.
+	msg, _ := response.Message.(primitives.JSONMsgIdentity)
 
 	peerID = msg.ID
 	return peerID, nil
 }
 
 // IdentityRead reads the identity request sent by the peer node and returns the peer id in the message.
-func (ch *Instance) IdentityRead() (peerID identity.OffChainID, err error) {
+func (inst *Instance) IdentityRead() (peerID identity.OffChainID, err error) {
 
-	msg, err := ch.adapter.Read()
+	msg, err := inst.Read()
 	if err != nil {
 		errMsg := "Error waiting for id request - connection dropped -" + err.Error()
 		return peerID, fmt.Errorf(errMsg)
@@ -75,25 +73,23 @@ func (ch *Instance) IdentityRead() (peerID identity.OffChainID, err error) {
 		return peerID, fmt.Errorf(errMsg)
 	}
 
-	idRequestMsg, ok := msg.Message.(primitives.JSONMsgIdentity)
-	if !ok {
-		errMsg := ("Message packet type error")
-		return peerID, fmt.Errorf(errMsg)
-	}
+	//This error should always be nil, since unmarshal function should ensure that,
+	//DataType of Message field is in agreement with value of MessageID field.
+	idRequestMsg, _ := msg.Message.(primitives.JSONMsgIdentity)
 
 	peerID = idRequestMsg.ID
 	return peerID, nil
 }
 
 // IdentityRespond sends an identity response to the peer node with self id in the message.
-func (ch *Instance) IdentityRespond(selfID identity.OffChainID) (err error) {
+func (inst *Instance) IdentityRespond(selfID identity.OffChainID) (err error) {
 
 	selfIDMsg := primitives.ChMsgPkt{
 		Version:   primitives.Version,
 		MessageID: primitives.MsgIdentityResponse,
 		Message:   primitives.JSONMsgIdentity{ID: selfID},
 	}
-	err = ch.adapter.Write(selfIDMsg)
+	err = inst.Write(selfIDMsg)
 	if err != nil {
 		errMsg := "Error responding to id request" + err.Error()
 		return fmt.Errorf(errMsg)
@@ -103,7 +99,7 @@ func (ch *Instance) IdentityRespond(selfID identity.OffChainID) (err error) {
 
 // NewChannelRequest sends an new channel request and waits for new channel response from the peer node.
 // If response is successfully received, it returns the acceptance status and reason in the response message.
-func (ch *Instance) NewChannelRequest(msgProtocolVersion string, contractStoreVersion []byte) (accept primitives.MessageStatus, reason string, err error) {
+func (inst *Instance) NewChannelRequest(msgProtocolVersion string, contractStoreVersion []byte) (accept primitives.MessageStatus, reason string, err error) {
 
 	idRequestMsg := primitives.ChMsgPkt{
 		Version:   primitives.Version,
@@ -114,13 +110,14 @@ func (ch *Instance) NewChannelRequest(msgProtocolVersion string, contractStoreVe
 			Status:               primitives.MessageStatusRequire,
 		},
 	}
+
 	logger.Debug("Requesting new channel with the other node")
-	err = ch.adapter.Write(idRequestMsg)
+	err = inst.Write(idRequestMsg)
 	if err != nil {
 		return primitives.MessageStatusUnknown, "", err
 	}
 
-	response, err := ch.adapter.Read()
+	response, err := inst.Read()
 	if err != nil {
 		return primitives.MessageStatusUnknown, "", err
 	}
@@ -130,11 +127,9 @@ func (ch *Instance) NewChannelRequest(msgProtocolVersion string, contractStoreVe
 		return primitives.MessageStatusUnknown, "", fmt.Errorf(errMsg)
 	}
 
-	msg, ok := response.Message.(primitives.JSONMsgNewChannel)
-	if !ok {
-		errMsg := ("Message packet type error")
-		return primitives.MessageStatusUnknown, "", fmt.Errorf(errMsg)
-	}
+	//This error should always be nil, since unmarshal function should ensure that,
+	//DataType of Message field is in agreement with value of MessageID field.
+	msg, _ := response.Message.(primitives.JSONMsgNewChannel)
 
 	if !bytes.Equal(contractStoreVersion, msg.ContractStoreVersion) {
 		errMsg := ("Contract store version modified by peer")
@@ -153,9 +148,9 @@ func (ch *Instance) NewChannelRequest(msgProtocolVersion string, contractStoreVe
 }
 
 // NewChannelRead reads the new channel request sent by the peer node and returns the message protocol version and contract store version in the message.
-func (ch *Instance) NewChannelRead() (msgProtocolVersion string, contractStoreVersion []byte, err error) {
+func (inst *Instance) NewChannelRead() (msgProtocolVersion string, contractStoreVersion []byte, err error) {
 	logger.Debug("Reading new channel request from other node")
-	response, err := ch.adapter.Read()
+	response, err := inst.Read()
 	if err != nil {
 		return "", contractStoreVersion, err
 	}
@@ -165,11 +160,9 @@ func (ch *Instance) NewChannelRead() (msgProtocolVersion string, contractStoreVe
 		return "", contractStoreVersion, fmt.Errorf(errMsg)
 	}
 
-	msg, ok := response.Message.(primitives.JSONMsgNewChannel)
-	if !ok {
-		errMsg := ("Message packet type error")
-		return "", contractStoreVersion, fmt.Errorf(errMsg)
-	}
+	//This error should always be nil, since unmarshal function should ensure that,
+	//DataType of Message field is in agreement with value of MessageID field.
+	msg, _ := response.Message.(primitives.JSONMsgNewChannel)
 
 	if !primitives.ContainsStatus(primitives.RequestStatusList, msg.Status) {
 		errMsg := fmt.Sprintf("Invalid status received - %v. Use %v ", msg.Status, primitives.RequestStatusList)
@@ -180,7 +173,12 @@ func (ch *Instance) NewChannelRead() (msgProtocolVersion string, contractStoreVe
 }
 
 // NewChannelRespond sends an new channel response to the peer node with acceptance status in the message.
-func (ch *Instance) NewChannelRespond(msgProtocolVersion string, contractStoreVersion []byte, accept primitives.MessageStatus, reason string) (err error) {
+func (inst *Instance) NewChannelRespond(msgProtocolVersion string, contractStoreVersion []byte, accept primitives.MessageStatus, reason string) (err error) {
+
+	if !primitives.ContainsStatus(primitives.ResponseStatusList, accept) {
+		errMsg := fmt.Sprintf("Invalid status received - %v. Use %v ", accept, primitives.ResponseStatusList)
+		return fmt.Errorf(errMsg)
+	}
 
 	responsePkt := primitives.ChMsgPkt{
 		Version:   primitives.Version,
@@ -193,13 +191,13 @@ func (ch *Instance) NewChannelRespond(msgProtocolVersion string, contractStoreVe
 		},
 	}
 	logger.Debug("Sending response to new channel request")
-	err = ch.adapter.Write(responsePkt)
+	err = inst.Write(responsePkt)
 	return err
 }
 
 // SessionIDRequest sends an sessiod id request with partial session id and waits for sessiod id response from the peer node.
 // If response is successfully received, it returns the complete sid and acceptance status in the response message.
-func (ch *Instance) SessionIDRequest(sid primitives.SessionID) (gotSid primitives.SessionID, status primitives.MessageStatus, err error) {
+func (inst *Instance) SessionIDRequest(sid primitives.SessionID) (gotSid primitives.SessionID, status primitives.MessageStatus, err error) {
 
 	idRequestMsg := primitives.ChMsgPkt{
 		Version:   primitives.Version,
@@ -210,12 +208,12 @@ func (ch *Instance) SessionIDRequest(sid primitives.SessionID) (gotSid primitive
 		},
 	}
 	logger.Debug("Requesting session ID")
-	err = ch.adapter.Write(idRequestMsg)
+	err = inst.Write(idRequestMsg)
 	if err != nil {
 		return gotSid, "", err
 	}
 
-	response, err := ch.adapter.Read()
+	response, err := inst.Read()
 	if err != nil {
 		return gotSid, "", err
 	}
@@ -225,11 +223,9 @@ func (ch *Instance) SessionIDRequest(sid primitives.SessionID) (gotSid primitive
 		return gotSid, "", fmt.Errorf(errMsg)
 	}
 
-	msg, ok := response.Message.(primitives.JSONMsgSessionID)
-	if !ok {
-		errMsg := ("Message packet type error")
-		return gotSid, "", fmt.Errorf(errMsg)
-	}
+	//This error should always be nil, since unmarshal function should ensure that,
+	//DataType of Message field is in agreement with value of MessageID field.
+	msg, _ := response.Message.(primitives.JSONMsgSessionID)
 
 	if !sid.EqualSender(msg.Sid) {
 		errMsg := ("Sid sender components modified by peer")
@@ -240,9 +236,9 @@ func (ch *Instance) SessionIDRequest(sid primitives.SessionID) (gotSid primitive
 }
 
 // SessionIDRead reads the session id request sent by the peer node and returns the session id in the message.
-func (ch *Instance) SessionIDRead() (sid primitives.SessionID, err error) {
+func (inst *Instance) SessionIDRead() (sid primitives.SessionID, err error) {
 	logger.Debug("Reading session ID request")
-	response, err := ch.adapter.Read()
+	response, err := inst.Read()
 	if err != nil {
 		return sid, err
 	}
@@ -252,11 +248,9 @@ func (ch *Instance) SessionIDRead() (sid primitives.SessionID, err error) {
 		return sid, fmt.Errorf(errMsg)
 	}
 
-	msg, ok := response.Message.(primitives.JSONMsgSessionID)
-	if !ok {
-		errMsg := ("Message packet type error")
-		return sid, fmt.Errorf(errMsg)
-	}
+	//This error should always be nil, since unmarshal function should ensure that,
+	//DataType of Message field is in agreement with value of MessageID field.
+	msg, _ := response.Message.(primitives.JSONMsgSessionID)
 
 	if !primitives.ContainsStatus(primitives.RequestStatusList, msg.Status) {
 		errMsg := fmt.Sprintf("Invalid status received - %v. Use %v ", msg.Status, primitives.RequestStatusList)
@@ -268,7 +262,7 @@ func (ch *Instance) SessionIDRead() (sid primitives.SessionID, err error) {
 }
 
 // SessionIDRespond sends an session id response to the peer node with complete session id (optional) and acceptance status in the message.
-func (ch *Instance) SessionIDRespond(sid primitives.SessionID, status primitives.MessageStatus) (err error) {
+func (inst *Instance) SessionIDRespond(sid primitives.SessionID, status primitives.MessageStatus) (err error) {
 
 	if !primitives.ContainsStatus(primitives.ResponseStatusList, status) {
 		errMsg := fmt.Sprintf("Invalid status received - %v. Use %v ", status, primitives.ResponseStatusList)
@@ -284,13 +278,13 @@ func (ch *Instance) SessionIDRespond(sid primitives.SessionID, status primitives
 		},
 	}
 	logger.Debug("Responding to session ID request")
-	err = ch.adapter.Write(idRequestMsg)
+	err = inst.Write(idRequestMsg)
 	return err
 }
 
 // ContractAddrRequest sends a contract id request with details of deployed contract and waits for contract address response from the peer node.
 // If response is successfully received, it returns the acceptance status in the response message.
-func (ch *Instance) ContractAddrRequest(addr types.Address, id contract.Handler) (status primitives.MessageStatus, err error) {
+func (inst *Instance) ContractAddrRequest(addr types.Address, id contract.Handler) (status primitives.MessageStatus, err error) {
 
 	idRequestMsg := primitives.ChMsgPkt{
 		Version:   primitives.Version,
@@ -301,13 +295,12 @@ func (ch *Instance) ContractAddrRequest(addr types.Address, id contract.Handler)
 			Status:       primitives.MessageStatusRequire,
 		},
 	}
-	logger.Debug("Requesting Contract Address")
-	err = ch.adapter.Write(idRequestMsg)
+	err = inst.Write(idRequestMsg)
 	if err != nil {
 		return "", err
 	}
 
-	response, err := ch.adapter.Read()
+	response, err := inst.Read()
 	if err != nil {
 		return "", err
 	}
@@ -317,13 +310,11 @@ func (ch *Instance) ContractAddrRequest(addr types.Address, id contract.Handler)
 		return "", fmt.Errorf(errMsg)
 	}
 
-	msg, ok := response.Message.(primitives.JSONMsgContractAddr)
-	if !ok {
-		errMsg := ("Message packet type error")
-		return "", fmt.Errorf(errMsg)
-	}
+	//This error should always be nil, since unmarshal function should ensure that,
+	//DataType of Message field is in agreement with value of MessageID field.
+	msg, _ := response.Message.(primitives.JSONMsgContractAddr)
 
-	if !id.Equal(msg.ContractType) {
+	if !(id.Equal(msg.ContractType) && bytes.Equal(msg.Addr.Bytes(), addr.Bytes())) {
 		errMsg := ("Contract handler modified by peer")
 		return "", fmt.Errorf(errMsg)
 	}
@@ -332,9 +323,9 @@ func (ch *Instance) ContractAddrRequest(addr types.Address, id contract.Handler)
 }
 
 // ContractAddrRead reads the contract address request sent by the peer node and returns the contract address and handler in the message.
-func (ch *Instance) ContractAddrRead() (addr types.Address, id contract.Handler, err error) {
+func (inst *Instance) ContractAddrRead() (addr types.Address, id contract.Handler, err error) {
 	logger.Debug("Reading Contract Address request")
-	response, err := ch.adapter.Read()
+	response, err := inst.Read()
 	if err != nil {
 		return addr, id, err
 	}
@@ -344,11 +335,9 @@ func (ch *Instance) ContractAddrRead() (addr types.Address, id contract.Handler,
 		return addr, id, fmt.Errorf(errMsg)
 	}
 
-	msg, ok := response.Message.(primitives.JSONMsgContractAddr)
-	if !ok {
-		errMsg := ("Message packet type error")
-		return addr, id, fmt.Errorf(errMsg)
-	}
+	//This error should always be nil, since unmarshal function should ensure that,
+	//DataType of Message field is in agreement with value of MessageID field.
+	msg, _ := response.Message.(primitives.JSONMsgContractAddr)
 
 	if !primitives.ContainsStatus(primitives.RequestStatusList, msg.Status) {
 		errMsg := fmt.Sprintf("Invalid status received - %v. Use %v ", msg.Status, primitives.RequestStatusList)
@@ -360,7 +349,7 @@ func (ch *Instance) ContractAddrRead() (addr types.Address, id contract.Handler,
 }
 
 // ContractAddrRespond sends an contract address response to the peer node with acceptance status in the message.
-func (ch *Instance) ContractAddrRespond(addr types.Address, id contract.Handler, status primitives.MessageStatus) (err error) {
+func (inst *Instance) ContractAddrRespond(addr types.Address, id contract.Handler, status primitives.MessageStatus) (err error) {
 
 	if !primitives.ContainsStatus(primitives.ResponseStatusList, status) {
 		errMsg := fmt.Sprintf("Invalid status received - %v. Use %v ", status, primitives.ResponseStatusList)
@@ -377,13 +366,13 @@ func (ch *Instance) ContractAddrRespond(addr types.Address, id contract.Handler,
 		},
 	}
 	logger.Debug("Responding to Contract Address request")
-	err = ch.adapter.Write(idRequestMsg)
+	err = inst.Write(idRequestMsg)
 	return err
 }
 
 // NewMSCBaseStateRequest sends a new msc base request with partial signature and waits for msc base state response from the peer node.
 // If response is successfully received, it returns the fully signed msc base state and acceptance status in the response message.
-func (ch *Instance) NewMSCBaseStateRequest(newSignedState primitives.MSCBaseStateSigned) (responseState primitives.MSCBaseStateSigned, status primitives.MessageStatus, err error) {
+func (inst *Instance) NewMSCBaseStateRequest(newSignedState primitives.MSCBaseStateSigned) (responseState primitives.MSCBaseStateSigned, status primitives.MessageStatus, err error) {
 
 	requestMsg := primitives.ChMsgPkt{
 		Version:   primitives.Version,
@@ -394,12 +383,12 @@ func (ch *Instance) NewMSCBaseStateRequest(newSignedState primitives.MSCBaseStat
 		},
 	}
 	logger.Debug("Requesting new MSC base state")
-	err = ch.adapter.Write(requestMsg)
+	err = inst.Write(requestMsg)
 	if err != nil {
 		return responseState, "", err
 	}
 
-	response, err := ch.adapter.Read()
+	response, err := inst.Read()
 	if err != nil {
 		return responseState, "", err
 	}
@@ -409,11 +398,9 @@ func (ch *Instance) NewMSCBaseStateRequest(newSignedState primitives.MSCBaseStat
 		return responseState, "", fmt.Errorf(errMsg)
 	}
 
-	msg, ok := response.Message.(primitives.JSONMsgMSCBaseState)
-	if !ok {
-		errMsg := ("Message packet type error")
-		return responseState, "", fmt.Errorf(errMsg)
-	}
+	//This error should always be nil, since unmarshal function should ensure that,
+	//DataType of Message field is in agreement with value of MessageID field.
+	msg, _ := response.Message.(primitives.JSONMsgMSCBaseState)
 
 	if !newSignedState.MSContractBaseState.Equal(msg.SignedStateVal.MSContractBaseState) {
 		errMsg := ("MSContract base state modified by peer")
@@ -424,9 +411,9 @@ func (ch *Instance) NewMSCBaseStateRequest(newSignedState primitives.MSCBaseStat
 }
 
 // NewMSCBaseStateRead reads the new msc base state request sent by the peer node and returns the msc base state in the message.
-func (ch *Instance) NewMSCBaseStateRead() (state primitives.MSCBaseStateSigned, err error) {
+func (inst *Instance) NewMSCBaseStateRead() (state primitives.MSCBaseStateSigned, err error) {
 	logger.Debug("Reading new MSC base state request")
-	response, err := ch.adapter.Read()
+	response, err := inst.Read()
 	if err != nil {
 		return state, err
 	}
@@ -436,11 +423,9 @@ func (ch *Instance) NewMSCBaseStateRead() (state primitives.MSCBaseStateSigned, 
 		return state, fmt.Errorf(errMsg)
 	}
 
-	msg, ok := response.Message.(primitives.JSONMsgMSCBaseState)
-	if !ok {
-		errMsg := ("Message packet type error")
-		return state, fmt.Errorf(errMsg)
-	}
+	//This error should always be nil, since unmarshal function should ensure that,
+	//DataType of Message field is in agreement with value of MessageID field.
+	msg, _ := response.Message.(primitives.JSONMsgMSCBaseState)
 
 	if !primitives.ContainsStatus(primitives.RequestStatusList, msg.Status) {
 		errMsg := fmt.Sprintf("Invalid status received - %v. Use %v ", msg.Status, primitives.RequestStatusList)
@@ -451,7 +436,7 @@ func (ch *Instance) NewMSCBaseStateRead() (state primitives.MSCBaseStateSigned, 
 }
 
 // NewMSCBaseStateRespond sends an msc base state response to the peer node with fully signed state (optional) and acceptance status in the message.
-func (ch *Instance) NewMSCBaseStateRespond(state primitives.MSCBaseStateSigned, status primitives.MessageStatus) (err error) {
+func (inst *Instance) NewMSCBaseStateRespond(state primitives.MSCBaseStateSigned, status primitives.MessageStatus) (err error) {
 
 	if !primitives.ContainsStatus(primitives.ResponseStatusList, status) {
 		errMsg := fmt.Sprintf("Invalid status received - %v. Use %v ", status, primitives.ResponseStatusList)
@@ -467,13 +452,13 @@ func (ch *Instance) NewMSCBaseStateRespond(state primitives.MSCBaseStateSigned, 
 		},
 	}
 	logger.Debug("Responding to new MSC base state request")
-	err = ch.adapter.Write(response)
+	err = inst.Write(response)
 	return err
 }
 
 // NewVPCStateRequest sends a new vpc request with partial signature and waits for vpc state response from the peer node.
 // If response is successfully received, it returns the fully signed vpc state and acceptance status in the response message.
-func (ch *Instance) NewVPCStateRequest(newStateSigned primitives.VPCStateSigned) (responseState primitives.VPCStateSigned, status primitives.MessageStatus, err error) {
+func (inst *Instance) NewVPCStateRequest(newStateSigned primitives.VPCStateSigned) (responseState primitives.VPCStateSigned, status primitives.MessageStatus, err error) {
 
 	requestMsg := primitives.ChMsgPkt{
 		Version:   primitives.Version,
@@ -484,12 +469,12 @@ func (ch *Instance) NewVPCStateRequest(newStateSigned primitives.VPCStateSigned)
 		},
 	}
 	logger.Debug("Requesting new VPC state")
-	err = ch.adapter.Write(requestMsg)
+	err = inst.Write(requestMsg)
 	if err != nil {
 		return responseState, "", err
 	}
 
-	response, err := ch.adapter.Read()
+	response, err := inst.Read()
 	if err != nil {
 		return responseState, "", err
 	}
@@ -499,11 +484,9 @@ func (ch *Instance) NewVPCStateRequest(newStateSigned primitives.VPCStateSigned)
 		return responseState, "", fmt.Errorf(errMsg)
 	}
 
-	msg, ok := response.Message.(primitives.JSONMsgVPCState)
-	if !ok {
-		errMsg := ("Message packet type error")
-		return responseState, "", fmt.Errorf(errMsg)
-	}
+	//This error should always be nil, since unmarshal function should ensure that,
+	//DataType of Message field is in agreement with value of MessageID field.
+	msg, _ := response.Message.(primitives.JSONMsgVPCState)
 
 	if !newStateSigned.VPCState.Equal(msg.SignedStateVal.VPCState) {
 		errMsg := ("VPC state modified by peer")
@@ -514,9 +497,9 @@ func (ch *Instance) NewVPCStateRequest(newStateSigned primitives.VPCStateSigned)
 }
 
 // NewVPCStateRead reads the new vpc state request sent by the peer node and returns the vpc state in the message.
-func (ch *Instance) NewVPCStateRead() (state primitives.VPCStateSigned, err error) {
+func (inst *Instance) NewVPCStateRead() (state primitives.VPCStateSigned, err error) {
 	logger.Debug("Reading new VPC state request")
-	response, err := ch.adapter.Read()
+	response, err := inst.Read()
 	if err != nil {
 		return state, err
 	}
@@ -526,11 +509,9 @@ func (ch *Instance) NewVPCStateRead() (state primitives.VPCStateSigned, err erro
 		return state, fmt.Errorf(errMsg)
 	}
 
-	msg, ok := response.Message.(primitives.JSONMsgVPCState)
-	if !ok {
-		errMsg := ("Message packet type error")
-		return state, fmt.Errorf(errMsg)
-	}
+	//This error should always be nil, since unmarshal function should ensure that,
+	//DataType of Message field is in agreement with value of MessageID field.
+	msg, _ := response.Message.(primitives.JSONMsgVPCState)
 
 	if !primitives.ContainsStatus(primitives.RequestStatusList, msg.Status) {
 		errMsg := fmt.Sprintf("Invalid status received - %v. Use %v ", msg.Status, primitives.RequestStatusList)
@@ -541,7 +522,7 @@ func (ch *Instance) NewVPCStateRead() (state primitives.VPCStateSigned, err erro
 }
 
 // NewVPCStateRespond sends an vpc state response to the peer node with fully signed state (optional) and acceptance status in the message.
-func (ch *Instance) NewVPCStateRespond(state primitives.VPCStateSigned, status primitives.MessageStatus) (err error) {
+func (inst *Instance) NewVPCStateRespond(state primitives.VPCStateSigned, status primitives.MessageStatus) (err error) {
 
 	if !primitives.ContainsStatus(primitives.ResponseStatusList, status) {
 		errMsg := fmt.Sprintf("Invalid status received - %v. Use %v ", status, primitives.ResponseStatusList)
@@ -557,6 +538,6 @@ func (ch *Instance) NewVPCStateRespond(state primitives.VPCStateSigned, status p
 		},
 	}
 	logger.Debug("Responding to new VPC state request")
-	err = ch.adapter.Write(response)
+	err = inst.Write(response)
 	return err
 }

@@ -17,8 +17,10 @@
 package channel
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
@@ -27,6 +29,9 @@ import (
 )
 
 var packageName = "channel"
+
+// ReadWriteLogging to configure logging during channel read/write, for demonstration purposes only
+var ReadWriteLogging = false
 
 // ClosingMode represents the closing mode for the vpc state channel.
 // It determines what the node software will do when a channel closing notification is received.
@@ -83,11 +88,34 @@ func InitModule(cfg *Config) (err error) {
 
 }
 
+type clock interface {
+	Now() time.Time
+	SetLocation(string) error
+}
+
+type timeProvider struct {
+	location *time.Location
+}
+
+func (t *timeProvider) SetLocation(zone string) (err error) {
+	location, err := time.LoadLocation(zone)
+	if err == nil {
+		t.location = location
+	}
+	return err
+}
+
+func (t *timeProvider) Now() time.Time {
+	return time.Now().In(t.location)
+}
+
 // Instance represents an instance of offchain channel.
 // It groups all the properties of the channel such as identity and role of each user,
 // current and all previous values of channel state.
 type Instance struct {
 	adapter ReadWriteCloser
+
+	timestampProvider clock
 
 	closingMode ClosingMode //Configure Closing mode for channel. Takes only predefined constants
 
@@ -104,6 +132,51 @@ type Instance struct {
 
 	access sync.Mutex //Access control when setting connection status
 
+}
+
+func (inst *Instance) Write(message primitives.ChMsgPkt) (err error) {
+	var messageBytes []byte
+
+	message.Timestamp = inst.timestampProvider.Now()
+
+	messageBytes, err = json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("Error parsing message - %s", err)
+	}
+
+	err = inst.adapter.Write(messageBytes)
+	if err != nil {
+		return fmt.Errorf("Error sending message - %s", err)
+	}
+
+	if err == nil && ReadWriteLogging {
+		fmt.Printf("\n\n>>>>>>>>>WRITE : %+v\n\n", message)
+		logger.Debug("Outgoing Message:", message)
+	}
+
+	return err
+}
+
+func (inst *Instance) Read() (message primitives.ChMsgPkt, err error) {
+
+	var messageBytes []byte
+
+	messageBytes, err = inst.adapter.Read()
+	if err != nil {
+		return primitives.ChMsgPkt{}, fmt.Errorf("Error reading message - %s", err)
+	}
+
+	err = json.Unmarshal(messageBytes, &message)
+	if err != nil {
+		return primitives.ChMsgPkt{}, fmt.Errorf("Error parsing message - %s", err)
+	}
+
+	if err == nil && ReadWriteLogging {
+		fmt.Printf("\n\n<<<<<<<<<READ : %+v\n\n", message)
+		logger.Debug("Incoming Message:", message)
+	}
+
+	return message, nil
 }
 
 // Connected returns if the channel connection is currently active.
@@ -436,30 +509,41 @@ func NewSession(selfID identity.OffChainID, adapterType AdapterType, maxConn uin
 
 // identityVerifierInConn performs identity exchange for new incoming connections.
 // It also sets the identity parameters onto the instance.
-func identityVerifierInConn(selfID identity.OffChainID, newConnChan chan ReadWriteCloser, idVerifiedConn chan *Instance) {
+func identityVerifierInConn(selfID identity.OffChainID, newIncomingChan chan ReadWriteCloser, idVerifiedConn chan *Instance) {
 
 	for {
-		newConn := &Instance{
-			adapter: <-newConnChan,
-		}
-		peerID, err := newConn.IdentityRead()
+
+		newConn := <-newIncomingChan
+
+		var timestampProvider timeProvider
+		err := timestampProvider.SetLocation("Local")
 		if err != nil {
-			err2 := newConn.Close()
+			return
+		}
+
+		newInst := &Instance{
+			timestampProvider: &timestampProvider,
+			adapter:           newConn,
+		}
+
+		peerID, err := newInst.IdentityRead()
+		if err != nil {
+			err2 := newInst.Close()
 			logger.Error("error reading peer id-", err, "connection dropped with error -", err2)
 			return
 		}
-		err = newConn.IdentityRespond(selfID)
+		err = newInst.IdentityRespond(selfID)
 		if err != nil {
-			err2 := newConn.Close()
+			err2 := newInst.Close()
 			logger.Error("error sending self id-", err, "connection dropped with error -", err2)
 			return
 		}
 
-		newConn.SetRoleChannel(primitives.Receiver)
-		newConn.setSelfID(selfID)
-		newConn.setPeerID(peerID)
+		newInst.SetRoleChannel(primitives.Receiver)
+		newInst.setSelfID(selfID)
+		newInst.setPeerID(peerID)
 
-		idVerifiedConn <- newConn
+		idVerifiedConn <- newInst
 	}
 
 }
@@ -489,8 +573,15 @@ func NewChannel(selfID, peerID identity.OffChainID, adapterType AdapterType) (co
 		return nil, err
 	}
 
+	var timestampProvider timeProvider
+	err = timestampProvider.SetLocation("Local")
+	if err != nil {
+		return nil, err
+	}
+
 	conn = &Instance{
-		adapter: connAdapter,
+		timestampProvider: &timestampProvider,
+		adapter:           connAdapter,
 	}
 
 	//Verify peer identity for all real adapter types

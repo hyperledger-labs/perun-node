@@ -24,20 +24,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/identity"
 )
 
-func setupMockChannel() (*Instance, *genericChannelAdapter) {
+func setupMockChannel() *genericChannelAdapter {
 
 	adapter := &genericChannelAdapter{
 		connected:        false,
 		writeHandlerPipe: newHandlerPipe(handlerPipeModeWrite),
 		readHandlerPipe:  newHandlerPipe(handlerPipeModeRead),
 	}
-	mockCh := &Instance{adapter: adapter}
 
-	return mockCh, adapter
+	return adapter
 }
 
 func flushMessagePipe(pipe handlerPipe) {
@@ -49,18 +47,12 @@ func flushMessagePipe(pipe handlerPipe) {
 }
 func Test_genericChannelAdapter_Read(t *testing.T) {
 
-	t.Run("Success_LoggingEnabled", func(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
 
-		ReadWriteLoggingOldValue := ReadWriteLogging
-		ReadWriteLogging = true
-		defer func() {
-			ReadWriteLogging = ReadWriteLoggingOldValue
-		}()
-
-		mockCh, mockAdapter := setupMockChannel()
+		mockAdapter := setupMockChannel()
 		mockAdapter.connected = true
 		testMsgPacket := jsonMsgPacket{
-			message: primitives.ChMsgPkt{Version: "0.1", MessageID: "test-msg"},
+			message: []byte("test-msg"),
 			err:     nil}
 
 		flushMessagePipe(mockAdapter.readHandlerPipe)
@@ -72,27 +64,28 @@ func Test_genericChannelAdapter_Read(t *testing.T) {
 
 		}(testMsgPacket, mockAdapter.readHandlerPipe.msgPacket)
 
-		gotJSONMsg, err := mockCh.adapter.Read()
+		gotJSONMsg, err := mockAdapter.Read()
+
 		if err != nil {
 			t.Errorf("Read() Error %s, wantErr %s", err, "nil")
 		}
 
 		if !reflect.DeepEqual(gotJSONMsg, testMsgPacket.message) {
-			t.Errorf("Read() got %s, wantr %s", gotJSONMsg, testMsgPacket.message)
+			t.Errorf("Read() got %s, want %s", gotJSONMsg, testMsgPacket.message)
 		}
 
 	})
 
 	t.Run("HandlerError", func(t *testing.T) {
 
-		mockCh, mockAdapter := setupMockChannel()
+		mockAdapter := setupMockChannel()
 		mockAdapter.connected = true
 		fakeHandlerError := fmt.Errorf("fake error for unit test")
 
 		flushMessagePipe(mockAdapter.readHandlerPipe)
 		mockAdapter.readHandlerPipe.handlerError <- fakeHandlerError
 
-		_, err := mockCh.adapter.Read()
+		_, err := mockAdapter.Read()
 		if err != fakeHandlerError {
 			t.Errorf("Handler Error is not properly received by Send Message")
 		}
@@ -100,7 +93,7 @@ func Test_genericChannelAdapter_Read(t *testing.T) {
 
 	t.Run("message_error", func(t *testing.T) {
 
-		mockCh, mockAdapter := setupMockChannel()
+		mockAdapter := setupMockChannel()
 		mockAdapter.connected = true
 
 		fakeParseError := fmt.Errorf("fake parse error for unit tests")
@@ -116,7 +109,7 @@ func Test_genericChannelAdapter_Read(t *testing.T) {
 
 		}(testMsgPacket, mockAdapter.readHandlerPipe.msgPacket)
 
-		_, err := mockCh.adapter.Read()
+		_, err := mockAdapter.Read()
 		if err != fakeParseError {
 			t.Errorf("Read() Error %s, wantErr %s", err, fakeParseError)
 		}
@@ -124,52 +117,29 @@ func Test_genericChannelAdapter_Read(t *testing.T) {
 	})
 
 	t.Run("fail_on_no_connection", func(t *testing.T) {
-		mockCh, mockAdapter := setupMockChannel()
+		mockAdapter := setupMockChannel()
 		mockAdapter.connected = false
 
-		_, err := mockCh.adapter.Read()
+		_, err := mockAdapter.Read()
 		if err == nil {
 			t.Errorf("readMessage(). not failing on no connection")
 		}
 	})
 }
+
 func Test_genericChannelAdapter_Write(t *testing.T) {
 
-	t.Run("HandlerError", func(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
 
-		mockCh, mockAdapter := setupMockChannel()
+		mockAdapter := setupMockChannel()
 		mockAdapter.connected = true
-		fakeHandlerError := fmt.Errorf("fake error for unit test")
-
-		flushMessagePipe(mockAdapter.writeHandlerPipe)
-		mockAdapter.writeHandlerPipe.handlerError <- fakeHandlerError
-
-		err := mockCh.adapter.Write(primitives.ChMsgPkt{})
-		if err != fakeHandlerError {
-			t.Errorf("Handler Error is not properly received by Send Message - %v", err)
-		}
-	})
-
-	t.Run("Success_LoggingEnabled", func(t *testing.T) {
-
-		ReadWriteLoggingOldValue := ReadWriteLogging
-		ReadWriteLogging = true
-		defer func() {
-			ReadWriteLogging = ReadWriteLoggingOldValue
-		}()
-
-		mockCh, mockAdapter := setupMockChannel()
-		mockAdapter.connected = true
-		testMsg := primitives.ChMsgPkt{
-			Version:   "0.1",
-			MessageID: "test-msg",
-		}
-		var gotJSONMsg primitives.ChMsgPkt
+		testMsg := []byte("test-msg")
+		var gotJSONMsg []byte
 
 		flushMessagePipe(mockAdapter.writeHandlerPipe)
 
 		//mock to echo the message packet
-		go func(gotJsonMsg *primitives.ChMsgPkt, msgPacketCh chan jsonMsgPacket) {
+		go func(gotJsonMsg *[]byte, msgPacketCh chan jsonMsgPacket) {
 
 			gotMsgPacket := <-msgPacketCh
 			*gotJsonMsg = gotMsgPacket.message
@@ -177,13 +147,12 @@ func Test_genericChannelAdapter_Write(t *testing.T) {
 
 		}(&gotJSONMsg, mockAdapter.writeHandlerPipe.msgPacket)
 
-		err := mockCh.adapter.Write(testMsg)
+		err := mockAdapter.Write(testMsg)
 		if err != nil {
 			t.Errorf("Write() Error %s, wantErr %s", err, "nil")
 		}
 
 		//Reset timestamp to nil before comparison.
-		gotJSONMsg.Timestamp = time.Time{}
 		if !reflect.DeepEqual(gotJSONMsg, testMsg) {
 			t.Errorf("Write(). should send jsonMsg %+v, but handlerGot %+v",
 				testMsg, gotJSONMsg)
@@ -191,14 +160,26 @@ func Test_genericChannelAdapter_Write(t *testing.T) {
 
 	})
 
+	t.Run("HandlerError", func(t *testing.T) {
+
+		mockAdapter := setupMockChannel()
+		mockAdapter.connected = true
+		fakeHandlerError := fmt.Errorf("fake error for unit test")
+
+		flushMessagePipe(mockAdapter.writeHandlerPipe)
+		mockAdapter.writeHandlerPipe.handlerError <- fakeHandlerError
+
+		err := mockAdapter.Write([]byte{})
+		if err != fakeHandlerError {
+			t.Errorf("Handler Error is not properly received by Send Message - %v", err)
+		}
+	})
+
 	t.Run("message_error", func(t *testing.T) {
 
-		mockCh, mockAdapter := setupMockChannel()
+		mockAdapter := setupMockChannel()
 		mockAdapter.connected = true
-		testMsg := primitives.ChMsgPkt{
-			Version:   "0.1",
-			MessageID: "test-msg",
-		}
+		testMsg := []byte("test-msg")
 		fakeParseError := fmt.Errorf("fake parse error for unit tests")
 
 		flushMessagePipe(mockAdapter.writeHandlerPipe)
@@ -212,17 +193,17 @@ func Test_genericChannelAdapter_Write(t *testing.T) {
 
 		}(fakeParseError, mockAdapter.writeHandlerPipe.msgPacket)
 
-		err := mockCh.adapter.Write(testMsg)
+		err := mockAdapter.Write(testMsg)
 		if err != fakeParseError {
 			t.Errorf("sendMessage() Error want %s, got %s", fakeParseError, err)
 		}
 	})
 
 	t.Run("fail_on_no_connection", func(t *testing.T) {
-		mockCh, mockAdapter := setupMockChannel()
+		mockAdapter := setupMockChannel()
 		mockAdapter.connected = false
 
-		err := mockCh.adapter.Write(primitives.ChMsgPkt{})
+		err := mockAdapter.Write([]byte{})
 		if err == nil {
 			t.Errorf("sendMessage(). not failing on no connection")
 		}
@@ -234,7 +215,7 @@ func Test_genericChannelAdapter_Write(t *testing.T) {
 func Test_genericChannelAdapter_Close(t *testing.T) {
 
 	t.Run("CloseSuccess", func(t *testing.T) {
-		mockCh, mockAdapter := setupMockChannel()
+		mockAdapter := setupMockChannel()
 		mockAdapter.connected = true
 
 		respondToQuit := func(quitChannel chan bool) {
@@ -245,7 +226,7 @@ func Test_genericChannelAdapter_Close(t *testing.T) {
 		go respondToQuit(mockAdapter.writeHandlerPipe.quit)
 		go respondToQuit(mockAdapter.readHandlerPipe.quit)
 
-		err := mockCh.Close()
+		err := mockAdapter.Close()
 
 		if err != nil {
 			t.Errorf("Close() error = %v, wantErr nil", err)
@@ -253,10 +234,10 @@ func Test_genericChannelAdapter_Close(t *testing.T) {
 	})
 
 	t.Run("CloseClosedChannel", func(t *testing.T) {
-		mockCh, mockAdapter := setupMockChannel()
+		mockAdapter := setupMockChannel()
 		mockAdapter.connected = false
 
-		err := mockCh.Close()
+		err := mockAdapter.Close()
 		if err == nil {
 			t.Errorf("Close() error = nil, wantErr %+v", err)
 		}
@@ -264,17 +245,17 @@ func Test_genericChannelAdapter_Close(t *testing.T) {
 	})
 
 	t.Run("Close_when_handler_error", func(t *testing.T) {
-		mockCh, mockAdapter := setupMockChannel()
+		mockAdapter := setupMockChannel()
 		mockAdapter.connected = true
 		mockAdapter.writeHandlerPipe.handlerError <- fmt.Errorf("dummy-handler-error")
 
-		err := mockCh.Close()
+		err := mockAdapter.Close()
 
 		if err != nil {
 			t.Errorf("Close() error = %v, wantErr nil", err)
 		}
 	})
-	//TODO : Test for receiver/sender errors during close.
+	// TODO : Test for receiver/sender errors during close.
 	// Less important as it is of no consequence
 }
 

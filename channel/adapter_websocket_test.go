@@ -17,6 +17,7 @@
 package channel
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net"
@@ -260,6 +261,7 @@ func mockListenerStub(addr string, endpoint string, t *testing.T) (sh Shutdown, 
 // }
 
 func Test_wsReadHandler(t *testing.T) {
+
 	t.Run("valid", func(t *testing.T) {
 
 		testWsConfig := wsConfig
@@ -267,244 +269,215 @@ func Test_wsReadHandler(t *testing.T) {
 		pipe := newHandlerPipe(handlerPipeModeRead)
 		closer := &MockCloser{}
 
-		wsConn.On("SetReadLimit", mock.Anything).Return()
-		wsConn.On("SetReadDeadline", mock.Anything).Return(nil)
-		wsConn.On("SetPongHandler", mock.Anything).Return()
-		wsConn.On("ReadJSON", mock.Anything).Return(nil)
-		wsConn.On("Close").Return(nil)
-
-		closer.On("Close").Return(nil)
+		wsConn.On("SetReadLimit", mock.Anything).Return().Once()
+		wsConn.On("SetReadDeadline", mock.Anything).Return(nil).Once()
+		wsConn.On("SetPongHandler", mock.Anything).Return().Once()
+		wsConn.On("ReadMessage").Return(websocket.BinaryMessage, []byte("test-message"), nil)
+		wsConn.On("Close").Return(nil).Once()
 
 		go wsReadHandler(testWsConfig, wsConn, pipe, closer)
 
 		time.Sleep(200 * time.Millisecond)
 
-		if !wsConn.AssertCalled(t, "SetReadLimit", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetReadLimit() was not called")
-		}
-		if !wsConn.AssertCalled(t, "SetReadDeadline", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetReadDeadline() was not called")
-		}
-		if !wsConn.AssertCalled(t, "SetPongHandler", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetPongHandler() was not called")
-		}
-		if !wsConn.AssertCalled(t, "ReadJSON", mock.Anything) {
-			t.Errorf("wsReadHandler() - ReadJSON() was not called")
-		}
 		//Empty read message pipe
 		<-pipe.msgPacket
 
 		pipe.quit <- false //Send close signal
 		<-pipe.quit        //Wait for confirmation
 
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsReadHandler() - Close() was not called")
-		}
-
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
 	})
 
-	t.Run("websocket-connection-close-error", func(t *testing.T) {
+	t.Run("Error_TextMessage", func(t *testing.T) {
 
 		testWsConfig := wsConfig
 		wsConn := &mockWsConnInterface{}
 		pipe := newHandlerPipe(handlerPipeModeRead)
 		closer := &MockCloser{}
 
-		wsConn.On("SetReadLimit", mock.Anything).Return()
-		wsConn.On("SetReadDeadline", mock.Anything).Return(nil)
-		wsConn.On("SetPongHandler", mock.Anything).Return()
-		wsConn.On("ReadJSON", mock.Anything).Return(nil)
-		wsConn.On("Close").Return(fmt.Errorf("websocket-connection-close-erro"))
-
-		closer.On("Close").Return(nil)
+		wsConn.On("SetReadLimit", mock.Anything).Return().Once()
+		wsConn.On("SetReadDeadline", mock.Anything).Return(nil).Once()
+		wsConn.On("SetPongHandler", mock.Anything).Return().Once()
+		wsConn.On("ReadMessage").Return(websocket.TextMessage, []byte("test-message"), nil)
+		wsConn.On("Close").Return(nil).Once()
 
 		go wsReadHandler(testWsConfig, wsConn, pipe, closer)
 
 		time.Sleep(200 * time.Millisecond)
 
-		if !wsConn.AssertCalled(t, "SetReadLimit", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetReadLimit() was not called")
-		}
-		if !wsConn.AssertCalled(t, "SetReadDeadline", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetReadDeadline() was not called")
-		}
-		if !wsConn.AssertCalled(t, "SetPongHandler", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetPongHandler() was not called")
-		}
-		if !wsConn.AssertCalled(t, "ReadJSON", mock.Anything) {
-			t.Errorf("wsReadHandler() - ReadJSON() was not called")
-		}
 		//Empty read message pipe
-		<-pipe.msgPacket
+		message := <-pipe.msgPacket
+		if !bytes.Equal(message.message, []byte{}) {
+			t.Errorf("ReadMessage() want message.message = nil, got not nil")
+		}
+		if message.err == nil {
+			t.Errorf("ReadMessage() want message.err = not nil, got nil")
+		}
 
 		pipe.quit <- false //Send close signal
 		<-pipe.quit        //Wait for confirmation
 
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsReadHandler() - Close() was not called")
-		}
-
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
 	})
 
-	t.Run("SetReadDeadlineError", func(t *testing.T) {
+	t.Run("Error_ReadMessageError", func(t *testing.T) {
+
+		dummyCloseError := fmt.Errorf("dummy close error")
 
 		testWsConfig := wsConfig
 		wsConn := &mockWsConnInterface{}
 		pipe := newHandlerPipe(handlerPipeModeRead)
 		closer := &MockCloser{}
 
-		wsConn.On("SetReadLimit", mock.Anything).Return()
-		wsConn.On("SetReadDeadline", mock.Anything).Return(fmt.Errorf("read-deadline-error"))
-		wsConn.On("Close").Return(nil)
+		wsConn.On("SetReadLimit", mock.Anything).Return().Once()
+		wsConn.On("SetReadDeadline", mock.Anything).Return(nil).Once()
+		wsConn.On("SetPongHandler", mock.Anything).Return().Once()
+		wsConn.On("ReadMessage").Return(websocket.BinaryMessage, []byte("test-message"), dummyCloseError)
+		wsConn.On("Close").Return(nil).Once()
+
+		closer.On("Close").Return(nil).Once()
 
 		go wsReadHandler(testWsConfig, wsConn, pipe, closer)
 
 		time.Sleep(200 * time.Millisecond)
 
-		if !wsConn.AssertCalled(t, "SetReadLimit", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetReadLimit() was not called")
-		}
-		if !wsConn.AssertCalled(t, "SetReadDeadline", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetReadDeadline() was not called")
-		}
-
-		<-pipe.quit //Wait for confirmation
-
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsReadHandler() - Close() was not called")
-		}
-
-	})
-
-	t.Run("ReadJSONError", func(t *testing.T) {
-
-		testWsConfig := wsConfig
-		wsConn := &mockWsConnInterface{}
-		pipe := newHandlerPipe(handlerPipeModeRead)
-		closer := &MockCloser{}
-
-		wsConn.On("SetReadLimit", mock.Anything).Return()
-		wsConn.On("SetReadDeadline", mock.Anything).Return(nil)
-		wsConn.On("SetPongHandler", mock.Anything).Return()
-		wsConn.On("ReadJSON", mock.Anything).Return(fmt.Errorf("read-json-error"))
-		wsConn.On("Close").Return(nil)
-
-		closer.On("Close").Return(nil)
-
-		go wsReadHandler(testWsConfig, wsConn, pipe, closer)
-
-		time.Sleep(200 * time.Millisecond)
-
-		if !wsConn.AssertCalled(t, "SetReadLimit", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetReadLimit() was not called")
-		}
-		if !wsConn.AssertCalled(t, "SetReadDeadline", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetReadDeadline() was not called")
-		}
-		if !wsConn.AssertCalled(t, "SetPongHandler", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetPongHandler() was not called")
-		}
-		if !wsConn.AssertCalled(t, "ReadJSON", mock.Anything) {
-			t.Errorf("wsReadHandler() - ReadJSON() was not called")
-		}
 		//Empty read message pipe
-		<-pipe.msgPacket
-
-		pipe.quit <- false //Send close signal
-		<-pipe.quit        //Wait for confirmation
-
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsReadHandler() - Close() was not called")
+		err := <-pipe.handlerError
+		if err != dummyCloseError {
+			t.Errorf("ReadMessage() want err = nil, got not nil")
 		}
 
+		<-pipe.quit //Wait for closed signal
+
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
 	})
 
-	t.Run("ReadJSONUnexpectedCloseError", func(t *testing.T) {
+	t.Run("Error_ReadDeadlineError", func(t *testing.T) {
+
+		dummyCloseError := fmt.Errorf("dummy close error")
 
 		testWsConfig := wsConfig
 		wsConn := &mockWsConnInterface{}
 		pipe := newHandlerPipe(handlerPipeModeRead)
 		closer := &MockCloser{}
 
-		wsConn.On("SetReadLimit", mock.Anything).Return()
-		wsConn.On("SetReadDeadline", mock.Anything).Return(nil)
-		wsConn.On("SetPongHandler", mock.Anything).Return()
-		wsConn.On("ReadJSON", mock.Anything).Return(&websocket.CloseError{
-			Code: 0,
-			Text: "",
-		})
-		wsConn.On("Close").Return(nil)
-
-		closer.On("Close").Return(nil)
+		wsConn.On("SetReadLimit", mock.Anything).Return().Once()
+		wsConn.On("SetReadDeadline", mock.Anything).Return(dummyCloseError).Once()
+		wsConn.On("Close").Return(nil).Once()
 
 		go wsReadHandler(testWsConfig, wsConn, pipe, closer)
 
 		time.Sleep(200 * time.Millisecond)
 
-		if !wsConn.AssertCalled(t, "SetReadLimit", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetReadLimit() was not called")
-		}
-		if !wsConn.AssertCalled(t, "SetReadDeadline", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetReadDeadline() was not called")
-		}
-		if !wsConn.AssertCalled(t, "SetPongHandler", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetPongHandler() was not called")
-		}
-		if !wsConn.AssertCalled(t, "ReadJSON", mock.Anything) {
-			t.Errorf("wsReadHandler() - ReadJSON() was not called")
-		}
+		<-pipe.quit //Wait for closed signal
 
-		<-pipe.quit //Wait for confirmation
-
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsReadHandler() - Close() was not called")
-		}
-
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
 	})
-	t.Run("ReadJSONUnexpectedCloseError_ChCloseError", func(t *testing.T) {
+
+	t.Run("Error_ConnectionCloseError", func(t *testing.T) {
+
+		dummyCloseError := fmt.Errorf("dummy close error")
 
 		testWsConfig := wsConfig
 		wsConn := &mockWsConnInterface{}
 		pipe := newHandlerPipe(handlerPipeModeRead)
 		closer := &MockCloser{}
 
-		wsConn.On("SetReadLimit", mock.Anything).Return()
-		wsConn.On("SetReadDeadline", mock.Anything).Return(nil)
-		wsConn.On("SetPongHandler", mock.Anything).Return()
-		wsConn.On("ReadJSON", mock.Anything).Return(&websocket.CloseError{
-			Code: 0,
-			Text: "",
-		})
-		wsConn.On("Close").Return(nil)
+		wsConn.On("SetReadLimit", mock.Anything).Return().Once()
+		wsConn.On("SetReadDeadline", mock.Anything).Return(nil).Once()
+		wsConn.On("SetPongHandler", mock.Anything).Return().Once()
+		wsConn.On("ReadMessage").Return(websocket.BinaryMessage, []byte("test-message"), dummyCloseError)
+		wsConn.On("Close").Return(dummyCloseError).Once()
 
-		closer.On("Close").Return(fmt.Errorf("channel-close-error"))
+		closer.On("Close").Return(nil).Once()
 
 		go wsReadHandler(testWsConfig, wsConn, pipe, closer)
 
 		time.Sleep(200 * time.Millisecond)
 
-		if !wsConn.AssertCalled(t, "SetReadLimit", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetReadLimit() was not called")
-		}
-		if !wsConn.AssertCalled(t, "SetReadDeadline", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetReadDeadline() was not called")
-		}
-		if !wsConn.AssertCalled(t, "SetPongHandler", mock.Anything) {
-			t.Errorf("wsReadHandler() - SetPongHandler() was not called")
-		}
-		if !wsConn.AssertCalled(t, "ReadJSON", mock.Anything) {
-			t.Errorf("wsReadHandler() - ReadJSON() was not called")
+		//Empty read message pipe
+		err := <-pipe.handlerError
+		if err != dummyCloseError {
+			t.Errorf("ReadMessage() want err = nil, got not nil")
 		}
 
-		<-pipe.quit //Wait for confirmation
+		<-pipe.quit //Wait for closed signal
 
-		if !closer.AssertCalled(t, "Close") {
-			t.Errorf("wsReadHandler() - Close() was not called")
-		}
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsReadHandler() - Close() was not called")
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
+	})
+
+	t.Run("Error_ChannelCloseError", func(t *testing.T) {
+
+		dummyCloseError := fmt.Errorf("dummy close error")
+
+		testWsConfig := wsConfig
+		wsConn := &mockWsConnInterface{}
+		pipe := newHandlerPipe(handlerPipeModeRead)
+		closer := &MockCloser{}
+
+		wsConn.On("SetReadLimit", mock.Anything).Return().Once()
+		wsConn.On("SetReadDeadline", mock.Anything).Return(nil).Once()
+		wsConn.On("SetPongHandler", mock.Anything).Return().Once()
+		wsConn.On("ReadMessage").Return(websocket.BinaryMessage, []byte("test-message"), dummyCloseError)
+		wsConn.On("Close").Return(nil).Once()
+
+		closer.On("Close").Return(dummyCloseError).Once()
+
+		go wsReadHandler(testWsConfig, wsConn, pipe, closer)
+
+		time.Sleep(200 * time.Millisecond)
+
+		//Empty read message pipe
+		err := <-pipe.handlerError
+		if err != dummyCloseError {
+			t.Errorf("ReadMessage() want err = nil, got not nil")
 		}
 
+		<-pipe.quit //Wait for closed signal
+
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
+	})
+
+	t.Run("Error_PeerDisconnectedError", func(t *testing.T) {
+
+		dummyCloseError := &websocket.CloseError{
+			Code: websocket.CloseProtocolError,
+			Text: "dummy error",
+		}
+
+		testWsConfig := wsConfig
+		wsConn := &mockWsConnInterface{}
+		pipe := newHandlerPipe(handlerPipeModeRead)
+		closer := &MockCloser{}
+
+		wsConn.On("SetReadLimit", mock.Anything).Return().Once()
+		wsConn.On("SetReadDeadline", mock.Anything).Return(nil).Once()
+		wsConn.On("SetPongHandler", mock.Anything).Return().Once()
+		wsConn.On("ReadMessage").Return(websocket.BinaryMessage, []byte("test-message"), dummyCloseError)
+		wsConn.On("Close").Return(nil).Once()
+
+		closer.On("Close").Return(dummyCloseError).Once()
+
+		go wsReadHandler(testWsConfig, wsConn, pipe, closer)
+
+		time.Sleep(200 * time.Millisecond)
+
+		//Empty read message pipe
+		err := <-pipe.handlerError
+		if err != dummyCloseError {
+			t.Errorf("ReadMessage() want err = nil, got not nil")
+		}
+
+		<-pipe.quit //Wait for closed signal
+
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
 	})
 }
 
@@ -517,48 +490,45 @@ func Test_wsWriteHandler(t *testing.T) {
 		closer := &MockCloser{}
 
 		wsConn.On("SetWriteDeadline", mock.Anything).Return(nil)
-		wsConn.On("WriteJSON", mock.Anything).Return(nil)
-		wsConn.On("WriteMessage", mock.Anything).Return(nil)
+		wsConn.On("WriteMessage", mock.Anything, mock.Anything).Return(nil)
 		wsConn.On("Close").Return(nil)
-
-		closer.On("Close").Return(nil)
 
 		go wsWriteHandler(testWsConfig, wsConn, pipe, closer)
 
 		time.Sleep(200 * time.Millisecond)
 
 		//Send message and receive response
-		pipe.msgPacket <- jsonMsgPacket{}
-		<-pipe.msgPacket
+		testPacketToSend := jsonMsgPacket{message: []byte("test-message"), err: nil}
+		pipe.msgPacket <- testPacketToSend
+		receivedPacket := <-pipe.msgPacket
 
-		if !wsConn.AssertCalled(t, "SetWriteDeadline", mock.Anything) {
-			t.Errorf("wsWriteHandler() - SetWriteDeadline() was not called")
+		if !(bytes.Equal(testPacketToSend.message, receivedPacket.message)) {
+			t.Errorf("WriteMessage() want message.message = nil, got not nil")
 		}
-		if !wsConn.AssertCalled(t, "WriteJSON", mock.Anything) {
-			t.Errorf("wsWriteHandler() - WriteJSON() was not called")
+		if receivedPacket.err != nil {
+			t.Errorf("WriteMessage() want message.err = nil, got not nil")
 		}
 
 		pipe.quit <- false //Send close signal
 		<-pipe.quit        //Wait for confirmation
 
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsWriteHandler() - Close() was not called")
-		}
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
 
 	})
 
-	t.Run("CloseError", func(t *testing.T) {
+	t.Run("Error_WriteMessage", func(t *testing.T) {
 
 		testWsConfig := wsConfig
 		wsConn := &mockWsConnInterface{}
 		pipe := newHandlerPipe(handlerPipeModeWrite)
 		closer := &MockCloser{}
 
-		wsConn.On("SetWriteDeadline", mock.Anything).Return(nil)
-		wsConn.On("WriteJSON", mock.Anything).Return(nil)
-		wsConn.On("WriteMessage", mock.Anything).Return(nil)
-		wsConn.On("Close").Return(fmt.Errorf("closer-error"))
+		dummyError := fmt.Errorf("dummy error")
 
+		wsConn.On("SetWriteDeadline", mock.Anything).Return(nil)
+		wsConn.On("WriteMessage", mock.Anything, mock.Anything).Return(dummyError)
+		wsConn.On("Close").Return(nil)
 		closer.On("Close").Return(nil)
 
 		go wsWriteHandler(testWsConfig, wsConn, pipe, closer)
@@ -566,65 +536,41 @@ func Test_wsWriteHandler(t *testing.T) {
 		time.Sleep(200 * time.Millisecond)
 
 		//Send message and receive response
-		pipe.msgPacket <- jsonMsgPacket{}
-		<-pipe.msgPacket
+		testPacketToSend := jsonMsgPacket{message: []byte("test-message"), err: nil}
+		pipe.msgPacket <- testPacketToSend
 
-		if !wsConn.AssertCalled(t, "SetWriteDeadline", mock.Anything) {
-			t.Errorf("wsWriteHandler() - SetWriteDeadline() was not called")
-		}
-		if !wsConn.AssertCalled(t, "WriteJSON", mock.Anything) {
-			t.Errorf("wsWriteHandler() - WriteJSON() was not called")
+		//Empty read message pipe
+		err := <-pipe.handlerError
+		if err != dummyError {
+			t.Errorf("WriteMessage() want err = nil, got not nil")
 		}
 
-		pipe.quit <- false //Send close signal
-		<-pipe.quit        //Wait for confirmation
+		<-pipe.quit //Wait for closed signal
 
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsWriteHandler() - Close() was not called")
-		}
+		time.Sleep(10 * time.Millisecond)
+		//Delay required for testify to recognize the function call on closer mock in go routine.
+		//10ms is an empirical value
+
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
 
 	})
 
-	t.Run("SetWriteDeadline_Error", func(t *testing.T) {
+	t.Run("Error_WriteMessage_CloseError", func(t *testing.T) {
 
 		testWsConfig := wsConfig
 		wsConn := &mockWsConnInterface{}
 		pipe := newHandlerPipe(handlerPipeModeWrite)
 		closer := &MockCloser{}
 
-		wsConn.On("SetWriteDeadline", mock.Anything).Return(fmt.Errorf("Set-write-deadline-error"))
-		wsConn.On("Close").Return(nil)
-
-		go wsWriteHandler(testWsConfig, wsConn, pipe, closer)
-
-		time.Sleep(200 * time.Millisecond)
-
-		//Send message and receive response
-		pipe.msgPacket <- jsonMsgPacket{}
-		<-pipe.msgPacket
-
-		if !wsConn.AssertCalled(t, "SetWriteDeadline", mock.Anything) {
-			t.Errorf("wsWriteHandler() - SetWriteDeadline() was not called")
+		dummyError := &websocket.CloseError{
+			Code: websocket.CloseProtocolError,
+			Text: "dummy error",
 		}
-
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsWriteHandler() - Close() was not called")
-		}
-
-	})
-
-	t.Run("WriteJSONError", func(t *testing.T) {
-
-		testWsConfig := wsConfig
-		wsConn := &mockWsConnInterface{}
-		pipe := newHandlerPipe(handlerPipeModeWrite)
-		closer := &MockCloser{}
 
 		wsConn.On("SetWriteDeadline", mock.Anything).Return(nil)
-		wsConn.On("WriteJSON", mock.Anything).Return(nil)
-		wsConn.On("WriteMessage", mock.Anything).Return(fmt.Errorf("write-json-error"))
+		wsConn.On("WriteMessage", mock.Anything, mock.Anything).Return(dummyError)
 		wsConn.On("Close").Return(nil)
-
 		closer.On("Close").Return(nil)
 
 		go wsWriteHandler(testWsConfig, wsConn, pipe, closer)
@@ -632,106 +578,99 @@ func Test_wsWriteHandler(t *testing.T) {
 		time.Sleep(200 * time.Millisecond)
 
 		//Send message and receive response
-		pipe.msgPacket <- jsonMsgPacket{}
-		<-pipe.msgPacket
+		testPacketToSend := jsonMsgPacket{message: []byte("test-message"), err: nil}
+		pipe.msgPacket <- testPacketToSend
 
-		if !wsConn.AssertCalled(t, "SetWriteDeadline", mock.Anything) {
-			t.Errorf("wsWriteHandler() - SetWriteDeadline() was not called")
-		}
-		if !wsConn.AssertCalled(t, "WriteJSON", mock.Anything) {
-			t.Errorf("wsWriteHandler() - WriteJSON() was not called")
+		//Empty read message pipe
+		err := <-pipe.handlerError
+		if err != dummyError {
+			t.Errorf("WriteMessage() want err = nil, got not nil")
 		}
 
-		pipe.quit <- false //Send close signal
-		<-pipe.quit        //Wait for confirmation
+		<-pipe.quit //Wait for closed signal
 
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsWriteHandler() - Close() was not called")
-		}
+		time.Sleep(10 * time.Millisecond)
+		//Delay required for testify to recognize the function call on closer mock in go routine.
+		//10ms is an empirical value
+
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
 
 	})
-
-	t.Run("WriteJSONUnexpectedCloseError", func(t *testing.T) {
+	t.Run("Error_SetWriteDeadline", func(t *testing.T) {
 
 		testWsConfig := wsConfig
 		wsConn := &mockWsConnInterface{}
 		pipe := newHandlerPipe(handlerPipeModeWrite)
 		closer := &MockCloser{}
 
-		wsConn.On("SetWriteDeadline", mock.Anything).Return(nil)
-		wsConn.On("WriteJSON", mock.Anything).Return(&websocket.CloseError{
-			Code: 0,
-			Text: "",
-		})
-		wsConn.On("WriteMessage", mock.Anything).Return(nil)
+		dummyError := fmt.Errorf("dummy error")
 
+		wsConn.On("SetWriteDeadline", mock.Anything).Return(dummyError)
 		wsConn.On("Close").Return(nil)
-
-		closer.On("Close").Return(nil)
 
 		go wsWriteHandler(testWsConfig, wsConn, pipe, closer)
 
 		time.Sleep(200 * time.Millisecond)
 
 		//Send message and receive response
-		pipe.msgPacket <- jsonMsgPacket{}
-		<-pipe.handlerError
+		testPacketToSend := jsonMsgPacket{message: []byte("test-message"), err: nil}
+		pipe.msgPacket <- testPacketToSend
+		receivedPacket := <-pipe.msgPacket
 
-		if !wsConn.AssertCalled(t, "SetWriteDeadline", mock.Anything) {
-			t.Errorf("wsWriteHandler() - SetWriteDeadline() was not called")
+		if !(bytes.Equal(testPacketToSend.message, receivedPacket.message)) {
+			t.Errorf("WriteMessage() want message.message = nil, got not nil")
 		}
-		if !wsConn.AssertCalled(t, "WriteJSON", mock.Anything) {
-			t.Errorf("wsWriteHandler() - WriteJSON() was not called")
+		if receivedPacket.err == nil {
+			t.Errorf("WriteMessage() want message.err = not nil, got nil")
 		}
 
-		<-pipe.quit //Wait for confirmation
+		<-pipe.quit //Wait for handler closed signal
 
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsWriteHandler() - Close() was not called")
-		}
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
 
 	})
 
-	t.Run("WriteJSONUnexpectedCloseError_ChannelCloseError", func(t *testing.T) {
+	t.Run("Error_Closer_Close", func(t *testing.T) {
 
 		testWsConfig := wsConfig
 		wsConn := &mockWsConnInterface{}
 		pipe := newHandlerPipe(handlerPipeModeWrite)
 		closer := &MockCloser{}
 
+		dummyError := fmt.Errorf("dummy error")
+
 		wsConn.On("SetWriteDeadline", mock.Anything).Return(nil)
-		wsConn.On("WriteJSON", mock.Anything).Return(&websocket.CloseError{
-			Code: 0,
-			Text: "",
-		})
-		wsConn.On("WriteMessage", mock.Anything).Return(nil)
-
+		wsConn.On("WriteMessage", mock.Anything, mock.Anything).Return(dummyError)
 		wsConn.On("Close").Return(nil)
-
-		closer.On("Close").Return(fmt.Errorf("channel-close-error"))
+		closer.On("Close").Return(dummyError)
 
 		go wsWriteHandler(testWsConfig, wsConn, pipe, closer)
 
 		time.Sleep(200 * time.Millisecond)
 
 		//Send message and receive response
-		pipe.msgPacket <- jsonMsgPacket{}
-		<-pipe.handlerError
+		testPacketToSend := jsonMsgPacket{message: []byte("test-message"), err: nil}
+		pipe.msgPacket <- testPacketToSend
 
-		if !wsConn.AssertCalled(t, "SetWriteDeadline", mock.Anything) {
-			t.Errorf("wsWriteHandler() - SetWriteDeadline() was not called")
-		}
-		if !wsConn.AssertCalled(t, "WriteJSON", mock.Anything) {
-			t.Errorf("wsWriteHandler() - WriteJSON() was not called")
+		//Empty read message pipe
+		err := <-pipe.handlerError
+		if err != dummyError {
+			t.Errorf("WriteMessage() want err = nil, got not nil")
 		}
 
-		<-pipe.quit //Wait for confirmation
+		<-pipe.quit //Wait for closed signal
 
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsWriteHandler() - Close() was not called")
-		}
+		time.Sleep(10 * time.Millisecond)
+		//Delay required for testify to recognize the function call on closer mock in go routine.
+		//10ms is an empirical value
+
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
 
 	})
+
 	t.Run("ticker", func(t *testing.T) {
 
 		testWsConfig := wsConfigType{
@@ -740,16 +679,14 @@ func Test_wsWriteHandler(t *testing.T) {
 			pingPeriod:     ((100 * time.Millisecond) * 9) / 10,
 			maxMessageSize: 1024,
 		}
+
 		wsConn := &mockWsConnInterface{}
 		pipe := newHandlerPipe(handlerPipeModeWrite)
 		closer := &MockCloser{}
 
 		wsConn.On("SetWriteDeadline", mock.Anything).Return(nil)
-		wsConn.On("WriteJSON", mock.Anything).Return(nil)
 		wsConn.On("WriteMessage", mock.Anything, mock.Anything).Return(nil)
 		wsConn.On("Close").Return(nil)
-
-		closer.On("Close").Return(nil)
 
 		go wsWriteHandler(testWsConfig, wsConn, pipe, closer)
 
@@ -757,24 +694,16 @@ func Test_wsWriteHandler(t *testing.T) {
 		time.Sleep(200 * time.Millisecond)
 
 		//Wait until ping period expires and a ping message is sent
-		time.Sleep(testWsConfig.pingPeriod)
-
-		if !wsConn.AssertCalled(t, "SetWriteDeadline", mock.Anything) {
-			t.Errorf("wsWriteHandler() - SetWriteDeadline() was not called")
-		}
-		if !wsConn.AssertCalled(t, "WriteMessage", mock.Anything, mock.Anything) {
-			t.Errorf("wsWriteHandler() - WriteMessage() was not called")
-		}
+		time.Sleep(2 * testWsConfig.pingPeriod)
 
 		pipe.quit <- true
 		<-pipe.quit //Wait for confirmation
 
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsWriteHandler() - Close() was not called")
-		}
+		wsConn.AssertExpectations(t)
 
 	})
-	t.Run("ticker_SetWriteDeadlineError", func(t *testing.T) {
+
+	t.Run("Error_ticker_SetWriteDeadline", func(t *testing.T) {
 
 		testWsConfig := wsConfigType{
 			writeWait:      10 * time.Second,
@@ -782,16 +711,15 @@ func Test_wsWriteHandler(t *testing.T) {
 			pingPeriod:     ((100 * time.Millisecond) * 9) / 10,
 			maxMessageSize: 1024,
 		}
+
+		dummyCloseError := fmt.Errorf("dummy close error")
+
 		wsConn := &mockWsConnInterface{}
 		pipe := newHandlerPipe(handlerPipeModeWrite)
 		closer := &MockCloser{}
 
-		wsConn.On("SetWriteDeadline", mock.Anything).Return(fmt.Errorf("set-write-deadline-error"))
-		wsConn.On("WriteJSON", mock.Anything).Return(nil)
-		wsConn.On("WriteMessage", mock.Anything, mock.Anything).Return(nil)
+		wsConn.On("SetWriteDeadline", mock.Anything).Return(dummyCloseError)
 		wsConn.On("Close").Return(nil)
-
-		closer.On("Close").Return(nil)
 
 		go wsWriteHandler(testWsConfig, wsConn, pipe, closer)
 
@@ -799,20 +727,20 @@ func Test_wsWriteHandler(t *testing.T) {
 		time.Sleep(200 * time.Millisecond)
 
 		//Wait until ping period expires and a ping message is sent
-		time.Sleep(testWsConfig.pingPeriod)
+		time.Sleep(2 * testWsConfig.pingPeriod)
 
-		if !wsConn.AssertCalled(t, "SetWriteDeadline", mock.Anything) {
-			t.Errorf("wsWriteHandler() - SetWriteDeadline() was not called")
+		err := pipe.handlerError
+		if err == nil {
+			t.Errorf("WriteMessage() pipe.handlerError = nil, want not nil")
 		}
 
 		<-pipe.quit //Wait for confirmation
 
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsWriteHandler() - Close() was not called")
-		}
+		wsConn.AssertExpectations(t)
 
 	})
-	t.Run("WriteMessageError", func(t *testing.T) {
+
+	t.Run("Error_ticker_WriteMessageError", func(t *testing.T) {
 
 		testWsConfig := wsConfigType{
 			writeWait:      10 * time.Second,
@@ -820,16 +748,16 @@ func Test_wsWriteHandler(t *testing.T) {
 			pingPeriod:     ((100 * time.Millisecond) * 9) / 10,
 			maxMessageSize: 1024,
 		}
+
+		dummyCloseError := fmt.Errorf("dummy close error")
+
 		wsConn := &mockWsConnInterface{}
 		pipe := newHandlerPipe(handlerPipeModeWrite)
 		closer := &MockCloser{}
 
 		wsConn.On("SetWriteDeadline", mock.Anything).Return(nil)
-		wsConn.On("WriteJSON", mock.Anything).Return(nil)
-		wsConn.On("WriteMessage", mock.Anything, mock.Anything).Return(fmt.Errorf("write-message-error"))
+		wsConn.On("WriteMessage", mock.Anything, mock.Anything).Return(dummyCloseError)
 		wsConn.On("Close").Return(nil)
-
-		closer.On("Close").Return(nil)
 
 		go wsWriteHandler(testWsConfig, wsConn, pipe, closer)
 
@@ -837,20 +765,53 @@ func Test_wsWriteHandler(t *testing.T) {
 		time.Sleep(200 * time.Millisecond)
 
 		//Wait until ping period expires and a ping message is sent
-		time.Sleep(testWsConfig.pingPeriod)
+		time.Sleep(2 * testWsConfig.pingPeriod)
 
-		if !wsConn.AssertCalled(t, "SetWriteDeadline", mock.Anything) {
-			t.Errorf("wsWriteHandler() - SetWriteDeadline() was not called")
-		}
-		if !wsConn.AssertCalled(t, "WriteMessage", mock.Anything, mock.Anything) {
-			t.Errorf("wsWriteHandler() - WriteMessage() was not called")
+		err := pipe.handlerError
+		if err == nil {
+			t.Errorf("WriteMessage() pipe.handlerError = nil, want not nil")
 		}
 
 		<-pipe.quit //Wait for confirmation
 
-		if !wsConn.AssertCalled(t, "Close") {
-			t.Errorf("wsWriteHandler() - Close() was not called")
+		wsConn.AssertExpectations(t)
+
+	})
+
+	t.Run("Error_Connection_Close", func(t *testing.T) {
+
+		testWsConfig := wsConfig
+		wsConn := &mockWsConnInterface{}
+		pipe := newHandlerPipe(handlerPipeModeWrite)
+		closer := &MockCloser{}
+
+		dummyCloseError := fmt.Errorf("dummy close error")
+
+		wsConn.On("SetWriteDeadline", mock.Anything).Return(nil)
+		wsConn.On("WriteMessage", mock.Anything, mock.Anything).Return(nil)
+		wsConn.On("Close").Return(dummyCloseError)
+
+		go wsWriteHandler(testWsConfig, wsConn, pipe, closer)
+
+		time.Sleep(200 * time.Millisecond)
+
+		//Send message and receive response
+		testPacketToSend := jsonMsgPacket{message: []byte("test-message"), err: nil}
+		pipe.msgPacket <- testPacketToSend
+		receivedPacket := <-pipe.msgPacket
+
+		if !(bytes.Equal(testPacketToSend.message, receivedPacket.message)) {
+			t.Errorf("WriteMessage() want message.message = nil, got not nil")
 		}
+		if receivedPacket.err != nil {
+			t.Errorf("WriteMessage() want message.err = nil, got not nil")
+		}
+
+		pipe.quit <- false //Send close signal
+		<-pipe.quit        //Wait for confirmation
+
+		wsConn.AssertExpectations(t)
+		closer.AssertExpectations(t)
 
 	})
 }

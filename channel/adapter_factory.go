@@ -19,14 +19,9 @@ package channel
 import (
 	"fmt"
 	"sync"
-	"time"
 
-	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/identity"
 )
-
-// ReadWriteLogging to configure logging during channel read/write, for demonstration purposes only
-var ReadWriteLogging = false
 
 // AdapterType represents adapter type for off chain communication protocol
 type AdapterType string
@@ -50,8 +45,8 @@ type genericChannelAdapter struct {
 // Any channel adapter should implement these methods as it will be used by higher levels of code.
 type ReadWriteCloser interface {
 	Connected() bool
-	Read() (primitives.ChMsgPkt, error)
-	Write(primitives.ChMsgPkt) error
+	Read() ([]byte, error)
+	Write([]byte) error
 	Close() error
 }
 
@@ -67,7 +62,7 @@ type handlerPipe struct {
 }
 
 type jsonMsgPacket struct {
-	message primitives.ChMsgPkt
+	message []byte
 	err     error
 }
 
@@ -79,14 +74,14 @@ func (ch *genericChannelAdapter) Connected() (isConnected bool) {
 // Read returns any new message that has been received by the read handler of this channel.
 //
 // If connection is not active, an error is returned.
-func (ch *genericChannelAdapter) Read() (message primitives.ChMsgPkt, err error) {
+func (ch *genericChannelAdapter) Read() (message []byte, err error) {
 
 	ch.access.Lock()
 	defer ch.access.Unlock()
 
 	if !ch.connected {
 		err = fmt.Errorf("Channel already closed")
-		return primitives.ChMsgPkt{}, err
+		return []byte{}, err
 	}
 
 	select {
@@ -96,18 +91,13 @@ func (ch *genericChannelAdapter) Read() (message primitives.ChMsgPkt, err error)
 		err = msgPacket.err
 	}
 
-	if err == nil && ReadWriteLogging {
-		fmt.Printf("\n\n<<<<<<<<<READ : %+v\n\n", message)
-		logger.Debug("Incoming Message:", message)
-	}
-
 	return message, err
 }
 
 // Write sends the message to the write handler of this channel to be sent on the channel.
 //
 // If connection is not active, an error is returned.
-func (ch *genericChannelAdapter) Write(message primitives.ChMsgPkt) (err error) {
+func (ch *genericChannelAdapter) Write(message []byte) (err error) {
 
 	ch.access.Lock()
 	defer ch.access.Unlock()
@@ -122,8 +112,6 @@ func (ch *genericChannelAdapter) Write(message primitives.ChMsgPkt) (err error) 
 	case err = <-ch.writeHandlerPipe.handlerError:
 		return err
 	default:
-		zone, _ := time.LoadLocation("Local")
-		message.Timestamp = time.Now().In(zone)
 		ch.writeHandlerPipe.msgPacket <- jsonMsgPacket{message, nil}
 	}
 
@@ -132,11 +120,6 @@ func (ch *genericChannelAdapter) Write(message primitives.ChMsgPkt) (err error) 
 	case err = <-ch.writeHandlerPipe.handlerError:
 	case response := <-ch.writeHandlerPipe.msgPacket:
 		err = response.err
-	}
-
-	if err == nil && ReadWriteLogging {
-		fmt.Printf("\n\n>>>>>>>>>WRITE : %+v\n\n", message)
-		logger.Debug("Outgoing Message:", message)
 	}
 
 	return err
