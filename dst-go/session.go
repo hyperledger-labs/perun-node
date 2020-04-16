@@ -22,6 +22,7 @@ import (
 
 	"github.com/direct-state-transfer/dst-go/blockchain"
 	"github.com/direct-state-transfer/dst-go/channel"
+	"github.com/direct-state-transfer/dst-go/channel/adapter"
 	"github.com/direct-state-transfer/dst-go/ethereum/keystore"
 	"github.com/direct-state-transfer/dst-go/ethereum/types"
 	"github.com/direct-state-transfer/dst-go/identity"
@@ -35,7 +36,7 @@ type Session struct {
 	idStore  *identity.OffChainIDStore //Identity of the user and all others for offchain transactions
 
 	idVerified chan *channel.Instance //Incoming offchain connection requests after id verification
-	listener   channel.Shutdown       //listener instance to call shutdown
+	listener   adapter.Shutdown       //listener instance to call shutdown
 
 	LibSignAddr types.Address //LibSignatures contract addressed for all owner initiated sessions
 
@@ -67,7 +68,7 @@ func NewSession(ethAddr types.Address, keysDir, idFile string, maxConn uint32) (
 	//TODO - Passsword to be obtained as user input
 	selfID.Password = ""
 
-	idVerifiedConn, listener, err := channel.NewSession(selfID, channel.WebSocket, maxConn)
+	idVerifiedConn, listener, err := channel.NewSession(selfID, adapter.WebSocket, maxConn)
 	if err != nil {
 		err = fmt.Errorf("Channel store init error - %s", err.Error())
 		return Session{}, err

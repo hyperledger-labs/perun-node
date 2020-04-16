@@ -27,6 +27,7 @@ import (
 
 	"github.com/direct-state-transfer/dst-go/blockchain"
 	"github.com/direct-state-transfer/dst-go/channel"
+	channelAdapter "github.com/direct-state-transfer/dst-go/channel/adapter"
 	"github.com/direct-state-transfer/dst-go/channel/primitives"
 	"github.com/direct-state-transfer/dst-go/ethereum/adapter"
 	"github.com/direct-state-transfer/dst-go/ethereum/contract"
@@ -73,7 +74,7 @@ func realBlockchainAlice(printer *color.Color, wg *sync.WaitGroup, dispute bool)
 
 	var params []interface{}
 
-	newConnToBob, err := channel.NewChannel(aliceID, bobID, channel.WebSocket)
+	newConnToBob, err := channel.NewChannel(aliceID, bobID, channelAdapter.WebSocket)
 	if err != nil {
 		_, _ = printer.Printf("\nNew channel error - %v\n", err)
 		return
@@ -616,7 +617,7 @@ func realBlockchainBob(printer *color.Color, wg *sync.WaitGroup) (err error) {
 
 	//Initialize a new channel listener for bob
 	maxConn := uint32(100)
-	incomingConnChan, listener, err := channel.NewSession(bobID, channel.WebSocket, maxConn)
+	incomingConnChan, listener, err := channel.NewSession(bobID, channelAdapter.WebSocket, maxConn)
 	if err != nil {
 		_, _ = printer.Printf("\nNew channel session error - %v\n", err)
 		return
