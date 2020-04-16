@@ -1,5 +1,9 @@
 # Direct State Transfer - Go implementation (DST-GO)
 
+| Develop | Master |
+| :----: | :-----: |
+| [![CircleCI](https://circleci.com/gh/direct-state-transfer/dst-go/tree/develop.svg?style=shield)](https://circleci.com/gh/direct-state-transfer/dst-go/tree/develop) | [![CircleCI](https://circleci.com/gh/direct-state-transfer/dst-go/tree/master.svg?style=shield)](https://circleci.com/gh/direct-state-transfer/dst-go/tree/master) |
+
 Direct State Transfer (DST) is an open source project that aims to
 increase blockchain transaction throughput by using just a handful of
 main chain transactions to move an entire peer-to-peer network of
