@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package channel
+package websocket
 
 import (
 	"encoding/json"
@@ -25,7 +25,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/direct-state-transfer/dst-go/channel/adapter/websocket"
 	"github.com/direct-state-transfer/dst-go/ethereum/keystore"
 	"github.com/direct-state-transfer/dst-go/identity"
 	"github.com/direct-state-transfer/dst-go/log"
@@ -43,12 +42,10 @@ var (
 	aliceID, bobID             identity.OffChainID
 	alicePassword, bobPassword string
 
-	invalidOffchainAddr = "127.1.1.120:9547"
-
 	testKeyStorePath string
 	testKeyStore     *keystore.KeyStore
 
-	configFile             = "./testdata/test_addresses.json"
+	configFile             = "../../testdata/test_addresses.json"
 	dummyConfigFileFlagVar string
 )
 
@@ -107,6 +104,4 @@ func setupLogger() {
 		fmt.Printf("Error setting up logger - %s\n", err)
 		os.Exit(1)
 	}
-
-	websocket.SetLogger(logger)
 }

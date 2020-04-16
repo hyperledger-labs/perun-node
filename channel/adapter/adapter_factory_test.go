@@ -14,64 +14,87 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package channel
+package adapter
 
 import (
-	"context"
 	"fmt"
-	"os/exec"
 	"reflect"
 	"testing"
-	"time"
-
-	"github.com/direct-state-transfer/dst-go/identity"
 )
 
-func setupMockChannel() *genericChannelAdapter {
+func setupMockChannel() *GenericChannelAdapter {
 
-	adapter := &genericChannelAdapter{
-		connected:        false,
-		writeHandlerPipe: newHandlerPipe(handlerPipeModeWrite),
-		readHandlerPipe:  newHandlerPipe(handlerPipeModeRead),
+	adapter := &GenericChannelAdapter{
+		IsConnected:      false,
+		WriteHandlerPipe: NewHandlerPipe(HandlerPipeModeWrite),
+		ReadHandlerPipe:  NewHandlerPipe(HandlerPipeModeRead),
 	}
 
 	return adapter
 }
 
-func flushMessagePipe(pipe handlerPipe) {
+func flushMessagePipe(pipe HandlerPipe) {
 
 	//Other channels are unbuffered
-	for len(pipe.handlerError) > 0 {
-		<-pipe.handlerError
+	for len(pipe.HandlerError) > 0 {
+		<-pipe.HandlerError
 	}
+}
+
+func Test_genericChannelAdapter_Connected(t *testing.T) {
+	tests := []struct {
+		name       string
+		wantStatus bool
+	}{
+		{
+			name:       "true",
+			wantStatus: true,
+		},
+		{
+			name:       "false",
+			wantStatus: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			mockAdapter := setupMockChannel()
+			mockAdapter.IsConnected = tt.wantStatus
+			gotStatus := mockAdapter.Connected()
+			if gotStatus != tt.wantStatus {
+				t.Errorf("Connected() got %t, want %t", gotStatus, tt.wantStatus)
+			}
+		})
+	}
+
 }
 func Test_genericChannelAdapter_Read(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 
 		mockAdapter := setupMockChannel()
-		mockAdapter.connected = true
-		testMsgPacket := jsonMsgPacket{
-			message: []byte("test-msg"),
-			err:     nil}
+		mockAdapter.IsConnected = true
+		testMsgPacket := JSONMsgPacket{
+			Message: []byte("test-msg"),
+			Err:     nil}
 
-		flushMessagePipe(mockAdapter.readHandlerPipe)
+		flushMessagePipe(mockAdapter.ReadHandlerPipe)
 
 		//mock to send test msg packet
-		go func(msgPacketToSend jsonMsgPacket, msgPacketCh chan jsonMsgPacket) {
+		go func(msgPacketToSend JSONMsgPacket, msgPacketCh chan JSONMsgPacket) {
 
 			msgPacketCh <- msgPacketToSend
 
-		}(testMsgPacket, mockAdapter.readHandlerPipe.msgPacket)
+		}(testMsgPacket, mockAdapter.ReadHandlerPipe.MsgPacket)
 
 		gotJSONMsg, err := mockAdapter.Read()
-
 		if err != nil {
 			t.Errorf("Read() Error %s, wantErr %s", err, "nil")
 		}
 
-		if !reflect.DeepEqual(gotJSONMsg, testMsgPacket.message) {
-			t.Errorf("Read() got %s, want %s", gotJSONMsg, testMsgPacket.message)
+		if !reflect.DeepEqual(gotJSONMsg, testMsgPacket.Message) {
+			t.Errorf("Read() got %s, want %s", gotJSONMsg, testMsgPacket.Message)
 		}
 
 	})
@@ -79,11 +102,11 @@ func Test_genericChannelAdapter_Read(t *testing.T) {
 	t.Run("HandlerError", func(t *testing.T) {
 
 		mockAdapter := setupMockChannel()
-		mockAdapter.connected = true
+		mockAdapter.IsConnected = true
 		fakeHandlerError := fmt.Errorf("fake error for unit test")
 
-		flushMessagePipe(mockAdapter.readHandlerPipe)
-		mockAdapter.readHandlerPipe.handlerError <- fakeHandlerError
+		flushMessagePipe(mockAdapter.ReadHandlerPipe)
+		mockAdapter.ReadHandlerPipe.HandlerError <- fakeHandlerError
 
 		_, err := mockAdapter.Read()
 		if err != fakeHandlerError {
@@ -94,20 +117,20 @@ func Test_genericChannelAdapter_Read(t *testing.T) {
 	t.Run("message_error", func(t *testing.T) {
 
 		mockAdapter := setupMockChannel()
-		mockAdapter.connected = true
+		mockAdapter.IsConnected = true
 
 		fakeParseError := fmt.Errorf("fake parse error for unit tests")
-		testMsgPacket := jsonMsgPacket{
-			err: fakeParseError}
+		testMsgPacket := JSONMsgPacket{
+			Err: fakeParseError}
 
-		flushMessagePipe(mockAdapter.readHandlerPipe)
+		flushMessagePipe(mockAdapter.ReadHandlerPipe)
 
 		//mock to send test msg packet
-		go func(msgPacketToSend jsonMsgPacket, msgPacketCh chan jsonMsgPacket) {
+		go func(msgPacketToSend JSONMsgPacket, msgPacketCh chan JSONMsgPacket) {
 
 			msgPacketCh <- msgPacketToSend
 
-		}(testMsgPacket, mockAdapter.readHandlerPipe.msgPacket)
+		}(testMsgPacket, mockAdapter.ReadHandlerPipe.MsgPacket)
 
 		_, err := mockAdapter.Read()
 		if err != fakeParseError {
@@ -118,7 +141,7 @@ func Test_genericChannelAdapter_Read(t *testing.T) {
 
 	t.Run("fail_on_no_connection", func(t *testing.T) {
 		mockAdapter := setupMockChannel()
-		mockAdapter.connected = false
+		mockAdapter.IsConnected = false
 
 		_, err := mockAdapter.Read()
 		if err == nil {
@@ -126,26 +149,24 @@ func Test_genericChannelAdapter_Read(t *testing.T) {
 		}
 	})
 }
-
 func Test_genericChannelAdapter_Write(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 
 		mockAdapter := setupMockChannel()
-		mockAdapter.connected = true
+		mockAdapter.IsConnected = true
 		testMsg := []byte("test-msg")
 		var gotJSONMsg []byte
 
-		flushMessagePipe(mockAdapter.writeHandlerPipe)
+		flushMessagePipe(mockAdapter.WriteHandlerPipe)
 
 		//mock to echo the message packet
-		go func(gotJsonMsg *[]byte, msgPacketCh chan jsonMsgPacket) {
-
+		go func(gotJsonMsg *[]byte, msgPacketCh chan JSONMsgPacket) {
 			gotMsgPacket := <-msgPacketCh
-			*gotJsonMsg = gotMsgPacket.message
+			*gotJsonMsg = gotMsgPacket.Message
 			msgPacketCh <- gotMsgPacket
 
-		}(&gotJSONMsg, mockAdapter.writeHandlerPipe.msgPacket)
+		}(&gotJSONMsg, mockAdapter.WriteHandlerPipe.MsgPacket)
 
 		err := mockAdapter.Write(testMsg)
 		if err != nil {
@@ -163,11 +184,11 @@ func Test_genericChannelAdapter_Write(t *testing.T) {
 	t.Run("HandlerError", func(t *testing.T) {
 
 		mockAdapter := setupMockChannel()
-		mockAdapter.connected = true
+		mockAdapter.IsConnected = true
 		fakeHandlerError := fmt.Errorf("fake error for unit test")
 
-		flushMessagePipe(mockAdapter.writeHandlerPipe)
-		mockAdapter.writeHandlerPipe.handlerError <- fakeHandlerError
+		flushMessagePipe(mockAdapter.WriteHandlerPipe)
+		mockAdapter.WriteHandlerPipe.HandlerError <- fakeHandlerError
 
 		err := mockAdapter.Write([]byte{})
 		if err != fakeHandlerError {
@@ -178,20 +199,19 @@ func Test_genericChannelAdapter_Write(t *testing.T) {
 	t.Run("message_error", func(t *testing.T) {
 
 		mockAdapter := setupMockChannel()
-		mockAdapter.connected = true
+		mockAdapter.IsConnected = true
 		testMsg := []byte("test-msg")
 		fakeParseError := fmt.Errorf("fake parse error for unit tests")
 
-		flushMessagePipe(mockAdapter.writeHandlerPipe)
+		flushMessagePipe(mockAdapter.WriteHandlerPipe)
 
 		//mock to echo the message packet
-		go func(errToSend error, msgPacketCh chan jsonMsgPacket) {
-
+		go func(errToSend error, msgPacketCh chan JSONMsgPacket) {
 			gotMsgPacket := <-msgPacketCh
-			gotMsgPacket.err = errToSend
+			gotMsgPacket.Err = errToSend
 			msgPacketCh <- gotMsgPacket
 
-		}(fakeParseError, mockAdapter.writeHandlerPipe.msgPacket)
+		}(fakeParseError, mockAdapter.WriteHandlerPipe.MsgPacket)
 
 		err := mockAdapter.Write(testMsg)
 		if err != fakeParseError {
@@ -201,7 +221,7 @@ func Test_genericChannelAdapter_Write(t *testing.T) {
 
 	t.Run("fail_on_no_connection", func(t *testing.T) {
 		mockAdapter := setupMockChannel()
-		mockAdapter.connected = false
+		mockAdapter.IsConnected = false
 
 		err := mockAdapter.Write([]byte{})
 		if err == nil {
@@ -216,15 +236,15 @@ func Test_genericChannelAdapter_Close(t *testing.T) {
 
 	t.Run("CloseSuccess", func(t *testing.T) {
 		mockAdapter := setupMockChannel()
-		mockAdapter.connected = true
+		mockAdapter.IsConnected = true
 
 		respondToQuit := func(quitChannel chan bool) {
 			<-quitChannel
 			quitChannel <- true
 		}
 
-		go respondToQuit(mockAdapter.writeHandlerPipe.quit)
-		go respondToQuit(mockAdapter.readHandlerPipe.quit)
+		go respondToQuit(mockAdapter.WriteHandlerPipe.Quit)
+		go respondToQuit(mockAdapter.ReadHandlerPipe.Quit)
 
 		err := mockAdapter.Close()
 
@@ -235,7 +255,7 @@ func Test_genericChannelAdapter_Close(t *testing.T) {
 
 	t.Run("CloseClosedChannel", func(t *testing.T) {
 		mockAdapter := setupMockChannel()
-		mockAdapter.connected = false
+		mockAdapter.IsConnected = false
 
 		err := mockAdapter.Close()
 		if err == nil {
@@ -246,8 +266,8 @@ func Test_genericChannelAdapter_Close(t *testing.T) {
 
 	t.Run("Close_when_handler_error", func(t *testing.T) {
 		mockAdapter := setupMockChannel()
-		mockAdapter.connected = true
-		mockAdapter.writeHandlerPipe.handlerError <- fmt.Errorf("dummy-handler-error")
+		mockAdapter.IsConnected = true
+		mockAdapter.WriteHandlerPipe.HandlerError <- fmt.Errorf("dummy-handler-error")
 
 		err := mockAdapter.Close()
 
@@ -255,100 +275,50 @@ func Test_genericChannelAdapter_Close(t *testing.T) {
 			t.Errorf("Close() error = %v, wantErr nil", err)
 		}
 	})
-	// TODO : Test for receiver/sender errors during close.
+	//TODO : Test for receiver/sender errors during close.
 	// Less important as it is of no consequence
 }
 
 func Test_newHandlerPipe(t *testing.T) {
 	t.Run("success_handlerPipeModeRead", func(t *testing.T) {
-		pipe := newHandlerPipe(handlerPipeModeRead)
+		pipe := NewHandlerPipe(HandlerPipeModeRead)
 
-		if cap(pipe.handlerError) != 1 {
+		if cap(pipe.HandlerError) != 1 {
 			t.Errorf("newHandlerPipe mode Read handlerError Capacity is not %d", 1)
 		}
-		if cap(pipe.quit) != 0 {
+		if cap(pipe.Quit) != 0 {
 			t.Errorf("newHandlerPipe mode Read quit Capacity is not %d", 0)
 		}
-		if cap(pipe.msgPacket) != 1 {
+		if cap(pipe.MsgPacket) != 1 {
 			t.Errorf("newHandlerPipe mode Read msgPacket Capacity is not %d", 1)
 		}
 	})
 
 	t.Run("success_handlerPipeModeWrite", func(t *testing.T) {
-		pipe := newHandlerPipe(handlerPipeModeWrite)
+		pipe := NewHandlerPipe(HandlerPipeModeWrite)
 
-		if cap(pipe.handlerError) != 1 {
+		if cap(pipe.HandlerError) != 1 {
 			t.Errorf("newHandlerPipe mode Write handlerError Capacity is not %d", 1)
 		}
-		if cap(pipe.quit) != 0 {
+		if cap(pipe.Quit) != 0 {
 			t.Errorf("newHandlerPipe mode Write quit Capacity is not %d", 0)
 		}
-		if cap(pipe.msgPacket) != 0 {
+		if cap(pipe.MsgPacket) != 0 {
 			t.Errorf("newHandlerPipe mode Write msgPacket Capacity is not %d", 1)
 		}
 	})
 
 	t.Run("success_handlerPipeModeDummy", func(t *testing.T) {
-		pipe := newHandlerPipe(handlerPipeMode("dummy"))
+		pipe := NewHandlerPipe(HandlerPipeMode("dummy"))
 
-		if cap(pipe.handlerError) != 0 {
+		if cap(pipe.HandlerError) != 0 {
 			t.Errorf("newHandlerPipe mode Write handlerError Capacity is not %d", 1)
 		}
-		if cap(pipe.quit) != 0 {
+		if cap(pipe.Quit) != 0 {
 			t.Errorf("newHandlerPipe mode Write quit Capacity is not %d", 0)
 		}
-		if cap(pipe.msgPacket) != 0 {
+		if cap(pipe.MsgPacket) != 0 {
 			t.Errorf("newHandlerPipe mode Write msgPacket Capacity is not %d", 1)
 		}
 	})
-}
-
-func Test_startListener(t *testing.T) {
-
-	t.Run("valid_websocket_adapter", func(t *testing.T) {
-
-		_ = exec.Command("fuser", "-k 9602/tcp").Run() //setup
-		defer func() {
-			_ = exec.Command("fuser", "-k 9602/tcp").Run() //teardown
-		}()
-
-		inConnChannel, listener, err := startListener(bobID, 10, WebSocket)
-		_, _ = inConnChannel, listener
-		if err != nil {
-			t.Fatalf("wsStartListener() err = %v, want nil", err)
-		}
-		time.Sleep(200 * time.Millisecond) //Wait till the listener starts
-		defer func() {
-			_ = listener.Shutdown(context.Background())
-		}()
-
-		//Send in new connection
-		_, err = newWsChannel(bobID.ListenerIPAddr, bobID.ListenerEndpoint)
-		if err != nil {
-			t.Fatalf("Test on startListener - newWsChannel() err = %v, want nil", err)
-		}
-	})
-
-	t.Run("websocket_invalid_listener_address", func(t *testing.T) {
-
-		invalidID := identity.OffChainID{
-			ListenerIPAddr: "abc:jkl:xyz",
-		}
-		inConnChannel, listener, err := startListener(invalidID, 10, WebSocket)
-		_, _ = inConnChannel, listener
-		if err == nil {
-			t.Fatalf("wsStartListener() err = nil, want non nil")
-		}
-	})
-
-	t.Run("invalid_adapter", func(t *testing.T) {
-
-		blankID := identity.OffChainID{}
-		inConnChannel, listener, err := startListener(blankID, 10, AdapterType("invalid-adapter"))
-		_, _ = inConnChannel, listener
-		if err == nil {
-			t.Fatalf("wsStartListener() err = nil, want non nil")
-		}
-	})
-
 }

@@ -14,10 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package channel
+package websocket
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -25,6 +24,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"github.com/direct-state-transfer/dst-go/channel/adapter"
 )
 
 type wsConnInterface interface {
@@ -54,17 +55,17 @@ var wsConfig = wsConfigType{
 }
 
 type wsChannel struct {
-	*genericChannelAdapter
+	*adapter.GenericChannelAdapter
 	wsConn *websocket.Conn
 }
 
-//Shutdown enforces the specific adapter to provide a mechanism to shutdown listener
-type Shutdown interface {
-	Shutdown(context.Context) error
-}
-
-func wsStartListener(addr, endpoint string, inConn chan ReadWriteCloser) (
-	sh Shutdown, err error) {
+// WsStartListener initializes a listener for accepting new websocket connections.
+// It listens at the given address and endpoint. After accepting valid incoming connections, read, write handlers
+// are initialized and the connection is passed to the main program via inConn channel.
+//
+// Note : inConn channel is to be initialized with required length by the calling function.
+func WsStartListener(addr, endpoint string, inConn chan adapter.ReadWriteCloser) (
+	sh adapter.Shutdown, err error) {
 
 	listnerMux := http.NewServeMux()
 	listnerMux.HandleFunc(endpoint, func(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +103,7 @@ func wsStartListener(addr, endpoint string, inConn chan ReadWriteCloser) (
 	return srv, nil
 }
 
-func wsConnHandler(inConn chan ReadWriteCloser, w http.ResponseWriter, r *http.Request) {
+func wsConnHandler(inConn chan adapter.ReadWriteCloser, w http.ResponseWriter, r *http.Request) {
 
 	var upgrader = websocket.Upgrader{}
 
@@ -115,22 +116,24 @@ func wsConnHandler(inConn chan ReadWriteCloser, w http.ResponseWriter, r *http.R
 	}
 
 	ch := &wsChannel{
-		genericChannelAdapter: &genericChannelAdapter{
-			connected:        true,
-			writeHandlerPipe: newHandlerPipe(handlerPipeModeWrite),
-			readHandlerPipe:  newHandlerPipe(handlerPipeModeRead),
+		GenericChannelAdapter: &adapter.GenericChannelAdapter{
+			IsConnected:      true,
+			WriteHandlerPipe: adapter.NewHandlerPipe(adapter.HandlerPipeModeWrite),
+			ReadHandlerPipe:  adapter.NewHandlerPipe(adapter.HandlerPipeModeRead),
 		},
 		wsConn: conn,
 	}
 
 	//start read and write handler go routines
-	go wsWriteHandler(wsConfig, ch.wsConn, ch.writeHandlerPipe, ch)
-	go wsReadHandler(wsConfig, ch.wsConn, ch.readHandlerPipe, ch)
+	go wsWriteHandler(wsConfig, ch.wsConn, ch.WriteHandlerPipe, ch)
+	go wsReadHandler(wsConfig, ch.wsConn, ch.ReadHandlerPipe, ch)
 
 	inConn <- ch
 }
 
-func newWsChannel(addr, endpoint string) (_ ReadWriteCloser, err error) {
+// NewWsChannel creates a websocket connection to the peer at given address and endpoint.
+// After a successful connection, it initializes read, write handlers and returns the connection.
+func NewWsChannel(addr, endpoint string) (_ adapter.ReadWriteCloser, err error) {
 
 	peerURL := url.URL{Scheme: "ws", Host: addr, Path: endpoint}
 
@@ -141,29 +144,29 @@ func newWsChannel(addr, endpoint string) (_ ReadWriteCloser, err error) {
 	_ = response.Body.Close()
 
 	wsCh := &wsChannel{
-		genericChannelAdapter: &genericChannelAdapter{
-			connected:        true,
-			writeHandlerPipe: newHandlerPipe(handlerPipeModeWrite),
-			readHandlerPipe:  newHandlerPipe(handlerPipeModeRead),
+		GenericChannelAdapter: &adapter.GenericChannelAdapter{
+			IsConnected:      true,
+			WriteHandlerPipe: adapter.NewHandlerPipe(adapter.HandlerPipeModeWrite),
+			ReadHandlerPipe:  adapter.NewHandlerPipe(adapter.HandlerPipeModeRead),
 		},
 		wsConn: conn,
 	}
 
 	//start read and write handler go routines
-	go wsWriteHandler(wsConfig, wsCh.wsConn, wsCh.writeHandlerPipe, wsCh)
-	go wsReadHandler(wsConfig, wsCh.wsConn, wsCh.readHandlerPipe, wsCh)
+	go wsWriteHandler(wsConfig, wsCh.wsConn, wsCh.WriteHandlerPipe, wsCh)
+	go wsReadHandler(wsConfig, wsCh.wsConn, wsCh.ReadHandlerPipe, wsCh)
 
 	return wsCh, err
 }
 
-func wsReadHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerPipe, ch Closer) {
+func wsReadHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe adapter.HandlerPipe, ch adapter.Closer) {
 	defer func() {
 		err := wsConn.Close()
 		if err != nil {
 			logger.Error("Error closing connection -", err)
 		}
 		logger.Debug("Exiting messageReceiver")
-		pipe.quit <- true
+		pipe.Quit <- true
 	}()
 
 	//Set initial configuration for reading on the websocket connection
@@ -186,7 +189,7 @@ func wsReadHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerPi
 	ticker := time.NewTicker(100 * time.Millisecond)
 	for {
 		select {
-		case <-pipe.quit:
+		case <-pipe.Quit:
 			ticker.Stop()
 			return
 		case <-ticker.C:
@@ -210,7 +213,7 @@ func wsReadHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerPi
 
 				//If receiver has obtained lock, signal handler error it so that it exists
 				//And Lock will be available for Close()
-				pipe.handlerError <- err
+				pipe.HandlerError <- err
 				go func() {
 					err = ch.Close()
 					if err != nil {
@@ -226,13 +229,16 @@ func wsReadHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerPi
 				err = fmt.Errorf("Only BinaryMessage type is supported by websockets adapter")
 			}
 
-			msgPacket := jsonMsgPacket{message, err}
-			pipe.msgPacket <- msgPacket
+			msgPacket := adapter.JSONMsgPacket{
+				Message: message,
+				Err:     err,
+			}
+			pipe.MsgPacket <- msgPacket
 		}
 	}
 }
 
-func wsWriteHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerPipe, ch Closer) {
+func wsWriteHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe adapter.HandlerPipe, ch adapter.Closer) {
 
 	ticker := time.NewTicker(wsConfig.pingPeriod)
 
@@ -243,20 +249,20 @@ func wsWriteHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerP
 			logger.Info("error already closed by peer -", err)
 		}
 		logger.Debug("Exiting messageSender")
-		pipe.quit <- true
+		pipe.Quit <- true
 	}()
 	for {
 		select {
-		case msgPacket := <-pipe.msgPacket:
+		case msgPacket := <-pipe.MsgPacket:
 			err := wsConn.SetWriteDeadline(time.Now().Add(wsConfig.writeWait))
 			if err != nil {
 				logger.Error("Error setting write deadline -", err)
-				msgPacket.err = err
-				pipe.msgPacket <- msgPacket
+				msgPacket.Err = err
+				pipe.MsgPacket <- msgPacket
 				return
 			}
 
-			err = wsConn.WriteMessage(websocket.BinaryMessage, msgPacket.message)
+			err = wsConn.WriteMessage(websocket.BinaryMessage, msgPacket.Message)
 
 			if err != nil {
 
@@ -268,7 +274,7 @@ func wsWriteHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerP
 
 				//If receiver has obtained lock, signal handler error it so that it exists
 				//And Lock will be available for Close()
-				pipe.handlerError <- err
+				pipe.HandlerError <- err
 				go func() {
 					err = ch.Close()
 					if err != nil {
@@ -278,23 +284,23 @@ func wsWriteHandler(wsConfig wsConfigType, wsConn wsConnInterface, pipe handlerP
 				return
 			}
 
-			msgPacket.err = err
-			pipe.msgPacket <- msgPacket
+			msgPacket.Err = err
+			pipe.MsgPacket <- msgPacket
 
 		case <-ticker.C:
 			//Ping period has passed, send ping message
 			err := wsConn.SetWriteDeadline(time.Now().Add(wsConfig.writeWait))
 			if err != nil {
 				logger.Error("Error setting write deadline -", err)
-				pipe.handlerError <- err
+				pipe.HandlerError <- err
 				return
 			}
 			err = wsConn.WriteMessage(websocket.PingMessage, nil)
 			if err != nil {
-				pipe.handlerError <- err
+				pipe.HandlerError <- err
 				return
 			}
-		case <-pipe.quit:
+		case <-pipe.Quit:
 			return
 
 		}
