@@ -1,4 +1,4 @@
-# Direct State Transfer - Go implementation (DST-GO)
+# Direct State Transfer - Go implementation (DST-GO) -- TEST
 
 | Develop | Master |
 | :----: | :-----: |
