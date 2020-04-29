@@ -6,7 +6,7 @@ jobs:
       - image: circleci/golang:1.12.7-stretch
         environment:
             GO111MODULE: "on"
-    working_directory: /go/src/github.com/direct-state-transfer/dst-go
+    working_directory: ~/dst-go
     steps:
       - checkout
       - run:
@@ -16,7 +16,23 @@ jobs:
       - save_cache:
           key: dst-go-{{ .Branch }}-{{ .Revision }}
           paths:
-            - /go/src/github.com/direct-state-transfer/dst-go
+            - ~/dst-go
+            - /go/pkg
+
+  lint:
+    docker:
+      - image: circleci/golang:1.12.7-stretch
+    environment:
+      GO111MODULE: "on"
+    working_directory: ~/dst-go
+    steps:
+      - restore_cache:
+          keys:
+            - dst-go-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Run linter
+          command: |
+            make lint
 
   unit_tests_short:
     docker:
@@ -24,7 +40,7 @@ jobs:
     environment:
       GO111MODULE: "on"
       TEST_RESULTS: /tmp/test-results
-    working_directory: /go/src/github.com/direct-state-transfer/dst-go
+    working_directory: ~/dst-go
     steps:
       - run: mkdir -p $TEST_RESULTS
       - restore_cache:
@@ -46,13 +62,13 @@ jobs:
       - image: circleci/golang:1.12.7-stretch
     environment:
       GO111MODULE: "on"
-    working_directory: /go/src/github.com/direct-state-transfer/dst-go
+    working_directory: ~/dst-go
     steps:
       - restore_cache:
           keys:
             - dst-go-{{ .Branch }}-{{ .Revision }}
       - run:
-          name: Run walktthrough with simulated backend
+          name: Run walkthrough with simulated backend
           command: |
             make ciRunWalkthrough BUILDOPTS="--simulated_backend"
 
@@ -61,9 +77,13 @@ workflows:
   build-and-test:
     jobs:
       - checkout_deps
+      - lint:
+          requires:
+            - checkout_deps
       - unit_tests_short:
           requires:
             - checkout_deps
       - walkthrough_simulated:
           requires:
+            - checkout_deps
             - unit_tests_short
