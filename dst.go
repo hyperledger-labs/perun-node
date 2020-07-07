@@ -39,6 +39,17 @@ type Peer struct {
 	CommType string // Type of off-chain communication protocol.
 }
 
+// CommBackend defines the set of methods required for initializing components required for off-chain communication.
+// This can be protocols such as tcp, websockets, MQTT.
+type CommBackend interface {
+	// Returns a listener that can listen for incoming messages at the specified address.
+	NewListener(address string) (peer.Listener, error)
+
+	// Returns a dialer that can dial for new outgoing connections.
+	// If timeout is zero, program will use no timeout, but standard OS timeouts may still apply.
+	NewDialer() peer.Dialer
+}
+
 // Credential represents the parameters required to access the keys and make signatures for a given address.
 type Credential struct {
 	Addr     wallet.Address
