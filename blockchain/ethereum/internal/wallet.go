@@ -18,8 +18,10 @@ package internal
 
 import (
 	"os"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/wallet"
@@ -64,4 +66,22 @@ func (wb *WalletBackend) NewWallet(keystorePath, password string) (wallet.Wallet
 func (wb *WalletBackend) UnlockAccount(w wallet.Wallet, addr wallet.Address) (wallet.Account, error) {
 	acc, err := w.Unlock(addr)
 	return acc, errors.Wrap(err, "unlocking account")
+}
+
+// ParseAddr parses the ethereum address from the given string. It be the hexadecimal
+// representation of the address, optionally prefixed by "0x".
+// It can be all upper or all lower or mixed case. All of them will produce identical
+// result.
+func (wb *WalletBackend) ParseAddr(str string) (wallet.Address, error) {
+	addr := ethwallet.AsWalletAddr(common.HexToAddress(str))
+
+	// common.HexToAddress parses even invalid strings to zero value of the address type.
+	// So return an error when addr has zero value and the input string is not a valid
+	// zero value representation of the address type. Valid zero value representations are
+	// "", "0x", "0x00000" (any number of zeros) or the canonical form of forty zeros.
+	zeroValue := ethwallet.Address{}
+	if addr.Equals(&zeroValue) && !strings.Contains(zeroValue.String(), str) {
+		return nil, errors.New("parsing address")
+	}
+	return addr, nil
 }

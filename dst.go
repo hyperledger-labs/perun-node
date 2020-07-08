@@ -111,6 +111,7 @@ type ChainBackend interface {
 
 // WalletBackend wraps the methods for instantiating wallets and accounts that are specific to a blockchain platform.
 type WalletBackend interface {
+	ParseAddr(string) (wallet.Address, error)
 	NewWallet(keystore string, password string) (wallet.Wallet, error)
 	UnlockAccount(wallet.Wallet, wallet.Address) (wallet.Account, error)
 } // nolint:gofumpt // unknown error, maybe a false positive

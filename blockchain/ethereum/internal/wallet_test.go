@@ -20,7 +20,10 @@ import (
 	"math/rand"
 	"testing"
 
+	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/direct-state-transfer/dst-go"
 	"github.com/direct-state-transfer/dst-go/blockchain/ethereum/ethereumtest"
@@ -75,5 +78,57 @@ func Test_WalletBackend_NewAccount(t *testing.T) {
 		w, err := wb.UnlockAccount(setup.Wallet, randomAddr)
 		assert.Error(t, err)
 		assert.Nil(t, w)
+	})
+}
+
+func Test_WalletBackend_ParseAddr(t *testing.T) {
+	rng := rand.New(rand.NewSource(1729))
+	wb := ethereumtest.NewTestWalletBackend()
+
+	t.Run("happy_non_zero_value", func(t *testing.T) {
+		validAddr := ethereumtest.NewRandomAddress(rng)
+		gotAddr, err := wb.ParseAddr(validAddr.String())
+		assert.NoError(t, err)
+		require.NotNil(t, gotAddr)
+		assert.True(t, validAddr.Equals(gotAddr))
+	})
+	t.Run("happy_zero_value", func(t *testing.T) {
+		validAddr := ethwallet.Address{}
+		gotAddr, err := wb.ParseAddr(validAddr.String())
+		assert.NoError(t, err)
+		require.NotNil(t, gotAddr)
+		assert.True(t, validAddr.Equals(gotAddr))
+	})
+	t.Run("invalid_addr", func(t *testing.T) {
+		gotAddr, err := wb.ParseAddr("invalid-addr")
+		assert.Error(t, err)
+		require.Nil(t, gotAddr)
+	})
+
+	t.Run("fixed_data", func(t *testing.T) {
+		tests := []struct {
+			name   string
+			input  string
+			output string
+		}{
+			{"lower_case", "0x931d387731bbbc988b312206c74f77d004d6b84b", "0x931D387731bBbC988B312206c74F77D004D6B84b"},
+			{"upper_case", "0X931D387731BBBC988B312206C74F77D004D6B84B", "0x931D387731bBbC988B312206c74F77D004D6B84b"},
+			{"mixed_case", "0X931D387731bbbc988b312206c74f77d004d6b84b", "0x931D387731bBbC988B312206c74F77D004D6B84b"},
+			{"no_prefix", "931d387731bbbc988b312206c74f77d004d6b84b", "0x931D387731bBbC988B312206c74F77D004D6B84b"},
+			{"zero_addr_1", "", "0x0000000000000000000000000000000000000000"},
+			{"zero_addr_2", "0x", "0x0000000000000000000000000000000000000000"},
+			{"zero_addr_3", "0x00000000", "0x0000000000000000000000000000000000000000"},
+			{"zero_addr_4", "00000000", "0x0000000000000000000000000000000000000000"},
+			{"zero_addr_5", "0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"},
+			{"odd_no_of_chars", "0xbd5465321", "0x0000000000000000000000000000000Bd5465321"},
+		}
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				gotAddr, err := wb.ParseAddr(test.input)
+				assert.NoError(t, err)
+				require.NotNil(t, gotAddr)
+				assert.Equal(t, test.output, gotAddr.String())
+			})
+		}
 	})
 }
