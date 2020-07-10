@@ -39,6 +39,8 @@ type Peer struct {
 	CommType string // Type of off-chain communication protocol.
 }
 
+//go:generate mockery -name CommBackend -output ./internal/mocks
+
 // CommBackend defines the set of methods required for initializing components required for off-chain communication.
 // This can be protocols such as tcp, websockets, MQTT.
 type CommBackend interface {
