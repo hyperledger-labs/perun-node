@@ -1,0 +1,78 @@
+version: 2.1
+
+executors:
+  dst-go-executor:
+    docker:
+      - image: cimg/go:1.14.1
+    environment:
+      RESULTS: /tmp/results
+      ARTIFACTS: /tmp/artifacts
+      TERM: xterm
+    working_directory: ~/dst-go
+
+commands:
+  checkout-code:
+    steps:
+      - checkout
+      - run:
+          name: Check if go.mod requires update
+          command: go list -mod=readonly ./...
+
+  make-results-artifacts-dir:
+    steps:
+      - run: mkdir -p $RESULTS && ls -l /tmp
+      - run: mkdir -p $ARTIFACTS && ls -l /tmp
+
+  upload-results-artifacts:
+    steps:
+      - store_test_results:
+          path: /tmp/results
+      - store_artifacts:
+          path: /tmp/artifacts
+
+  install-txt-to-html-coverter-aha:
+    steps:
+      - run: sudo apt-get update
+      - run: sudo apt-get install aha
+
+jobs:
+
+  lint:
+    executor: dst-go-executor
+    steps:
+      - checkout-code
+      - make-results-artifacts-dir
+      - run:
+          name: Install linter
+          command: curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.28.2
+      - install-txt-to-html-coverter-aha
+      - run:
+          name: Run linter
+          command: golangci-lint run --out-format='junit-xml' -v ./... | tee ${RESULTS}/lint.xml
+      - run:
+          name: Check copyright notice
+          command: .scripts/copyright_notice_check.sh | tee >(aha --title "Check for Copyright Notice" --pink > ${ARTIFACTS}/copyright_notice_check.html)
+          when: always
+      - upload-results-artifacts
+
+
+  unit_test:
+    executor: dst-go-executor
+    steps:
+      - checkout-code
+      - make-results-artifacts-dir
+      - run:
+          name: Run unit tests
+          command: gotestsum --junitfile ${RESULTS}/unit-tests.xml --format=short-verbose -- -coverprofile=c.out ./...
+      - run:
+          name: Generate coverage report
+          command: go tool cover -html=c.out -o ${ARTIFACTS}/unit_test_coverage.html
+          when: always
+      - upload-results-artifacts
+
+
+workflows:
+  build-lint-test:
+    jobs:
+      - lint
+      - unit_test
