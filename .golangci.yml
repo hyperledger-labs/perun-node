@@ -1,0 +1,134 @@
+# This file contains all available configuration options
+# with their default values.
+
+# options for analysis running
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  build-tags:
+    # include integration text files
+    - integration
+
+output:
+  # colored-line-number|line-number|json|tab|checkstyle|code-climate, default is "colored-line-number"
+  format: 'junit-xml'
+
+linters:
+  disable-all: true
+  enable:
+    # detect possible issues in code or coding style
+    - errcheck
+    - gofmt
+    - gofumpt
+    - goimports
+    - golint
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - megacheck
+    - nolintlint
+    - testpackage
+    - staticcheck
+    - stylecheck
+      # restrict dependencies
+    - depguard
+      # detect unused, duplicate code
+    - deadcode
+    - dupl
+    - goconst
+    - structcheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+      # check code complexity
+    - funlen
+    - gocognit
+    - gocyclo
+    - lll
+      # detect grammatical aspects
+    - godot
+    - misspell
+      # detect possible optimizations
+    - maligned
+  fast: false
+
+# all available settings of specific linters
+linters-settings:
+
+  errcheck:
+    # report about assignment of errors to blank identifiers, default is false.
+    check-blank: true
+
+  depguard:
+    list-type: blacklist
+    include-go-root: true
+    packages-with-error-message:
+      - github.com/ethereum/go-ethereum: "It contains code licensed under LGPL, import is allowed only inside dst-go/blockchain/ethereum"
+      - perun.network/go-perun/backend/ethereum:  "It uses code licensed under LGPL, import is allowed only inside dst-go/blockchain/ethereum"
+
+  dupl:
+    # tokens count to trigger issue, 150 by default
+    threshold: 100
+
+  funlen:
+    lines: 60
+    statements: 40
+
+  goconst:
+    # minimal length of string constant, 3 by default
+    min-len: 3
+    # minimal occurrences count to trigger, 3 by default
+    min-occurrences: 5
+
+  gocognit:
+    # minimal code complexity to report, 30 by default (but we recommend 10-20)
+    min-complexity: 20
+
+  gocyclo:
+    # minimal code complexity to report, 30 by default (but we recommend 10-20)
+    min-complexity: 20
+
+  goimports:
+    local-prefixes: github.com/direct-state-transfer/dst-go
+
+  govet:
+    check-shadowing: true
+
+  lll:
+    line-length: 120
+    tab-width: 1
+
+  misspell:
+    locale: US
+
+  testpackage:
+  skip-regexp: internal_test\.go
+
+issues:
+  # Excluding configuration per-path, per-linter, per-text and per-source
+  exclude-rules:
+    # Exclude some linters from running on tests files and test helper packages.
+    - path: _test\.go
+      linters:
+        - funlen
+        - gosec
+    
+    - path: test/
+      linters:
+        - funlen
+        - gosec
+
+    - path: blockchain/ethereum/
+      linters:
+        - depguard
+
+    - linters:
+        - lll
+      source: "^//go:generate "
+
+  # Default value for this option is true.
+  # Set it to false, because it discards errors from golint.
+  # Especially missing comments for exported types & variables.
+  exclude-use-default: false
