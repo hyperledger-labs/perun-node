@@ -65,7 +65,7 @@ linters-settings:
     list-type: blacklist
     include-go-root: true
     packages-with-error-message:
-      - github.com/ethereum/go-ethereum: "It contains code licensed under LGPL , import is allowed only inside dst-go/blockchain/ethereum"
+      - github.com/ethereum/go-ethereum: "It contains code licensed under LGPL, import is allowed only inside dst-go/blockchain/ethereum"
       - perun.network/go-perun/backend/ethereum:  "It uses code licensed under LGPL, import is allowed only inside dst-go/blockchain/ethereum"
 
   dupl:
@@ -132,4 +132,3 @@ issues:
   # Set it to false, because it discards errors from golint.
   # Especially missing comments for exported types & variables.
   exclude-use-default: false
-
