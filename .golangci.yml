@@ -114,6 +114,7 @@ issues:
       linters:
         - funlen
         - gosec
+        - depguard
     
     - path: test/
       linters:
