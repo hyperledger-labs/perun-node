@@ -27,8 +27,8 @@ import (
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 
-	"github.com/direct-state-transfer/dst-go"
-	"github.com/direct-state-transfer/dst-go/blockchain/ethereum/internal"
+	"github.com/direct-state-transfer/perun-node"
+	"github.com/direct-state-transfer/perun-node/blockchain/ethereum/internal"
 )
 
 // ChainTxTimeout is the timeout for on-chain transactions.
@@ -42,7 +42,7 @@ const ChainTxTimeout = 10 * time.Minute
 //
 // The function signature uses only types defined in root of dst project and types from std lib.
 // This enables the function to be loaded as symbol without importing this package when it is compiled as plugin.
-func NewChainBackend(url string, timeout time.Duration, cred dst.Credential) (dst.ChainBackend, error) {
+func NewChainBackend(url string, timeout time.Duration, cred perun.Credential) (perun.ChainBackend, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	ethereumBackend, err := ethclient.DialContext(ctx, url)
