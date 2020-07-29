@@ -65,8 +65,8 @@ linters-settings:
     list-type: blacklist
     include-go-root: true
     packages-with-error-message:
-      - github.com/ethereum/go-ethereum: "It contains code licensed under LGPL, import is allowed only inside dst-go/blockchain/ethereum"
-      - perun.network/go-perun/backend/ethereum:  "It uses code licensed under LGPL, import is allowed only inside dst-go/blockchain/ethereum"
+      - github.com/ethereum/go-ethereum: "It contains code licensed under LGPL, import is allowed only inside perun-node/blockchain/ethereum"
+      - perun.network/go-perun/backend/ethereum:  "It uses code licensed under LGPL, import is allowed only inside perun-node/blockchain/ethereum"
 
   dupl:
     # tokens count to trigger issue, 150 by default
@@ -91,7 +91,7 @@ linters-settings:
     min-complexity: 20
 
   goimports:
-    local-prefixes: github.com/direct-state-transfer/dst-go
+    local-prefixes: github.com/direct-state-transfer/perun-node
 
   govet:
     check-shadowing: true
