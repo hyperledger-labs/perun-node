@@ -31,7 +31,7 @@ import (
 	"github.com/direct-state-transfer/dst-go/blockchain/ethereum/ethereumtest"
 	"github.com/direct-state-transfer/dst-go/client"
 	"github.com/direct-state-transfer/dst-go/comm/tcp"
-	"github.com/direct-state-transfer/dst-go/node/nodetest"
+	"github.com/direct-state-transfer/dst-go/session/sessiontest"
 )
 
 // Currently the integration setup is a quick hack requiring the user to manually start ganache-cli node. Command:
@@ -46,7 +46,7 @@ import (
 
 func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 	prng := rand.New(rand.NewSource(1729))
-	_, user := nodetest.NewTestUser(t, prng, 0)
+	_, user := sessiontest.NewTestUser(t, prng, 0)
 	adjudicator, asset := setup(t, user.OnChain)
 
 	cfg := client.Config{
