@@ -27,12 +27,12 @@
 // to code that is licensed under LGPL.
 //
 // In order to provide this isolation the exported methods in this packages
-// use only those types defined in the root package of dst-go and in std lib.
-// This restriction enables the other packages in dst-go to compile this package
+// use only those types defined in the root package of this project and in std lib.
+// This restriction enables the other packages in perun-node to compile this package
 // as plugin and load the symbols from it in runtime (using "plugin" library)
 // without importing any package from "go-perun/backend/ethereum" or
 // "go-ethereum" or this package.
-// This enables the possibility to generate a dst-go node binary that does not
-// contain any components licensed under LGPL, yet use the functionality from such
+// This enables the possibility to generate a perun-node binary that does not contain any
+// components licensed under LGPL, yet use the functionality from such
 // libraries by dynamically linking to them during runtime.
 package ethereum
