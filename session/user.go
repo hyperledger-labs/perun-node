@@ -20,23 +20,23 @@ import (
 	"github.com/pkg/errors"
 	"perun.network/go-perun/wallet"
 
-	"github.com/direct-state-transfer/dst-go"
+	"github.com/direct-state-transfer/perun-node"
 )
 
 // NewUnlockedUser initializes a user and unlocks all the accounts,
 // those corresponding to on-chain address, off-chain address and all participant addresses.
-func NewUnlockedUser(wb dst.WalletBackend, cfg UserConfig) (dst.User, error) {
+func NewUnlockedUser(wb perun.WalletBackend, cfg UserConfig) (perun.User, error) {
 	var err error
-	u := dst.User{}
+	u := perun.User{}
 
 	if u.OnChain.Wallet, err = newWallet(wb, cfg.OnChainWallet, cfg.OnChainAddr); err != nil {
-		return dst.User{}, errors.WithMessage(err, "on-chain wallet")
+		return perun.User{}, errors.WithMessage(err, "on-chain wallet")
 	}
 	if u.OffChain.Wallet, err = newWallet(wb, cfg.OffChainWallet, cfg.OffChainAddr); err != nil {
-		return dst.User{}, errors.WithMessage(err, "off-chain wallet")
+		return perun.User{}, errors.WithMessage(err, "off-chain wallet")
 	}
 	if u.PartAddrs, err = parseUnlock(wb, u.OffChain.Wallet, cfg.PartAddrs...); err != nil {
-		return dst.User{}, errors.WithMessage(err, "participant addresses")
+		return perun.User{}, errors.WithMessage(err, "participant addresses")
 	}
 	u.OffChainAddr = u.OffChain.Addr
 	u.CommAddr = cfg.CommAddr
@@ -47,7 +47,7 @@ func NewUnlockedUser(wb dst.WalletBackend, cfg UserConfig) (dst.User, error) {
 
 // newWallet initializes the wallet using the wallet backend and unlocks accounts corresponding
 // to the given address.
-func newWallet(wb dst.WalletBackend, cfg WalletConfig, addr string) (wallet.Wallet, error) {
+func newWallet(wb perun.WalletBackend, cfg WalletConfig, addr string) (wallet.Wallet, error) {
 	w, err := wb.NewWallet(cfg.KeystorePath, cfg.Password)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func newWallet(wb dst.WalletBackend, cfg WalletConfig, addr string) (wallet.Wall
 
 // parseUnlock parses the given addresses string using the wallet backend and unlocks accounts
 // corresponding to each of the given addresses.
-func parseUnlock(wb dst.WalletBackend, w wallet.Wallet, addrs ...string) ([]wallet.Address, error) {
+func parseUnlock(wb perun.WalletBackend, w wallet.Wallet, addrs ...string) ([]wallet.Address, error) {
 	var err error
 	parsedAddrs := make([]wallet.Address, len(addrs))
 	for i, addr := range addrs {

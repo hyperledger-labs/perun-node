@@ -1,4 +1,4 @@
-module github.com/direct-state-transfer/dst-go
+module github.com/direct-state-transfer/perun-node
 
 go 1.14
 

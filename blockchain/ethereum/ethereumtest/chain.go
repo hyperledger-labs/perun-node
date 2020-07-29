@@ -29,8 +29,8 @@ import (
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/wallet"
 
-	"github.com/direct-state-transfer/dst-go"
-	"github.com/direct-state-transfer/dst-go/blockchain/ethereum/internal"
+	"github.com/direct-state-transfer/perun-node"
+	"github.com/direct-state-transfer/perun-node/blockchain/ethereum/internal"
 )
 
 // ChainTxTimeout is the timeout for on-chain transactions.
@@ -42,7 +42,7 @@ const ChainTxTimeout = 1 * time.Minute
 // see go-ethereum) with required contracts deployed on it and a UserSetup.
 type ChainBackendSetup struct {
 	*WalletSetup
-	ChainBackend       dst.ChainBackend
+	ChainBackend       perun.ChainBackend
 	AdjAddr, AssetAddr wallet.Address
 }
 

@@ -25,13 +25,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/direct-state-transfer/dst-go"
-	"github.com/direct-state-transfer/dst-go/blockchain/ethereum/ethereumtest"
-	"github.com/direct-state-transfer/dst-go/blockchain/ethereum/internal"
+	"github.com/direct-state-transfer/perun-node"
+	"github.com/direct-state-transfer/perun-node/blockchain/ethereum/ethereumtest"
+	"github.com/direct-state-transfer/perun-node/blockchain/ethereum/internal"
 )
 
 func Test_WalletBackend_Interface(t *testing.T) {
-	assert.Implements(t, (*dst.WalletBackend)(nil), new(internal.WalletBackend))
+	assert.Implements(t, (*perun.WalletBackend)(nil), new(internal.WalletBackend))
 }
 
 func Test_WalletBackend_NewWallet(t *testing.T) {

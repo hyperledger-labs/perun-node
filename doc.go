@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package dst defines the different types and backends in this project.
+// Package perun defines the different types and backends in this project.
 // Implementation of functionalities of the types and packges will be done in
 // the corresponding packages.
-package dst
+package perun

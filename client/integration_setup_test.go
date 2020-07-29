@@ -28,15 +28,15 @@ import (
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/wallet"
 
-	"github.com/direct-state-transfer/dst-go"
-	"github.com/direct-state-transfer/dst-go/blockchain/ethereum"
+	"github.com/direct-state-transfer/perun-node"
+	"github.com/direct-state-transfer/perun-node/blockchain/ethereum"
 )
 
 var testChainURL = "ws://127.0.0.1:8545"
 
 // setup checks if valid contracts are deployed in pre-computed addresses, if not it deployes them.
 // Address generation mechanism in ethereum is used to pre-compute the contract address.
-func setup(t *testing.T, onChainCred dst.Credential) (adjudicator, asset wallet.Address) {
+func setup(t *testing.T, onChainCred perun.Credential) (adjudicator, asset wallet.Address) {
 	require.Truef(t, isBlockchainRunning(testChainURL), "cannot connect to ganache-cli node at "+testChainURL)
 
 	adjudicator = ethwallet.AsWalletAddr(crypto.CreateAddress(ethwallet.AsEthAddr(onChainCred.Addr), 0))
@@ -58,7 +58,7 @@ func isBlockchainRunning(url string) bool {
 	return err == nil
 }
 
-func deployContracts(t *testing.T, chain dst.ChainBackend) (adjudicator, asset wallet.Address) {
+func deployContracts(t *testing.T, chain perun.ChainBackend) (adjudicator, asset wallet.Address) {
 	adjudicator, err := chain.DeployAdjudicator()
 	require.NoError(t, err)
 	asset, err = chain.DeployAsset(adjudicator)
