@@ -23,7 +23,7 @@ import (
 
 // NewWalletBackend initializes an ethereum specific wallet backend.
 //
-// The function signature uses only types defined in root of dst project and types from std lib.
+// The function signature uses only types defined in the root package of this project and types from std lib.
 // This enables the function to be loaded as symbol without importing this package when it is compiled as plugin.
 func NewWalletBackend() perun.WalletBackend {
 	return &internal.WalletBackend{EncParams: internal.ScryptParams{

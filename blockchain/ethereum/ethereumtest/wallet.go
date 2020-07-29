@@ -54,7 +54,7 @@ type WalletSetup struct {
 func NewWalletSetup(t *testing.T, rng *rand.Rand, n uint) *WalletSetup {
 	wb := NewTestWalletBackend()
 
-	ksPath, err := ioutil.TempDir("", "dst-go-test-keystore-*")
+	ksPath, err := ioutil.TempDir("", "perun-node-test-keystore-*")
 	require.NoErrorf(t, err, "Error creating temp directory for keystore: %v", err)
 	ks := keystore.NewKeyStore(ksPath, internal.WeakScryptN, internal.WeakScryptP)
 	w, err := ethwallet.NewWallet(ks, "")
