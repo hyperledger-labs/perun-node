@@ -28,10 +28,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/direct-state-transfer/dst-go/blockchain/ethereum/ethereumtest"
-	"github.com/direct-state-transfer/dst-go/client"
-	"github.com/direct-state-transfer/dst-go/comm/tcp"
-	"github.com/direct-state-transfer/dst-go/session/sessiontest"
+	"github.com/direct-state-transfer/perun-node/blockchain/ethereum/ethereumtest"
+	"github.com/direct-state-transfer/perun-node/client"
+	"github.com/direct-state-transfer/perun-node/comm/tcp"
+	"github.com/direct-state-transfer/perun-node/session/sessiontest"
 )
 
 // Currently the integration setup is a quick hack requiring the user to manually start ganache-cli node. Command:

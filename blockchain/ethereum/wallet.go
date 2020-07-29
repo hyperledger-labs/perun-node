@@ -17,15 +17,15 @@
 package ethereum
 
 import (
-	"github.com/direct-state-transfer/dst-go"
-	"github.com/direct-state-transfer/dst-go/blockchain/ethereum/internal"
+	"github.com/direct-state-transfer/perun-node"
+	"github.com/direct-state-transfer/perun-node/blockchain/ethereum/internal"
 )
 
 // NewWalletBackend initializes an ethereum specific wallet backend.
 //
 // The function signature uses only types defined in root of dst project and types from std lib.
 // This enables the function to be loaded as symbol without importing this package when it is compiled as plugin.
-func NewWalletBackend() dst.WalletBackend {
+func NewWalletBackend() perun.WalletBackend {
 	return &internal.WalletBackend{EncParams: internal.ScryptParams{
 		N: internal.StandardScryptN,
 		P: internal.StandardScryptP,

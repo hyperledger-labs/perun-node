@@ -28,12 +28,12 @@ import (
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/wallet"
 
-	"github.com/direct-state-transfer/dst-go"
-	"github.com/direct-state-transfer/dst-go/blockchain/ethereum/internal"
+	"github.com/direct-state-transfer/perun-node"
+	"github.com/direct-state-transfer/perun-node/blockchain/ethereum/internal"
 )
 
 // NewTestWalletBackend initializes an ethereum specific wallet backend with weak encryption parameters.
-func NewTestWalletBackend() dst.WalletBackend {
+func NewTestWalletBackend() perun.WalletBackend {
 	return &internal.WalletBackend{EncParams: internal.ScryptParams{
 		N: internal.WeakScryptN,
 		P: internal.WeakScryptP,
@@ -43,7 +43,7 @@ func NewTestWalletBackend() dst.WalletBackend {
 // WalletSetup can generate any number of keys for testing. To enable faster unlocking of the keys, it uses
 // weak encryption parameters for the storage encryption of the keys.
 type WalletSetup struct {
-	WalletBackend dst.WalletBackend
+	WalletBackend perun.WalletBackend
 	KeystorePath  string
 	Keystore      *keystore.KeyStore
 	Wallet        wallet.Wallet

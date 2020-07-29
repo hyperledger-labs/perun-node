@@ -22,14 +22,14 @@ import (
 
 	"perun.network/go-perun/wallet"
 
-	"github.com/direct-state-transfer/dst-go"
-	"github.com/direct-state-transfer/dst-go/blockchain/ethereum/ethereumtest"
+	"github.com/direct-state-transfer/perun-node"
+	"github.com/direct-state-transfer/perun-node/blockchain/ethereum/ethereumtest"
 )
 
 // NewTestUser returns a test user with with on-chain, off-chain and n participant accounts.
-func NewTestUser(t *testing.T, rng *rand.Rand, n uint) (dst.WalletBackend, dst.User) {
+func NewTestUser(t *testing.T, rng *rand.Rand, n uint) (perun.WalletBackend, perun.User) {
 	ws := ethereumtest.NewWalletSetup(t, rng, 2+n)
-	u := dst.User{}
+	u := perun.User{}
 	u.Alias = "test-user"
 
 	u.OnChain.Addr = ws.Accs[0].Address()
