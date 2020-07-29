@@ -14,5 +14,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package nodetest implements test helpers for functionalities defined in node.
-package nodetest
+// Package sessiontest implements test helpers for functionalities defined in session.
+package sessiontest
