@@ -14,7 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package node implements a node that can run multiple sessions.
-// Each session runs an instance of state channel network client and
-// is owned by the user of the session.
-package node
+// Package session implements a session to which a user can attach his or her
+// credentials.  He or she can then use the session to open, use, and settle
+// state channels.
+//
+// Each session runs an instance of state channel network client and is owned
+// by the user of the session. Data within a session is continuously persisted
+// in runtime, allowing the user to close and restore the same session later.
+package session

@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package node_test
+package session_test
 
 import (
 	"math/rand"
@@ -25,23 +25,23 @@ import (
 
 	"github.com/direct-state-transfer/dst-go"
 	"github.com/direct-state-transfer/dst-go/blockchain/ethereum/ethereumtest"
-	"github.com/direct-state-transfer/dst-go/node"
-	"github.com/direct-state-transfer/dst-go/node/nodetest"
+	"github.com/direct-state-transfer/dst-go/session"
+	"github.com/direct-state-transfer/dst-go/session/sessiontest"
 )
 
 func Test_New_Happy(t *testing.T) {
 	rng := rand.New(rand.NewSource(1729))
 	cntParts := uint(4)
-	wb, testUser := nodetest.NewTestUser(t, rng, cntParts)
-	userCfg := node.UserConfig{
+	wb, testUser := sessiontest.NewTestUser(t, rng, cntParts)
+	userCfg := session.UserConfig{
 		Alias:       testUser.Alias,
 		OnChainAddr: testUser.OnChain.Addr.String(),
-		OnChainWallet: node.WalletConfig{
+		OnChainWallet: session.WalletConfig{
 			KeystorePath: testUser.OnChain.Keystore,
 			Password:     "",
 		},
 		OffChainAddr: testUser.OffChain.Addr.String(),
-		OffChainWallet: node.WalletConfig{
+		OffChainWallet: session.WalletConfig{
 			KeystorePath: testUser.OffChain.Keystore,
 			Password:     "",
 		},
@@ -52,7 +52,7 @@ func Test_New_Happy(t *testing.T) {
 		userCfg.PartAddrs[i] = addr.String()
 	}
 
-	gotUser, err := node.NewUnlockedUser(wb, userCfg)
+	gotUser, err := session.NewUnlockedUser(wb, userCfg)
 	require.NoError(t, err)
 	require.NotZero(t, gotUser)
 	require.Len(t, gotUser.PartAddrs, int(cntParts))
@@ -61,23 +61,23 @@ func Test_New_Happy(t *testing.T) {
 func Test_New_Invalid_Parts(t *testing.T) {
 	rng := rand.New(rand.NewSource(1729))
 	cntParts := uint(1)
-	wb, testUser := nodetest.NewTestUser(t, rng, cntParts)
-	userCfg := node.UserConfig{
+	wb, testUser := sessiontest.NewTestUser(t, rng, cntParts)
+	userCfg := session.UserConfig{
 		Alias:       testUser.Alias,
 		OnChainAddr: testUser.OnChain.Addr.String(),
-		OnChainWallet: node.WalletConfig{
+		OnChainWallet: session.WalletConfig{
 			KeystorePath: testUser.OnChain.Keystore,
 			Password:     "",
 		},
 		OffChainAddr: testUser.OffChain.Addr.String(),
-		OffChainWallet: node.WalletConfig{
+		OffChainWallet: session.WalletConfig{
 			KeystorePath: testUser.OffChain.Keystore,
 			Password:     "",
 		},
 	}
 
 	t.Run("no_parts", func(t *testing.T) {
-		gotUser, err := node.NewUnlockedUser(wb, node.UserConfig{})
+		gotUser, err := session.NewUnlockedUser(wb, session.UserConfig{})
 		require.Error(t, err)
 		require.Zero(t, gotUser)
 	})
@@ -87,7 +87,7 @@ func Test_New_Invalid_Parts(t *testing.T) {
 			userCfg.PartAddrs[i] = "invalid-addr"
 		}
 
-		gotUser, err := node.NewUnlockedUser(wb, userCfg)
+		gotUser, err := session.NewUnlockedUser(wb, userCfg)
 		require.Error(t, err)
 		require.Zero(t, gotUser)
 	})
@@ -96,7 +96,7 @@ func Test_New_Invalid_Parts(t *testing.T) {
 		for i := range testUser.PartAddrs {
 			userCfg.PartAddrs[i] = ethereumtest.NewRandomAddress(rng).String()
 		}
-		gotUser, err := node.NewUnlockedUser(wb, userCfg)
+		gotUser, err := session.NewUnlockedUser(wb, userCfg)
 		require.Error(t, err)
 		require.Zero(t, gotUser)
 	})
@@ -104,11 +104,11 @@ func Test_New_Invalid_Parts(t *testing.T) {
 
 func Test_New_Invalid_Wallets(t *testing.T) {
 	rng := rand.New(rand.NewSource(1729))
-	wb, testUser := nodetest.NewTestUser(t, rng, 0)
+	wb, testUser := sessiontest.NewTestUser(t, rng, 0)
 
 	type args struct {
 		wb  dst.WalletBackend
-		cfg node.UserConfig
+		cfg session.UserConfig
 	}
 	tests := []struct {
 		name string
@@ -119,15 +119,15 @@ func Test_New_Invalid_Wallets(t *testing.T) {
 			name: "invalid_on-chain_address",
 			args: args{
 				wb: wb,
-				cfg: node.UserConfig{
+				cfg: session.UserConfig{
 					Alias:       testUser.Alias,
 					OnChainAddr: "invalid-addr",
-					OnChainWallet: node.WalletConfig{
+					OnChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OnChain.Keystore,
 						Password:     "",
 					},
 					OffChainAddr: testUser.OffChain.Addr.String(),
-					OffChainWallet: node.WalletConfig{
+					OffChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OffChain.Keystore,
 						Password:     "",
 					},
@@ -138,15 +138,15 @@ func Test_New_Invalid_Wallets(t *testing.T) {
 			name: "invalid_off-chain_address",
 			args: args{
 				wb: wb,
-				cfg: node.UserConfig{
+				cfg: session.UserConfig{
 					Alias:       testUser.Alias,
 					OnChainAddr: testUser.OnChain.Addr.String(),
-					OnChainWallet: node.WalletConfig{
+					OnChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OnChain.Keystore,
 						Password:     "",
 					},
 					OffChainAddr: "invalid-addr",
-					OffChainWallet: node.WalletConfig{
+					OffChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OffChain.Keystore,
 						Password:     "",
 					},
@@ -157,15 +157,15 @@ func Test_New_Invalid_Wallets(t *testing.T) {
 			name: "missing_on-chain_account",
 			args: args{
 				wb: wb,
-				cfg: node.UserConfig{
+				cfg: session.UserConfig{
 					Alias:       testUser.Alias,
 					OnChainAddr: ethereumtest.NewRandomAddress(rng).String(),
-					OnChainWallet: node.WalletConfig{
+					OnChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OnChain.Keystore,
 						Password:     "",
 					},
 					OffChainAddr: testUser.OffChain.Addr.String(),
-					OffChainWallet: node.WalletConfig{
+					OffChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OffChain.Keystore,
 						Password:     "",
 					},
@@ -176,15 +176,15 @@ func Test_New_Invalid_Wallets(t *testing.T) {
 			name: "missing_off-chain_account",
 			args: args{
 				wb: wb,
-				cfg: node.UserConfig{
+				cfg: session.UserConfig{
 					Alias:       testUser.Alias,
 					OnChainAddr: testUser.OnChain.Addr.String(),
-					OnChainWallet: node.WalletConfig{
+					OnChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OnChain.Keystore,
 						Password:     "",
 					},
 					OffChainAddr: ethereumtest.NewRandomAddress(rng).String(),
-					OffChainWallet: node.WalletConfig{
+					OffChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OffChain.Keystore,
 						Password:     "",
 					},
@@ -195,15 +195,15 @@ func Test_New_Invalid_Wallets(t *testing.T) {
 			name: "invalid_on-chain_password",
 			args: args{
 				wb: wb,
-				cfg: node.UserConfig{
+				cfg: session.UserConfig{
 					Alias:       testUser.Alias,
 					OnChainAddr: testUser.OnChain.Addr.String(),
-					OnChainWallet: node.WalletConfig{
+					OnChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OnChain.Keystore,
 						Password:     "invalid-password",
 					},
 					OffChainAddr: testUser.OffChain.Addr.String(),
-					OffChainWallet: node.WalletConfig{
+					OffChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OffChain.Keystore,
 						Password:     "",
 					},
@@ -214,15 +214,15 @@ func Test_New_Invalid_Wallets(t *testing.T) {
 			name: "valid_on-chain_invalid_off-chain_password",
 			args: args{
 				wb: wb,
-				cfg: node.UserConfig{
+				cfg: session.UserConfig{
 					Alias:       testUser.Alias,
 					OnChainAddr: testUser.OnChain.Addr.String(),
-					OnChainWallet: node.WalletConfig{
+					OnChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OnChain.Keystore,
 						Password:     "",
 					},
 					OffChainAddr: testUser.OffChain.Addr.String(),
-					OffChainWallet: node.WalletConfig{
+					OffChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OffChain.Keystore,
 						Password:     "invalid-pwd",
 					},
@@ -233,15 +233,15 @@ func Test_New_Invalid_Wallets(t *testing.T) {
 			name: "invalid_keystore_path",
 			args: args{
 				wb: wb,
-				cfg: node.UserConfig{
+				cfg: session.UserConfig{
 					Alias:       testUser.Alias,
 					OnChainAddr: testUser.OnChain.Addr.String(),
-					OnChainWallet: node.WalletConfig{
+					OnChainWallet: session.WalletConfig{
 						KeystorePath: "invalid-keystore-path",
 						Password:     "",
 					},
 					OffChainAddr: testUser.OffChain.Addr.String(),
-					OffChainWallet: node.WalletConfig{
+					OffChainWallet: session.WalletConfig{
 						KeystorePath: testUser.OffChain.Keystore,
 						Password:     "",
 					},
@@ -251,7 +251,7 @@ func Test_New_Invalid_Wallets(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := node.NewUnlockedUser(tt.args.wb, tt.args.cfg)
+			got, err := session.NewUnlockedUser(tt.args.wb, tt.args.cfg)
 			require.Error(t, err)
 			assert.Zero(t, got)
 		})
