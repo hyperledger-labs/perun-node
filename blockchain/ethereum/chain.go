@@ -40,7 +40,7 @@ const ChainTxTimeout = 10 * time.Minute
 //
 // It uses the provided credentials to initialize a new keystore wallet.
 //
-// The function signature uses only types defined in root of dst project and types from std lib.
+// The function signature uses only types defined in the root package of this project and types from std lib.
 // This enables the function to be loaded as symbol without importing this package when it is compiled as plugin.
 func NewChainBackend(url string, timeout time.Duration, cred perun.Credential) (perun.ChainBackend, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
