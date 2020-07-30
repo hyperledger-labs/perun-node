@@ -1,4 +1,4 @@
-# Contributing to Direct State Transfer (DST)
+# Contributing to Perun Node
 
 Want to contribute? That's great! Any contribution is welcome, e.g.
 documentation, bug reports, feature request, issues, blog posts,
@@ -9,14 +9,14 @@ tracking system prior to any development to coordinate with the DST
 development team early in the process. Coordinating up front helps to
 avoid frustration later on.
 
-*Note that this repository only contains the source code of DST. For
+*Note that this repository only contains the source code of perun-node. For
 issues / pull requests related only to documentation please refer to the
-[dst-doc](https://github.com/direct-state-transfer/dst-doc) repository.*
+[perun-doc](https://github.com/direct-state-transfer/perun-doc) repository.*
 
 ## Contribution Guideline
 
 * We use the GitHub [issue
-  tracker](https://github.com/direct-state-transfer/dst-go/issues) and
+  tracker](https://github.com/direct-state-transfer/perun-node/issues) and
   this [branching
   model](https://nvie.com/posts/a-successful-git-branching-model/).
 
@@ -60,7 +60,7 @@ We believe that if successful the DST project should move to a neutral
 home in the long run (e.g. to some not-for-profit foundation). To allow
 us to retain the necessary open source licensing flexibility please
 ensure you have signed the [Contributor License Agreement
-(CLA)](https://cla-assistant.io/direct-state-transfer/dst-go) before
+(CLA)](https://cla-assistant.io/direct-state-transfer/perun-node) before
 creating any pull request. All contributors will retain ownership in
 their contributions while granting us the necessary legal rights. The
 CLA only needs to be signed once and it covers all [Direct State
