@@ -23,8 +23,9 @@ import (
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
 	perunLog "perun.network/go-perun/log"
-	"perun.network/go-perun/peer"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire"
+	"perun.network/go-perun/wire/net"
 )
 
 // Peer represents any participant in the off-chain network that the user wants to transact with.
@@ -33,7 +34,7 @@ type Peer struct {
 	// It is unique within a session on the node.
 	Alias string
 
-	OffChainAddr peer.Address // Permanent identity used for authenticating the peer in the off-chain network.
+	OffChainAddr wire.Address // Permanent identity used for authenticating the peer in the off-chain network.
 
 	CommAddr string // Address for off-chain communication.
 	CommType string // Type of off-chain communication protocol.
@@ -45,11 +46,11 @@ type Peer struct {
 // This can be protocols such as tcp, websockets, MQTT.
 type CommBackend interface {
 	// Returns a listener that can listen for incoming messages at the specified address.
-	NewListener(address string) (peer.Listener, error)
+	NewListener(address string) (net.Listener, error)
 
 	// Returns a dialer that can dial for new outgoing connections.
 	// If timeout is zero, program will use no timeout, but standard OS timeouts may still apply.
-	NewDialer() peer.Dialer
+	NewDialer() net.Dialer
 }
 
 // Credential represents the parameters required to access the keys and make signatures for a given address.
@@ -85,6 +86,8 @@ type Session struct {
 	ChannelClient ChannelClient
 }
 
+//go:generate mockery -name ChannelClient -output ./internal/mocks
+
 // ChannelClient allows the user to establish off-chain channels and transact on these channels.
 //
 // It allows the user to enable persistence, where all data pertaining to the lifecycle of a channel is
@@ -94,18 +97,26 @@ type Session struct {
 // with a wrong state when the channel client was not running.
 // Hence it is highly recommended not to stop the channel client if there are open channels.
 type ChannelClient interface {
-	Listen(listener peer.Listener)
-
-	ProposeChannel(ctx context.Context, req *client.ChannelProposal) (*client.Channel, error)
-	Handle(ph client.ProposalHandler, uh client.UpdateHandler)
-	Channel(id channel.ID) (*client.Channel, error)
+	ProposeChannel(context.Context, *client.ChannelProposal) (*client.Channel, error)
+	Handle(client.ProposalHandler, client.UpdateHandler)
+	Channel(channel.ID) (*client.Channel, error)
 	Close() error
 
-	EnablePersistence(pr persistence.PersistRestorer)
+	EnablePersistence(persistence.PersistRestorer)
 	OnNewChannel(handler func(*client.Channel))
-	Reconnect(ctx context.Context) error
+	Restore(context.Context) error
 
 	Log() perunLog.Logger
+}
+
+//go:generate mockery -name WireBus -output ./internal/mocks
+
+// WireBus is a an extension of the wire.Bus interface in go-perun to include a "Close" method.
+// wire.Bus (in go-perun) is a central message bus over which all clients of a channel network
+// communicate. It is used as the transport layer abstraction for the ChannelClient.
+type WireBus interface {
+	wire.Bus
+	Close() error
 }
 
 // ChainBackend wraps the methods required for instantiating and using components for
@@ -115,8 +126,8 @@ type ChannelClient interface {
 //
 // It defines methods for deploying contracts; validating deployed contracts and instantiating a funder, adjudicator.
 type ChainBackend interface {
-	DeployAdjudicator() (wallet.Address, error)
-	DeployAsset(adjAddr wallet.Address) (wallet.Address, error)
+	DeployAdjudicator() (adjAddr wallet.Address, _ error)
+	DeployAsset(adjAddr wallet.Address) (assetAddr wallet.Address, _ error)
 	ValidateContracts(adjAddr, assetAddr wallet.Address) error
 	NewFunder(assetAddr wallet.Address) channel.Funder
 	NewAdjudicator(adjAddr, receiverAddr wallet.Address) channel.Adjudicator
