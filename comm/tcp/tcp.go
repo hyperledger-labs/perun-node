@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"perun.network/go-perun/peer"
-	"perun.network/go-perun/peer/net"
+	"perun.network/go-perun/wire/net"
+	"perun.network/go-perun/wire/net/simple"
 )
 
 // Backend is an off-chain communication backend that implements `CommBackend` for
@@ -33,8 +33,8 @@ type Backend struct {
 
 // NewListener returns a listener that can listen for incomig connections at
 // the specified address using tcp protocol.
-func (b Backend) NewListener(addr string) (peer.Listener, error) {
-	listener, err := net.NewListener("tcp", addr)
+func (b Backend) NewListener(addr string) (net.Listener, error) {
+	listener, err := simple.NewTCPListener(addr)
 	return listener, errors.Wrap(err, "initializing listener")
 }
 
@@ -44,8 +44,8 @@ func (b Backend) NewListener(addr string) (peer.Listener, error) {
 // It uses the dial timeout configured during backend initialization.
 // If the duration was set to zero, this program will not use any timeout.
 // However default timeouts based on the operating system will still apply.
-func (b Backend) NewDialer() peer.Dialer {
-	return net.NewDialer("tcp", b.dialerTimeout)
+func (b Backend) NewDialer() net.Dialer {
+	return simple.NewTCPDialer(b.dialerTimeout)
 }
 
 // NewTCPBackend returns a backend that can initialize off-chain communication
