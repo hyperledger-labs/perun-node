@@ -6,7 +6,7 @@ import (
 	context "context"
 
 	mock "github.com/stretchr/testify/mock"
-	peer "perun.network/go-perun/peer"
+	net "perun.network/go-perun/wire/net"
 
 	wallet "perun.network/go-perun/wallet"
 )
@@ -31,15 +31,15 @@ func (_m *Dialer) Close() error {
 }
 
 // Dial provides a mock function with given fields: ctx, addr
-func (_m *Dialer) Dial(ctx context.Context, addr wallet.Address) (peer.Conn, error) {
+func (_m *Dialer) Dial(ctx context.Context, addr wallet.Address) (net.Conn, error) {
 	ret := _m.Called(ctx, addr)
 
-	var r0 peer.Conn
-	if rf, ok := ret.Get(0).(func(context.Context, wallet.Address) peer.Conn); ok {
+	var r0 net.Conn
+	if rf, ok := ret.Get(0).(func(context.Context, wallet.Address) net.Conn); ok {
 		r0 = rf(ctx, addr)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(peer.Conn)
+			r0 = ret.Get(0).(net.Conn)
 		}
 	}
 

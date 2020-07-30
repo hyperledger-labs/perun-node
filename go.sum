@@ -407,3 +407,5 @@ honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 perun.network/go-perun v0.3.1-0.20200703161608-4c2fda2d4cb4 h1:d8t7gWYUqS84tciJVZGlwTcYd9uGqm6B+6KN2R7D4gg=
 perun.network/go-perun v0.3.1-0.20200703161608-4c2fda2d4cb4/go.mod h1:xwFshtUdzOXqSntwRVhNZjvSWWSnnUMRzq9gyjBURKc=
+perun.network/go-perun v0.4.0 h1:ox+NJddtNMISzbfuY3AlZ0gnEfFs9YzPSP+Aqy7tLg4=
+perun.network/go-perun v0.4.0/go.mod h1:xwFshtUdzOXqSntwRVhNZjvSWWSnnUMRzq9gyjBURKc=
