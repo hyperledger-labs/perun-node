@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/direct-state-transfer/perun-node"
 	"github.com/direct-state-transfer/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/direct-state-transfer/perun-node/client"
 	"github.com/direct-state-transfer/perun-node/comm/tcp"
@@ -181,4 +182,8 @@ func newDatabaseDir(t *testing.T) (dir string) {
 		}
 	})
 	return databaseDir
+}
+
+func Test_ChannelClient_Interface(t *testing.T) {
+	assert.Implements(t, (*perun.ChannelClient)(nil), new(client.Client))
 }
