@@ -56,3 +56,20 @@ func Test_ChainBackend_ValidateContracts(t *testing.T) {
 		assert.Error(t, setup.ChainBackend.ValidateContracts(randomAddr1, randomAddr2))
 	})
 }
+
+func Test_ChainBackend_NewFunder(t *testing.T) {
+	rng := rand.New(rand.NewSource(1729))
+	setup := ethereumtest.NewChainBackendSetup(t, rng, 1)
+	randomAddr1 := ethereumtest.NewRandomAddress(rng)
+
+	assert.NotNil(t, setup.ChainBackend.NewFunder(randomAddr1))
+}
+
+func Test_ChainBackend_NewAdjudicator(t *testing.T) {
+	rng := rand.New(rand.NewSource(1729))
+	setup := ethereumtest.NewChainBackendSetup(t, rng, 1)
+	randomAddr1 := ethereumtest.NewRandomAddress(rng)
+	randomAddr2 := ethereumtest.NewRandomAddress(rng)
+
+	assert.NotNil(t, setup.ChainBackend.NewAdjudicator(randomAddr1, randomAddr2))
+}
