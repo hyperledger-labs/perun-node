@@ -40,6 +40,21 @@ type Peer struct {
 	CommType string // Type of off-chain communication protocol.
 }
 
+// ContactsReader represents a read only cached list of contacts.
+type ContactsReader interface {
+	ReadByAlias(alias string) (p Peer, contains bool)
+	ReadByOffChainAddr(offChainAddr string) (p Peer, contains bool)
+}
+
+// Contacts represents a cached list of contacts backed by a storage. Read, Write and Delete methods act on the
+// cache. The state of cached list can be written to the storage by using the UpdateStorage method.
+type Contacts interface {
+	ContactsReader
+	Write(alias string, p Peer) error
+	Delete(alias string) error
+	UpdateStorage() error
+}
+
 //go:generate mockery -name CommBackend -output ./internal/mocks
 
 // CommBackend defines the set of methods required for initializing components required for off-chain communication.
