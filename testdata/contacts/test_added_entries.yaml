@@ -1,0 +1,15 @@
+Alice:
+    alias: Alice
+    offchain_address: 0x928268172392079898338058137658695146658578982175
+    comm_address: 127.0.0.1:5751
+    comm_type: tcpip
+Bob:
+    alias: Bob
+    offchain_address: 0x33697833370718072480937308896027275057015318468
+    comm_address: 127.0.0.1:5750
+    comm_type: tcpip
+Tom:
+    alias: Tom
+    offchain_address: 0x71873088960230724809336978333707275057015318468
+    comm_address: 127.0.0.1:5753
+    comm_type: tcpip
