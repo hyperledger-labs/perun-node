@@ -1,0 +1,51 @@
+# contacts.yaml - sample data
+#
+# This file contacts a contacts file with entries for two peers: Alice and Bob.
+#
+# The first document is the simple representation that is intended for use as
+# template for users of the perun node and,
+#
+# the second document is the canonical YAML representation that is intended for
+# use as the documentation of the complete specification.
+
+# Simple Representation
+---
+Alice:
+    alias: Alice
+    comm_address: 127.0.0.1:5751
+    comm_type: tcpip
+    offchain_address: 0x928268172392079898338058137658695146658578982175
+Bob:
+    alias: Bob
+    comm_address: 127.0.0.1:5750
+    comm_type: tcpip
+    offchain_address: 0x33697833370718072480937308896027275057015318468
+
+
+# Canonical Representation
+---
+!!map {
+  ? !!str "Alice"
+  : !!map {
+    ? !!str "alias"
+    : !!str "Alice",
+    ? !!str "comm_address"
+    : !!str "127.0.0.1:5751",
+    ? !!str "comm_type"
+    : !!str "tcpip",
+    ? !!str "offchain_address"
+    : !!str "0x928268172392079898338058137658695146658578982175",
+  },
+  ? !!str "Bob"
+  : !!map {
+    ? !!str "alias"
+    : !!str "Bob",
+    ? !!str "comm_address"
+    : !!str "127.0.0.1:5750",
+    ? !!str "comm_type"
+    : !!str "tcpip",
+    ? !!str "offchain_address"
+    : !!str "0x33697833370718072480937308896027275057015318468",
+  },
+}
+
