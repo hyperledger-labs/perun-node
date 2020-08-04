@@ -32,12 +32,17 @@ import (
 type Peer struct {
 	// Name assigned by user for referring to this peer in api requests to the node.
 	// It is unique within a session on the node.
-	Alias string
+	Alias string `yaml:"alias"`
 
-	OffChainAddr wire.Address // Permanent identity used for authenticating the peer in the off-chain network.
+	// Permanent identity used for authenticating the peer in the off-chain network.
+	OffChainAddr wire.Address `yaml:"-"`
+	// This field holds the string value of address for easy marshaling / unmarshaling.
+	OffChainAddrString string `yaml:"offchain_address"`
 
-	CommAddr string // Address for off-chain communication.
-	CommType string // Type of off-chain communication protocol.
+	// Address for off-chain communication.
+	CommAddr string `yaml:"comm_address"`
+	// Type of off-chain communication protocol.
+	CommType string `yaml:"comm_type"`
 }
 
 // ContactsReader represents a read only cached list of contacts.
