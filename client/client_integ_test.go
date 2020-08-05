@@ -1,6 +1,6 @@
 // Copyright (c) 2020 - for information on the respective copyright owner
 // see the NOTICE file and/or the repository at
-// https://github.com/direct-state-transfer/perun-node
+// https://github.com/hyperledger-labs/perun-node
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,11 +30,11 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/direct-state-transfer/perun-node/blockchain/ethereum/ethereumtest"
-	"github.com/direct-state-transfer/perun-node/client"
-	"github.com/direct-state-transfer/perun-node/comm/tcp"
-	"github.com/direct-state-transfer/perun-node/internal/mocks"
-	"github.com/direct-state-transfer/perun-node/session/sessiontest"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
+	"github.com/hyperledger-labs/perun-node/client"
+	"github.com/hyperledger-labs/perun-node/comm/tcp"
+	"github.com/hyperledger-labs/perun-node/internal/mocks"
+	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
 // Currently the integration setup is a quick hack requiring the user to manually start ganache-cli node. Command:

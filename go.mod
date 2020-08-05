@@ -1,4 +1,4 @@
-module github.com/direct-state-transfer/perun-node
+module github.com/hyperledger-labs/perun-node
 
 go 1.14
 
