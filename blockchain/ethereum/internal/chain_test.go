@@ -1,6 +1,6 @@
 // Copyright (c) 2020 - for information on the respective copyright owner
 // see the NOTICE file and/or the repository at
-// https://github.com/direct-state-transfer/perun-node
+// https://github.com/hyperledger-labs/perun-node
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,9 +23,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/direct-state-transfer/perun-node"
-	"github.com/direct-state-transfer/perun-node/blockchain/ethereum/ethereumtest"
-	"github.com/direct-state-transfer/perun-node/blockchain/ethereum/internal"
+	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/internal"
 )
 
 func Test_ChainBackend_Interface(t *testing.T) {

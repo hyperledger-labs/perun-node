@@ -1,6 +1,6 @@
 // Copyright (c) 2020 - for information on the respective copyright owner
 // see the NOTICE file and/or the repository at
-// https://github.com/direct-state-transfer/perun-node
+// https://github.com/hyperledger-labs/perun-node
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/direct-state-transfer/perun-node"
-	"github.com/direct-state-transfer/perun-node/client"
-	"github.com/direct-state-transfer/perun-node/internal/mocks"
+	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/client"
+	"github.com/hyperledger-labs/perun-node/internal/mocks"
 )
 
 func Test_ChannelClient_Interface(t *testing.T) {

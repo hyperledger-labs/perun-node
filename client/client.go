@@ -1,6 +1,6 @@
 // Copyright (c) 2020 - for information on the respective copyright owner
 // see the NOTICE file and/or the repository at
-// https://github.com/direct-state-transfer/perun-node
+// https://github.com/hyperledger-labs/perun-node
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@ import (
 	"perun.network/go-perun/pkg/sortedkv/leveldb"
 	"perun.network/go-perun/wire/net"
 
-	"github.com/direct-state-transfer/perun-node"
-	"github.com/direct-state-transfer/perun-node/blockchain/ethereum"
+	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 )
 
 // Client is a wrapper type around the state channel client implementation from go-perun.

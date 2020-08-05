@@ -91,7 +91,7 @@ linters-settings:
     min-complexity: 20
 
   goimports:
-    local-prefixes: github.com/direct-state-transfer/perun-node
+    local-prefixes: github.com/hyperledger-labs/perun-node
 
   govet:
     check-shadowing: true
