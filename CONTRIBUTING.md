@@ -11,12 +11,12 @@ avoid frustration later on.
 
 *Note that this repository contains only the source code of perun-node. For
 issues / pull requests related only to documentation please refer to the
-[perun-doc](https://github.com/direct-state-transfer/perun-doc) repository.*
+[perun-doc](https://github.com/hyperledger-labs/perun-doc) repository.*
 
 ## Contribution Guideline
 
 * We use the GitHub [issue
-  tracker](https://github.com/direct-state-transfer/perun-node/issues) and
+  tracker](https://github.com/hyperledger-labs/perun-node/issues) and
   this [branching
   model](https://nvie.com/posts/a-successful-git-branching-model/).
 
