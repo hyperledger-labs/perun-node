@@ -1,6 +1,6 @@
 // Copyright (c) 2020 - for information on the respective copyright owner
 // see the NOTICE file and/or the repository at
-// https://github.com/direct-state-transfer/perun-node
+// https://github.com/hyperledger-labs/perun-node
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"perun.network/go-perun/wallet"
 
-	"github.com/direct-state-transfer/perun-node"
+	"github.com/hyperledger-labs/perun-node"
 )
 
 // NewUnlockedUser initializes a user and unlocks all the accounts,
