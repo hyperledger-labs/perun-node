@@ -35,19 +35,19 @@ import (
 var (
 	peer1 = perun.Peer{
 		Alias:              "Alice",
-		OffChainAddrString: "0x928268172392079898338058137658695146658578982175",
+		OffChainAddrString: "0x9282681723920798983380581376586951466585",
 		CommType:           "tcpip",
 		CommAddr:           "127.0.0.1:5751",
 	}
 	peer2 = perun.Peer{
 		Alias:              "Bob",
-		OffChainAddrString: "0x33697833370718072480937308896027275057015318468",
+		OffChainAddrString: "0x3369783337071807248093730889602727505701",
 		CommType:           "tcpip",
 		CommAddr:           "127.0.0.1:5750",
 	}
 	missingPeer = perun.Peer{
 		Alias:              "Tom",
-		OffChainAddrString: "0x71873088960230724809336978333707275057015318468",
+		OffChainAddrString: "0x7187308896023072480933697833370727318468",
 		CommType:           "tcpip",
 		CommAddr:           "127.0.0.1:5753",
 	}
@@ -138,7 +138,7 @@ func Test_YAML_ReadByOffChainAddr(t *testing.T) {
 	t.Run("happy", func(t *testing.T) {
 		gotPeer, isPresent := c.ReadByOffChainAddr(peer1.OffChainAddrString)
 		assert.True(t, isPresent)
-		assert.Equal(t, gotPeer, peer1)
+		assert.Equal(t, peer1, gotPeer)
 	})
 
 	t.Run("missing_peer", func(t *testing.T) {
