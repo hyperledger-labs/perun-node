@@ -102,6 +102,21 @@ func Test_WalletBackend_ParseAddr(t *testing.T) {
 	t.Run("invalid_addr", func(t *testing.T) {
 		gotAddr, err := wb.ParseAddr("invalid-addr")
 		assert.Error(t, err)
+		t.Log(err)
+		require.Nil(t, gotAddr)
+	})
+
+	t.Run("addr_too_long_with_prefix", func(t *testing.T) {
+		gotAddr, err := wb.ParseAddr("0x931d387731BBbc988B31221D387706c74f77d004d6b84b")
+		assert.Error(t, err)
+		t.Log(err)
+		require.Nil(t, gotAddr)
+	})
+
+	t.Run("addr_too_long_without_prefix", func(t *testing.T) {
+		gotAddr, err := wb.ParseAddr("931d387731bbbc988b312206c74f77d004d6b84b12")
+		assert.Error(t, err)
+		t.Log(err)
 		require.Nil(t, gotAddr)
 	})
 
