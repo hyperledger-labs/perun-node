@@ -1,0 +1,368 @@
+// Copyright (c) 2020 - for information on the respective copyright owner
+// see the NOTICE file and/or the repository at
+// https://github.com/hyperledger-labs/perun-node
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+// Package pb contains proto3 definitions for user API and the corresponding
+// generated code for grpc server and client.
+package pb;
+
+// Peer represents a peer in the off-chain network.
+message Peer {
+    string alias=1;
+    string offChainAddress=2;
+    string commAddress=3;
+    string commType=4;
+}
+
+// BalanceInfo represents the balanace of the corresponding alias 
+// and the currency used for specifying the amount.
+message BalanceInfo {
+    string currency=1;
+    message AliasBalance {
+    map<string, string> value = 1;
+    }
+    repeated AliasBalance balances=2;
+}
+
+message PaymentChannel {
+    string channelID = 1;
+    BalanceInfo balanceinfo = 2;
+    string version=3;
+}
+
+
+message MsgError {
+    string error = 1;
+}
+
+// Payment_API provides APIs for a user to open payment channels, send/receive payments
+// and finalize the channels on the blockchain 
+service Payment_API{
+    rpc GetConfig (GetConfigReq) returns (GetConfigResp){}
+    rpc OpenSession (OpenSessionReq) returns (OpenSessionResp) {}
+    rpc Time (TimeReq) returns (TimeResp) {}
+    rpc Help (HelpReq) returns (HelpResp) {}
+
+    rpc AddContact (AddContactReq) returns (AddContactResp) {}
+    rpc GetContact (GetContactReq) returns (GetContactResp) {}
+    rpc OpenPayCh (OpenPayChReq) returns (OpenPayChResp) {}
+    rpc GetPayChs (GetPayChsReq) returns (GetPayChsResp) {}
+    rpc SubPayChProposals (SubPayChProposalsReq) returns (stream SubPayChProposalsResp) {}
+    rpc UnsubPayChProposals (UnsubPayChProposalsReq) returns (UnsubPayChProposalsResp) {}
+    rpc RespondPayChProposal (RespondPayChProposalReq) returns (RespondPayChProposalResp) {}
+    rpc SubPayChCloses (subPayChClosesReq) returns (stream subPayChClosesResp) {}
+    rpc UnsubPayChClose (UnsubPayChClosesReq) returns (UnsubPayChClosesResp) {}
+    rpc CloseSession (CloseSessionReq) returns (CloseSessionResp) {}
+
+    rpc SendPayChUpdate (SendPayChUpdateReq) returns (SendPayChUpdateResp) {}
+    rpc SubPayChUpdates (SubpayChUpdatesReq) returns (stream SubPayChUpdatesResp) {}
+    rpc UnsubPayChUpdates (UnsubPayChUpdatesReq) returns (UnsubPayChUpdatesResp) {}
+    rpc RespondPayChUpdate (RespondPayChUpdateReq) returns (RespondPayChUpdateResp) {}
+    rpc GetPayChBalance (GetPayChBalanceReq) returns (GetPayChBalanceResp) {}
+    rpc ClosePayCh (ClosePayChReq) returns (ClosePayChResp) {}
+}
+
+message GetConfigReq {
+}
+
+message GetConfigResp{
+    string chainAddress = 1;
+    string adjudicatorAddress = 2;
+    string assetAddress = 3;
+    repeated string commTypes = 4;
+    repeated string contactTypes = 5;
+}
+
+message OpenSessionReq {
+    string configFile = 1;
+}
+
+message OpenSessionResp {
+    oneof response {
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        string sessionID = 1;
+    }
+}
+
+message TimeReq {
+}
+
+message TimeResp {
+    int64 time = 1;
+}
+
+message HelpReq {
+}
+
+message HelpResp {
+    repeated string apis = 1;
+}
+
+message AddContactReq {
+    string sessionID=1;
+    Peer peer=2;
+}
+
+message AddContactResp {
+    oneof response {
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        bool success=1;
+    }
+}
+
+message GetContactReq {
+    string sessionID=1;
+    string alias = 2;
+}
+
+message  GetContactResp {
+    oneof response{
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        Peer peer = 1;
+    }
+}
+
+message OpenPayChReq {
+    string sessionID = 1;
+    string peerAlias = 2;
+    BalanceInfo openingBalance = 3;
+    uint64 challengeDurSecs = 4;
+}
+
+message OpenPayChResp {
+    oneof resp{
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        PaymentChannel channel = 1;
+    }
+}
+
+message GetPayChsReq {
+    string sessionID = 1;
+}
+
+message GetPayChsResp {
+    oneof response{
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        repeated PaymentChannel openChannels = 1;
+    }
+}
+
+message SubPayChProposalsReq {
+    string sessionID = 1;
+}
+
+message SubPayChProposalsResp {
+    oneof response{
+        Notify notify = 1;
+        MsgError error = 2;
+    }
+    message Notify {
+        string proposalID = 2;
+        BalanceInfo openingBalance = 4;
+        uint64 challengeDurSecs = 5;
+        int64 expiry = 6;
+    }
+}
+
+message UnsubPayChProposalsReq {
+    string sessionID=1;
+}
+
+message UnsubPayChProposalsResp {
+    oneof response{
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        bool success=1;
+    }
+}
+
+message RespondPayChProposalReq{
+    string sessionID=1;
+    string proposalID=2;
+    bool accept =3;
+}
+
+message RespondPayChProposalResp {
+    oneof response{
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        bool success=1;
+        PaymentChannel channel=2;
+    }
+}
+
+message subPayChClosesReq {
+    string sessionID = 1;
+}
+
+message subPayChClosesResp {
+    oneof response {
+        Notify notify = 1;
+        MsgError error = 2;
+    }
+    message Notify {
+        PaymentChannel closingState = 1;
+        string error = 2;
+    }
+}
+
+message UnsubPayChClosesReq {
+    string sessionID = 1;
+}
+
+message UnsubPayChClosesResp {
+    oneof response{
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        bool success=1;
+    }
+}
+
+message CloseSessionReq {
+    string sessionID = 1;
+    bool force = 2;
+}
+
+message CloseSessionResp {
+    oneof response {
+        MsgSuccess msgSuccess = 1;
+        string erro = 2;
+    }
+    message MsgSuccess {
+        repeated PaymentChannel unclosedChannels = 2;
+    }
+}
+
+message SendPayChUpdateReq {
+    string sessionID = 1;
+    string channelID = 2;
+    string payee = 3;
+    string amount = 4;
+}
+
+message SendPayChUpdateResp {
+    oneof response{
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        bool success = 1;
+    }
+}
+
+message SubpayChUpdatesReq {
+    string sessionID = 1;
+    string channelID = 2;
+}
+
+message SubPayChUpdatesResp {
+    oneof response{
+        Notify notify = 1;
+        MsgError error = 2;
+    }
+    message Notify {
+        BalanceInfo proposedBalance = 1;
+        string updateID = 2;
+        bool final = 3;
+        int64 expiry = 4;
+    }
+}
+
+message UnsubPayChUpdatesReq {
+    string sessionID = 1;
+    string channelID = 2;
+}
+
+message UnsubPayChUpdatesResp {
+    oneof response{
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        bool success=1;
+    }
+}
+
+message RespondPayChUpdateReq{
+    string sessionID=1;
+    string channelID=2;
+    string updateID=3;
+    bool accept=4;
+}
+
+message RespondPayChUpdateResp {
+    oneof response{
+        MsgSuccess msgSuccess=1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        bool success=1;
+    }
+}
+
+message GetPayChBalanceReq {
+    string sessionID=1;
+    string channelID=2;
+}
+
+message GetPayChBalanceResp {
+    oneof response{
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        BalanceInfo currentBalance = 1;
+        string currentVersion = 2;
+    }
+}
+
+message ClosePayChReq {
+    string sessionID = 1;
+    string channelID = 2;
+}
+
+message ClosePayChResp {
+    oneof response{
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        repeated BalanceInfo closingBalance = 1;
+        string closingVersion = 2;
+    }
+}
