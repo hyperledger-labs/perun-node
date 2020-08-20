@@ -18,6 +18,7 @@ package perun
 
 import (
 	"context"
+	"math/big"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
@@ -158,4 +159,11 @@ type WalletBackend interface {
 	ParseAddr(string) (wallet.Address, error)
 	NewWallet(keystore string, password string) (wallet.Wallet, error)
 	UnlockAccount(wallet.Wallet, wallet.Address) (wallet.Account, error)
+}
+
+// Currency represents a parser that can convert between string representation of a currency and
+// its equivalent value in base unit represented as a big interger.
+type Currency interface {
+	Parse(string) (*big.Int, error)
+	Print(*big.Int) string
 } // nolint:gofumpt // unknown error, maybe a false positive
