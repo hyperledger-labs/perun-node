@@ -50,13 +50,14 @@ import (
 func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 	prng := rand.New(rand.NewSource(1729))
 	_, user := sessiontest.NewTestUser(t, prng, 0)
-	adjudicator, asset := setup(t, user.OnChain)
+	adjudicator, asset := ethereumtest.SetupContracts(t, user.OnChain,
+		ethereumtest.ChainURL, ethereumtest.OnChainTxTimeout)
 
 	cfg := client.Config{
 		Chain: client.ChainConfig{
 			Adjudicator: adjudicator.String(),
 			Asset:       asset.String(),
-			URL:         testChainURL,
+			URL:         ethereumtest.ChainURL,
 			ConnTimeout: 10 * time.Second,
 		},
 		PeerReconnTimeout: 0,
