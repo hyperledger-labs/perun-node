@@ -37,10 +37,7 @@ func Test_Client_Close(t *testing.T) {
 	t.Run("err_channelClient_Err", func(t *testing.T) {
 		chClient := &mocks.ChannelClient{}
 		msgBus := &mocks.WireBus{}
-		Client := client.Client{
-			ChannelClient: chClient,
-			WireBus:       msgBus,
-		}
+		Client := client.NewClientForTest(chClient, msgBus, nil)
 
 		chClient.On("Close").Return(errors.New("error for test"))
 		msgBus.On("Close").Return(nil)
@@ -50,13 +47,21 @@ func Test_Client_Close(t *testing.T) {
 	t.Run("err_wireBus_Err", func(t *testing.T) {
 		chClient := &mocks.ChannelClient{}
 		msgBus := &mocks.WireBus{}
-		Client := client.Client{
-			ChannelClient: chClient,
-			WireBus:       msgBus,
-		}
+		Client := client.NewClientForTest(chClient, msgBus, nil)
 
 		chClient.On("Close").Return(nil)
 		msgBus.On("Close").Return(errors.New("error for test"))
 		assert.Error(t, Client.Close())
+	})
+}
+
+func Test_Client_Register(t *testing.T) {
+	// happy path test is covered in integration test, as internal components of
+	// the client should be initialized.
+	t.Run("happy", func(t *testing.T) {
+		registere := &mocks.Registerer{}
+		Client := client.NewClientForTest(nil, nil, registere)
+		registere.On("Register", nil, "").Return()
+		Client.Register(nil, "")
 	})
 }
