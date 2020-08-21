@@ -52,3 +52,8 @@ func (_m *Dialer) Dial(ctx context.Context, addr wallet.Address) (net.Conn, erro
 
 	return r0, r1
 }
+
+// Register provides a mock function with given fields: offChainAddr, commAddr
+func (_m *Dialer) Register(offChainAddr wallet.Address, commAddr string) {
+	_m.Called(offChainAddr, commAddr)
+}
