@@ -18,7 +18,7 @@ package session
 
 import (
 	"github.com/pkg/errors"
-	"perun.network/go-perun/wallet"
+	pwallet "perun.network/go-perun/wallet"
 
 	"github.com/hyperledger-labs/perun-node"
 )
@@ -47,7 +47,7 @@ func NewUnlockedUser(wb perun.WalletBackend, cfg UserConfig) (perun.User, error)
 
 // newWallet initializes the wallet using the wallet backend and unlocks accounts corresponding
 // to the given address.
-func newWallet(wb perun.WalletBackend, cfg WalletConfig, addr string) (wallet.Wallet, error) {
+func newWallet(wb perun.WalletBackend, cfg WalletConfig, addr string) (pwallet.Wallet, error) {
 	w, err := wb.NewWallet(cfg.KeystorePath, cfg.Password)
 	if err != nil {
 		return nil, err
@@ -58,9 +58,9 @@ func newWallet(wb perun.WalletBackend, cfg WalletConfig, addr string) (wallet.Wa
 
 // parseUnlock parses the given addresses string using the wallet backend and unlocks accounts
 // corresponding to each of the given addresses.
-func parseUnlock(wb perun.WalletBackend, w wallet.Wallet, addrs ...string) ([]wallet.Address, error) {
+func parseUnlock(wb perun.WalletBackend, w pwallet.Wallet, addrs ...string) ([]pwallet.Address, error) {
 	var err error
-	parsedAddrs := make([]wallet.Address, len(addrs))
+	parsedAddrs := make([]pwallet.Address, len(addrs))
 	for i, addr := range addrs {
 		if parsedAddrs[i], err = wb.ParseAddr(addr); err != nil {
 			return nil, err

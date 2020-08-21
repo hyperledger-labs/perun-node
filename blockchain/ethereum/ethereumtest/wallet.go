@@ -25,8 +25,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
-	"perun.network/go-perun/wallet"
+	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	pwallet "perun.network/go-perun/wallet"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/internal"
@@ -46,8 +46,8 @@ type WalletSetup struct {
 	WalletBackend perun.WalletBackend
 	KeystorePath  string
 	Keystore      *keystore.KeyStore
-	Wallet        wallet.Wallet
-	Accs          []wallet.Account
+	Wallet        pwallet.Wallet
+	Accs          []pwallet.Account
 }
 
 // NewWalletSetup initializes a wallet with n accounts. Empty password string and weak encrytion parameters are used.
@@ -57,10 +57,10 @@ func NewWalletSetup(t *testing.T, rng *rand.Rand, n uint) *WalletSetup {
 	ksPath, err := ioutil.TempDir("", "perun-node-test-keystore-*")
 	require.NoErrorf(t, err, "Error creating temp directory for keystore: %v", err)
 	ks := keystore.NewKeyStore(ksPath, internal.WeakScryptN, internal.WeakScryptP)
-	w, err := ethwallet.NewWallet(ks, "")
+	w, err := pethwallet.NewWallet(ks, "")
 	require.NoErrorf(t, err, "Error creating wallet: %v", err)
 
-	accs := make([]wallet.Account, n)
+	accs := make([]pwallet.Account, n)
 	for idx := uint(0); idx < n; idx++ {
 		accs[idx] = w.NewRandomAccount(rng)
 	}
@@ -82,8 +82,8 @@ func NewWalletSetup(t *testing.T, rng *rand.Rand, n uint) *WalletSetup {
 // NewRandomAddress generates a random wallet address. It generates the address only as a byte array.
 // Hence it does not generate any public or private keys corresponding to the address.
 // If you need an address with keys, use Wallet.NewAccount method.
-func NewRandomAddress(rnd *rand.Rand) wallet.Address {
+func NewRandomAddress(rnd *rand.Rand) pwallet.Address {
 	var a common.Address
 	rnd.Read(a[:])
-	return ethwallet.AsWalletAddr(a)
+	return pethwallet.AsWalletAddr(a)
 }
