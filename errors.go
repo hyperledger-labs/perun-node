@@ -20,7 +20,7 @@ import (
 	"errors"
 )
 
-// APIError represents the errors that will communicated via the user API.
+// APIError represents the errors that will be communicated via the user API.
 type APIError string
 
 func (e APIError) Error() string {
@@ -40,7 +40,7 @@ func GetAPIError(err error) error {
 	return apiErr
 }
 
-// Setinal Error values that are relevant for the end user of the node.
+// Sentinal Error values that are relevant for the end user of the node.
 var (
 	ErrUnknownSessionID  = APIError("No session corresponding to the specified ID.")
 	ErrUnknownProposalID = APIError("No channel proposal corresponding to the specified ID.")
