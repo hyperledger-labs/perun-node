@@ -45,6 +45,8 @@ func Test_New_Happy(t *testing.T) {
 			KeystorePath: testUser.OffChain.Keystore,
 			Password:     "",
 		},
+		CommType: "tcp",
+		CommAddr: "127.0.0.1:5751",
 	}
 
 	userCfg.PartAddrs = make([]string, len(testUser.PartAddrs))
@@ -55,6 +57,13 @@ func Test_New_Happy(t *testing.T) {
 	gotUser, err := session.NewUnlockedUser(wb, userCfg)
 	require.NoError(t, err)
 	require.NotZero(t, gotUser)
+	require.NotNil(t, gotUser.OffChainAddr)
+	require.NotNil(t, gotUser.OnChain.Addr)
+	assert.True(t, gotUser.OffChain.Addr.Equals(testUser.OffChain.Addr))
+	assert.True(t, gotUser.OffChain.Addr.Equals(testUser.OffChain.Addr))
+	assert.Equal(t, perun.OwnAlias, gotUser.Alias)
+	assert.Equal(t, userCfg.CommAddr, gotUser.CommAddr)
+	assert.Equal(t, userCfg.CommType, gotUser.CommType)
 	require.Len(t, gotUser.PartAddrs, int(cntParts))
 }
 
