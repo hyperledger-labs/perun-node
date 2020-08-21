@@ -136,13 +136,13 @@ func Test_YAML_ReadByOffChainAddr(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("happy", func(t *testing.T) {
-		gotPeer, isPresent := c.ReadByOffChainAddr(peer1.OffChainAddrString)
+		gotPeer, isPresent := c.ReadByOffChainAddr(peer1.OffChainAddr)
 		assert.True(t, isPresent)
 		assert.Equal(t, peer1, gotPeer)
 	})
 
 	t.Run("missing_peer", func(t *testing.T) {
-		_, isPresent := c.ReadByOffChainAddr(missingPeer.OffChainAddrString)
+		_, isPresent := c.ReadByOffChainAddr(missingPeer.OffChainAddr)
 		assert.False(t, isPresent)
 	})
 }
