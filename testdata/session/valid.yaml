@@ -1,0 +1,21 @@
+user:
+  alias: self
+  onChainAddr: 0x9282681723920798983380581376586951466585 
+  offChainAddr: 0x3369783337071807248093730889602727505701
+  onChainWallet:               
+    keystorePath: ./test-keystore-on-chain
+    password: test-password-on-chain
+  offChainWallet:
+    keystorePath: ./test-keystore-off-chain
+    password: test-password-off-chain
+  commAddr: 127.0.0.1:5751
+  commType: tcp
+
+
+contactsType: yaml             
+contactsURL: ./test-contacts.yaml
+chainURL: ws://127.0.0.1:8545  
+asset: 0x5992089d61cE79B6CF90506F70DD42B8E42FB21d
+adjudicator: 0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63
+    
+databaseDir: ./test-db 

@@ -47,6 +47,10 @@ type Peer struct {
 	CommType string `yaml:"comm_type"`
 }
 
+// OwnAlias is the alias for the entry of the user's own peer details.
+// It will be used when translating addresses in incoming messages / proposals to aliases.
+const OwnAlias = "self"
+
 // ContactsReader represents a read only cached list of contacts.
 type ContactsReader interface {
 	ReadByAlias(alias string) (p Peer, contains bool)
@@ -190,12 +194,12 @@ type NodeConfig struct {
 	LogLevel string // LogLevel represents the log level for the node and all dervied loggers.
 	LogFile  string // LogFile represents the file to write logs. Empty string represents stdout.
 
-	ChainURL       string   // Address of the default blockchain node used by the perun node.
-	Adjudicator string   // Address of the default Adjudicator contract used by the perun node.
-	Asset       string   // Address of the default Asset Holder contract used by the perun node.
-	CommTypes       []string // Communication protocols supported by the node for off-chain communication.
-	ContactTypes    []string // Contacts Provider backends supported by the node.
-	Currencies      []string // Currencies supported by the node.
+	ChainURL     string   // Address of the default blockchain node used by the perun node.
+	Adjudicator  string   // Address of the default Adjudicator contract used by the perun node.
+	Asset        string   // Address of the default Asset Holder contract used by the perun node.
+	CommTypes    []string // Communication protocols supported by the node for off-chain communication.
+	ContactTypes []string // Contacts Provider backends supported by the node.
+	Currencies   []string // Currencies supported by the node.
 
 	ChainConnTimeout time.Duration // Timeout for connecting to blockchain node.
 	OnChainTxTimeout time.Duration // Timeout to wait for confirmation of on-chain tx.

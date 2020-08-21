@@ -16,6 +16,13 @@
 
 package session
 
+import (
+	"path/filepath"
+	"time"
+
+	"github.com/spf13/viper"
+)
+
 // WalletConfig defines the parameters required to configure a wallet.
 type WalletConfig struct {
 	KeystorePath string
@@ -36,4 +43,35 @@ type UserConfig struct {
 
 	CommAddr string
 	CommType string
+}
+
+// Config defines the parameters required to configure a session.
+type Config struct {
+	User UserConfig
+
+	ContactsType       string        // Type of contacts provider.
+	ContactsURL        string        // URL for accessing the contacts provider.
+	ChainURL           string        // URL of the blockchain node.
+	Asset, Adjudicator string        // Address of the Asset and Adjudicator contracts.
+	ChainConnTimeout   time.Duration // Timeout for connecting to blockchain node.
+	OnChainTxTimeout   time.Duration // Timeout to wait for confirmation of on-chain tx.
+	ResponseTimeout    time.Duration // Timeout to wait for a response from the peer / user.
+
+	DatabaseDir string // Path to directory containing persistence database.
+	// Timeout for re-establishing all open channels (if any) that was persisted during the
+	// previous running instance of the node.
+	PeerReconnTimeout time.Duration
+}
+
+// ParseConfig parses the session configuration from a file.
+func ParseConfig(configFile string) (Config, error) {
+	v := viper.New()
+	v.SetConfigFile(filepath.Clean(configFile))
+
+	var cfg Config
+	err := v.ReadInConfig()
+	if err != nil {
+		return Config{}, err
+	}
+	return cfg, v.Unmarshal(&cfg)
 }
