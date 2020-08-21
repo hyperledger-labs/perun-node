@@ -14,5 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package perunnode implements the perun node API.
 package perunnode
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/hyperledger-labs/perun-node"
+)
+
+func Test_NodeAPI_Interface(t *testing.T) {
+	assert.Implements(t, (*perun.NodeAPI)(nil), new(node))
+}
