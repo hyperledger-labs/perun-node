@@ -204,4 +204,118 @@ type NodeConfig struct {
 	ChainConnTimeout time.Duration // Timeout for connecting to blockchain node.
 	OnChainTxTimeout time.Duration // Timeout to wait for confirmation of on-chain tx.
 	ResponseTimeout  time.Duration // Timeout to wait for a response from the peer / user.
-} // nolint:gofumpt // unknown error, maybe a false positive
+}
+
+// NodeAPI represents the APIs that can be accessed in the context of a perun node.
+// Multiple sessions can be opened in a single node. Each instance will have a dedicated
+// keystore and contacts provider.
+type NodeAPI interface {
+	Time() int64
+	GetConfig() NodeConfig
+	Help() []string
+	OpenSession(configFile string) (string, error)
+
+	// This function is used internally to get a SessionAPI instance.
+	// Should not be exposed via userAPI.
+	GetSession(string) (SessionAPI, error)
+}
+
+// SessionAPI represents the APIs that can be accessed in the context of a perun node.
+// First a session has to be instantiated using the NodeAPI. The session can then be used
+// open channels and accept channel proposals.
+type SessionAPI interface {
+	ID() string
+	AddContact(Peer) error
+	GetContact(alias string) (Peer, error)
+	OpenCh(context.Context, string, BalInfo, App, uint64) (ChannelInfo, error)
+	HandleClose(string, error)
+	GetChInfos() []ChannelInfo
+	HandleUpdate(pclient.ChannelUpdate, *pclient.UpdateResponder)
+	HandleProposal(*pclient.ChannelProposal, *pclient.ProposalResponder)
+	SubChProposals(ChProposalNotifier) error
+	UnsubChProposals() error
+	RespondChProposal(context.Context, string, bool) error
+	SubChCloses(ChCloseNotifier) error
+	UnsubChCloses() error
+
+	// This function is used internally to get a ChannelAPI instance.
+	// Should not be exposed via userAPI.
+	GetCh(string) (ChannelAPI, error)
+}
+
+type (
+	// ChProposalNotifier is the notifier function that is used for sending channel proposal notifications.
+	ChProposalNotifier func(ChProposalNotif)
+
+	// ChProposalNotif represents the parameters sent in a channel proposal notifications.
+	ChProposalNotif struct {
+		ProposalID string
+		Currency   string
+		Proposal   *pclient.ChannelProposal
+		Parts      []string
+		Expiry     int64
+	}
+
+	// ChCloseNotifier is the notifier function that is used for sending channel close notifications.
+	ChCloseNotifier func(ChCloseNotif)
+
+	// ChCloseNotif represents the parameters sent in a channel close notifications.
+	ChCloseNotif struct {
+		ChannelID string
+		Currency  string
+		ChState   *pchannel.State
+		Parts     []string
+		Error     string
+	}
+)
+
+// ChannelAPI represents the APIs that can be accessed in the context of a perun channel.
+// First a channel has to be initialized using the SessionAPI. The channel can then be used
+// send and receive updates.
+type ChannelAPI interface {
+	ID() string
+	SendChUpdate(context.Context, StateUpdater) error
+	SubChUpdates(ChUpdateNotifier) error
+	UnsubChUpdates() error
+	RespondChUpdate(context.Context, string, bool) error
+	GetInfo() ChannelInfo
+	Close(context.Context) (ChannelInfo, error)
+}
+
+type (
+	// ChUpdateNotifier is the notifier function that is used for sending channel update notifications.
+	ChUpdateNotifier func(ChUpdateNotif)
+
+	// ChUpdateNotif represents the parameters sent in a channel update notifications.
+	ChUpdateNotif struct {
+		UpdateID  string
+		Currency  string
+		CurrState *pchannel.State
+		Update    *pclient.ChannelUpdate
+		Parts     []string
+		Expiry    int64
+	}
+
+	// App represents the parameters of an App used in a channel.
+	App struct {
+		Def  pwallet.Address
+		Data pchannel.Data
+	}
+
+	// ChannelInfo represents the info regarding a channel that will be sent to the user.
+	ChannelInfo struct {
+		ChannelID string
+		Currency  string
+		State     *pchannel.State
+		Parts     []string // List of Alias of channel participants.
+	}
+
+	// BalInfo is used to send the balance information to the user.
+	BalInfo struct {
+		Currency string
+		Bals     map[string]string // Map of alias to balance.
+	}
+
+	// StateUpdater function is the function that will be used for applying state updates.
+	StateUpdater func(*pchannel.State)
+) // nolint:gofumpt // unknown error, maybe a false positive
