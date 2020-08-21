@@ -71,7 +71,22 @@ type CommBackend interface {
 
 	// Returns a dialer that can dial for new outgoing connections.
 	// If timeout is zero, program will use no timeout, but standard OS timeouts may still apply.
-	NewDialer() pnet.Dialer
+	NewDialer() Dialer
+}
+
+//go:generate mockery -name Dialer -output ./internal/mocks
+
+// Dialer extends net.Dialer with Registerer interface.
+type Dialer interface {
+	pnet.Dialer
+	Registerer
+}
+
+//go:generate mockery -name Registerer -output ./internal/mocks
+
+// Registerer is used to register the commAddr corresponding to an offChainAddr to the wire.Bus in runtime.
+type Registerer interface {
+	Register(offChainAddr pwire.Address, commAddr string)
 }
 
 // Credential represents the parameters required to access the keys and make signatures for a given address.
