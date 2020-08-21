@@ -10,9 +10,11 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/shopspring/decimal v1.2.0
 	github.com/sirupsen/logrus v1.6.0
+	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.0
 	google.golang.org/grpc v1.27.1
 	google.golang.org/protobuf v1.24.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
+	gotest.tools v2.2.0+incompatible
 	perun.network/go-perun v0.4.0
 )
