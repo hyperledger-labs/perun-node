@@ -133,6 +133,7 @@ type Session struct {
 // with a wrong state when the channel client was not running.
 // Hence it is highly recommended not to stop the channel client if there are open channels.
 type ChannelClient interface {
+	Registerer
 	ProposeChannel(context.Context, *pclient.ChannelProposal) (*pclient.Channel, error)
 	Handle(pclient.ProposalHandler, pclient.UpdateHandler)
 	Channel(pchannel.ID) (*pclient.Channel, error)

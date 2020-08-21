@@ -23,9 +23,12 @@ import (
 
 	"github.com/pkg/errors"
 	pchannel "perun.network/go-perun/channel"
+	ppersistence "perun.network/go-perun/channel/persistence"
 	pkeyvalue "perun.network/go-perun/channel/persistence/keyvalue"
 	pclient "perun.network/go-perun/client"
+	plog "perun.network/go-perun/log"
 	pleveldb "perun.network/go-perun/pkg/sortedkv/leveldb"
+	pwire "perun.network/go-perun/wire"
 	pnet "perun.network/go-perun/wire/net"
 
 	"github.com/hyperledger-labs/perun-node"
@@ -35,10 +38,27 @@ import (
 // Client is a wrapper type around the state channel client implementation from go-perun.
 // It also manages the lifecycle of a message bus that is used for off-chain communication.
 type Client struct {
-	perun.ChannelClient
-	perun.WireBus
+	pClient
+	msgBus perun.WireBus
+
+	// Registry that is used by the channel client for resolving off-chain address to comm address.
+	msgBusRegistry perun.Registerer
 
 	wg *sync.WaitGroup
+}
+
+// pClient represents the methods on client.Client that are used by client.
+type pClient interface {
+	ProposeChannel(context.Context, *pclient.ChannelProposal) (*pclient.Channel, error)
+	Handle(pclient.ProposalHandler, pclient.UpdateHandler)
+	Channel(pchannel.ID) (*pclient.Channel, error)
+	Close() error
+
+	EnablePersistence(ppersistence.PersistRestorer)
+	OnNewChannel(handler func(*pclient.Channel))
+	Restore(context.Context) error
+
+	Log() plog.Logger
 }
 
 // NewEthereumPaymentClient initializes a two party, ethereum payment channel client for the given user.
@@ -53,7 +73,8 @@ func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBacken
 	if err != nil {
 		return nil, errors.WithMessage(err, "off-chain account")
 	}
-	msgBus := pnet.NewBus(offChainAcc, comm.NewDialer())
+	dialer := comm.NewDialer()
+	msgBus := pnet.NewBus(offChainAcc, dialer)
 
 	c, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, user.OffChain.Wallet)
 	if err != nil {
@@ -64,9 +85,10 @@ func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBacken
 	}
 
 	client := &Client{
-		ChannelClient: c,
-		WireBus:       msgBus,
-		wg:            &sync.WaitGroup{},
+		pClient:        c,
+		msgBus:         msgBus,
+		msgBusRegistry: dialer,
+		wg:             &sync.WaitGroup{},
 	}
 
 	listener, err := comm.NewListener(user.CommAddr)
@@ -79,16 +101,21 @@ func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBacken
 	return client, nil
 }
 
+// Register registers the comm address for the given off-chain address in the client.
+func (c *Client) Register(offChainAddr pwire.Address, commAddr string) {
+	c.msgBusRegistry.Register(offChainAddr, commAddr)
+}
+
 // Close closes the client and waits until the listener and handler go routines return.
 //
 // Close depends on the following mechanisms implemented in client.Close and bus.Close to signal the go-routines:
 // 1. When client.Close is invoked, it cancels the Update and Proposal handlers via a context.
 // 2. When bus.Close in invoked, it invokes EndpointRegistry.Close that shuts down the listener via onCloseCallback.
 func (c *Client) Close() error {
-	if err := c.ChannelClient.Close(); err != nil {
+	if err := c.pClient.Close(); err != nil {
 		return errors.Wrap(err, "closing channel client")
 	}
-	if busErr := c.WireBus.Close(); busErr != nil {
+	if busErr := c.msgBus.Close(); busErr != nil {
 		return errors.Wrap(busErr, "closing message bus")
 	}
 	c.wg.Wait()
