@@ -1,0 +1,77 @@
+# contacts.yaml - sample data
+#
+# This file contacts a contacts file with entries for two peers: Alice and Bob.
+#
+# The first document is the simple representation that is intended for use as
+# template for users of the perun node and,
+#
+# the second document is the canonical YAML representation that is intended for
+# use as the documentation of the complete specification.
+
+# Simple Representation
+---
+user:
+  alias: self
+  onChainAddr: 0x9282681723920798983380581376586951466585
+  offChainAddr: 0x3369783337071807248093730889602727505701
+  onChainWallet:
+    keystorePath: ./test-keystore-on-chain
+    password: test-password-on-chain
+  offChainWallet:
+    keystorePath: ./test-keystore-off-chain
+    password: test-password-off-chain
+  commAddr: 127.0.0.1:5751
+  commType: tcp
+
+
+contactsType: yaml
+contactsURL: ./test-contacts.yaml
+chainURL: ws://127.0.0.1:8545
+asset: 0x5992089d61cE79B6CF90506F70DD42B8E42FB21d
+adjudicator: 0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63
+
+databaseDir: ./test-db
+
+# Canonical Representation
+---
+!!map {
+  ? !!str "adjudicator"
+  : !!int "900210940284552285579369706925971761077161942371",
+  ? !!str "asset"
+  : !!int "511356837854933446704046452540296510558989955613",
+  ? !!str "chainURL"
+  : !!str "ws://127.0.0.1:8545",
+  ? !!str "contactsType"
+  : !!str "yaml",
+  ? !!str "contactsURL"
+  : !!str "./test-contacts.yaml",
+  ? !!str "databaseDir"
+  : !!str "./test-db",
+  ? !!str "user"
+  : !!map {
+    ? !!str "alias"
+    : !!str "self",
+    ? !!str "commAddr"
+    : !!str "127.0.0.1:5751",
+    ? !!str "commType"
+    : !!str "tcp",
+    ? !!str "offChainAddr"
+    : !!int "293510578459718428553115460897762782266696685313",
+    ? !!str "offChainWallet"
+    : !!map {
+      ? !!str "keystorePath"
+      : !!str "./test-keystore-off-chain",
+      ? !!str "password"
+      : !!str "test-password-off-chain",
+    },
+    ? !!str "onChainAddr"
+    : !!int "836420816967602103054144608989655150272585295237",
+    ? !!str "onChainWallet"
+    : !!map {
+      ? !!str "keystorePath"
+      : !!str "./test-keystore-on-chain",
+      ? !!str "password"
+      : !!str "test-password-on-chain",
+    },
+  },
+}
