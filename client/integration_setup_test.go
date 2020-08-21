@@ -25,8 +25,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
-	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
-	"perun.network/go-perun/wallet"
+	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	pwallet "perun.network/go-perun/wallet"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
@@ -36,11 +36,11 @@ var testChainURL = "ws://127.0.0.1:8545"
 
 // setup checks if valid contracts are deployed in pre-computed addresses, if not it deployes them.
 // Address generation mechanism in ethereum is used to pre-compute the contract address.
-func setup(t *testing.T, onChainCred perun.Credential) (adjudicator, asset wallet.Address) {
+func setup(t *testing.T, onChainCred perun.Credential) (adjudicator, asset pwallet.Address) {
 	require.Truef(t, isBlockchainRunning(testChainURL), "cannot connect to ganache-cli node at "+testChainURL)
 
-	adjudicator = ethwallet.AsWalletAddr(crypto.CreateAddress(ethwallet.AsEthAddr(onChainCred.Addr), 0))
-	asset = ethwallet.AsWalletAddr(crypto.CreateAddress(ethwallet.AsEthAddr(onChainCred.Addr), 1))
+	adjudicator = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(onChainCred.Addr), 0))
+	asset = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(onChainCred.Addr), 1))
 
 	chain, err := ethereum.NewChainBackend(testChainURL, 10*time.Second, onChainCred)
 	require.NoError(t, err)
@@ -58,7 +58,7 @@ func isBlockchainRunning(url string) bool {
 	return err == nil
 }
 
-func deployContracts(t *testing.T, chain perun.ChainBackend) (adjudicator, asset wallet.Address) {
+func deployContracts(t *testing.T, chain perun.ChainBackend) (adjudicator, asset pwallet.Address) {
 	adjudicator, err := chain.DeployAdjudicator()
 	require.NoError(t, err)
 	asset, err = chain.DeployAsset(adjudicator)

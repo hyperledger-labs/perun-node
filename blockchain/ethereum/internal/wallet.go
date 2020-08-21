@@ -23,8 +23,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
-	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
-	"perun.network/go-perun/wallet"
+	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	pwallet "perun.network/go-perun/wallet"
 )
 
 // Standard encryption parameters should be uses for real wallets. Using these parameters will
@@ -56,17 +56,17 @@ type ScryptParams struct {
 
 // NewWallet initializes an ethereum keystore at the given path and checks if all the keys in the keystore can
 // be unlocked with the given password.
-func (wb *WalletBackend) NewWallet(keystorePath, password string) (wallet.Wallet, error) {
+func (wb *WalletBackend) NewWallet(keystorePath, password string) (pwallet.Wallet, error) {
 	if _, err := os.Stat(keystorePath); os.IsNotExist(err) {
 		return nil, errors.Wrap(err, "initializing new wallet, cannot find keystore directory")
 	}
 	ks := keystore.NewKeyStore(keystorePath, wb.EncParams.N, wb.EncParams.P)
-	w, err := ethwallet.NewWallet(ks, password)
+	w, err := pethwallet.NewWallet(ks, password)
 	return w, errors.Wrap(err, "initializing new wallet")
 }
 
 // UnlockAccount retrieves the account corresponding to the given address, unlocks and returns it.
-func (wb *WalletBackend) UnlockAccount(w wallet.Wallet, addr wallet.Address) (wallet.Account, error) {
+func (wb *WalletBackend) UnlockAccount(w pwallet.Wallet, addr pwallet.Address) (pwallet.Account, error) {
 	acc, err := w.Unlock(addr)
 	return acc, errors.Wrap(err, "unlocking account")
 }
@@ -75,20 +75,20 @@ func (wb *WalletBackend) UnlockAccount(w wallet.Wallet, addr wallet.Address) (wa
 // representation of the address, optionally prefixed by "0x" or "0X".
 // It pads zeros in the beginning if the address string is less than required length and
 // returns an error if it is greater than required length.
-func (wb *WalletBackend) ParseAddr(str string) (wallet.Address, error) {
+func (wb *WalletBackend) ParseAddr(str string) (pwallet.Address, error) {
 	// If address string is longer than address length, return an error.
 	hasPrefix := strings.HasPrefix(str, "0x") || strings.HasPrefix(str, "0X")
 	if !hasPrefix && len(str) > addressLengthHex || len(str) > addressLengthHex+2 {
 		return nil, errors.New("hex string too long, should be <= 40 chars")
 	}
 
-	addr := ethwallet.AsWalletAddr(common.HexToAddress(str))
+	addr := pethwallet.AsWalletAddr(common.HexToAddress(str))
 
 	// common.HexToAddress parses even invalid strings to zero value of the address type.
 	// So return an error when addr has zero value and the input string is not a valid
 	// zero value representation of the address type. Valid zero value representations are
 	// "", "0x", "0x00000" (any number of zeros) or the canonical form of forty zeros.
-	zeroValue := ethwallet.Address{}
+	zeroValue := pethwallet.Address{}
 	if addr.Equals(&zeroValue) && !strings.Contains(zeroValue.String(), str) {
 		return nil, errors.New("cannot parse invalid string")
 	}
