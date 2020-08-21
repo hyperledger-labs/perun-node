@@ -16,13 +16,14 @@
 
 package client
 
-import "github.com/hyperledger-labs/perun-node"
+import (
+	"testing"
 
-func NewClientForTest(pClient pClient, bus perun.WireBus, msgBusRegistry perun.Registerer) *client { // nolint: golint
-	// it is okay to return an unexported type that satisfies an exported interface.
-	return &client{
-		pClient:        pClient,
-		msgBus:         bus,
-		msgBusRegistry: msgBusRegistry,
-	}
+	"github.com/stretchr/testify/assert"
+
+	"github.com/hyperledger-labs/perun-node"
+)
+
+func Test_ChannelClient_Interface(t *testing.T) {
+	assert.Implements(t, (*perun.ChannelClient)(nil), new(client))
 }
