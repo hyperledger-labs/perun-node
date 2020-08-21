@@ -49,7 +49,7 @@ type Peer struct {
 // ContactsReader represents a read only cached list of contacts.
 type ContactsReader interface {
 	ReadByAlias(alias string) (p Peer, contains bool)
-	ReadByOffChainAddr(offChainAddr string) (p Peer, contains bool)
+	ReadByOffChainAddr(offChainAddr pwire.Address) (p Peer, contains bool)
 }
 
 // Contacts represents a cached list of contacts backed by a storage. Read, Write and Delete methods act on the
