@@ -42,7 +42,7 @@ func setup(t *testing.T, onChainCred perun.Credential) (adjudicator, asset pwall
 	adjudicator = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(onChainCred.Addr), 0))
 	asset = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(onChainCred.Addr), 1))
 
-	chain, err := ethereum.NewChainBackend(testChainURL, 10*time.Second, onChainCred)
+	chain, err := ethereum.NewChainBackend(testChainURL, 10*time.Second, 10*time.Second, onChainCred)
 	require.NoError(t, err)
 
 	if err = chain.ValidateContracts(adjudicator, asset); err != nil {
