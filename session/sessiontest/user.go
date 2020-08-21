@@ -20,7 +20,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"perun.network/go-perun/wallet"
+	pwallet "perun.network/go-perun/wallet"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
@@ -43,7 +43,7 @@ func NewTestUser(t *testing.T, rng *rand.Rand, n uint) (perun.WalletBackend, per
 	u.OffChain.Password = ""
 	u.OffChainAddr = ws.Accs[1].Address()
 
-	u.PartAddrs = make([]wallet.Address, n)
+	u.PartAddrs = make([]pwallet.Address, n)
 	for i := range ws.Accs[2:] {
 		u.PartAddrs[i] = ws.Accs[i].Address()
 	}

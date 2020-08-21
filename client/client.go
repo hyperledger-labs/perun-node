@@ -22,11 +22,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"perun.network/go-perun/channel"
-	"perun.network/go-perun/channel/persistence/keyvalue"
-	"perun.network/go-perun/client"
-	"perun.network/go-perun/pkg/sortedkv/leveldb"
-	"perun.network/go-perun/wire/net"
+	pchannel "perun.network/go-perun/channel"
+	pkeyvalue "perun.network/go-perun/channel/persistence/keyvalue"
+	pclient "perun.network/go-perun/client"
+	pleveldb "perun.network/go-perun/pkg/sortedkv/leveldb"
+	pnet "perun.network/go-perun/wire/net"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
@@ -53,9 +53,9 @@ func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBacken
 	if err != nil {
 		return nil, errors.WithMessage(err, "off-chain account")
 	}
-	msgBus := net.NewBus(offChainAcc, comm.NewDialer())
+	msgBus := pnet.NewBus(offChainAcc, comm.NewDialer())
 
-	c, err := client.New(offChainAcc.Address(), msgBus, funder, adjudicator, user.OffChain.Wallet)
+	c, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, user.OffChain.Wallet)
 	if err != nil {
 		return nil, errors.Wrap(err, "initializing state channel client")
 	}
@@ -95,7 +95,7 @@ func (c *Client) Close() error {
 	return nil
 }
 
-func connectToChain(cfg ChainConfig, cred perun.Credential) (channel.Funder, channel.Adjudicator, error) {
+func connectToChain(cfg ChainConfig, cred perun.Credential) (pchannel.Funder, pchannel.Adjudicator, error) {
 	walletBackend := ethereum.NewWalletBackend()
 	assetAddr, err := walletBackend.ParseAddr(cfg.Asset)
 	if err != nil {
@@ -114,12 +114,12 @@ func connectToChain(cfg ChainConfig, cred perun.Credential) (channel.Funder, cha
 	return chain.NewFunder(assetAddr), chain.NewAdjudicator(adjudicatorAddr, cred.Addr), err
 }
 
-func loadPersister(c *client.Client, dbPath string, reconnTimeout time.Duration) error {
-	db, err := leveldb.LoadDatabase(dbPath)
+func loadPersister(c *pclient.Client, dbPath string, reconnTimeout time.Duration) error {
+	db, err := pleveldb.LoadDatabase(dbPath)
 	if err != nil {
 		return errors.Wrap(err, "initializing persistence database in dir - "+dbPath)
 	}
-	pr := keyvalue.NewPersistRestorer(db)
+	pr := pkeyvalue.NewPersistRestorer(db)
 	c.EnablePersistence(pr)
 	ctx, cancel := context.WithTimeout(context.Background(), reconnTimeout)
 	defer cancel()
@@ -141,7 +141,7 @@ type ProposalHandler struct{}
 // This method is called on every incoming channel proposal.
 // TODO: (mano) Implement an accept all handler until user api components are implemented.
 // TODO: (mano) Replace with proper implementation after user api components are implemented.
-func (ph *ProposalHandler) HandleProposal(_ *client.ChannelProposal, _ *client.ProposalResponder) {
+func (ph *ProposalHandler) HandleProposal(_ *pclient.ChannelProposal, _ *pclient.ProposalResponder) {
 	panic("proposalHandler.HandleProposal not implemented")
 }
 
@@ -152,6 +152,6 @@ type UpdateHandler struct{}
 // This method is called on every incoming state update for any channel managed by this client.
 // TODO: (mano) Implement an accept all handler until user api components are implemented.
 // TODO: (mano) Replace with proper implementation after user api components are implemented.
-func (uh *UpdateHandler) HandleUpdate(_ client.ChannelUpdate, _ *client.UpdateResponder) {
+func (uh *UpdateHandler) HandleUpdate(_ pclient.ChannelUpdate, _ *pclient.UpdateResponder) {
 	panic("updateHandler.HandleUpdate not implemented")
 }

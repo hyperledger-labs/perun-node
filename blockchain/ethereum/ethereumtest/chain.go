@@ -24,10 +24,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/stretchr/testify/require"
-	ethchannel "perun.network/go-perun/backend/ethereum/channel"
-	ethchanneltest "perun.network/go-perun/backend/ethereum/channel/test"
-	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
-	"perun.network/go-perun/wallet"
+	pethchannel "perun.network/go-perun/backend/ethereum/channel"
+	pethchanneltest "perun.network/go-perun/backend/ethereum/channel/test"
+	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	pwallet "perun.network/go-perun/wallet"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/internal"
@@ -43,7 +43,7 @@ const ChainTxTimeout = 1 * time.Minute
 type ChainBackendSetup struct {
 	*WalletSetup
 	ChainBackend       perun.ChainBackend
-	AdjAddr, AssetAddr wallet.Address
+	AdjAddr, AssetAddr pwallet.Address
 }
 
 // NewChainBackendSetup returns a simulated contract backend with assetHolder and adjudicator contracts deployed.
@@ -71,14 +71,14 @@ func NewChainBackendSetup(t *testing.T, rng *rand.Rand, numAccs uint) *ChainBack
 
 // newSimContractBackend sets up a simulated contract backend with the first entry (index 0) in accs
 // as the user account. All accounts are funded with 10 ethers.
-func newSimContractBackend(accs []wallet.Account, ks *keystore.KeyStore) ethchannel.ContractBackend {
-	simBackend := ethchanneltest.NewSimulatedBackend()
+func newSimContractBackend(accs []pwallet.Account, ks *keystore.KeyStore) pethchannel.ContractBackend {
+	simBackend := pethchanneltest.NewSimulatedBackend()
 	ctx, cancel := context.WithTimeout(context.Background(), ChainTxTimeout)
 	defer cancel()
 	for _, acc := range accs {
-		simBackend.FundAddress(ctx, ethwallet.AsEthAddr(acc.Address()))
+		simBackend.FundAddress(ctx, pethwallet.AsEthAddr(acc.Address()))
 	}
 
-	onChainAcc := &accs[0].(*ethwallet.Account).Account
-	return ethchannel.NewContractBackend(simBackend, ks, onChainAcc)
+	onChainAcc := &accs[0].(*pethwallet.Account).Account
+	return pethchannel.NewContractBackend(simBackend, ks, onChainAcc)
 }

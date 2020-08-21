@@ -20,13 +20,13 @@ import (
 	"context"
 	"math/big"
 
-	"perun.network/go-perun/channel"
-	"perun.network/go-perun/channel/persistence"
-	"perun.network/go-perun/client"
-	perunLog "perun.network/go-perun/log"
-	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire"
-	"perun.network/go-perun/wire/net"
+	pchannel "perun.network/go-perun/channel"
+	ppersistence "perun.network/go-perun/channel/persistence"
+	pclient "perun.network/go-perun/client"
+	pLog "perun.network/go-perun/log"
+	pwallet "perun.network/go-perun/wallet"
+	pwire "perun.network/go-perun/wire"
+	pnet "perun.network/go-perun/wire/net"
 )
 
 // Peer represents any participant in the off-chain network that the user wants to transact with.
@@ -36,7 +36,7 @@ type Peer struct {
 	Alias string `yaml:"alias"`
 
 	// Permanent identity used for authenticating the peer in the off-chain network.
-	OffChainAddr wire.Address `yaml:"-"`
+	OffChainAddr pwire.Address `yaml:"-"`
 	// This field holds the string value of address for easy marshaling / unmarshaling.
 	OffChainAddrString string `yaml:"offchain_address"`
 
@@ -67,17 +67,17 @@ type Contacts interface {
 // This can be protocols such as tcp, websockets, MQTT.
 type CommBackend interface {
 	// Returns a listener that can listen for incoming messages at the specified address.
-	NewListener(address string) (net.Listener, error)
+	NewListener(address string) (pnet.Listener, error)
 
 	// Returns a dialer that can dial for new outgoing connections.
 	// If timeout is zero, program will use no timeout, but standard OS timeouts may still apply.
-	NewDialer() net.Dialer
+	NewDialer() pnet.Dialer
 }
 
 // Credential represents the parameters required to access the keys and make signatures for a given address.
 type Credential struct {
-	Addr     wallet.Address
-	Wallet   wallet.Wallet
+	Addr     pwallet.Address
+	Wallet   pwallet.Wallet
 	Keystore string
 	Password string
 }
@@ -91,7 +91,7 @@ type User struct {
 
 	// List of participant addresses for this user in each open channel.
 	// OffChain credential is used for managing all these accounts.
-	PartAddrs []wallet.Address
+	PartAddrs []pwallet.Address
 }
 
 // Session provides a context for the user to interact with a node. It manages user data (such as IDs, contacts),
@@ -118,25 +118,25 @@ type Session struct {
 // with a wrong state when the channel client was not running.
 // Hence it is highly recommended not to stop the channel client if there are open channels.
 type ChannelClient interface {
-	ProposeChannel(context.Context, *client.ChannelProposal) (*client.Channel, error)
-	Handle(client.ProposalHandler, client.UpdateHandler)
-	Channel(channel.ID) (*client.Channel, error)
+	ProposeChannel(context.Context, *pclient.ChannelProposal) (*pclient.Channel, error)
+	Handle(pclient.ProposalHandler, pclient.UpdateHandler)
+	Channel(pchannel.ID) (*pclient.Channel, error)
 	Close() error
 
-	EnablePersistence(persistence.PersistRestorer)
-	OnNewChannel(handler func(*client.Channel))
+	EnablePersistence(ppersistence.PersistRestorer)
+	OnNewChannel(handler func(*pclient.Channel))
 	Restore(context.Context) error
 
-	Log() perunLog.Logger
+	Log() pLog.Logger
 }
 
 //go:generate mockery -name WireBus -output ./internal/mocks
 
 // WireBus is a an extension of the wire.Bus interface in go-perun to include a "Close" method.
-// wire.Bus (in go-perun) is a central message bus over which all clients of a channel network
+// pwire.Bus (in go-perun) is a central message bus over which all clients of a channel network
 // communicate. It is used as the transport layer abstraction for the ChannelClient.
 type WireBus interface {
-	wire.Bus
+	pwire.Bus
 	Close() error
 }
 
@@ -147,18 +147,18 @@ type WireBus interface {
 //
 // It defines methods for deploying contracts; validating deployed contracts and instantiating a funder, adjudicator.
 type ChainBackend interface {
-	DeployAdjudicator() (adjAddr wallet.Address, _ error)
-	DeployAsset(adjAddr wallet.Address) (assetAddr wallet.Address, _ error)
-	ValidateContracts(adjAddr, assetAddr wallet.Address) error
-	NewFunder(assetAddr wallet.Address) channel.Funder
-	NewAdjudicator(adjAddr, receiverAddr wallet.Address) channel.Adjudicator
+	DeployAdjudicator() (adjAddr pwallet.Address, _ error)
+	DeployAsset(adjAddr pwallet.Address) (assetAddr pwallet.Address, _ error)
+	ValidateContracts(adjAddr, assetAddr pwallet.Address) error
+	NewFunder(assetAddr pwallet.Address) pchannel.Funder
+	NewAdjudicator(adjAddr, receiverAddr pwallet.Address) pchannel.Adjudicator
 }
 
 // WalletBackend wraps the methods for instantiating wallets and accounts that are specific to a blockchain platform.
 type WalletBackend interface {
-	ParseAddr(string) (wallet.Address, error)
-	NewWallet(keystore string, password string) (wallet.Wallet, error)
-	UnlockAccount(wallet.Wallet, wallet.Address) (wallet.Account, error)
+	ParseAddr(string) (pwallet.Address, error)
+	NewWallet(keystore string, password string) (pwallet.Wallet, error)
+	UnlockAccount(pwallet.Wallet, pwallet.Address) (pwallet.Account, error)
 }
 
 // Currency represents a parser that can convert between string representation of a currency and

@@ -21,16 +21,16 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	ethchannel "perun.network/go-perun/backend/ethereum/channel"
-	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
-	"perun.network/go-perun/channel"
-	"perun.network/go-perun/wallet"
+	pethchannel "perun.network/go-perun/backend/ethereum/channel"
+	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	pchannel "perun.network/go-perun/channel"
+	pwallet "perun.network/go-perun/wallet"
 )
 
 // ChainBackend provides ethereum specific contract backend functionality.
 type ChainBackend struct {
 	// Cb is the instance of contract backend that will be used for all on-chain communications.
-	Cb *ethchannel.ContractBackend
+	Cb *pethchannel.ContractBackend
 	// TxTimeout is the max time to wait for confirmation of transactions on blockchain.
 	// If this expires, a transactions is considered failed.
 	// Use sufficiently large values when connecting to mainnet.
@@ -38,41 +38,41 @@ type ChainBackend struct {
 }
 
 // NewFunder initializes and returns an instance of ethereum funder.
-func (cb *ChainBackend) NewFunder(assetAddr wallet.Address) channel.Funder {
-	return ethchannel.NewETHFunder(*cb.Cb, ethwallet.AsEthAddr(assetAddr))
+func (cb *ChainBackend) NewFunder(assetAddr pwallet.Address) pchannel.Funder {
+	return pethchannel.NewETHFunder(*cb.Cb, pethwallet.AsEthAddr(assetAddr))
 }
 
 // NewAdjudicator initializes and returns an instance of ethereum adjudicator.
-func (cb *ChainBackend) NewAdjudicator(adjAddr, receiverAddr wallet.Address) channel.Adjudicator {
-	return ethchannel.NewAdjudicator(*cb.Cb, ethwallet.AsEthAddr(adjAddr), ethwallet.AsEthAddr(receiverAddr))
+func (cb *ChainBackend) NewAdjudicator(adjAddr, receiverAddr pwallet.Address) pchannel.Adjudicator {
+	return pethchannel.NewAdjudicator(*cb.Cb, pethwallet.AsEthAddr(adjAddr), pethwallet.AsEthAddr(receiverAddr))
 }
 
 // ValidateContracts validates the integrity of given adjudicator and asset holder contracts.
-func (cb *ChainBackend) ValidateContracts(adjAddr, assetAddr wallet.Address) error {
+func (cb *ChainBackend) ValidateContracts(adjAddr, assetAddr pwallet.Address) error {
 	ctx, cancel := context.WithTimeout(context.Background(), cb.TxTimeout)
 	defer cancel()
 
 	// Integrity of Adjudicator is implicitly done during validation of asset holder contract.
-	err := ethchannel.ValidateAssetHolderETH(ctx, *cb.Cb, ethwallet.AsEthAddr(assetAddr), ethwallet.AsEthAddr(adjAddr))
-	if ethchannel.IsContractBytecodeError(err) {
+	err := pethchannel.ValidateAssetHolderETH(ctx, *cb.Cb, pethwallet.AsEthAddr(assetAddr), pethwallet.AsEthAddr(adjAddr))
+	if pethchannel.IsContractBytecodeError(err) {
 		return errors.Wrap(err, "invalid contracts at given addresses")
 	}
 	return errors.Wrap(err, "validating contracts")
 }
 
 // DeployAdjudicator deploys the adjudicator contract.
-func (cb *ChainBackend) DeployAdjudicator() (wallet.Address, error) {
+func (cb *ChainBackend) DeployAdjudicator() (pwallet.Address, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), cb.TxTimeout)
 	defer cancel()
-	addr, err := ethchannel.DeployAdjudicator(ctx, *cb.Cb)
-	return ethwallet.AsWalletAddr(addr), errors.Wrap(err, "deploying adjudicator contract")
+	addr, err := pethchannel.DeployAdjudicator(ctx, *cb.Cb)
+	return pethwallet.AsWalletAddr(addr), errors.Wrap(err, "deploying adjudicator contract")
 }
 
 // DeployAsset deploys the asset holder contract, setting the adjudicator address to given value.
-func (cb *ChainBackend) DeployAsset(adjAddr wallet.Address) (wallet.Address, error) {
+func (cb *ChainBackend) DeployAsset(adjAddr pwallet.Address) (pwallet.Address, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), cb.TxTimeout)
 	defer cancel()
 
-	addr, err := ethchannel.DeployETHAssetholder(ctx, *cb.Cb, ethwallet.AsEthAddr(adjAddr))
-	return ethwallet.AsWalletAddr(addr), errors.Wrap(err, "deploying asset contract")
+	addr, err := pethchannel.DeployETHAssetholder(ctx, *cb.Cb, pethwallet.AsEthAddr(adjAddr))
+	return pethwallet.AsWalletAddr(addr), errors.Wrap(err, "deploying asset contract")
 }

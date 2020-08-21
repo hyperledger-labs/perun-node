@@ -24,8 +24,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
-	ethchannel "perun.network/go-perun/backend/ethereum/channel"
-	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	pethchannel "perun.network/go-perun/backend/ethereum/channel"
+	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/internal"
@@ -51,10 +51,10 @@ func NewChainBackend(url string, timeout time.Duration, cred perun.Credential) (
 	}
 
 	ks := keystore.NewKeyStore(cred.Keystore, internal.StandardScryptN, internal.StandardScryptP)
-	acc := accounts.Account{Address: ethwallet.AsEthAddr(cred.Addr)}
+	acc := accounts.Account{Address: pethwallet.AsEthAddr(cred.Addr)}
 	if err = ks.Unlock(acc, cred.Password); err != nil {
 		return nil, errors.Wrap(err, "unlocking on-chain keystore for addr - "+cred.Addr.String())
 	}
-	cb := ethchannel.NewContractBackend(ethereumBackend, ks, &acc)
+	cb := pethchannel.NewContractBackend(ethereumBackend, ks, &acc)
 	return &internal.ChainBackend{Cb: &cb, TxTimeout: ChainTxTimeout}, nil
 }
