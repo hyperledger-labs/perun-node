@@ -39,4 +39,6 @@ type ChainConfig struct {
 	URL string
 	// ConnTimeout is the timeout used when dialing for new connections to the on-chain node.
 	ConnTimeout time.Duration
+	// OnChainTxTimeout is the timeout to wait for a blockchain transaction to be finalized.
+	OnChainTxTimeout time.Duration
 }
