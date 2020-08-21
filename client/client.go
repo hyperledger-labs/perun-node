@@ -96,7 +96,6 @@ func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBacken
 	if err != nil {
 		return nil, err
 	}
-	c.runAsGoRoutine(func() { c.Handle(&ProposalHandler{}, &UpdateHandler{}) })
 	c.runAsGoRoutine(func() { msgBus.Listen(listener) })
 
 	return c, nil
@@ -105,6 +104,12 @@ func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBacken
 // Register registers the comm address for the given off-chain address in the client.
 func (c *client) Register(offChainAddr pwire.Address, commAddr string) {
 	c.msgBusRegistry.Register(offChainAddr, commAddr)
+}
+
+// Handle registers the channel proposal handler and channel update handler for the client.
+// It also starts the handle function as a go-routine.
+func (c *client) Handle(ph pclient.ProposalHandler, ch pclient.UpdateHandler) {
+	c.runAsGoRoutine(func() { c.pClient.Handle(ph, ch) })
 }
 
 // Close closes the client and waits until the listener and handler go routines return.
@@ -160,26 +165,4 @@ func (c *client) runAsGoRoutine(f func()) {
 		defer wg.Done()
 		f()
 	}(c.wg)
-}
-
-// ProposalHandler implements the handler for incoming channel proposals.
-type ProposalHandler struct{}
-
-// HandleProposal implements the client.ProposalHandler interface defined in go-perun.
-// This method is called on every incoming channel proposal.
-// TODO: (mano) Implement an accept all handler until user api components are implemented.
-// TODO: (mano) Replace with proper implementation after user api components are implemented.
-func (ph *ProposalHandler) HandleProposal(_ *pclient.ChannelProposal, _ *pclient.ProposalResponder) {
-	panic("proposalHandler.HandleProposal not implemented")
-}
-
-// UpdateHandler implements the handler for incoming state updates.
-type UpdateHandler struct{}
-
-// HandleUpdate implements the UpdateHandler interface.
-// This method is called on every incoming state update for any channel managed by this client.
-// TODO: (mano) Implement an accept all handler until user api components are implemented.
-// TODO: (mano) Replace with proper implementation after user api components are implemented.
-func (uh *UpdateHandler) HandleUpdate(_ pclient.ChannelUpdate, _ *pclient.UpdateResponder) {
-	panic("updateHandler.HandleUpdate not implemented")
 }
