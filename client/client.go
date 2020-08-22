@@ -64,8 +64,7 @@ type pClient interface {
 // NewEthereumPaymentClient initializes a two party, ethereum payment channel client for the given user.
 // It establishes a connection to the blockchain and verifies the integrity of contracts at the given address.
 // It uses the comm backend to initialize adapters for off-chain communication network.
-func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBackend) (
-	*client, error) { // nolint: golint	// it is okay to return an unexported type that satisfies an exported interface.
+func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBackend) (*client, error) {
 	funder, adjudicator, err := connectToChain(cfg.Chain, user.OnChain)
 	if err != nil {
 		return nil, err

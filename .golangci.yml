@@ -125,6 +125,11 @@ issues:
       linters:
         - depguard
 
+    # It is okay to return an unexported type when the type satisfies a public interface.
+    - linters:
+        - golint
+      text: "returns unexported type"
+
     - linters:
         - lll
       source: "^//go:generate "
