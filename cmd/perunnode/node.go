@@ -75,12 +75,13 @@ func (n *node) Time() int64 {
 
 // GetConfig returns the node level configuration parameters.
 func (n *node) GetConfig() perun.NodeConfig {
-	n.Logger.Debug("Received request: node.GetConfig")
+	n.Debug("Received request: node.GetConfig")
 	return n.cfg
 }
 
 // Help returns the set of APIs offered by the node.
 func (n *node) Help() []string {
+	n.Debug("Received request: node.Help")
 	return []string{"payment"}
 }
 
