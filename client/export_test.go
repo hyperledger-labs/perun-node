@@ -18,8 +18,7 @@ package client
 
 import "github.com/hyperledger-labs/perun-node"
 
-func NewClientForTest(pClient pClient, bus perun.WireBus, msgBusRegistry perun.Registerer) *client { // nolint: golint
-	// it is okay to return an unexported type that satisfies an exported interface.
+func NewClientForTest(pClient pClient, bus perun.WireBus, msgBusRegistry perun.Registerer) *client {
 	return &client{
 		pClient:        pClient,
 		msgBus:         bus,
