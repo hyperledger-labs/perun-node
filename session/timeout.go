@@ -47,3 +47,8 @@ func (t timeoutConfig) respChProposalReject() time.Duration {
 	// The only time taken is to send the rejection and receive the response.
 	return t.response + processingTime
 }
+
+func (t timeoutConfig) chUpdate() time.Duration {
+	// The only time taken is to send the rejection and receive the response.
+	return t.response + processingTime
+}
