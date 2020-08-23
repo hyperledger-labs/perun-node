@@ -34,6 +34,7 @@ import (
 	"github.com/hyperledger-labs/perun-node/client"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
 	"github.com/hyperledger-labs/perun-node/internal/mocks"
+	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
@@ -49,7 +50,9 @@ import (
 
 func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 	prng := rand.New(rand.NewSource(1729))
-	_, user := sessiontest.NewTestUser(t, prng, 0)
+	wb, userCfg := sessiontest.NewUserConfig(t, prng, 0)
+	user, err := session.NewUnlockedUser(wb, userCfg)
+	require.NoError(t, err, "initializing user")
 	adjudicator, asset := ethereumtest.SetupContracts(t, user.OnChain,
 		ethereumtest.ChainURL, ethereumtest.OnChainTxTimeout)
 
