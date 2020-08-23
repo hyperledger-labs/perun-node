@@ -74,30 +74,62 @@ func newChannel(pch *pclient.Channel, currency string, parts []string, timeoutCf
 	return ch
 }
 
-func (c *channel) ID() string {
-	return ""
+func (ch *channel) ID() string {
+	return ch.id
 }
 
-func (c *channel) SendChUpdate(ctx context.Context, updater perun.StateUpdater) error {
+func (ch *channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater) error {
+	ch.Debug("Received request: channel.SendChUpdate")
+	ch.Lock()
+	defer ch.Unlock()
+
+	if ch.lockState != open {
+		ch.Error("Dropping update request as the channel is " + ch.lockState)
+		return perun.ErrChNotOpen
+	}
+
+	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
+	defer cancel()
+	err := ch.pchannel.UpdateBy(ctx, updater)
+	if err != nil {
+		ch.Error("Sending channel update:", err)
+		return perun.GetAPIError(err)
+	}
+	prevChInfo := ch.getChInfo()
+	ch.currState = ch.pchannel.State().Clone()
+	ch.Debugf("State upated from %v to %v", prevChInfo, ch.getChInfo())
 	return nil
 }
 
-func (c *channel) SubChUpdates(notifier perun.ChUpdateNotifier) error {
+func (ch *channel) SubChUpdates(notifier perun.ChUpdateNotifier) error {
 	return nil
 }
 
-func (c *channel) UnsubChUpdates() error {
+func (ch *channel) UnsubChUpdates() error {
 	return nil
 }
 
-func (c *channel) RespondChUpdate(ctx context.Context, updateID string, accpet bool) error {
+func (ch *channel) RespondChUpdate(ctx context.Context, updateID string, accpet bool) error {
 	return nil
 }
 
-func (c *channel) GetInfo() perun.ChannelInfo {
-	return perun.ChannelInfo{}
+func (ch *channel) GetInfo() perun.ChannelInfo {
+	ch.Debug("Received request: channel.GetInfo")
+	ch.Lock()
+	defer ch.Unlock()
+	return ch.getChInfo()
 }
 
-func (c *channel) Close(ctx context.Context) (perun.ChannelInfo, error) {
+// This function assumes that caller has already locked the channel.
+func (ch *channel) getChInfo() perun.ChannelInfo {
+	return perun.ChannelInfo{
+		ChannelID: ch.id,
+		Currency:  ch.currency,
+		State:     ch.currState,
+		Parts:     ch.parts,
+	}
+}
+
+func (ch *channel) Close(ctx context.Context) (perun.ChannelInfo, error) {
 	return perun.ChannelInfo{}, nil
 }

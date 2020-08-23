@@ -451,7 +451,16 @@ func (s *session) GetChInfos() []perun.ChannelInfo {
 }
 
 func (s *session) GetCh(channelID string) (perun.ChannelAPI, error) {
-	return nil, nil
+	s.Debugf("Internal call to get channel instance. Params: %+v", channelID)
+	s.Lock()
+	defer s.Unlock()
+
+	ch, ok := s.channels[channelID]
+	if !ok {
+		s.Info(perun.ErrUnknownChannelID)
+		return nil, perun.ErrUnknownChannelID
+	}
+	return ch, nil
 }
 
 func (s *session) HandleUpdate(chUpdate pclient.ChannelUpdate, responder *pclient.UpdateResponder) {
