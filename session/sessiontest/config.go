@@ -58,10 +58,10 @@ func NewConfigFile(t *testing.T, config session.Config) string {
 // A contacts file is created with the given set of peers and path to it is added in the config.
 // This function also registers cleanup functions for removing all the temp files and dirs after the test.
 //
-// This function uses its own prng seed instead of receiving it from the calling test function because the
-// specific seed is required to match the accounts funded in on the blockchain.
-func NewConfig(t *testing.T, contacts ...perun.Peer) session.Config {
-	rng := rand.New(rand.NewSource(1729))
+// This function returns a session config with user on-chain addresses that are funded on blockchain when
+// using a particular seed for prng. The first two consecutive calls to this function will return
+// funded accounts when using prng := rand.New(rand.NewSource(1729)).
+func NewConfig(t *testing.T, rng *rand.Rand, contacts ...perun.Peer) session.Config {
 	walletSetup, userCfg := newUserConfig(t, rng, 0)
 	cred := perun.Credential{
 		Addr:     walletSetup.Accs[0].Address(),

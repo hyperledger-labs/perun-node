@@ -19,6 +19,7 @@
 package perunnode_test
 
 import (
+	"math/rand"
 	"testing"
 	"time"
 
@@ -95,9 +96,10 @@ func Test_Integ_New(t *testing.T) {
 		assert.Equal(t, []string{"payment"}, apis)
 	})
 	var sessionID string
+	prng := rand.New(rand.NewSource(1729))
 	t.Run("happy_OpenSession", func(t *testing.T) {
 		var err error
-		sessionCfg := sessiontest.NewConfig(t)
+		sessionCfg := sessiontest.NewConfig(t, prng)
 		sessionCfgFile := sessiontest.NewConfigFile(t, sessionCfg)
 		sessionID, err = n.OpenSession(sessionCfgFile)
 		require.NoError(t, err)
@@ -121,7 +123,7 @@ func Test_Integ_New(t *testing.T) {
 	// Simulate one error to fail session.New
 	// Complete test of session.New is done in the session package.
 	t.Run("err_OpenSession_init_error", func(t *testing.T) {
-		sessionCfg := sessiontest.NewConfig(t)
+		sessionCfg := sessiontest.NewConfig(t, prng)
 		sessionCfg.ChainURL = "invalid-url"
 		sessionCfgFile := sessiontest.NewConfigFile(t, sessionCfg)
 		_, err := n.OpenSession(sessionCfgFile)
