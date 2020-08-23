@@ -68,6 +68,9 @@ type (
 		chProposalNotifier    perun.ChProposalNotifier
 		chProposalNotifsCache []perun.ChProposalNotif
 		chProposalResponders  map[string]chProposalResponderEntry
+
+		chCloseNotifier    perun.ChCloseNotifier
+		chCloseNotifsCache []perun.ChCloseNotif
 	}
 
 	chProposalResponderEntry struct {
@@ -525,12 +528,63 @@ func (s *session) Close(force bool) error {
 }
 
 func (s *session) HandleClose(chID string, err error) {
+	s.Debug("SDK Callback: Channel watcher returned.")
+
+	ch := s.channels[chID]
+	ch.Lock()
+	defer ch.Unlock()
+
+	if ch.lockState == open || ch.lockState == finalized {
+		ch.lockState = closed
+	}
+
+	chInfo := ch.getChInfo()
+	notif := perun.ChCloseNotif{
+		ChannelID: chInfo.ChannelID,
+		Currency:  chInfo.Currency,
+		ChState:   chInfo.State,
+		Parts:     chInfo.Parts,
+	}
+	if err != nil {
+		notif.Error = err.Error()
+	}
+
+	if s.chCloseNotifier == nil {
+		s.chCloseNotifsCache = append(s.chCloseNotifsCache, notif)
+		s.Debug("HandleClose: Notification cached")
+	} else {
+		go s.chCloseNotifier(notif)
+		s.Debug("HandleClose: Notification sent")
+	}
 }
 
 func (s *session) SubChCloses(notifier perun.ChCloseNotifier) error {
+	s.Debug("Received request: session.SubChCloses")
+	s.Lock()
+	defer s.Unlock()
+
+	if s.chCloseNotifier != nil {
+		return perun.ErrSubAlreadyExists
+	}
+	s.chCloseNotifier = notifier
+
+	// Send all cached notifications
+	for i := len(s.chCloseNotifsCache); i > 0; i-- {
+		go s.chCloseNotifier(s.chCloseNotifsCache[0])
+		s.chCloseNotifsCache = s.chCloseNotifsCache[1:i]
+
+	}
 	return nil
 }
 
 func (s *session) UnsubChCloses() error {
+	s.Debug("Received request: session.UnsubChCloses")
+	s.Lock()
+	defer s.Unlock()
+
+	if s.chCloseNotifier == nil {
+		return perun.ErrNoActiveSub
+	}
+	s.chCloseNotifier = nil
 	return nil
 }
