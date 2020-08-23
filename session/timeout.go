@@ -38,6 +38,11 @@ func (t timeoutConfig) proposeCh(challegeDurSecs uint64) time.Duration {
 	return 2*t.response + 3*t.onChainTx + 2*challegeDur + processingTime
 }
 
+func (t timeoutConfig) respChProposalAccept(challegeDurSecs uint64) time.Duration {
+	// The worst case path for accept is almost same as that for propose channel.
+	return t.proposeCh(challegeDurSecs)
+}
+
 func (t timeoutConfig) respChProposalReject() time.Duration {
 	// The only time taken is to send the rejection and receive the response.
 	return t.response + processingTime
