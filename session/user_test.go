@@ -32,237 +32,103 @@ import (
 func Test_New_Happy(t *testing.T) {
 	rng := rand.New(rand.NewSource(1729))
 	cntParts := uint(4)
-	wb, testUser := sessiontest.NewTestUser(t, rng, cntParts)
-	userCfg := session.UserConfig{
-		Alias:       testUser.Alias,
-		OnChainAddr: testUser.OnChain.Addr.String(),
-		OnChainWallet: session.WalletConfig{
-			KeystorePath: testUser.OnChain.Keystore,
-			Password:     "",
-		},
-		OffChainAddr: testUser.OffChain.Addr.String(),
-		OffChainWallet: session.WalletConfig{
-			KeystorePath: testUser.OffChain.Keystore,
-			Password:     "",
-		},
-		CommType: "tcp",
-		CommAddr: "127.0.0.1:5751",
-	}
+	wb, userCfg := sessiontest.NewUserConfig(t, rng, cntParts)
 
-	userCfg.PartAddrs = make([]string, len(testUser.PartAddrs))
-	for i, addr := range testUser.PartAddrs {
-		userCfg.PartAddrs[i] = addr.String()
-	}
+	t.Run("non_empty_parts", func(t *testing.T) {
+		userCfgCopy := userCfg
+		gotUser, err := session.NewUnlockedUser(wb, userCfgCopy)
+		require.NoError(t, err)
+		compareUserWithCfg(t, gotUser, userCfgCopy)
+	})
 
-	gotUser, err := session.NewUnlockedUser(wb, userCfg)
-	require.NoError(t, err)
+	t.Run("empty_parts", func(t *testing.T) {
+		userCfgCopy := userCfg
+		userCfgCopy.PartAddrs = nil
+		gotUser, err := session.NewUnlockedUser(wb, userCfgCopy)
+		require.NoError(t, err)
+		compareUserWithCfg(t, gotUser, userCfgCopy)
+	})
+}
+
+func compareUserWithCfg(t *testing.T, gotUser perun.User, userCfg session.UserConfig) {
 	require.NotZero(t, gotUser)
-	require.NotNil(t, gotUser.OffChainAddr)
-	require.NotNil(t, gotUser.OnChain.Addr)
-	assert.True(t, gotUser.OffChain.Addr.Equals(testUser.OffChain.Addr))
-	assert.True(t, gotUser.OffChain.Addr.Equals(testUser.OffChain.Addr))
+
 	assert.Equal(t, perun.OwnAlias, gotUser.Alias)
+
+	require.NotNil(t, gotUser.OffChainAddr)
+	assert.Equal(t, userCfg.OffChainAddr, gotUser.OffChain.Addr.String())
+
+	require.NotNil(t, gotUser.OnChain.Addr)
+	assert.Equal(t, userCfg.OnChainAddr, gotUser.OnChain.Addr.String())
+
 	assert.Equal(t, userCfg.CommAddr, gotUser.CommAddr)
 	assert.Equal(t, userCfg.CommType, gotUser.CommType)
-	require.Len(t, gotUser.PartAddrs, int(cntParts))
+	require.Len(t, gotUser.PartAddrs, len(userCfg.PartAddrs))
 }
 
-func Test_New_Invalid_Parts(t *testing.T) {
+func Test_New_Unhappy(t *testing.T) {
 	rng := rand.New(rand.NewSource(1729))
 	cntParts := uint(1)
-	wb, testUser := sessiontest.NewTestUser(t, rng, cntParts)
-	userCfg := session.UserConfig{
-		Alias:       testUser.Alias,
-		OnChainAddr: testUser.OnChain.Addr.String(),
-		OnChainWallet: session.WalletConfig{
-			KeystorePath: testUser.OnChain.Keystore,
-			Password:     "",
-		},
-		OffChainAddr: testUser.OffChain.Addr.String(),
-		OffChainWallet: session.WalletConfig{
-			KeystorePath: testUser.OffChain.Keystore,
-			Password:     "",
-		},
-	}
+	wb, userCfg := sessiontest.NewUserConfig(t, rng, cntParts)
 
-	t.Run("no_parts", func(t *testing.T) {
-		gotUser, err := session.NewUnlockedUser(wb, session.UserConfig{})
-		require.Error(t, err)
-		require.Zero(t, gotUser)
-	})
 	t.Run("invalid_parts_address", func(t *testing.T) {
-		userCfg.PartAddrs = make([]string, cntParts)
-		for i := range testUser.PartAddrs {
-			userCfg.PartAddrs[i] = "invalid-addr"
-		}
-
-		gotUser, err := session.NewUnlockedUser(wb, userCfg)
+		userCfgCopy := userCfg
+		userCfgCopy.PartAddrs[0] = "invalid-address"
+		_, err := session.NewUnlockedUser(wb, userCfgCopy)
 		require.Error(t, err)
-		require.Zero(t, gotUser)
 	})
 	t.Run("missing_parts_address", func(t *testing.T) {
-		userCfg.PartAddrs = make([]string, cntParts)
-		for i := range testUser.PartAddrs {
-			userCfg.PartAddrs[i] = ethereumtest.NewRandomAddress(rng).String()
-		}
-		gotUser, err := session.NewUnlockedUser(wb, userCfg)
+		userCfgCopy := userCfg
+		userCfgCopy.PartAddrs[0] = ethereumtest.NewRandomAddress(rng).String()
+		_, err := session.NewUnlockedUser(wb, userCfgCopy)
 		require.Error(t, err)
-		require.Zero(t, gotUser)
 	})
-}
-
-func Test_New_Invalid_Wallets(t *testing.T) {
-	rng := rand.New(rand.NewSource(1729))
-	wb, testUser := sessiontest.NewTestUser(t, rng, 0)
-
-	type args struct {
-		wb  perun.WalletBackend
-		cfg session.UserConfig
-	}
-	tests := []struct {
-		name string
-		args args
-		want perun.User
-	}{
-		{
-			name: "invalid_on-chain_address",
-			args: args{
-				wb: wb,
-				cfg: session.UserConfig{
-					Alias:       testUser.Alias,
-					OnChainAddr: "invalid-addr",
-					OnChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OnChain.Keystore,
-						Password:     "",
-					},
-					OffChainAddr: testUser.OffChain.Addr.String(),
-					OffChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OffChain.Keystore,
-						Password:     "",
-					},
-				},
-			},
-		},
-		{
-			name: "invalid_off-chain_address",
-			args: args{
-				wb: wb,
-				cfg: session.UserConfig{
-					Alias:       testUser.Alias,
-					OnChainAddr: testUser.OnChain.Addr.String(),
-					OnChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OnChain.Keystore,
-						Password:     "",
-					},
-					OffChainAddr: "invalid-addr",
-					OffChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OffChain.Keystore,
-						Password:     "",
-					},
-				},
-			},
-		},
-		{
-			name: "missing_on-chain_account",
-			args: args{
-				wb: wb,
-				cfg: session.UserConfig{
-					Alias:       testUser.Alias,
-					OnChainAddr: ethereumtest.NewRandomAddress(rng).String(),
-					OnChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OnChain.Keystore,
-						Password:     "",
-					},
-					OffChainAddr: testUser.OffChain.Addr.String(),
-					OffChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OffChain.Keystore,
-						Password:     "",
-					},
-				},
-			},
-		},
-		{
-			name: "missing_off-chain_account",
-			args: args{
-				wb: wb,
-				cfg: session.UserConfig{
-					Alias:       testUser.Alias,
-					OnChainAddr: testUser.OnChain.Addr.String(),
-					OnChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OnChain.Keystore,
-						Password:     "",
-					},
-					OffChainAddr: ethereumtest.NewRandomAddress(rng).String(),
-					OffChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OffChain.Keystore,
-						Password:     "",
-					},
-				},
-			},
-		},
-		{
-			name: "invalid_on-chain_password",
-			args: args{
-				wb: wb,
-				cfg: session.UserConfig{
-					Alias:       testUser.Alias,
-					OnChainAddr: testUser.OnChain.Addr.String(),
-					OnChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OnChain.Keystore,
-						Password:     "invalid-password",
-					},
-					OffChainAddr: testUser.OffChain.Addr.String(),
-					OffChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OffChain.Keystore,
-						Password:     "",
-					},
-				},
-			},
-		},
-		{
-			name: "valid_on-chain_invalid_off-chain_password",
-			args: args{
-				wb: wb,
-				cfg: session.UserConfig{
-					Alias:       testUser.Alias,
-					OnChainAddr: testUser.OnChain.Addr.String(),
-					OnChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OnChain.Keystore,
-						Password:     "",
-					},
-					OffChainAddr: testUser.OffChain.Addr.String(),
-					OffChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OffChain.Keystore,
-						Password:     "invalid-pwd",
-					},
-				},
-			},
-		},
-		{
-			name: "invalid_keystore_path",
-			args: args{
-				wb: wb,
-				cfg: session.UserConfig{
-					Alias:       testUser.Alias,
-					OnChainAddr: testUser.OnChain.Addr.String(),
-					OnChainWallet: session.WalletConfig{
-						KeystorePath: "invalid-keystore-path",
-						Password:     "",
-					},
-					OffChainAddr: testUser.OffChain.Addr.String(),
-					OffChainWallet: session.WalletConfig{
-						KeystorePath: testUser.OffChain.Keystore,
-						Password:     "",
-					},
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := session.NewUnlockedUser(tt.args.wb, tt.args.cfg)
-			require.Error(t, err)
-			assert.Zero(t, got)
-		})
-	}
+	t.Run("invalid_on-chain_address", func(t *testing.T) {
+		userCfgCopy := userCfg
+		userCfgCopy.OnChainAddr = "invalid-addr"
+		_, err := session.NewUnlockedUser(wb, userCfgCopy)
+		require.Error(t, err)
+	})
+	t.Run("invalid_off-chain_address", func(t *testing.T) {
+		userCfgCopy := userCfg
+		userCfgCopy.OffChainAddr = "invalid-addr"
+		_, err := session.NewUnlockedUser(wb, userCfgCopy)
+		require.Error(t, err)
+	})
+	t.Run("missing_on-chain_address", func(t *testing.T) {
+		userCfgCopy := userCfg
+		userCfgCopy.OnChainAddr = ethereumtest.NewRandomAddress(rng).String()
+		_, err := session.NewUnlockedUser(wb, userCfgCopy)
+		require.Error(t, err)
+	})
+	t.Run("missing_off-chain_address", func(t *testing.T) {
+		userCfgCopy := userCfg
+		userCfgCopy.OffChainAddr = ethereumtest.NewRandomAddress(rng).String()
+		_, err := session.NewUnlockedUser(wb, userCfgCopy)
+		require.Error(t, err)
+	})
+	t.Run("invalid_on-chain_password", func(t *testing.T) {
+		userCfgCopy := userCfg
+		userCfgCopy.OnChainWallet.Password = "invalid-password"
+		_, err := session.NewUnlockedUser(wb, userCfgCopy)
+		require.Error(t, err)
+	})
+	t.Run("invalid_off-chain_password", func(t *testing.T) {
+		userCfgCopy := userCfg
+		userCfgCopy.OffChainWallet.Password = "invalid-password"
+		_, err := session.NewUnlockedUser(wb, userCfgCopy)
+		require.Error(t, err)
+	})
+	t.Run("invalid_on-chain_keystore", func(t *testing.T) {
+		userCfgCopy := userCfg
+		userCfgCopy.OnChainWallet.KeystorePath = "invalid-keystore"
+		_, err := session.NewUnlockedUser(wb, userCfgCopy)
+		require.Error(t, err)
+	})
+	t.Run("invalid_off-chain_keystore", func(t *testing.T) {
+		userCfgCopy := userCfg
+		userCfgCopy.OffChainWallet.KeystorePath = "invalid-keystore"
+		_, err := session.NewUnlockedUser(wb, userCfgCopy)
+		require.Error(t, err)
+	})
 }
