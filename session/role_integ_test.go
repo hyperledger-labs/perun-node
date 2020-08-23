@@ -20,8 +20,10 @@ package session_test
 
 import (
 	"math/rand"
+	"sync"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
@@ -97,24 +99,80 @@ func Test_Integ_Role(t *testing.T) {
 	})
 
 	const challengeDurSecs uint64 = 10
-	// wg := &sync.WaitGroup{}
+	wg := &sync.WaitGroup{}
 	ctx := context.Background()
 
-	t.Run("OpenCh", func(t *testing.T) {
+	t.Run("OpenCh_Sub_Unsub_ChProposal_Respond_Accept", func(t *testing.T) {
 		// Propose Channel by alice.
-		bals := make(map[string]string)
-		bals[perun.OwnAlias] = "1"
-		bals[bobAlias] = "2"
-		balInfo := perun.BalInfo{
-			Currency: currency.ETH,
-			Bals:     bals,
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			bals := make(map[string]string)
+			bals[perun.OwnAlias] = "1"
+			bals[bobAlias] = "2"
+			balInfo := perun.BalInfo{
+				Currency: currency.ETH,
+				Bals:     bals,
+			}
+			app := perun.App{
+				Def:  ppayment.AppDef(),
+				Data: &ppayment.NoData{},
+			}
+			aliceCh1Info, err := alice.OpenCh(ctx, bobAlias, balInfo, app, challengeDurSecs)
+			require.NoErrorf(t, err, "alice opening channel with bob")
+			t.Log(aliceCh1Info)
+		}()
+
+		bobChProposalNotif := make(chan perun.ChProposalNotif)
+		bobChProposalNotifier := func(notif perun.ChProposalNotif) {
+			bobChProposalNotif <- notif
 		}
-		app := perun.App{
-			Def:  ppayment.AppDef(),
-			Data: &ppayment.NoData{},
+		err := bob.SubChProposals(bobChProposalNotifier)
+		require.NoError(t, err, "bob subscribing channel proposals")
+
+		notif := <-bobChProposalNotif
+		err = bob.RespondChProposal(ctx, notif.ProposalID, true)
+		require.NoError(t, err, "bob accepting channel proposal")
+
+		err = bob.UnsubChProposals()
+		require.NoError(t, err, "bob unsubscribing channel proposals")
+		wg.Wait()
+	})
+
+	t.Run("OpenCh_Sub_Unsub_ChProposal_Respond_Reject", func(t *testing.T) {
+		// Propose Channel by bob.
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			bals := make(map[string]string)
+			bals[aliceAlias] = "1"
+			bals[perun.OwnAlias] = "2"
+			balInfo := perun.BalInfo{
+				Currency: currency.ETH,
+				Bals:     bals,
+			}
+			app := perun.App{
+				Def:  ppayment.AppDef(),
+				Data: &ppayment.NoData{},
+			}
+			bobCh1Info, err := bob.OpenCh(ctx, aliceAlias, balInfo, app, challengeDurSecs)
+			require.True(t, errors.Is(err, perun.ErrPeerRejected), "bob channel rejected by alice")
+			t.Log(bobCh1Info)
+		}()
+
+		aliceChProposalNotif := make(chan perun.ChProposalNotif)
+		aliceChProposalNotifier := func(notif perun.ChProposalNotif) {
+			aliceChProposalNotif <- notif
 		}
-		aliceCh1Info, err := alice.OpenCh(ctx, bobAlias, balInfo, app, challengeDurSecs)
-		require.NoErrorf(t, err, "alice opening channel with bob")
-		t.Log(aliceCh1Info)
+		err := alice.SubChProposals(aliceChProposalNotifier)
+		require.NoError(t, err, "alice subscribing channel proposals")
+
+		notif := <-aliceChProposalNotif
+		err = alice.RespondChProposal(ctx, notif.ProposalID, false)
+		require.NoError(t, err, "alice rejecting channel proposal")
+
+		err = alice.UnsubChProposals()
+		require.NoError(t, err, "alice unsubscribing channel proposals")
+		wg.Wait()
 	})
 }
