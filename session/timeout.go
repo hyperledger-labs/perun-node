@@ -18,7 +18,22 @@ package session
 
 import "time"
 
+// processingTime is to accommodate for computational and communications delays.
+// This also includes the timespent spent waiting for a mutex.
+var processingTime = 5 * time.Second
+
 type timeoutConfig struct {
 	onChainTx time.Duration
 	response  time.Duration
+}
+
+func (t timeoutConfig) proposeCh(challegeDurSecs uint64) time.Duration {
+	challegeDur := time.Duration(challegeDurSecs) * time.Second
+	// The worst case path considered is
+	// 1. Connect to the peer and expect acknownledgement,
+	// 2. Send channel proposal and wait for response.
+	// 3. Fund the channel and wait for challengeDurSecs for other to fund.
+	// 4. Somebody does not fund, so register the initial state and wait for challengeDurSecs.
+	// 5. Withdraw funds after challenge duration.
+	return 2*t.response + 3*t.onChainTx + 2*challegeDur + processingTime
 }
