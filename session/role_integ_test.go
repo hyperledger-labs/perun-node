@@ -23,11 +23,12 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/pkg/errors"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 	ppayment "perun.network/go-perun/apps/payment"
+	pchannel "perun.network/go-perun/channel"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
@@ -118,16 +119,17 @@ func Test_Integ_Role(t *testing.T) {
 				Def:  ppayment.AppDef(),
 				Data: &ppayment.NoData{},
 			}
-			aliceCh1Info, err := alice.OpenCh(ctx, bobAlias, balInfo, app, challengeDurSecs)
+			// nolint: govet	// err does not shadow, using a new var to prevent data race.
+			_, err := alice.OpenCh(ctx, bobAlias, balInfo, app, challengeDurSecs)
 			require.NoErrorf(t, err, "alice opening channel with bob")
-			t.Log(aliceCh1Info)
 		}()
 
+		// Accept channel by bob.
 		bobChProposalNotif := make(chan perun.ChProposalNotif)
 		bobChProposalNotifier := func(notif perun.ChProposalNotif) {
 			bobChProposalNotif <- notif
 		}
-		err := bob.SubChProposals(bobChProposalNotifier)
+		err = bob.SubChProposals(bobChProposalNotifier)
 		require.NoError(t, err, "bob subscribing channel proposals")
 
 		notif := <-bobChProposalNotif
@@ -155,16 +157,18 @@ func Test_Integ_Role(t *testing.T) {
 				Def:  ppayment.AppDef(),
 				Data: &ppayment.NoData{},
 			}
-			bobCh1Info, err := bob.OpenCh(ctx, aliceAlias, balInfo, app, challengeDurSecs)
-			require.True(t, errors.Is(err, perun.ErrPeerRejected), "bob channel rejected by alice")
-			t.Log(bobCh1Info)
+			// nolint: govet	// err does not shadow, using a new var to prevent data race.
+			_, err := bob.OpenCh(ctx, aliceAlias, balInfo, app, challengeDurSecs)
+			require.Error(t, err, "bob channel rejected by alice")
+			t.Log(err)
 		}()
 
+		// Reject channel by alice.
 		aliceChProposalNotif := make(chan perun.ChProposalNotif)
 		aliceChProposalNotifier := func(notif perun.ChProposalNotif) {
 			aliceChProposalNotif <- notif
 		}
-		err := alice.SubChProposals(aliceChProposalNotifier)
+		err = alice.SubChProposals(aliceChProposalNotifier)
 		require.NoError(t, err, "alice subscribing channel proposals")
 
 		notif := <-aliceChProposalNotif
@@ -173,6 +177,107 @@ func Test_Integ_Role(t *testing.T) {
 
 		err = alice.UnsubChProposals()
 		require.NoError(t, err, "alice unsubscribing channel proposals")
+		wg.Wait()
+	})
+
+	var aliceCh, bobCh perun.ChannelAPI
+	t.Run("GetChInfos_GetCh", func(t *testing.T) {
+		aliceChInfos := alice.GetChInfos()
+		require.Lenf(t, aliceChInfos, 1, "alice session should have exactly one channel")
+		bobChInfos := bob.GetChInfos()
+		require.Lenf(t, bobChInfos, 1, "bob session should have exactly one channel")
+
+		aliceCh, err = alice.GetCh(aliceChInfos[0].ChannelID)
+		require.NoError(t, err, "getting alice ChannelAPI instance")
+
+		bobCh, err = bob.GetCh(aliceChInfos[0].ChannelID)
+		require.NoError(t, err, "getting bob ChannelAPI instance")
+	})
+
+	t.Run("SendUpdate_Sub_Unsub_ChUpdate_Respond_Accept", func(t *testing.T) {
+		// Send update by bob.
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			bobChInfo := bobCh.GetInfo()
+			var ownIdx, peerIdx int
+			if bobChInfo.Parts[0] == perun.OwnAlias {
+				ownIdx = 0
+			} else {
+				ownIdx = 1
+			}
+			peerIdx = ownIdx ^ 1
+			amountToSend := decimal.NewFromFloat(0.5e18).BigInt()
+
+			updater := func(state *pchannel.State) {
+				bals := state.Allocation.Clone().Balances[0]
+				bals[ownIdx].Sub(bals[ownIdx], amountToSend)
+				bals[peerIdx].Add(bals[peerIdx], amountToSend)
+				state.Allocation.Balances[0] = bals
+			}
+
+			err := bobCh.SendChUpdate(ctx, updater)
+			require.NoError(t, err)
+		}()
+
+		// Accept channel by alice.
+		aliceChUpdateNotif := make(chan perun.ChUpdateNotif)
+		aliceChUpdateNotifier := func(notif perun.ChUpdateNotif) {
+			aliceChUpdateNotif <- notif
+		}
+		err := aliceCh.SubChUpdates(aliceChUpdateNotifier)
+		require.NoError(t, err, "alice subscribing channel proposals")
+
+		notif := <-aliceChUpdateNotif
+		err = aliceCh.RespondChUpdate(ctx, notif.UpdateID, true)
+		require.NoError(t, err, "alice accepting channel update")
+
+		err = aliceCh.UnsubChUpdates()
+		require.NoError(t, err, "alice unsubscribing channel updates")
+		wg.Wait()
+	})
+
+	t.Run("SendUpdate_Sub_Unsub_ChUpdate_Respond_Reject", func(t *testing.T) {
+		// Send update by alice.
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			aliceChInfo := aliceCh.GetInfo()
+			var ownIdx, peerIdx int
+			if aliceChInfo.Parts[0] == perun.OwnAlias {
+				ownIdx = 0
+			} else {
+				ownIdx = 1
+			}
+			peerIdx = ownIdx ^ 1
+			amountToSend := decimal.NewFromFloat(0.5e18).BigInt()
+
+			updater := func(state *pchannel.State) {
+				bals := state.Allocation.Clone().Balances[0]
+				bals[ownIdx].Sub(bals[ownIdx], amountToSend)
+				bals[peerIdx].Add(bals[peerIdx], amountToSend)
+				state.Allocation.Balances[0] = bals
+			}
+
+			err := aliceCh.SendChUpdate(ctx, updater)
+			require.Error(t, err, "alice update rejected by bob")
+			t.Log(err)
+		}()
+
+		// Reject channel by bob.
+		bobChUpdateNotif := make(chan perun.ChUpdateNotif)
+		bobChUpdateNotifier := func(notif perun.ChUpdateNotif) {
+			bobChUpdateNotif <- notif
+		}
+		err := bobCh.SubChUpdates(bobChUpdateNotifier)
+		require.NoError(t, err, "bob subscribing channel proposals")
+
+		notif := <-bobChUpdateNotif
+		err = bobCh.RespondChUpdate(ctx, notif.UpdateID, false)
+		require.NoError(t, err, "bob accepting channel update")
+
+		err = bobCh.UnsubChUpdates()
+		require.NoError(t, err, "bob unsubscribing channel updates")
 		wg.Wait()
 	})
 }
