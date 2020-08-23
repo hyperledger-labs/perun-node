@@ -344,7 +344,7 @@ func (s *session) HandleProposal(chProposal *pclient.ChannelProposal, responder 
 	}
 	if s.chProposalNotifier == nil {
 		s.chProposalNotifsCache = append(s.chProposalNotifsCache, notif)
-		s.Debugf("HandleProposa: Notification cached", notif)
+		s.Debugf("HandleProposal: Notification cached", notif)
 	} else {
 		go s.chProposalNotifier(notif)
 		s.Debugf("HandleProposal: Notification sent", notif)
@@ -464,6 +464,50 @@ func (s *session) GetCh(channelID string) (perun.ChannelAPI, error) {
 }
 
 func (s *session) HandleUpdate(chUpdate pclient.ChannelUpdate, responder *pclient.UpdateResponder) {
+	s.Debugf("SDK Callback: HandleUpdate. Params: %+v", chUpdate)
+	s.Lock()
+	defer s.Unlock()
+	expiry := time.Now().UTC().Add(s.timeoutCfg.response).Unix()
+
+	channelID := fmt.Sprintf("%x", chUpdate.State.ID)
+	updateID := fmt.Sprintf("%s_%d", channelID, chUpdate.State.Version)
+
+	ch, ok := s.channels[channelID]
+	if !ok {
+		s.Info("Received update for unknown channel", channelID)
+		err := responder.Reject(context.Background(), "unknown channel for this session")
+		s.Info("Error rejecting unknown channel with id %s: %v", channelID, err)
+		return
+	}
+
+	ch.Lock()
+	defer ch.Unlock()
+	if chUpdate.State.IsFinal {
+		ch.Info("Received final update from peer, channel is finalized.")
+		ch.lockState = finalized
+	}
+
+	entry := chUpdateResponderEntry{
+		responder: responder,
+		expiry:    expiry,
+	}
+	ch.chUpdateResponders[updateID] = entry
+
+	notif := perun.ChUpdateNotif{
+		UpdateID:  updateID,
+		Currency:  ch.currency,
+		CurrState: ch.currState,
+		Update:    &chUpdate,
+		Parts:     ch.parts,
+		Expiry:    expiry,
+	}
+	if ch.chUpdateNotifier == nil {
+		ch.chUpdateNotifCache = append(ch.chUpdateNotifCache, notif)
+		ch.Debug("HandleUpdate: Notification cached")
+	} else {
+		go ch.chUpdateNotifier(notif)
+		ch.Debug("HandleUpdate: Notification sent")
+	}
 }
 
 func (s *session) Close(force bool) error {

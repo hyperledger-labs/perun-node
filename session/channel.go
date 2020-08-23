@@ -29,7 +29,8 @@ import (
 )
 
 const (
-	open chLockState = "open"
+	open      chLockState = "open"
+	finalized chLockState = "finalized"
 )
 
 type (
@@ -55,6 +56,16 @@ type (
 	chLockState string
 
 	chUpdateResponderEntry struct {
+		responder chUpdateResponder
+		expiry    int64
+	}
+
+	//go:generate mockery -name ProposalResponder -output ../internal/mocks
+
+	// ChUpdaterResponder represents the methods on channel update responder that will be used the perun node.
+	chUpdateResponder interface {
+		Accept(ctx context.Context) error
+		Reject(ctx context.Context, reason string) error
 	}
 )
 
