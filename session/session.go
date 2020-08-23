@@ -65,12 +65,24 @@ type (
 
 		channels map[string]*channel
 
-		chProposalResponders map[string]chProposalResponderEntry
+		chProposalNotifier    perun.ChProposalNotifier
+		chProposalNotifsCache []perun.ChProposalNotif
+		chProposalResponders  map[string]chProposalResponderEntry
 	}
 
-	// the fields in the type will be defined later.
-	// for now it is just a stub.
 	chProposalResponderEntry struct {
+		responder        chProposalResponder
+		challengeDurSecs uint64
+		parts            []string
+		expiry           int64
+	}
+
+	//go:generate mockery -name chProposalResponder -output ../internal/mocks
+
+	// Proposal Responder defines the methods on proposal responder that will be used by the perun node.
+	chProposalResponder interface {
+		Accept(context.Context, pclient.ProposalAcc) (*pclient.Channel, error)
+		Reject(ctx context.Context, reason string) error
 	}
 )
 
@@ -294,6 +306,59 @@ func nonce() *big.Int {
 }
 
 func (s *session) HandleProposal(chProposal *pclient.ChannelProposal, responder *pclient.ProposalResponder) {
+	s.Debugf("SDK Callback: HandleProposal. Params: %+v", chProposal)
+	s.Lock()
+	defer s.Unlock()
+	expiry := time.Now().UTC().Add(s.timeoutCfg.response).Unix()
+
+	parts := make([]string, len(chProposal.PeerAddrs))
+	for i := range chProposal.PeerAddrs {
+		p, ok := s.contacts.ReadByOffChainAddr(chProposal.PeerAddrs[i])
+		if !ok {
+			s.Info("Received channel proposal from unknonwn peer", chProposal.PeerAddrs[i].String())
+			// nolint: errcheck, gosec		// It is sufficient to just log this error.
+			s.rejectChProposal(context.Background(), responder, "peer not found in session contacts")
+			expiry = 0
+			break
+		}
+		parts[i] = p.Alias
+	}
+
+	proposalID := fmt.Sprintf("%x", chProposal.ProposalID())
+	entry := chProposalResponderEntry{
+		responder:        responder,
+		challengeDurSecs: chProposal.ChallengeDuration,
+		parts:            parts,
+		expiry:           expiry,
+	}
+	s.chProposalResponders[proposalID] = entry
+
+	// Set ETH as the currency interpreter for incoming channel.
+	// TODO: (mano) Provide an option for user to configure when more currency interpretters are supported.
+	notif := perun.ChProposalNotif{
+		ProposalID: proposalID,
+		Currency:   currency.ETH,
+		Proposal:   chProposal,
+		Parts:      parts,
+		Expiry:     expiry,
+	}
+	if s.chProposalNotifier == nil {
+		s.chProposalNotifsCache = append(s.chProposalNotifsCache, notif)
+		s.Debugf("HandleProposa: Notification cached", notif)
+	} else {
+		go s.chProposalNotifier(notif)
+		s.Debugf("HandleProposal: Notification sent", notif)
+	}
+}
+
+func (s *session) rejectChProposal(pctx context.Context, responder chProposalResponder, reason string) error {
+	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.respChProposalReject())
+	defer cancel()
+	err := responder.Reject(ctx, reason)
+	if err != nil {
+		s.Logger.Error("Rejecting channel proposal from unknown peer", err)
+	}
+	return err
 }
 
 func (s *session) SubChProposals(notifier perun.ChProposalNotifier) error {
