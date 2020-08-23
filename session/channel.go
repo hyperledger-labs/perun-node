@@ -19,6 +19,7 @@ package session
 import (
 	"context"
 	"fmt"
+	"time"
 
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
@@ -146,7 +147,48 @@ func (ch *channel) UnsubChUpdates() error {
 	return nil
 }
 
-func (ch *channel) RespondChUpdate(ctx context.Context, updateID string, accpet bool) error {
+func (ch *channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) error {
+	ch.Debug("Received request channel.RespondChUpdate")
+	ch.Lock()
+	defer ch.Unlock()
+
+	entry, ok := ch.chUpdateResponders[updateID]
+	if !ok {
+		ch.Error(perun.ErrUnknownUpdateID, updateID)
+		return perun.ErrUnknownUpdateID
+	}
+	delete(ch.chUpdateResponders, updateID)
+	currTime := time.Now().UTC().Unix()
+	if entry.expiry < currTime {
+		ch.Error("timeout:", entry.expiry, "received response at:", currTime)
+		return perun.ErrRespTimeoutExpired
+	}
+
+	switch accept {
+	case true:
+		ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdateAccept())
+		defer cancel()
+		err := entry.responder.Accept(ctx)
+		if err != nil {
+			ch.Logger.Error("Accepting channel update", err)
+			return perun.GetAPIError(err)
+		}
+		ch.currState = ch.pchannel.State().Clone()
+
+	case false:
+		ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdateReject())
+		defer cancel()
+		err := entry.responder.Reject(ctx, "rejected by user")
+		if err != nil {
+			ch.Logger.Error("Rejecting channel update", err)
+			return perun.GetAPIError(err)
+		}
+	}
+
+	// TODO: (mano) Provide an option for user to config the node to close finalized channels automatically.
+	// For now, it is upto the user to close a channel that has been set to finalized state.
+	// if ch.lockState == finalized {
+	// }
 	return nil
 }
 

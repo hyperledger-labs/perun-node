@@ -424,7 +424,7 @@ func (s *session) acceptChProposal(pctx context.Context, entry chProposalRespond
 	}
 
 	// Set ETH as the currency interpreter for incoming channel.
-	// TODO: (mano) Provide an option for user to configure when more currency interpretters are supported.
+	// TODO: (mano) Provide an option for user to configure when more currency interpreters are supported.
 	ch := newChannel(pch, currency.ETH, entry.parts, s.timeoutCfg, entry.challengeDurSecs)
 	ch.Logger = log.NewLoggerWithField("channel-id", ch.id)
 	s.channels[ch.id] = ch
