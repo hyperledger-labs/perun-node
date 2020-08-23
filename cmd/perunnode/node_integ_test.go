@@ -27,6 +27,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/cmd/perunnode"
+	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
 var validConfig = perun.NodeConfig{
@@ -92,5 +93,39 @@ func Test_Integ_New(t *testing.T) {
 	t.Run("happy_Help", func(t *testing.T) {
 		apis := n.Help()
 		assert.Equal(t, []string{"payment"}, apis)
+	})
+	var sessionID string
+	t.Run("happy_OpenSession", func(t *testing.T) {
+		var err error
+		sessionCfg := sessiontest.NewConfig(t)
+		sessionCfgFile := sessiontest.NewConfigFile(t, sessionCfg)
+		sessionID, err = n.OpenSession(sessionCfgFile)
+		require.NoError(t, err)
+		assert.NotZero(t, sessionID)
+	})
+	t.Run("happy_GetSession", func(t *testing.T) {
+		sess, err := n.GetSession(sessionID)
+		require.NoError(t, err)
+		assert.NotNil(t, sess)
+	})
+	t.Run("err_GetSession_not_found", func(t *testing.T) {
+		_, err := n.GetSession("unknown session id")
+		require.Error(t, err)
+		t.Log(err)
+	})
+	t.Run("err_OpenSession_config_file_error", func(t *testing.T) {
+		_, err := n.OpenSession("random-config-file")
+		require.Error(t, err)
+		t.Log(err)
+	})
+	// Simulate one error to fail session.New
+	// Complete test of session.New is done in the session package.
+	t.Run("err_OpenSession_init_error", func(t *testing.T) {
+		sessionCfg := sessiontest.NewConfig(t)
+		sessionCfg.ChainURL = "invalid-url"
+		sessionCfgFile := sessiontest.NewConfigFile(t, sessionCfg)
+		_, err := n.OpenSession(sessionCfgFile)
+		require.Error(t, err)
+		t.Log(err)
 	})
 }
