@@ -37,3 +37,8 @@ func (t timeoutConfig) proposeCh(challegeDurSecs uint64) time.Duration {
 	// 5. Withdraw funds after challenge duration.
 	return 2*t.response + 3*t.onChainTx + 2*challegeDur + processingTime
 }
+
+func (t timeoutConfig) respChProposalReject() time.Duration {
+	// The only time taken is to send the rejection and receive the response.
+	return t.response + processingTime
+}
