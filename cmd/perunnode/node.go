@@ -19,13 +19,13 @@ package perunnode
 import (
 	"time"
 
-	psync "perun.network/go-perun/pkg/sync"
-
 	"github.com/pkg/errors"
+	psync "perun.network/go-perun/pkg/sync"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/log"
+	"github.com/hyperledger-labs/perun-node/session"
 )
 
 type node struct {
@@ -86,11 +86,34 @@ func (n *node) Help() []string {
 // OpenSession opens a session on this node using the given config file and returns the
 // session id, which can be used to retrieve a SessionAPI instance from this node instance.
 func (n *node) OpenSession(configFile string) (string, error) {
-	return "", nil
+	n.Debug("Received request: node.OpenSession", configFile)
+	n.Lock()
+	defer n.Unlock()
+
+	sessionConfig, err := session.ParseConfig(configFile)
+	if err != nil {
+		n.Error(err, "parsing session config")
+		return "", perun.ErrInvalidConfig
+	}
+	sess, err := session.New(sessionConfig)
+	if err != nil {
+		n.Error(err, "initializing session")
+		return "", perun.GetAPIError(err)
+	}
+	n.sessions[sess.ID()] = sess
+	return sess.ID(), nil
 }
 
 // GetSession is a special call that should be used internally to retrieve a SessionAPI
-// instance to access its methods. This should not exposed to the user.
+// instance to access its methods. This should not be exposed to the user.
 func (n *node) GetSession(sessionID string) (perun.SessionAPI, error) {
-	return nil, nil
+	n.Debug("Internal call: GetSession", sessionID)
+	n.Lock()
+	defer n.Unlock()
+
+	sess, ok := n.sessions[sessionID]
+	if !ok {
+		return nil, perun.ErrUnknownSessionID
+	}
+	return sess, nil
 }

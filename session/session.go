@@ -158,7 +158,7 @@ func calcSessionID(userOffChainAddr []byte) string {
 }
 
 func (s *session) ID() string {
-	return ""
+	return s.id
 }
 
 func (s *session) AddContact(peer perun.Peer) error {
