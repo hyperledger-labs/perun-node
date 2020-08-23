@@ -12,6 +12,7 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.0
+	golang.org/x/net v0.0.0-20200528225125-3c3fba18258b
 	google.golang.org/grpc v1.27.1
 	google.golang.org/protobuf v1.24.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
