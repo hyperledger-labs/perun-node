@@ -18,13 +18,143 @@ package session
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
+	"time"
 
+	"github.com/pkg/errors"
+	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
+	psync "perun.network/go-perun/pkg/sync"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
+	"github.com/hyperledger-labs/perun-node/client"
+	"github.com/hyperledger-labs/perun-node/comm/tcp"
+	"github.com/hyperledger-labs/perun-node/contacts/contactsyaml"
+	"github.com/hyperledger-labs/perun-node/log"
 )
 
-type session struct {
+// walletBackend for initializing user wallets and parsing off-chain addresses
+// in incoming contacts. A package level unexported variable is used so that a
+// test wallet backend can be set using a function defined in export_test.go.
+// Because real backend have large unlocking times and hence tests take very long.
+var walletBackend perun.WalletBackend
+
+func init() {
+	// This can be overridden (only) in tests by calling the SetWalletBackend function.
+	walletBackend = ethereum.NewWalletBackend()
+}
+
+type (
+	session struct {
+		log.Logger
+		psync.Mutex
+
+		id         string
+		timeoutCfg timeoutConfig
+		user       perun.User
+		chAsset    pchannel.Asset
+		chClient   perun.ChannelClient
+		contacts   perun.Contacts
+
+		channels map[string]*channel
+
+		chProposalResponders map[string]chProposalResponderEntry
+	}
+
+	// the fields in the type will be defined later.
+	// for now it is just a stub.
+	chProposalResponderEntry struct {
+	}
+)
+
+// New initializes a SessionAPI instance for the given configuration and returns an
+// instance of it. All methods on it are safe for concurrent use.
+func New(cfg Config) (*session, error) {
+	user, err := NewUnlockedUser(walletBackend, cfg.User)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.User.CommType != "tcp" {
+		return nil, perun.ErrUnsupportedCommType
+	}
+	commBackend := tcp.NewTCPBackend(30 * time.Second)
+
+	chAsset, err := walletBackend.ParseAddr(cfg.Asset)
+	if err != nil {
+		return nil, err
+	}
+
+	contacts, err := initContacts(cfg.ContactsType, cfg.ContactsURL, walletBackend, user.Peer)
+	if err != nil {
+		return nil, err
+	}
+
+	chClientCfg := client.Config{
+		Chain: client.ChainConfig{
+			Adjudicator:      cfg.Adjudicator,
+			Asset:            cfg.Asset,
+			URL:              cfg.ChainURL,
+			ConnTimeout:      cfg.ChainConnTimeout,
+			OnChainTxTimeout: cfg.OnChainTxTimeout,
+		},
+		DatabaseDir:       cfg.DatabaseDir,
+		PeerReconnTimeout: cfg.PeerReconnTimeout,
+	}
+	chClient, err := client.NewEthereumPaymentClient(chClientCfg, user, commBackend)
+	if err != nil {
+		return nil, err
+	}
+
+	sessionID := calcSessionID(user.OffChainAddr.Bytes())
+	timeoutCfg := timeoutConfig{
+		onChainTx: cfg.OnChainTxTimeout,
+		response:  cfg.ResponseTimeout,
+	}
+	sess := &session{
+		Logger:               log.NewLoggerWithField("session-id", sessionID),
+		id:                   sessionID,
+		timeoutCfg:           timeoutCfg,
+		user:                 user,
+		chAsset:              chAsset,
+		chClient:             chClient,
+		contacts:             contacts,
+		channels:             make(map[string]*channel),
+		chProposalResponders: make(map[string]chProposalResponderEntry),
+	}
+	chClient.Handle(sess, sess) // Init handlers
+	return sess, nil
+}
+
+func initContacts(contactsType, contactsURL string, wb perun.WalletBackend, own perun.Peer) (perun.Contacts, error) {
+	if contactsType != "yaml" {
+		return nil, perun.ErrUnsupportedContactsType
+	}
+	contacts, err := contactsyaml.New(contactsURL, wb)
+	if err != nil {
+		return nil, err
+	}
+
+	own.Alias = perun.OwnAlias
+	err = contacts.Write(perun.OwnAlias, own)
+	if err != nil && !errors.Is(err, perun.ErrPeerExists) {
+		return nil, errors.Wrap(err, "registering own user in contacts")
+	}
+	return contacts, nil
+}
+
+// calcSessionID calculates the sessionID as sha256 hash over the off-chain address of the user and
+// the current UTC time.
+//
+// A time dependant parameter is required to ensure the same user is able to open multiple sessions
+// with the same node and have unique session id for each.
+func calcSessionID(userOffChainAddr []byte) string {
+	h := sha256.New()
+	_, _ = h.Write(userOffChainAddr)                  // nolint:errcheck		// this func does not err
+	_, _ = h.Write([]byte(time.Now().UTC().String())) // nolint:errcheck		// this func does not err
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 func (s *session) ID() string {
