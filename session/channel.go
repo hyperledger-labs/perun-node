@@ -45,6 +45,8 @@ type (
 		challengeDurSecs uint64
 		currState        *pchannel.State
 
+		chUpdateNotifier   perun.ChUpdateNotifier
+		chUpdateNotifCache []perun.ChUpdateNotif
 		chUpdateResponders map[string]chUpdateResponderEntry
 
 		psync.Mutex
@@ -102,10 +104,34 @@ func (ch *channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 }
 
 func (ch *channel) SubChUpdates(notifier perun.ChUpdateNotifier) error {
+	ch.Debug("Received request: channel.SubChUpdates")
+	ch.Lock()
+	defer ch.Unlock()
+
+	if ch.chUpdateNotifier != nil {
+		ch.Error(perun.ErrSubAlreadyExists)
+		return perun.ErrSubAlreadyExists
+	}
+	ch.chUpdateNotifier = notifier
+
+	// Send all cached notifications
+	for i := len(ch.chUpdateNotifCache); i > 0; i-- {
+		go ch.chUpdateNotifier(ch.chUpdateNotifCache[0])
+		ch.chUpdateNotifCache = ch.chUpdateNotifCache[1:i]
+	}
 	return nil
 }
 
 func (ch *channel) UnsubChUpdates() error {
+	ch.Debug("Received request: channel.UnsubChUpdates")
+	ch.Lock()
+	defer ch.Unlock()
+
+	if ch.chUpdateNotifier == nil {
+		ch.Error(perun.ErrNoActiveSub)
+		return perun.ErrNoActiveSub
+	}
+	ch.chUpdateNotifier = nil
 	return nil
 }
 
