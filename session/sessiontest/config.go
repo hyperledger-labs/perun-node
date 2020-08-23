@@ -18,16 +18,86 @@ package sessiontest
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
+	"github.com/hyperledger-labs/perun-node/contacts/contactstest"
 	"github.com/hyperledger-labs/perun-node/session"
 )
+
+// NewConfigFile creates a temporary file containing the given session configuration and
+// returns the path to it. It also registers a cleanup function on the passed test handler.
+func NewConfigFile(t *testing.T, config session.Config) string {
+	tempFile, err := ioutil.TempFile("", "*.yaml")
+	defer func() {
+		require.NoErrorf(t, tempFile.Close(), "closing temporary file")
+	}()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err = os.Remove(tempFile.Name()); err != nil {
+			t.Log("Error in test cleanup: removing file - " + tempFile.Name())
+		}
+	})
+
+	encoder := yaml.NewEncoder(tempFile)
+	require.NoErrorf(t, encoder.Encode(config), "encoding config")
+	require.NoErrorf(t, encoder.Close(), "closing encoder")
+	return tempFile.Name()
+}
+
+// NewConfig generates random configuration data for the session using the given prng and contacts.
+// A contacts file is created with the given set of peers and path to it is added in the config.
+// This function also registers cleanup functions for removing all the temp files and dirs after the test.
+//
+// This function uses its own prng seed instead of receiving it from the calling test function because the
+// specific seed is required to match the accounts funded in on the blockchain.
+func NewConfig(t *testing.T, contacts ...perun.Peer) session.Config {
+	rng := rand.New(rand.NewSource(1729))
+	walletSetup, userCfg := newUserConfig(t, rng, 0)
+	cred := perun.Credential{
+		Addr:     walletSetup.Accs[0].Address(),
+		Wallet:   walletSetup.Wallet,
+		Keystore: walletSetup.KeystorePath,
+		Password: "",
+	}
+	chainURL := ethereumtest.ChainURL
+	onChainTxTimeout := ethereumtest.OnChainTxTimeout
+	adjudicator, asset := ethereumtest.SetupContracts(t, cred, chainURL, onChainTxTimeout)
+
+	return session.Config{
+		User:             userCfg,
+		ChainURL:         chainURL,
+		Adjudicator:      adjudicator.String(),
+		Asset:            asset.String(),
+		ChainConnTimeout: 30 * time.Second,
+		ResponseTimeout:  10 * time.Second,
+		OnChainTxTimeout: 5 * time.Second,
+		DatabaseDir:      newDatabaseDir(t),
+
+		ContactsType: "yaml",
+		ContactsURL:  contactstest.NewYAMLFile(t, contacts...),
+	}
+}
+
+func newDatabaseDir(t *testing.T) (dir string) {
+	databaseDir, err := ioutil.TempDir("", "")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := os.RemoveAll(databaseDir); err != nil {
+			t.Logf("Error in removing the file in test cleanup - %v", err)
+		}
+	})
+	return databaseDir
+}
 
 // NewUserConfig returns a test user configuration with random data generated using the given rng.
 // It creates "n" participant accounts to the user.
