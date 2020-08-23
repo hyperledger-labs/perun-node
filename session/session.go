@@ -18,20 +18,25 @@ package session
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
+	"math/big"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
 	psync "perun.network/go-perun/pkg/sync"
+	pwallet "perun.network/go-perun/wallet"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/client"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
 	"github.com/hyperledger-labs/perun-node/contacts/contactsyaml"
+	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/log"
 )
 
@@ -192,7 +197,100 @@ func (s *session) OpenCh(
 	openingBals perun.BalInfo,
 	app perun.App,
 	challengeDurSecs uint64) (perun.ChannelInfo, error) {
-	return perun.ChannelInfo{}, nil
+	s.Debugf("\nReceived request:session.OpenCh Params %+v,%+v,%+v,%+v", peerAlias, openingBals, app, challengeDurSecs)
+	s.Lock()
+	defer s.Unlock()
+
+	peer, isPresent := s.contacts.ReadByAlias(peerAlias) // Retrieve and register peer to pclient.
+	if !isPresent {
+		s.Error(perun.ErrUnknownAlias, "fetching peer from contacts")
+		return perun.ChannelInfo{}, perun.ErrUnknownAlias
+	}
+	s.chClient.Register(peer.OffChainAddr, peer.CommAddr)
+
+	if !currency.IsSupported(openingBals.Currency) { // Check if currency interpreter is supported.
+		s.Error(perun.ErrUnsupportedCurrency.Error)
+		return perun.ChannelInfo{}, perun.ErrUnsupportedCurrency
+	}
+
+	allocations, err := makeAllocation(openingBals, peerAlias, s.chAsset)
+	if err != nil {
+		s.Error(err, "making allocations")
+		return perun.ChannelInfo{}, perun.GetAPIError(err)
+	}
+	partAddrs := []pwallet.Address{s.user.OffChainAddr, peer.OffChainAddr}
+	parts := []string{perun.OwnAlias, peer.Alias}
+	proposal := &pclient.ChannelProposal{ // Make proposal.
+		ChallengeDuration: challengeDurSecs,
+		Nonce:             nonce(),
+		ParticipantAddr:   s.user.OffChainAddr,
+		AppDef:            app.Def,
+		InitData:          app.Data,
+		InitBals:          allocations,
+		PeerAddrs:         partAddrs,
+	}
+
+	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.proposeCh(challengeDurSecs))
+	defer cancel()
+	pch, err := s.chClient.ProposeChannel(ctx, proposal)
+	if err != nil {
+		s.Error(err)
+		// TODO: (mano) Use errors.Is here once a sentinal error value is defined in the sdk.
+		if strings.Contains(err.Error(), "channel proposal rejected") {
+			err = perun.ErrPeerRejected
+		}
+		return perun.ChannelInfo{}, perun.GetAPIError(err)
+	}
+
+	ch := newChannel(pch, openingBals.Currency, parts, s.timeoutCfg, challengeDurSecs)
+	// TODO: (mano) use logger with multiple fields and use session-id, channel-id.
+	ch.Logger = log.NewLoggerWithField("channel-id", ch.id)
+	s.channels[ch.id] = ch
+	go func(s *session, chID string) {
+		ch.Debug("Started channel watcher")
+		err := pch.Watch()
+		s.HandleClose(chID, err)
+	}(s, ch.id)
+	return ch.GetInfo(), nil
+}
+
+// makeAllocation makes an allocation or the given BalInfo and channel asset.
+// It errors, if the amounts in the balInfo are invalid.
+// It arranges balances in this order: own, peer.
+// PeerAddrs in channel also should be in the same order.
+func makeAllocation(bals perun.BalInfo, peerAlias string, chAsset pchannel.Asset) (*pchannel.Allocation, error) {
+	ownBalAmount, ok := bals.Bals[perun.OwnAlias]
+	if !ok {
+		return nil, errors.Wrap(perun.ErrMissingBalance, "for self")
+	}
+	peerBalAmount, ok := bals.Bals[peerAlias]
+	if !ok {
+		return nil, errors.Wrap(perun.ErrMissingBalance, "for peer")
+	}
+
+	ownBal, err := currency.NewParser(bals.Currency).Parse(ownBalAmount)
+	if err != nil {
+		return nil, errors.WithMessage(perun.ErrInvalidAmount, "for self"+err.Error())
+	}
+	peerBal, err := currency.NewParser(bals.Currency).Parse(peerBalAmount)
+	if err != nil {
+		return nil, errors.WithMessage(perun.ErrInvalidAmount, "for peer"+err.Error())
+	}
+	return &pchannel.Allocation{
+		Assets:   []pchannel.Asset{chAsset},
+		Balances: [][]*big.Int{{ownBal, peerBal}},
+	}, nil
+}
+
+func nonce() *big.Int {
+	max := new(big.Int)
+	max.Exp(big.NewInt(2), big.NewInt(256), nil).Sub(max, big.NewInt(1))
+
+	val, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		panic(err)
+	}
+	return val
 }
 
 func (s *session) HandleProposal(chProposal *pclient.ChannelProposal, responder *pclient.ProposalResponder) {

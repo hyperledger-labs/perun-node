@@ -18,11 +18,61 @@ package session
 
 import (
 	"context"
+	"fmt"
+
+	pchannel "perun.network/go-perun/channel"
+	pclient "perun.network/go-perun/client"
+	psync "perun.network/go-perun/pkg/sync"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/log"
 )
 
-type channel struct{}
+const (
+	open chLockState = "open"
+)
+
+type (
+	channel struct {
+		log.Logger
+
+		id               string
+		pchannel         *pclient.Channel
+		lockState        chLockState
+		currency         string
+		parts            []string
+		timeoutCfg       timeoutConfig
+		challengeDurSecs uint64
+		currState        *pchannel.State
+
+		chUpdateResponders map[string]chUpdateResponderEntry
+
+		psync.Mutex
+	}
+
+	chLockState string
+
+	chUpdateResponderEntry struct {
+	}
+)
+
+// NewChannel sets up a channel object from the passed pchannel.
+func newChannel(pch *pclient.Channel, currency string, parts []string, timeoutCfg timeoutConfig,
+	challengeDurSecs uint64) *channel {
+	ch := &channel{
+		id:                 fmt.Sprintf("%x", pch.ID()),
+		pchannel:           pch,
+		lockState:          open,
+		currState:          pch.State().Clone(),
+		timeoutCfg:         timeoutCfg,
+		challengeDurSecs:   challengeDurSecs,
+		currency:           currency,
+		parts:              parts,
+		chUpdateResponders: make(map[string]chUpdateResponderEntry),
+	}
+	ch.Logger = log.NewLoggerWithField("channel-id", ch.id)
+	return ch
+}
 
 func (c *channel) ID() string {
 	return ""
