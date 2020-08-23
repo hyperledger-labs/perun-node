@@ -45,7 +45,7 @@ func Test_Integ_New(t *testing.T) {
 	peers := newPeers(t, prng, uint(2))
 
 	prng = rand.New(rand.NewSource(1729))
-	cfg := sessiontest.NewConfig(t, peers...)
+	cfg := sessiontest.NewConfig(t, prng, peers...)
 
 	t.Run("happy", func(t *testing.T) {
 		sess, err := session.New(cfg)

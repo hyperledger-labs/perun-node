@@ -162,11 +162,28 @@ func (s *session) ID() string {
 }
 
 func (s *session) AddContact(peer perun.Peer) error {
-	return nil
+	s.Debugf("Received request: session.AddContact. Params %+v", peer)
+	s.Lock()
+	defer s.Unlock()
+
+	err := s.contacts.Write(peer.Alias, peer)
+	if err != nil {
+		s.Error(err)
+	}
+	return perun.GetAPIError(err)
 }
 
 func (s *session) GetContact(alias string) (perun.Peer, error) {
-	return perun.Peer{}, nil
+	s.Debugf("Received request: session.GetContact. Params %+v", alias)
+	s.Lock()
+	defer s.Unlock()
+
+	peer, isPresent := s.contacts.ReadByAlias(alias)
+	if !isPresent {
+		s.Error(perun.ErrUnknownAlias)
+		return perun.Peer{}, perun.ErrUnknownAlias
+	}
+	return peer, nil
 }
 
 func (s *session) OpenCh(
