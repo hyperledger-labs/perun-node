@@ -447,7 +447,17 @@ func (s *session) rejectChProposal(pctx context.Context, responder chProposalRes
 }
 
 func (s *session) GetChInfos() []perun.ChannelInfo {
-	return nil
+	s.Debug("Received request: session.GetChInfos")
+	s.Lock()
+	defer s.Unlock()
+
+	chInfos := make([]perun.ChannelInfo, len(s.channels))
+	i := 0
+	for _, ch := range s.channels {
+		chInfos[i] = ch.GetInfo()
+		i++
+	}
+	return chInfos
 }
 
 func (s *session) GetCh(channelID string) (perun.ChannelAPI, error) {
