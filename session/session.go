@@ -356,16 +356,38 @@ func (s *session) rejectChProposal(pctx context.Context, responder chProposalRes
 	defer cancel()
 	err := responder.Reject(ctx, reason)
 	if err != nil {
-		s.Logger.Error("Rejecting channel proposal from unknown peer", err)
+		s.Error("Rejecting channel proposal from unknown peer", err)
 	}
 	return err
 }
 
 func (s *session) SubChProposals(notifier perun.ChProposalNotifier) error {
+	s.Debug("Received request: session.SubChProposals")
+	s.Lock()
+	defer s.Unlock()
+
+	if s.chProposalNotifier != nil {
+		return perun.ErrSubAlreadyExists
+	}
+	s.chProposalNotifier = notifier
+
+	// Send all cached notifications.
+	for i := len(s.chProposalNotifsCache); i > 0; i-- {
+		go s.chProposalNotifier(s.chProposalNotifsCache[0])
+		s.chProposalNotifsCache = s.chProposalNotifsCache[1:i]
+	}
 	return nil
 }
 
 func (s *session) UnsubChProposals() error {
+	s.Debug("Received request: session.UnsubChProposals")
+	s.Lock()
+	defer s.Unlock()
+
+	if s.chProposalNotifier == nil {
+		return perun.ErrNoActiveSub
+	}
+	s.chProposalNotifier = nil
 	return nil
 }
 
