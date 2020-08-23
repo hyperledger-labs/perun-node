@@ -62,3 +62,13 @@ func (t timeoutConfig) respChUpdateReject() time.Duration {
 	// The only time taken is to send the rejection and receive the response.
 	return t.response + processingTime
 }
+
+func (t timeoutConfig) closeCh(challegeDurSecs uint64) time.Duration {
+	// The worst case path considered is
+	// 1. Send final update to peer and not get a response.
+	// 2. Register state on blockchain and wait for challenge duration to expire.
+	// 3. Conclude the final state on blockchain.
+	// 4. Withdraw amount.
+	challegeDur := time.Duration(challegeDurSecs) * time.Second
+	return 1*t.response + 3*t.onChainTx + 1*challegeDur + processingTime
+}
