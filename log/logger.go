@@ -22,6 +22,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	plog "perun.network/go-perun/log"
+	plogrus "perun.network/go-perun/log/logrus"
 )
 
 var logger *logrus.Logger = nil
@@ -32,6 +34,8 @@ type Logger = logrus.FieldLogger
 // InitLogger sets the internal logger instance to the given level and log file.
 // This function should be called exactly once and subsequent calls return an error.
 // Logs to stdout if logFile is an empty string.
+//
+// It also initializes the logger in the go-perun library.
 func InitLogger(levelStr, logFile string) error {
 	if logger != nil {
 		return errors.New("logger already initialized")
@@ -59,6 +63,7 @@ func InitLogger(levelStr, logFile string) error {
 		DisableLevelTruncation: true,
 	}})
 	logger = newLogger
+	plog.Set(plogrus.FromLogrus(logger))
 	return nil
 }
 
