@@ -280,4 +280,58 @@ func Test_Integ_Role(t *testing.T) {
 		require.NoError(t, err, "bob unsubscribing channel updates")
 		wg.Wait()
 	})
+
+	// Note: Watcher does not return on collaborative close for the
+	// the peer session. This can be simulated in this test by
+	// setting accept=true in RespondChUpdate in this test.
+	// It will cause the test to never end.
+	t.Run("Non collaborative channel close", func(t *testing.T) {
+		// Send close by bob.
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			closingChInfo, err := aliceCh.Close(ctx)
+			require.NoError(t, err)
+			t.Log("alice", closingChInfo)
+		}()
+
+		// Accept final channel by bob.
+		bobChUpdateNotif := make(chan perun.ChUpdateNotif)
+		bobChUpdateNotifier := func(notif perun.ChUpdateNotif) {
+			bobChUpdateNotif <- notif
+		}
+		err := bobCh.SubChUpdates(bobChUpdateNotifier)
+		require.NoError(t, err, "bob subscribing channel updates")
+
+		notif := <-bobChUpdateNotif
+		err = bobCh.RespondChUpdate(ctx, notif.UpdateID, false)
+		require.NoError(t, err, "bob accepting channel update")
+
+		err = bobCh.UnsubChUpdates()
+		require.NoError(t, err, "bob unsubscribing channel updates")
+
+		// Sub, receive, unsub channel close notifs.
+		bobChCloseNotif := make(chan perun.ChCloseNotif)
+		bobChCloseNotifier := func(notif perun.ChCloseNotif) {
+			bobChCloseNotif <- notif
+		}
+		err = bob.SubChCloses(bobChCloseNotifier)
+		require.NoError(t, err, "bob subscribing channel closes")
+
+		chCloseNotif := <-bobChCloseNotif
+		t.Log("bob", chCloseNotif)
+
+		// Sub, receive, unsub channel close notifs.
+		aliceChCloseNotif := make(chan perun.ChCloseNotif)
+		aliceChCloseNotifier := func(notif perun.ChCloseNotif) {
+			aliceChCloseNotif <- notif
+		}
+		err = alice.SubChCloses(aliceChCloseNotifier)
+		require.NoError(t, err, "alice subscribing channel closes")
+
+		chCloseNotif = <-aliceChCloseNotif
+		t.Log("alice", chCloseNotif)
+
+		wg.Wait()
+	})
 }
