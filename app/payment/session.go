@@ -29,6 +29,20 @@ import (
 	"github.com/hyperledger-labs/perun-node/currency"
 )
 
+type (
+	// PayChProposalNotif represents the channel update notification data for payment app.
+	PayChProposalNotif struct {
+		ProposalID       string
+		Currency         string
+		OpeningBals      perun.BalInfo
+		ChallengeDurSecs uint64
+		Expiry           int64
+	}
+
+	// PayChProposalNotifier represents the channel update notification function for payment app.
+	PayChProposalNotifier func(PayChProposalNotif)
+)
+
 // init() initializes the payment app in go-perun.
 func init() {
 	wb := ethereum.NewWalletBackend()
@@ -74,6 +88,30 @@ func GetPayChs(s perun.SessionAPI) []PayChInfo {
 		}
 	}
 	return payChInfos
+}
+
+// SubPayChProposals sets up a subscription for payment channel proposals.
+func SubPayChProposals(s perun.SessionAPI, notifier PayChProposalNotifier) error {
+	return s.SubChProposals(func(notif perun.ChProposalNotif) {
+		balsBigInt := notif.Proposal.InitBals.Balances[0]
+		notifier(PayChProposalNotif{
+			ProposalID:       notif.ProposalID,
+			Currency:         notif.Currency,
+			OpeningBals:      balsFromBigInt("ETH", balsBigInt, notif.Parts),
+			ChallengeDurSecs: notif.Proposal.ChallengeDuration,
+			Expiry:           notif.Expiry,
+		})
+	})
+}
+
+// UnsubPayChProposals deletes the existing subscription for payment channel proposals.
+func UnsubPayChProposals(s perun.SessionAPI) error {
+	return s.UnsubChProposals()
+}
+
+// RespondPayChProposal sends the response to a payment channel proposal notification.
+func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID string, accept bool) error {
+	return s.RespondChProposal(pctx, proposalID, accept)
 }
 
 func balsFromState(currency string, state *pchannel.State, parts []string) perun.BalInfo {
