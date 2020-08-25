@@ -22,6 +22,7 @@ import (
 	"context"
 	"math/rand"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -32,6 +33,7 @@ import (
 	"github.com/hyperledger-labs/perun-node/api/grpc"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
 	"github.com/hyperledger-labs/perun-node/cmd/perunnode"
+	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
@@ -121,10 +123,11 @@ func Test_Integ_Role(t *testing.T) {
 	aliceAlias, bobAlias := "alice", "bob"
 	var aliceSessionID, bobSessionID string
 	var alicePeer, bobPeer *pb.Peer
+	var channelID string
 	prng := rand.New(rand.NewSource(1729))
 	aliceCfgFile := sessiontest.NewConfigFile(t, sessiontest.NewConfig(t, prng))
 	bobCfgFile := sessiontest.NewConfigFile(t, sessiontest.NewConfig(t, prng))
-	// wg := &sync.WaitGroup{}
+	wg := &sync.WaitGroup{}
 
 	// Run OpenSession for Alice, Bob in top level test, because cleaup functions
 	// for removing the keystore directory, contacts file are registered to this
@@ -150,6 +153,18 @@ func Test_Integ_Role(t *testing.T) {
 		// Add bob contact to alice and vice versa.
 		AddContact(t, aliceSessionID, bobPeer)
 		AddContact(t, bobSessionID, alicePeer)
+	})
+
+	t.Run("OpenCh_Sub_Unsub_Respond", func(t *testing.T) {
+		// Alice proposes a channel and bob accepts.
+		wg.Add(1)
+		go func() {
+			channelID = OpenPayCh(t, aliceSessionID, bobAlias, "1", "2")
+			wg.Done()
+		}()
+		SubRespondUnsubPayChProposal(t, bobSessionID, true)
+		wg.Wait()
+		_ = channelID
 	})
 }
 
@@ -177,7 +192,7 @@ func GetContact(t *testing.T, sessionID string, alias string) *pb.Peer {
 }
 
 func AddContact(t *testing.T, sessionID string, peer *pb.Peer) {
-	req:= pb.AddContactReq{
+	req := pb.AddContactReq{
 		SessionID: sessionID,
 		Peer:      peer,
 	}
@@ -185,4 +200,54 @@ func AddContact(t *testing.T, sessionID string, peer *pb.Peer) {
 	require.NoErrorf(t, err, "AddContact")
 	_, ok := resp.Response.(*pb.AddContactResp_MsgSuccess_)
 	require.True(t, ok, "AddContact returned error response")
+}
+
+func OpenPayCh(t *testing.T, sessionID string, peerAlias string, ownBal, peerBal string) string {
+	balInfo := perun.BalInfo{
+		Currency: currency.ETH,
+		Bals:     make(map[string]string),
+	}
+	balInfo.Bals[perun.OwnAlias] = ownBal
+	balInfo.Bals[peerAlias] = peerBal
+	req := pb.OpenPayChReq{
+		SessionID:        sessionID,
+		PeerAlias:        peerAlias,
+		OpeningBalance:   grpc.ToGrpcBalInfo(balInfo),
+		ChallengeDurSecs: 10,
+	}
+	resp, err := client.OpenPayCh(ctx, &req)
+	require.NoErrorf(t, err, "OpenPayCh")
+	msg, ok := resp.Response.(*pb.OpenPayChResp_MsgSuccess_)
+	require.True(t, ok, "OpenPayCh returned error response")
+	return msg.MsgSuccess.Channel.ChannelID
+}
+
+func SubRespondUnsubPayChProposal(t *testing.T, sessionID string, accept bool) {
+	// Subscribe to payment channel proposal notifications.
+	subReq := pb.SubPayChProposalsReq{
+		SessionID: sessionID,
+	}
+	subClient, err := client.SubPayChProposals(ctx, &subReq)
+	require.NoErrorf(t, err, "SubPayChProposals")
+
+	notifMsg, err := subClient.Recv()
+	require.NoErrorf(t, err, "subClient.Recv")
+	notif, ok := notifMsg.Response.(*pb.SubPayChProposalsResp_Notify_)
+	require.True(t, ok, "subClient.Recv returned error response")
+
+	// Respond to channel proposal notification.
+	respondReq := pb.RespondPayChProposalReq{
+		SessionID:  sessionID,
+		ProposalID: notif.Notify.ProposalID,
+		Accept:     accept,
+	}
+	_, err = client.RespondPayChProposal(ctx, &respondReq)
+	require.NoErrorf(t, err, "RespondPayChProposal")
+
+	// Unsubscribes to channel proposal notifications.
+	unsubReq := pb.UnsubPayChProposalsReq{
+		SessionID: sessionID,
+	}
+	_, err = client.UnsubPayChProposals(ctx, &unsubReq)
+	require.NoErrorf(t, err, "UnsubPayChProposals")
 }
