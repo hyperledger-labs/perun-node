@@ -14,13 +14,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build integration
+
 package grpc_test
 
 import (
 	"context"
 	"math/rand"
 	"net"
-	"sync"
 	"testing"
 	"time"
 
@@ -58,14 +59,14 @@ func StartServer(t *testing.T) {
 	listener, err := net.Listen("tcp", grpcPort)
 	require.NoErrorf(t, err, "starting listener")
 
-	// Initializr a grpc payment API/
+	// Initialize a grpc payment API.
 	nodeAPI, err := perunnode.New(nodeCfg)
 	require.NoErrorf(t, err, "initializing nodeAPI")
-	grpcPaymentAPI := grpc.NewPayChServer(nodeAPI)
+	grpcGrpcPayChServer := grpc.NewPayChServer(nodeAPI)
 
-	// create grpc server
+	// Create grpc server.
 	grpcServer := grpclib.NewServer()
-	pb.RegisterPayment_APIServer(grpcServer, grpcPaymentAPI)
+	pb.RegisterPayment_APIServer(grpcServer, grpcGrpcPayChServer)
 
 	// Run Server in a go-routine.
 	t.Log("Starting server")
@@ -77,67 +78,74 @@ func StartServer(t *testing.T) {
 	}()
 }
 
+var (
+	client pb.Payment_APIClient
+	ctx    context.Context
+)
+
 func Test_Integ_Role(t *testing.T) {
 	StartServer(t)
 
-	conn, err := grpc.Dial(grpcPort, grpc.WithInsecure())
+	conn, err := grpclib.Dial(grpcPort, grpclib.WithInsecure())
 	require.NoError(t, err, "dialing to grpc server")
 	t.Log("connected to server")
 
 	// Inititalize client.
-	client := pb.NewPayment_APIClient(conn)
-	ctx := context.Background()
+	client = pb.NewPayment_APIClient(conn)
+	ctx = context.Background()
 
 	t.Run("Node.Time", func(t *testing.T) {
+		var timeResp *pb.TimeResp
 		timeReq := pb.TimeReq{}
-		timeResp, err := client.Time(ctx, &timeReq)
+		timeResp, err = client.Time(ctx, &timeReq)
 		require.NoError(t, err)
-		t.Logf("\nResponse: %+v, Error: %+v", timeResp, err)
+		t.Logf("Response: %+v, Error: %+v", timeResp, err)
 	})
 
 	t.Run("Node.GetConfig", func(t *testing.T) {
+		var getConfigResp *pb.GetConfigResp
 		getConfigReq := pb.GetConfigReq{}
-		getConfigResp, err := client.GetConfig(ctx, &getConfigReq)
+		getConfigResp, err = client.GetConfig(ctx, &getConfigReq)
 		require.NoError(t, err)
-		t.Logf("\nResponse: %+v, Error: %+v", getConfigResp, err)
+		t.Logf("Response: %+v, Error: %+v", getConfigResp, err)
 	})
 
 	t.Run("Node.Help", func(t *testing.T) {
+		var helpResp *pb.HelpResp
 		helpReq := pb.HelpReq{}
-		helpResp, err := client.Help(ctx, &helpReq)
+		helpResp, err = client.Help(ctx, &helpReq)
 		require.NoError(t, err)
-		t.Logf("\nResponse: %+v, Error: %+v", helpResp, err)
+		t.Logf("Response: %+v, Error: %+v", helpResp, err)
 	})
 
-	prng := rand.New(rand.NewSource(1729))
-	var aliceSessionID, bobSessionID string
-	var alicePeer, bobPeer *pb.Peer
 	aliceAlias, bobAlias := "alice", "bob"
-	wg := &sync.WaitGroup{}
+	var aliceSessionID, bobSessionID string
+	// var alicePeer, bobPeer *pb.Peer
+	prng := rand.New(rand.NewSource(1729))
+	aliceCfgFile := sessiontest.NewConfigFile(t, sessiontest.NewConfig(t, prng))
+	bobCfgFile := sessiontest.NewConfigFile(t, sessiontest.NewConfig(t, prng))
+	// wg := &sync.WaitGroup{}
 
 	// Run OpenSession for Alice, Bob in top level test, because cleaup functions
 	// for removing the keystore directory, contacts file are registered to this
 	// testing.T.
 
-	// Alice Open Session
-	aliceCfg := sessiontest.NewConfig(t, prng)
-	aliceOpenSessionReq := pb.OpenSessionReq{
-		ConfigFile: sessiontest.NewConfigFile(t, aliceCfg),
-	}
-	aliceOpenSessionResp, err := client.OpenSession(ctx, &aliceOpenSessionReq)
-	t.Logf("\nResponse: %+v, Error: %+v", aliceOpenSessionResp, err)
-	aliceSuccessResponse := aliceOpenSessionResp.Response.(*pb.OpenSessionResp_MsgSuccess_)
-	aliceSessionID = aliceSuccessResponse.MsgSuccess.SessionID
-	t.Logf("Alice session id: %s", aliceSessionID)
+	// Alice Open Session.
+	aliceSessionID = OpenSession(t, aliceCfgFile)
+	t.Logf("%s session id is %s", aliceAlias, aliceSessionID)
 
-	// Bob Open Session
-	bobCfg := sessiontest.NewConfig(t, prng)
-	bobOpenSessionReq := pb.OpenSessionReq{
-		ConfigFile: sessiontest.NewConfigFile(t, bobCfg),
+	// Bob Open Session.
+	bobSessionID = OpenSession(t, bobCfgFile)
+	t.Logf("%s session id is %s", bobAlias, bobSessionID)
+}
+
+func OpenSession(t *testing.T, cfgFile string) string {
+	req := pb.OpenSessionReq{
+		ConfigFile: cfgFile,
 	}
-	bobOpenSessionResp, err := client.OpenSession(ctx, &bobOpenSessionReq)
-	t.Logf("\nResponse: %+v, Error: %+v", bobOpenSessionResp, err)
-	bobSuccessResponse := bobOpenSessionResp.Response.(*pb.OpenSessionResp_MsgSuccess_)
-	bobSessionID = bobSuccessResponse.MsgSuccess.SessionID
-	t.Logf("Bob session id: %s", bobSessionID)
+	resp, err := client.OpenSession(ctx, &req)
+	require.NoErrorf(t, err, "OpenSession")
+	msg, ok := resp.Response.(*pb.OpenSessionResp_MsgSuccess_)
+	require.True(t, ok, "OpenSession returned error response")
+	return msg.MsgSuccess.SessionID
 }
