@@ -363,16 +363,81 @@ func (a *PayChServer) RespondPayChProposal(ctx context.Context, req *pb.RespondP
 }
 
 // SubPayChCloses wraps session.SubPayChCloses.
-func (a *PayChServer) SubPayChCloses(*pb.SubPayChClosesReq, pb.Payment_API_SubPayChClosesServer) error {
+func (a *PayChServer) SubPayChCloses(req *pb.SubPayChClosesReq, srv pb.Payment_API_SubPayChClosesServer) error {
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		// TODO: (mano) Return a error response and not a protocol error
+		return errors.WithMessage(err, "cannot register subscription")
+	}
+
+	notifier := func(notif payment.PayChCloseNotif) {
+		// nolint: govet	// err does not shadow prev declarations as this runs in a different context.
+		err := srv.Send(&pb.SubPayChClosesResp{Response: &pb.SubPayChClosesResp_Notify_{
+			Notify: &pb.SubPayChClosesResp_Notify{
+				ClosingState: &pb.PaymentChannel{
+					ChannelID:   notif.ClosingState.ChannelID,
+					Balanceinfo: ToGrpcBalInfo(notif.ClosingState.BalInfo),
+					Version:     notif.ClosingState.Version,
+				},
+				Error: notif.Error,
+			},
+		}})
+		_ = err
+		// if err != nil {
+		// TODO: (mano) Handle error while sending.
+		// }
+	}
+	err = payment.SubPayChCloses(sess, notifier)
+	if err != nil {
+		// TODO: (mano) Return a error response and not a protocol error
+		return errors.WithMessage(err, "cannot register subscription")
+	}
+
+	signal := make(chan bool)
+	a.Lock()
+	a.chClosesNotif[req.SessionID] = signal
+	a.Unlock()
+
+	<-signal
 	return nil
 }
 
 // UnsubPayChClose wraps session.UnsubPayChClose.
-func (a *PayChServer) UnsubPayChClose(context.Context, *pb.UnsubPayChClosesReq) (*pb.UnsubPayChClosesResp, error) {
-	return nil, nil
+func (a *PayChServer) UnsubPayChClose(ctx context.Context, req *pb.UnsubPayChClosesReq) (
+	*pb.UnsubPayChClosesResp, error) {
+	errResponse := func(err error) *pb.UnsubPayChClosesResp {
+		return &pb.UnsubPayChClosesResp{
+			Response: &pb.UnsubPayChClosesResp_Error{
+				Error: &pb.MsgError{
+					Error: err.Error(),
+				},
+			},
+		}
+	}
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	err = payment.UnsubPayChCloses(sess)
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	a.Lock()
+	signal := a.chClosesNotif[req.SessionID]
+	a.Unlock()
+	close(signal)
+
+	return &pb.UnsubPayChClosesResp{
+		Response: &pb.UnsubPayChClosesResp_MsgSuccess_{
+			MsgSuccess: &pb.UnsubPayChClosesResp_MsgSuccess{
+				Success: true,
+			},
+		},
+	}, nil
 }
 
-// CloseSession wraps session.CloseSession.
+// CloseSession wraps session.CloseSession. For now, this is a stub.
 func (a *PayChServer) CloseSession(context.Context, *pb.CloseSessionReq) (*pb.CloseSessionResp, error) {
 	return nil, nil
 }
@@ -529,13 +594,74 @@ func (a *PayChServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPay
 }
 
 // GetPayChBalance wraps channel.GetPayChBalance.
-func (a *PayChServer) GetPayChBalance(context.Context, *pb.GetPayChBalanceReq) (*pb.GetPayChBalanceResp, error) {
-	return nil, nil
+func (a *PayChServer) GetPayChBalance(ctx context.Context, req *pb.GetPayChBalanceReq) (
+	*pb.GetPayChBalanceResp, error) {
+	errResponse := func(err error) *pb.GetPayChBalanceResp {
+		return &pb.GetPayChBalanceResp{
+			Response: &pb.GetPayChBalanceResp_Error{
+				Error: &pb.MsgError{
+					Error: err.Error(),
+				},
+			},
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	channel, err := sess.GetCh(req.ChannelID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	balInfo := payment.GetBalInfo(channel)
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	return &pb.GetPayChBalanceResp{
+		Response: &pb.GetPayChBalanceResp_MsgSuccess_{
+			MsgSuccess: &pb.GetPayChBalanceResp_MsgSuccess{
+				CurrentBalance: ToGrpcBalInfo(balInfo),
+				CurrentVersion: "",
+			},
+		},
+	}, nil
 }
 
 // ClosePayCh wraps channel.ClosePayCh.
-func (a *PayChServer) ClosePayCh(context.Context, *pb.ClosePayChReq) (*pb.ClosePayChResp, error) {
-	return nil, nil
+func (a *PayChServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*pb.ClosePayChResp, error) {
+	errResponse := func(err error) *pb.ClosePayChResp {
+		return &pb.ClosePayChResp{
+			Response: &pb.ClosePayChResp_Error{
+				Error: &pb.MsgError{
+					Error: err.Error(),
+				},
+			},
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	channel, err := sess.GetCh(req.ChannelID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	payChInfo, err := payment.ClosePayCh(ctx, channel)
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	return &pb.ClosePayChResp{
+		Response: &pb.ClosePayChResp_MsgSuccess_{
+			MsgSuccess: &pb.ClosePayChResp_MsgSuccess{
+				ClosingBalance: ToGrpcBalInfo(payChInfo.BalInfo),
+				ClosingVersion: payChInfo.Version,
+			},
+		},
+	}, nil
 }
 
 // FromGrpcBalInfo is a helper function to convert BalInfo struct defined in grpc package

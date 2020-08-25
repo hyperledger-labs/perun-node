@@ -175,7 +175,12 @@ func Test_Integ_Role(t *testing.T) {
 		}()
 		SubRespondUnsubPayChUpdate(t, aliceSessionID, channelID, true)
 		wg.Wait()
-		_ = channelID
+	})
+	t.Run("Close_Sub_Unsub", func(t *testing.T) {
+		// Bob closes payment channel.
+		ClosePayCh(t, bobSessionID, channelID)
+		SubUnsubClose(t, aliceSessionID, channelID)
+		SubUnsubClose(t, bobSessionID, channelID)
 	})
 }
 
@@ -308,3 +313,35 @@ func SubRespondUnsubPayChUpdate(t *testing.T, sessionID, channelID string, accep
 	_, err = client.UnsubPayChUpdates(ctx, &unsubReq)
 	require.NoErrorf(t, err, "UnsubPayChUpdates")
 }
+
+func ClosePayCh(t *testing.T, sessionID, channelID string) {
+	req := pb.ClosePayChReq{
+		SessionID: sessionID,
+		ChannelID: channelID,
+	}
+	resp, err := client.ClosePayCh(ctx, &req)
+	require.NoErrorf(t, err, "ClosePayCh")
+	_, ok := resp.Response.(*pb.ClosePayChResp_MsgSuccess_)
+	require.True(t, ok, "ClosePayCh returned error response")
+}
+
+func SubUnsubClose(t *testing.T, sessionID, channelID string) {
+	// Subscribe to payment channel close notifications.
+	subReq := pb.SubPayChClosesReq{
+		SessionID: sessionID,
+	}
+	subClient, err := client.SubPayChCloses(ctx, &subReq)
+	require.NoErrorf(t, err, "SubPayChCloses")
+
+	notifMsg, err := subClient.Recv()
+	require.NoErrorf(t, err, "subClient.Recv")
+	_, ok := notifMsg.Response.(*pb.SubPayChClosesResp_Notify_)
+	require.True(t, ok, "subClient.Recv returned error response")
+
+	// Unsubscribe to payment channel close notifications.
+	unsubReq := pb.UnsubPayChClosesReq{
+		SessionID: sessionID,
+	}
+	_, err = client.UnsubPayChClose(ctx, &unsubReq)
+	require.NoErrorf(t, err, "unsubscribing to payment channel proposals")
+} // nolint:gofumpt // unknown error, maybe a false positive
