@@ -189,3 +189,23 @@ func Test_RespondPayChUpdate(t *testing.T) {
 		assert.Error(t, gotErr)
 	})
 }
+
+func Test_ClosePayCh(t *testing.T) {
+	t.Run("happy", func(t *testing.T) {
+		channelAPI := &mocks.ChannelAPI{}
+		channelAPI.On("Close", context.Background()).Return(updatedChInfo, nil)
+
+		gotPayChInfo, err := payment.ClosePayCh(context.Background(), channelAPI)
+		require.NoError(t, err)
+		assert.Equal(t, wantUpdatedBalInfo, gotPayChInfo.BalInfo)
+		assert.Equal(t, versionString, gotPayChInfo.Version)
+		assert.NotZero(t, gotPayChInfo.ChannelID)
+	})
+	t.Run("error", func(t *testing.T) {
+		channelAPI := &mocks.ChannelAPI{}
+		channelAPI.On("Close", context.Background()).Return(chInfo, assert.AnError)
+
+		_, err := payment.ClosePayCh(context.Background(), channelAPI)
+		require.Error(t, err)
+	})
+}

@@ -237,6 +237,7 @@ func Test_SubPayChProposals(t *testing.T) {
 	})
 }
 
+// nolint: dupl	// not duplicate of Test_UnsubPayChCloses.
 func Test_UnsubPayChProposals(t *testing.T) {
 	t.Run("happy", func(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
@@ -279,6 +280,56 @@ func Test_RespondPayChProposal(t *testing.T) {
 		sessionAPI.On("RespondChProposal", context.Background(), proposalID, accept).Return(assert.AnError)
 
 		gotErr := payment.RespondPayChProposal(context.Background(), sessionAPI, proposalID, accept)
+		assert.Error(t, gotErr)
+	})
+}
+
+func Test_SubPayChCloses(t *testing.T) {
+	t.Run("happy", func(t *testing.T) {
+		var notifier perun.ChCloseNotifier
+		var notif payment.PayChCloseNotif
+		dummyNotifier := func(gotNotif payment.PayChCloseNotif) {
+			notif = gotNotif
+		}
+		sessionAPI := &mocks.SessionAPI{}
+		sessionAPI.On("SubChCloses", mock.MatchedBy(func(gotNotifier perun.ChCloseNotifier) bool {
+			notifier = gotNotifier
+			return true
+		})).Return(nil)
+
+		gotErr := payment.SubPayChCloses(sessionAPI, dummyNotifier)
+		require.NoError(t, gotErr)
+		require.NotNil(t, notifier)
+		notifier(chCloseNotif)
+		require.NotZero(t, notif)
+		assert.Equal(t, chCloseNotif.ChannelID, notif.ClosingState.ChannelID)
+		assert.Equal(t, wantUpdatedBalInfo, notif.ClosingState.BalInfo)
+		assert.Equal(t, versionString, notif.ClosingState.Version)
+	})
+	t.Run("error", func(t *testing.T) {
+		sessionAPI := &mocks.SessionAPI{}
+		sessionAPI.On("SubChCloses", mock.Anything).Return(assert.AnError)
+
+		dummyNotifier := func(notif payment.PayChCloseNotif) {}
+		gotErr := payment.SubPayChCloses(sessionAPI, dummyNotifier)
+		assert.Error(t, gotErr)
+	})
+}
+
+// nolint: dupl	// not duplicate of Test_UnsubPayChProposals.
+func Test_UnsubPayChCloses(t *testing.T) {
+	t.Run("happy", func(t *testing.T) {
+		sessionAPI := &mocks.SessionAPI{}
+		sessionAPI.On("UnsubChCloses", mock.Anything).Return(nil)
+
+		gotErr := payment.UnsubPayChCloses(sessionAPI)
+		assert.NoError(t, gotErr)
+	})
+	t.Run("error", func(t *testing.T) {
+		sessionAPI := &mocks.SessionAPI{}
+		sessionAPI.On("UnsubChCloses", mock.Anything).Return(assert.AnError)
+
+		gotErr := payment.UnsubPayChCloses(sessionAPI)
 		assert.Error(t, gotErr)
 	})
 }
