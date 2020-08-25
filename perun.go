@@ -66,7 +66,7 @@ type Contacts interface {
 	UpdateStorage() error
 }
 
-//go:generate mockery -name CommBackend -output ./internal/mocks
+//go:generate mockery --name CommBackend --output ./internal/mocks
 
 // CommBackend defines the set of methods required for initializing components required for off-chain communication.
 // This can be protocols such as tcp, websockets, MQTT.
@@ -79,7 +79,7 @@ type CommBackend interface {
 	NewDialer() Dialer
 }
 
-//go:generate mockery -name Dialer -output ./internal/mocks
+//go:generate mockery --name Dialer --output ./internal/mocks
 
 // Dialer extends net.Dialer with Registerer interface.
 type Dialer interface {
@@ -87,7 +87,7 @@ type Dialer interface {
 	Registerer
 }
 
-//go:generate mockery -name Registerer -output ./internal/mocks
+//go:generate mockery --name Registerer --output ./internal/mocks
 
 // Registerer is used to register the commAddr corresponding to an offChainAddr to the wire.Bus in runtime.
 type Registerer interface {
@@ -127,7 +127,7 @@ type Session struct {
 	ChannelClient ChannelClient
 }
 
-//go:generate mockery -name ChannelClient -output ./internal/mocks
+//go:generate mockery --name ChannelClient --output ./internal/mocks
 
 // ChannelClient allows the user to establish off-chain channels and transact on these channels.
 //
@@ -151,7 +151,7 @@ type ChannelClient interface {
 	Log() pLog.Logger
 }
 
-//go:generate mockery -name WireBus -output ./internal/mocks
+//go:generate mockery --name WireBus --output ./internal/mocks
 
 // WireBus is a an extension of the wire.Bus interface in go-perun to include a "Close" method.
 // pwire.Bus (in go-perun) is a central message bus over which all clients of a channel network
@@ -220,6 +220,8 @@ type NodeAPI interface {
 	GetSession(string) (SessionAPI, error)
 }
 
+//go:generate mockery --name SessionAPI --output ./internal/mocks
+
 // SessionAPI represents the APIs that can be accessed in the context of a perun node.
 // First a session has to be instantiated using the NodeAPI. The session can then be used
 // open channels and accept channel proposals.
@@ -268,6 +270,8 @@ type (
 		Error     string
 	}
 )
+
+//go:generate mockery --name ChannelAPI --output ./internal/mocks
 
 // ChannelAPI represents the APIs that can be accessed in the context of a perun channel.
 // First a channel has to be initialized using the SessionAPI. The channel can then be used
