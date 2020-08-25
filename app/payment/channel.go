@@ -18,6 +18,7 @@ package payment
 
 import (
 	"context"
+	"fmt"
 
 	pchannel "perun.network/go-perun/channel"
 
@@ -31,6 +32,19 @@ type (
 		ChannelID string
 		BalInfo   perun.BalInfo
 		Version   string
+	}
+	// PayChUpdateNotifier represents the channel update notification function for payment app.
+	PayChUpdateNotifier func(PayChUpdateNotif)
+
+	// PayChUpdateNotif represents the channel update notification data for payment app.
+	PayChUpdateNotif struct {
+		UpdateID     string
+		ProposedBals perun.BalInfo
+		Version      string
+		Final        bool
+		Currency     string
+		Parts        []string
+		Expiry       int64
 	}
 )
 
@@ -82,4 +96,27 @@ func newUpdater(currState *pchannel.State, parts []string, chCurrency, payee, am
 func GetBalInfo(ch perun.ChannelAPI) perun.BalInfo {
 	chInfo := ch.GetInfo()
 	return balsFromState(chInfo.Currency, chInfo.State, chInfo.Parts)
+}
+
+// SubPayChUpdates sets up a subscription for updates on this channel.
+func SubPayChUpdates(ch perun.ChannelAPI, notifier PayChUpdateNotifier) error {
+	return ch.SubChUpdates(func(notif perun.ChUpdateNotif) {
+		notifier(PayChUpdateNotif{
+			UpdateID:     notif.UpdateID,
+			ProposedBals: balsFromState(notif.Currency, notif.Update.State, notif.Parts),
+			Version:      fmt.Sprintf("%d", notif.Update.State.Version),
+			Final:        notif.Update.State.IsFinal,
+			Expiry:       notif.Expiry,
+		})
+	})
+}
+
+// UnsubPayChUpdates deletes the existing subscription for updates on this channel.
+func UnsubPayChUpdates(ch perun.ChannelAPI) error {
+	return ch.UnsubChUpdates()
+}
+
+// RespondPayChUpdate sends a response for a channel update notification.
+func RespondPayChUpdate(pctx context.Context, ch perun.ChannelAPI, updateID string, accept bool) error {
+	return ch.RespondChUpdate(pctx, updateID, accept)
 }
