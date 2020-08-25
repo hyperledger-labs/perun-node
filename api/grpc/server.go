@@ -378,24 +378,154 @@ func (a *PayChServer) CloseSession(context.Context, *pb.CloseSessionReq) (*pb.Cl
 }
 
 // SendPayChUpdate wraps channel.SendPayChUpdate.
-func (a *PayChServer) SendPayChUpdate(context.Context, *pb.SendPayChUpdateReq) (*pb.SendPayChUpdateResp, error) {
-	return nil, nil
+func (a *PayChServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpdateReq) (
+	*pb.SendPayChUpdateResp, error) {
+	errResponse := func(err error) *pb.SendPayChUpdateResp {
+		return &pb.SendPayChUpdateResp{
+			Response: &pb.SendPayChUpdateResp_Error{
+				Error: &pb.MsgError{
+					Error: err.Error(),
+				},
+			},
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	channel, err := sess.GetCh(req.ChannelID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	err = payment.SendPayChUpdate(ctx, channel, req.Payee, req.Amount)
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	return &pb.SendPayChUpdateResp{
+		Response: &pb.SendPayChUpdateResp_MsgSuccess_{
+			MsgSuccess: &pb.SendPayChUpdateResp_MsgSuccess{
+				Success: true,
+			},
+		},
+	}, nil
 }
 
 // SubPayChUpdates wraps channel.SubPayChUpdates.
-func (a *PayChServer) SubPayChUpdates(*pb.SubpayChUpdatesReq, pb.Payment_API_SubPayChUpdatesServer) error {
+func (a *PayChServer) SubPayChUpdates(req *pb.SubpayChUpdatesReq, srv pb.Payment_API_SubPayChUpdatesServer) error {
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		// TODO: (mano) Return a error response and not a protocol error.
+		return errors.WithMessage(err, "cannot register subscription")
+	}
+	channel, err := sess.GetCh(req.ChannelID)
+	if err != nil {
+		return errors.WithMessage(err, "cannot register subscription")
+	}
+
+	notifier := func(notif payment.PayChUpdateNotif) {
+		// nolint: govet	// err does not shadow prev declarations as this runs in a different context.
+		err := srv.Send(&pb.SubPayChUpdatesResp{Response: &pb.SubPayChUpdatesResp_Notify_{
+			Notify: &pb.SubPayChUpdatesResp_Notify{
+				ProposedBalance: ToGrpcBalInfo(notif.ProposedBals),
+				UpdateID:        notif.UpdateID,
+				Final:           notif.Final,
+				Expiry:          notif.Expiry,
+			},
+		}})
+		_ = err
+		// if err != nil {
+		// 	// TODO: (mano) Error handling when sending notification.
+		// }
+	}
+	err = payment.SubPayChUpdates(channel, notifier)
+	if err != nil {
+		// TODO: (mano) Error handling when sending notification.
+		return errors.WithMessage(err, "cannot register subscription")
+	}
+
+	signal := make(chan bool)
+	a.Lock()
+	a.chUpdatesNotif[req.SessionID][req.ChannelID] = signal
+	a.Unlock()
+
+	<-signal
 	return nil
 }
 
 // UnsubPayChUpdates wraps channel.UnsubPayChUpdates.
-func (a *PayChServer) UnsubPayChUpdates(context.Context, *pb.UnsubPayChUpdatesReq) (*pb.UnsubPayChUpdatesResp, error) {
-	return nil, nil
+func (a *PayChServer) UnsubPayChUpdates(ctx context.Context, req *pb.UnsubPayChUpdatesReq) (
+	*pb.UnsubPayChUpdatesResp, error) {
+	errResponse := func(err error) *pb.UnsubPayChUpdatesResp {
+		return &pb.UnsubPayChUpdatesResp{
+			Response: &pb.UnsubPayChUpdatesResp_Error{
+				Error: &pb.MsgError{
+					Error: err.Error(),
+				},
+			},
+		}
+	}
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	channel, err := sess.GetCh(req.ChannelID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	err = payment.UnsubPayChUpdates(channel)
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	a.Lock()
+	signal := a.chUpdatesNotif[req.SessionID][req.ChannelID]
+	a.Unlock()
+	close(signal)
+
+	return &pb.UnsubPayChUpdatesResp{
+		Response: &pb.UnsubPayChUpdatesResp_MsgSuccess_{
+			MsgSuccess: &pb.UnsubPayChUpdatesResp_MsgSuccess{
+				Success: true,
+			},
+		},
+	}, nil
 }
 
 // RespondPayChUpdate wraps channel.RespondPayChUpdate.
-func (a *PayChServer) RespondPayChUpdate(context.Context, *pb.RespondPayChUpdateReq) (
+func (a *PayChServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPayChUpdateReq) (
 	*pb.RespondPayChUpdateResp, error) {
-	return nil, nil
+	errResponse := func(err error) *pb.RespondPayChUpdateResp {
+		return &pb.RespondPayChUpdateResp{
+			Response: &pb.RespondPayChUpdateResp_Error{
+				Error: &pb.MsgError{
+					Error: err.Error(),
+				},
+			},
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	channel, err := sess.GetCh(req.ChannelID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	err = payment.RespondPayChUpdate(ctx, channel, req.UpdateID, req.Accept)
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	return &pb.RespondPayChUpdateResp{
+		Response: &pb.RespondPayChUpdateResp_MsgSuccess_{
+			MsgSuccess: &pb.RespondPayChUpdateResp_MsgSuccess{
+				Success: true,
+			},
+		},
+	}, nil
 }
 
 // GetPayChBalance wraps channel.GetPayChBalance.
