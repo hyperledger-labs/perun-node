@@ -115,13 +115,73 @@ func (a *PayChServer) OpenSession(ctx context.Context, req *pb.OpenSessionReq) (
 }
 
 // AddContact wraps session.AddContact.
-func (a *PayChServer) AddContact(context.Context, *pb.AddContactReq) (*pb.AddContactResp, error) {
-	return nil, nil
+func (a *PayChServer) AddContact(ctx context.Context, req *pb.AddContactReq) (*pb.AddContactResp, error) {
+	errResponse := func(err error) *pb.AddContactResp {
+		return &pb.AddContactResp{
+			Response: &pb.AddContactResp_Error{
+				Error: &pb.MsgError{
+					Error: err.Error(),
+				},
+			},
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	err = sess.AddContact(perun.Peer{
+		Alias:              req.Peer.Alias,
+		OffChainAddrString: req.Peer.OffChainAddress,
+		CommAddr:           req.Peer.CommAddress,
+		CommType:           req.Peer.CommType,
+	})
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	return &pb.AddContactResp{
+		Response: &pb.AddContactResp_MsgSuccess_{
+			MsgSuccess: &pb.AddContactResp_MsgSuccess{
+				Success: true,
+			},
+		},
+	}, nil
 }
 
 // GetContact wraps session.GetContact.
-func (a *PayChServer) GetContact(context.Context, *pb.GetContactReq) (*pb.GetContactResp, error) {
-	return nil, nil
+func (a *PayChServer) GetContact(ctx context.Context, req *pb.GetContactReq) (*pb.GetContactResp, error) {
+	errResponse := func(err error) *pb.GetContactResp {
+		return &pb.GetContactResp{
+			Response: &pb.GetContactResp_Error{
+				Error: &pb.MsgError{
+					Error: err.Error(),
+				},
+			},
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	peer, err := sess.GetContact(req.Alias)
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	return &pb.GetContactResp{
+		Response: &pb.GetContactResp_MsgSuccess_{
+			MsgSuccess: &pb.GetContactResp_MsgSuccess{
+				Peer: &pb.Peer{
+					Alias:           peer.Alias,
+					OffChainAddress: peer.OffChainAddrString,
+					CommAddress:     peer.CommAddr,
+					CommType:        peer.CommType,
+				},
+			},
+		},
+	}, nil
 }
 
 // OpenPayCh wraps session.OpenPayCh.
