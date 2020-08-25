@@ -113,3 +113,86 @@ func (a *PayChServer) OpenSession(ctx context.Context, req *pb.OpenSessionReq) (
 		},
 	}, nil
 }
+
+// AddContact wraps session.AddContact.
+func (a *PayChServer) AddContact(context.Context, *pb.AddContactReq) (*pb.AddContactResp, error) {
+	return nil, nil
+}
+
+// GetContact wraps session.GetContact.
+func (a *PayChServer) GetContact(context.Context, *pb.GetContactReq) (*pb.GetContactResp, error) {
+	return nil, nil
+}
+
+// OpenPayCh wraps session.OpenPayCh.
+func (a *PayChServer) OpenPayCh(context.Context, *pb.OpenPayChReq) (*pb.OpenPayChResp, error) {
+	return nil, nil
+}
+
+// GetPayChs wraps session.GetPayChs.
+func (a *PayChServer) GetPayChs(context.Context, *pb.GetPayChsReq) (*pb.GetPayChsResp, error) {
+	return nil, nil
+}
+
+// SubPayChProposals wraps session.SubPayChProposals.
+func (a *PayChServer) SubPayChProposals(*pb.SubPayChProposalsReq, pb.Payment_API_SubPayChProposalsServer) error {
+	return nil
+}
+
+// UnsubPayChProposals wraps session.UnsubPayChProposals.
+func (a *PayChServer) UnsubPayChProposals(context.Context, *pb.UnsubPayChProposalsReq) (
+	*pb.UnsubPayChProposalsResp, error) {
+	return nil, nil
+}
+
+// RespondPayChProposal wraps session.RespondPayChProposal.
+func (a *PayChServer) RespondPayChProposal(context.Context, *pb.RespondPayChProposalReq) (
+	*pb.RespondPayChProposalResp, error) {
+	return nil, nil
+}
+
+// SubPayChCloses wraps session.SubPayChCloses.
+func (a *PayChServer) SubPayChCloses(*pb.SubPayChClosesReq, pb.Payment_API_SubPayChClosesServer) error {
+	return nil
+}
+
+// UnsubPayChClose wraps session.UnsubPayChClose.
+func (a *PayChServer) UnsubPayChClose(context.Context, *pb.UnsubPayChClosesReq) (*pb.UnsubPayChClosesResp, error) {
+	return nil, nil
+}
+
+// CloseSession wraps session.CloseSession.
+func (a *PayChServer) CloseSession(context.Context, *pb.CloseSessionReq) (*pb.CloseSessionResp, error) {
+	return nil, nil
+}
+
+// SendPayChUpdate wraps channel.SendPayChUpdate.
+func (a *PayChServer) SendPayChUpdate(context.Context, *pb.SendPayChUpdateReq) (*pb.SendPayChUpdateResp, error) {
+	return nil, nil
+}
+
+// SubPayChUpdates wraps channel.SubPayChUpdates.
+func (a *PayChServer) SubPayChUpdates(*pb.SubpayChUpdatesReq, pb.Payment_API_SubPayChUpdatesServer) error {
+	return nil
+}
+
+// UnsubPayChUpdates wraps channel.UnsubPayChUpdates.
+func (a *PayChServer) UnsubPayChUpdates(context.Context, *pb.UnsubPayChUpdatesReq) (*pb.UnsubPayChUpdatesResp, error) {
+	return nil, nil
+}
+
+// RespondPayChUpdate wraps channel.RespondPayChUpdate.
+func (a *PayChServer) RespondPayChUpdate(context.Context, *pb.RespondPayChUpdateReq) (
+	*pb.RespondPayChUpdateResp, error) {
+	return nil, nil
+}
+
+// GetPayChBalance wraps channel.GetPayChBalance.
+func (a *PayChServer) GetPayChBalance(context.Context, *pb.GetPayChBalanceReq) (*pb.GetPayChBalanceResp, error) {
+	return nil, nil
+}
+
+// ClosePayCh wraps channel.ClosePayCh.
+func (a *PayChServer) ClosePayCh(context.Context, *pb.ClosePayChReq) (*pb.ClosePayChResp, error) {
+	return nil, nil
+}
