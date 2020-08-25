@@ -17,7 +17,12 @@
 package payment
 
 import (
+	"context"
+
+	pchannel "perun.network/go-perun/channel"
+
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/currency"
 )
 
 type (
@@ -28,3 +33,53 @@ type (
 		Version   string
 	}
 )
+
+// SendPayChUpdate send the given amount to the payee. Payee should be one of the channel participants.
+// Use "self" to request payments.
+func SendPayChUpdate(pctx context.Context, ch perun.ChannelAPI, payee, amount string) error {
+	chInfo := ch.GetInfo()
+	f, err := newUpdater(chInfo.State, chInfo.Parts, chInfo.Currency, payee, amount)
+	if err != nil {
+		return err
+	}
+	return ch.SendChUpdate(pctx, f)
+}
+
+func newUpdater(currState *pchannel.State, parts []string, chCurrency, payee, amount string) (
+	perun.StateUpdater, error) {
+	parsedAmount, err := currency.NewParser(chCurrency).Parse(amount)
+	if err != nil {
+		return nil, perun.ErrInvalidAmount
+	}
+
+	// find index
+	var payerIdx, payeeIdx int
+	if parts[0] == payee {
+		payeeIdx = 0
+	} else if parts[1] == payee {
+		payeeIdx = 1
+	} else {
+		return nil, perun.ErrInvalidPayee
+	}
+	payerIdx = payeeIdx ^ 1
+
+	// check sufficient balance
+	bals := currState.Allocation.Clone().Balances[0]
+	bals[payerIdx].Sub(bals[payerIdx], parsedAmount)
+	bals[payeeIdx].Add((bals[payeeIdx]), parsedAmount)
+	if bals[payerIdx].Sign() == -1 {
+		return nil, perun.ErrInsufficientBal
+	}
+
+	// return updater func
+	return func(state *pchannel.State) {
+		state.Allocation.Balances[0][payerIdx] = bals[payerIdx]
+		state.Allocation.Balances[0][payeeIdx] = bals[payeeIdx]
+	}, nil
+}
+
+// GetBalInfo returns the balance information for this channel.
+func GetBalInfo(ch perun.ChannelAPI) perun.BalInfo {
+	chInfo := ch.GetInfo()
+	return balsFromState(chInfo.Currency, chInfo.State, chInfo.Parts)
+}
