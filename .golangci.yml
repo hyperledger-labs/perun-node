@@ -125,6 +125,11 @@ issues:
       linters:
         - depguard
 
+    # Grpc adapter does have some repetitive boilerplate code.
+    - path: api/grpc/
+      linters:
+        - dupl
+
     # It is okay to return an unexported type when the type satisfies a public interface.
     - linters:
         - golint
