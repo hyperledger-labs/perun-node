@@ -120,3 +120,16 @@ func UnsubPayChUpdates(ch perun.ChannelAPI) error {
 func RespondPayChUpdate(pctx context.Context, ch perun.ChannelAPI, updateID string, accept bool) error {
 	return ch.RespondChUpdate(pctx, updateID, accept)
 }
+
+// ClosePayCh closes the payment channel.
+func ClosePayCh(pctx context.Context, ch perun.ChannelAPI) (PayChInfo, error) {
+	chInfo, err := ch.Close(pctx)
+	if err != nil {
+		return PayChInfo{}, err
+	}
+	return PayChInfo{
+		ChannelID: chInfo.ChannelID,
+		BalInfo:   balsFromState(chInfo.Currency, chInfo.State, chInfo.Parts),
+		Version:   fmt.Sprintf("%d", chInfo.State.Version),
+	}, nil
+}
