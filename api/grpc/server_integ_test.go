@@ -164,6 +164,17 @@ func Test_Integ_Role(t *testing.T) {
 		}()
 		SubRespondUnsubPayChProposal(t, bobSessionID, true)
 		wg.Wait()
+	})
+
+	t.Run("SendPayChUpdate_Sub_Unsub_Respond", func(t *testing.T) {
+		// Bob sends a payment and alice accepts.
+		wg.Add(1)
+		go func() {
+			SendPayChUpdate(t, bobSessionID, channelID, aliceAlias, "0.5")
+			wg.Done()
+		}()
+		SubRespondUnsubPayChUpdate(t, aliceSessionID, channelID, true)
+		wg.Wait()
 		_ = channelID
 	})
 }
@@ -250,4 +261,50 @@ func SubRespondUnsubPayChProposal(t *testing.T, sessionID string, accept bool) {
 	}
 	_, err = client.UnsubPayChProposals(ctx, &unsubReq)
 	require.NoErrorf(t, err, "UnsubPayChProposals")
+}
+
+func SendPayChUpdate(t *testing.T, sessionID, channelID, peerAlias, amount string) {
+	req := pb.SendPayChUpdateReq{
+		SessionID: sessionID,
+		ChannelID: channelID,
+		Payee:     peerAlias,
+		Amount:    amount,
+	}
+	resp, err := client.SendPayChUpdate(ctx, &req)
+	require.NoErrorf(t, err, "SendPayChUpdate")
+	_, ok := resp.Response.(*pb.SendPayChUpdateResp_MsgSuccess_)
+	require.True(t, ok, "SendPayChUpdate returned error response")
+}
+
+func SubRespondUnsubPayChUpdate(t *testing.T, sessionID, channelID string, accept bool) {
+	// Subscribe to payment channel update notifications.
+	subReq := pb.SubpayChUpdatesReq{
+		SessionID: sessionID,
+		ChannelID: channelID,
+	}
+	subClient, err := client.SubPayChUpdates(ctx, &subReq)
+	require.NoErrorf(t, err, "SubPayChUpdates")
+
+	notifMsg, err := subClient.Recv()
+	require.NoErrorf(t, err, "subClient.Recv")
+	notif, ok := notifMsg.Response.(*pb.SubPayChUpdatesResp_Notify_)
+	require.True(t, ok, "SendPayChUpdate returned error response")
+
+	// Respond to payment channel update notification.
+	respondReq := pb.RespondPayChUpdateReq{
+		SessionID: sessionID,
+		UpdateID:  notif.Notify.UpdateID,
+		ChannelID: channelID,
+		Accept:    true,
+	}
+	_, err = client.RespondPayChUpdate(ctx, &respondReq)
+	require.NoErrorf(t, err, "RespondPayChUpdate")
+
+	// Unsubscribe to payment channel update notifications.
+	unsubReq := pb.UnsubPayChUpdatesReq{
+		SessionID: sessionID,
+		ChannelID: channelID,
+	}
+	_, err = client.UnsubPayChUpdates(ctx, &unsubReq)
+	require.NoErrorf(t, err, "UnsubPayChUpdates")
 }
