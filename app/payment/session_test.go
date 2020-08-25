@@ -50,7 +50,7 @@ var (
 	ownAmountRaw, peerAmountRaw   = big.NewInt(1e18), big.NewInt(2e18)
 	wantOwnAmount, wantPeerAmount = "1.000000", "2.000000"
 
-	amountToSend             = "0.5" // nolint:deadcode, varcheck,unused	// will be used in later commits.
+	amountToSend             = "0.5"
 	wantUpdatedOwnAmountRaw  = big.NewInt(0.5e18)
 	wantUpdatedPeerAmountRaw = big.NewInt(2.5e18)
 	wantUpdatedOwnAmount     = "0.500000"
