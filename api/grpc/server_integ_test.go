@@ -120,7 +120,7 @@ func Test_Integ_Role(t *testing.T) {
 
 	aliceAlias, bobAlias := "alice", "bob"
 	var aliceSessionID, bobSessionID string
-	// var alicePeer, bobPeer *pb.Peer
+	var alicePeer, bobPeer *pb.Peer
 	prng := rand.New(rand.NewSource(1729))
 	aliceCfgFile := sessiontest.NewConfigFile(t, sessiontest.NewConfig(t, prng))
 	bobCfgFile := sessiontest.NewConfigFile(t, sessiontest.NewConfig(t, prng))
@@ -137,6 +137,20 @@ func Test_Integ_Role(t *testing.T) {
 	// Bob Open Session.
 	bobSessionID = OpenSession(t, bobCfgFile)
 	t.Logf("%s session id is %s", bobAlias, bobSessionID)
+
+	t.Run("GetContact", func(t *testing.T) {
+		// Get own contact of alice and bob.
+		alicePeer = GetContact(t, aliceSessionID, perun.OwnAlias)
+		alicePeer.Alias = aliceAlias
+		bobPeer = GetContact(t, bobSessionID, perun.OwnAlias)
+		bobPeer.Alias = bobAlias
+	})
+
+	t.Run("AddContact", func(t *testing.T) {
+		// Add bob contact to alice and vice versa.
+		AddContact(t, aliceSessionID, bobPeer)
+		AddContact(t, bobSessionID, alicePeer)
+	})
 }
 
 func OpenSession(t *testing.T, cfgFile string) string {
@@ -148,4 +162,27 @@ func OpenSession(t *testing.T, cfgFile string) string {
 	msg, ok := resp.Response.(*pb.OpenSessionResp_MsgSuccess_)
 	require.True(t, ok, "OpenSession returned error response")
 	return msg.MsgSuccess.SessionID
+}
+
+func GetContact(t *testing.T, sessionID string, alias string) *pb.Peer {
+	req := pb.GetContactReq{
+		SessionID: sessionID,
+		Alias:     alias,
+	}
+	resp, err := client.GetContact(ctx, &req)
+	require.NoErrorf(t, err, "GetContact")
+	msg, ok := resp.Response.(*pb.GetContactResp_MsgSuccess_)
+	require.True(t, ok, "GetContact returned error response")
+	return msg.MsgSuccess.Peer
+}
+
+func AddContact(t *testing.T, sessionID string, peer *pb.Peer) {
+	req:= pb.AddContactReq{
+		SessionID: sessionID,
+		Peer:      peer,
+	}
+	resp, err := client.AddContact(ctx, &req)
+	require.NoErrorf(t, err, "AddContact")
+	_, ok := resp.Response.(*pb.AddContactResp_MsgSuccess_)
+	require.True(t, ok, "AddContact returned error response")
 }
