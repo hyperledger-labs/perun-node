@@ -21,8 +21,11 @@ import (
 
 	psync "perun.network/go-perun/pkg/sync"
 
+	"github.com/pkg/errors"
+
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
+	"github.com/hyperledger-labs/perun-node/app/payment"
 )
 
 // PayChServer represents a grpc server that implements payment channel API.
@@ -185,30 +188,178 @@ func (a *PayChServer) GetContact(ctx context.Context, req *pb.GetContactReq) (*p
 }
 
 // OpenPayCh wraps session.OpenPayCh.
-func (a *PayChServer) OpenPayCh(context.Context, *pb.OpenPayChReq) (*pb.OpenPayChResp, error) {
-	return nil, nil
+func (a *PayChServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*pb.OpenPayChResp, error) {
+	errResponse := func(err error) *pb.OpenPayChResp {
+		return &pb.OpenPayChResp{
+			Response: &pb.OpenPayChResp_Error{
+				Error: &pb.MsgError{Error: err.Error()},
+			},
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	balInfo := FromGrpcBalInfo(req.OpeningBalance)
+	payChInfo, err := payment.OpenPayCh(ctx, sess, req.PeerAlias, balInfo, req.ChallengeDurSecs)
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	return &pb.OpenPayChResp{
+		Response: &pb.OpenPayChResp_MsgSuccess_{
+			MsgSuccess: &pb.OpenPayChResp_MsgSuccess{
+				Channel: &pb.PaymentChannel{
+					ChannelID:   payChInfo.ChannelID,
+					Balanceinfo: ToGrpcBalInfo(payChInfo.BalInfo),
+					Version:     payChInfo.Version,
+				},
+			},
+		},
+	}, nil
 }
 
 // GetPayChs wraps session.GetPayChs.
-func (a *PayChServer) GetPayChs(context.Context, *pb.GetPayChsReq) (*pb.GetPayChsResp, error) {
-	return nil, nil
+func (a *PayChServer) GetPayChs(ctx context.Context, req *pb.GetPayChsReq) (*pb.GetPayChsResp, error) {
+	errResponse := func(err error) *pb.GetPayChsResp {
+		return &pb.GetPayChsResp{
+			Response: &pb.GetPayChsResp_Error{
+				Error: &pb.MsgError{Error: err.Error()},
+			},
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	payChInfos := payment.GetPayChs(sess)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	payChInfosGrpc := make([]*pb.PaymentChannel, len(payChInfos))
+	for i := 0; i < len(payChInfosGrpc); i++ {
+		payChInfosGrpc[i] = &pb.PaymentChannel{
+			ChannelID:   payChInfos[i].ChannelID,
+			Balanceinfo: ToGrpcBalInfo(payChInfos[i].BalInfo),
+			Version:     payChInfos[i].Version,
+		}
+	}
+
+	return &pb.GetPayChsResp{
+		Response: &pb.GetPayChsResp_MsgSuccess_{
+			MsgSuccess: &pb.GetPayChsResp_MsgSuccess{
+				OpenChannels: payChInfosGrpc,
+			},
+		},
+	}, nil
 }
 
 // SubPayChProposals wraps session.SubPayChProposals.
-func (a *PayChServer) SubPayChProposals(*pb.SubPayChProposalsReq, pb.Payment_API_SubPayChProposalsServer) error {
+func (a *PayChServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
+	srv pb.Payment_API_SubPayChProposalsServer) error {
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		// TODO: (mano) Return a error response and not a protocol error
+		return errors.WithMessage(err, "cannot register subscription")
+	}
+
+	notifier := func(notif payment.PayChProposalNotif) {
+		// nolint: govet	// err does not shadow prev declarations as this runs in a different context.
+		err := srv.Send(&pb.SubPayChProposalsResp{Response: &pb.SubPayChProposalsResp_Notify_{
+			Notify: &pb.SubPayChProposalsResp_Notify{
+				ProposalID:       notif.ProposalID,
+				OpeningBalance:   ToGrpcBalInfo(notif.OpeningBals),
+				ChallengeDurSecs: notif.ChallengeDurSecs,
+				Expiry:           notif.Expiry,
+			},
+		}})
+		_ = err
+		// if err != nil {
+		// TODO: (mano) Handle error while sending.
+		// }
+	}
+	err = payment.SubPayChProposals(sess, notifier)
+	if err != nil {
+		// TODO: (mano) Return a error response and not a protocol error
+		return errors.WithMessage(err, "cannot register subscription")
+	}
+
+	signal := make(chan bool)
+	a.Lock()
+	a.chProposalsNotif[req.SessionID] = signal
+	a.Unlock()
+
+	<-signal
 	return nil
 }
 
 // UnsubPayChProposals wraps session.UnsubPayChProposals.
-func (a *PayChServer) UnsubPayChProposals(context.Context, *pb.UnsubPayChProposalsReq) (
+func (a *PayChServer) UnsubPayChProposals(ctx context.Context, req *pb.UnsubPayChProposalsReq) (
 	*pb.UnsubPayChProposalsResp, error) {
-	return nil, nil
+	errResponse := func(err error) *pb.UnsubPayChProposalsResp {
+		return &pb.UnsubPayChProposalsResp{
+			Response: &pb.UnsubPayChProposalsResp_Error{
+				Error: &pb.MsgError{
+					Error: err.Error(),
+				},
+			},
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	err = payment.UnsubPayChProposals(sess)
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	a.Lock()
+	signal := a.chProposalsNotif[req.SessionID]
+	a.Unlock()
+	close(signal)
+
+	return &pb.UnsubPayChProposalsResp{
+		Response: &pb.UnsubPayChProposalsResp_MsgSuccess_{
+			MsgSuccess: &pb.UnsubPayChProposalsResp_MsgSuccess{
+				Success: true,
+			},
+		},
+	}, nil
 }
 
 // RespondPayChProposal wraps session.RespondPayChProposal.
-func (a *PayChServer) RespondPayChProposal(context.Context, *pb.RespondPayChProposalReq) (
+func (a *PayChServer) RespondPayChProposal(ctx context.Context, req *pb.RespondPayChProposalReq) (
 	*pb.RespondPayChProposalResp, error) {
-	return nil, nil
+	errResponse := func(err error) *pb.RespondPayChProposalResp {
+		return &pb.RespondPayChProposalResp{
+			Response: &pb.RespondPayChProposalResp_Error{
+				Error: &pb.MsgError{
+					Error: err.Error(),
+				},
+			},
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	err = payment.RespondPayChProposal(ctx, sess, req.ProposalID, req.Accept)
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	return &pb.RespondPayChProposalResp{
+		Response: &pb.RespondPayChProposalResp_MsgSuccess_{
+			MsgSuccess: &pb.RespondPayChProposalResp_MsgSuccess{
+				Success: true,
+			},
+		},
+	}, nil
 }
 
 // SubPayChCloses wraps session.SubPayChCloses.
@@ -255,4 +406,37 @@ func (a *PayChServer) GetPayChBalance(context.Context, *pb.GetPayChBalanceReq) (
 // ClosePayCh wraps channel.ClosePayCh.
 func (a *PayChServer) ClosePayCh(context.Context, *pb.ClosePayChReq) (*pb.ClosePayChResp, error) {
 	return nil, nil
+}
+
+// FromGrpcBalInfo is a helper function to convert BalInfo struct defined in grpc package
+// to BalInfo struct defined in perun-node. It is exported for use in tests.
+func FromGrpcBalInfo(src *pb.BalanceInfo) perun.BalInfo {
+	balInfo := perun.BalInfo{
+		Currency: src.Currency,
+		Bals:     make(map[string]string, len(src.Balances)),
+	}
+	for _, aliasBalance := range src.Balances {
+		for key, value := range aliasBalance.Value {
+			balInfo.Bals[key] = value
+		}
+	}
+	return balInfo
+}
+
+// ToGrpcBalInfo is a helper function to convert BalInfo struct defined in perun-node
+// to BalInfo struct defined in grpc package. It is exported for use in tests.
+func ToGrpcBalInfo(src perun.BalInfo) *pb.BalanceInfo {
+	balInfo := &pb.BalanceInfo{
+		Currency: src.Currency,
+		Balances: make([]*pb.BalanceInfo_AliasBalance, len(src.Bals)),
+	}
+	i := 0
+	for key, value := range src.Bals {
+		balInfo.Balances[i] = &pb.BalanceInfo_AliasBalance{
+			Value: make(map[string]string),
+		}
+		balInfo.Balances[i].Value[key] = value
+		i++
+	}
+	return balInfo
 }
