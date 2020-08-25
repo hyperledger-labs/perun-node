@@ -80,7 +80,7 @@ type (
 		expiry           int64
 	}
 
-	//go:generate mockery -name chProposalResponder -output ../internal/mocks
+	//go:generate mockery --name chProposalResponder --output ../internal/mocks
 
 	// Proposal Responder defines the methods on proposal responder that will be used by the perun node.
 	chProposalResponder interface {

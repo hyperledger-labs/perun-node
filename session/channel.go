@@ -62,7 +62,7 @@ type (
 		expiry    int64
 	}
 
-	//go:generate mockery -name ProposalResponder -output ../internal/mocks
+	//go:generate mockery --name ProposalResponder --output ../internal/mocks
 
 	// ChUpdaterResponder represents the methods on channel update responder that will be used the perun node.
 	chUpdateResponder interface {
