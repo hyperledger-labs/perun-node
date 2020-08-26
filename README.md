@@ -16,20 +16,83 @@ allow for secure off-chain transactions.
 
 ## Project Status
 
-A first version of perun-node is available (under the previous name of the
-project: dst-go) in branch
+At the moment the perun-node is neither ready for production nor does it
+implement the complete perun protocol yet. But with basic features available,
+the project is at a stage where you can try it out and start to get involved.
+
+This is a complete re-implementation of the previous version (available under
+the previous name of the project: dst-go) in branch
 [legacy/master](https://github.com/hyperledger-labs/perun-node/tree/legacy/master).
-It is neither ready for production use nor does it implement the complete
-Perun protocol yet. But with the basic features available it is at a stage
-where you could try it out.
+This version builds on top of the [go-perun](https://github.com/hyperledger-labs/go-perun) SDK that implements a state
+channel client based on perun protocol. See Description for more details.
 
-Now perun-node will be re-implemented from scratch building upon the
-[go-perun](https://github.com/hyperledger-labs/go-perun). This is
-happening on new
-[master](https://github.com/hyperledger-labs/perun-node/tree/master) and
-[develop](https://github.com/hyperledger-labs/perun-node/tree/develop)
-branches.
+## Description
 
+The perun-node is multi-user state channel node that can be used for opening,
+transacting on and closing state channels. It builds on the state channel
+client implemented by
+[go-perun](https://github.com/hyperledger-labs/go-perun) and implements the
+following functionalities:
+
+1. Payment App: For using perun protocol to establish and use bi-directional
+payment channels.
+2. Contacts Provider: For the user to define a list of known participants in
+the off-chain network.
+3. Key management: For managing the cryptographic keys of the user.
+4. User session: For allowing multiple users to use a single node, each with
+a dedicated key manager and contacts provider.
+5. User API interface: For the user to interact with the perun-node.
+
+The current version provides the following features:
+
+|Feature | Implementation |
+|:--|:--|
+|Blockchain Backend|Ethereum|
+|Key management|Ethereum keystore |
+|Contacts Provider|YAML file |
+|User API|Two Party Payment API |
+|User API Adapter|gRPC |
+
+An example for a complete sequence of using the perun node can be found in
+the integration test in `api/grpc` package in `server_integ_test.go`. An
+independently running node binary is yet to be implemented and will be
+included in the next release.
+
+## Getting Started
+
+Install the following pre-requisites.
+
+    1. Go (v1.14 or later).
+    2. ganache-cli (v6.9.1 or later).
+
+Clone the project and sync the dependencies:
+
+```bash
+git clone https://github.com/hyperledger-labs/perun-node.git
+cd perun-node
+go mod tidy
+```
+
+Start the ganache-cli node for running integration tests:
+
+```bash
+# These funded accounts will be used in tests. "-b 1" configures the
+# ganache-cli node to mine one block every second. It is required as our
+# contracts use blockchain based timeout for settling a state channel on-chain.
+ganache-cli -b 1 \
+--account="0x1fedd636dbc7e8d41a0622a2040b86fea8842cef9d4aa4c582aad00465b7acff,100000000000000000000" \
+--account="0xb0309c60b4622d3071fad3e16c2ce4d0b1e7758316c187754f4dd0cfb44ceb33,100000000000000000000"
+```
+
+Run the linter and tests from the project root directory:
+
+```bash
+# Lint
+golangci-lint run ./...
+
+# Test
+go test -tags=integration -count=1 ./...
+```
 
 ## License
 
