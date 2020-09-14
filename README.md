@@ -1,4 +1,7 @@
-# Perun Node - Go implementation
+# Perun Node - Go implementation [![join the chat][rocketchat-image]][rocketchat-url]
+
+[rocketchat-url]: https://chat.hyperledger.org/channel/perun
+[rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
 
 | Develop | Master |
 | :----: | :-----: |
