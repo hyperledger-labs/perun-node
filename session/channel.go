@@ -108,7 +108,7 @@ func (ch *channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
 	defer cancel()
-	err := ch.pchannel.UpdateBy(ctx, updater)
+	err := ch.pchannel.UpdateBy(ctx, ch.pchannel.Idx(), updater)
 	if err != nil {
 		ch.Error("Sending channel update:", err)
 		return perun.GetAPIError(err)
@@ -229,7 +229,7 @@ func (ch *channel) Close(pctx context.Context) (perun.ChannelInfo, error) {
 		}
 		upCtx, upCancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
 		defer upCancel()
-		if err := ch.pchannel.UpdateBy(upCtx, chFinalizer); err != nil {
+		if err := ch.pchannel.UpdateBy(upCtx, ch.pchannel.Idx(), chFinalizer); err != nil {
 			ch.Logger.Info("Error when trying to finalize state for closing:", err)
 			ch.Logger.Info("Opting for non collaborative close")
 		} else {
