@@ -18,7 +18,6 @@ package session
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
 	"math/big"
@@ -74,6 +73,7 @@ type (
 	}
 
 	chProposalResponderEntry struct {
+		proposal         *pclient.ChannelProposal
 		responder        chProposalResponder
 		challengeDurSecs uint64
 		parts            []string
@@ -235,15 +235,13 @@ func (s *session) OpenCh(
 	}
 	partAddrs := []pwallet.Address{s.user.OffChainAddr, peer.OffChainAddr}
 	parts := []string{perun.OwnAlias, peer.Alias}
-	proposal := &pclient.ChannelProposal{ // Make proposal.
-		ChallengeDuration: challengeDurSecs,
-		Nonce:             nonce(),
-		ParticipantAddr:   s.user.OffChainAddr,
-		AppDef:            app.Def,
-		InitData:          app.Data,
-		InitBals:          allocations,
-		PeerAddrs:         partAddrs,
-	}
+	proposal := pclient.NewChannelProposal(
+		challengeDurSecs,
+		s.user.OffChainAddr,
+		allocations,
+		partAddrs,
+		pclient.WithApp(app.Def, app.Data),
+		pclient.WithRandomNonce())
 
 	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.proposeCh(challengeDurSecs))
 	defer cancel()
@@ -297,17 +295,6 @@ func makeAllocation(bals perun.BalInfo, peerAlias string, chAsset pchannel.Asset
 	}, nil
 }
 
-func nonce() *big.Int {
-	max := new(big.Int)
-	max.Exp(big.NewInt(2), big.NewInt(256), nil).Sub(max, big.NewInt(1))
-
-	val, err := rand.Int(rand.Reader, max)
-	if err != nil {
-		panic(err)
-	}
-	return val
-}
-
 func (s *session) HandleProposal(chProposal *pclient.ChannelProposal, responder *pclient.ProposalResponder) {
 	s.Debugf("SDK Callback: HandleProposal. Params: %+v", chProposal)
 	s.Lock()
@@ -329,6 +316,7 @@ func (s *session) HandleProposal(chProposal *pclient.ChannelProposal, responder 
 
 	proposalID := fmt.Sprintf("%x", chProposal.ProposalID())
 	entry := chProposalResponderEntry{
+		proposal:         chProposal,
 		responder:        responder,
 		challengeDurSecs: chProposal.ChallengeDuration,
 		parts:            parts,
