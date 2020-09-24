@@ -609,4 +609,6 @@ honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.1-2019.2.3/go.mod h1:a3bituU0lyd329TUQxRnasdCoJDkEUEAqEt0JzvZhAg=
 perun.network/go-perun v0.4.1-0.20200902130204-8d0d800a6443 h1:O+0LmGNdelSOt9jNuvekf6k/6tnEnIdX3Lsj/lA1jmY=
 perun.network/go-perun v0.4.1-0.20200902130204-8d0d800a6443/go.mod h1:xwFshtUdzOXqSntwRVhNZjvSWWSnnUMRzq9gyjBURKc=
+perun.network/go-perun v0.4.1-0.20200908131214-cdcc1ad25825 h1:IfWJsEOtI620Ap3cxLGaJFGobeF8Fq7dip7tbB88bbM=
+perun.network/go-perun v0.4.1-0.20200908131214-cdcc1ad25825/go.mod h1:xwFshtUdzOXqSntwRVhNZjvSWWSnnUMRzq9gyjBURKc=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
