@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	pkeystore "perun.network/go-perun/backend/ethereum/wallet/keystore"
 	pwallet "perun.network/go-perun/wallet"
 )
 
@@ -61,7 +62,7 @@ func (wb *WalletBackend) NewWallet(keystorePath, password string) (pwallet.Walle
 		return nil, errors.Wrap(err, "initializing new wallet, cannot find keystore directory")
 	}
 	ks := keystore.NewKeyStore(keystorePath, wb.EncParams.N, wb.EncParams.P)
-	w, err := pethwallet.NewWallet(ks, password)
+	w, err := pkeystore.NewWallet(ks, password)
 	return w, errors.Wrap(err, "initializing new wallet")
 }
 

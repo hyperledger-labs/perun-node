@@ -76,16 +76,16 @@ func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBacken
 	dialer := comm.NewDialer()
 	msgBus := pnet.NewBus(offChainAcc, dialer)
 
-	pClient, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, user.OffChain.Wallet)
+	pcClient, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, user.OffChain.Wallet)
 	if err != nil {
 		return nil, errors.Wrap(err, "initializing state channel client")
 	}
-	if err = loadPersister(pClient, cfg.DatabaseDir, cfg.PeerReconnTimeout); err != nil {
+	if err = loadPersister(pcClient, cfg.DatabaseDir, cfg.PeerReconnTimeout); err != nil {
 		return nil, err
 	}
 
 	c := &client{
-		pClient:        pClient,
+		pClient:        pcClient,
 		msgBus:         msgBus,
 		msgBusRegistry: dialer,
 		wg:             &sync.WaitGroup{},

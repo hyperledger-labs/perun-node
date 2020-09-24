@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	pkswallet "perun.network/go-perun/backend/ethereum/wallet/keystore"
 	pwallet "perun.network/go-perun/wallet"
 
 	"github.com/hyperledger-labs/perun-node"
@@ -57,7 +58,7 @@ func NewWalletSetup(t *testing.T, rng *rand.Rand, n uint) *WalletSetup {
 	ksPath, err := ioutil.TempDir("", "perun-node-test-keystore-*")
 	require.NoErrorf(t, err, "Error creating temp directory for keystore: %v", err)
 	ks := keystore.NewKeyStore(ksPath, internal.WeakScryptN, internal.WeakScryptP)
-	w, err := pethwallet.NewWallet(ks, "")
+	w, err := pkswallet.NewWallet(ks, "")
 	require.NoErrorf(t, err, "Error creating wallet: %v", err)
 
 	accs := make([]pwallet.Account, n)
