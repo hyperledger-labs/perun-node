@@ -139,7 +139,7 @@ type Session struct {
 // Hence it is highly recommended not to stop the channel client if there are open channels.
 type ChannelClient interface {
 	Registerer
-	ProposeChannel(context.Context, *pclient.ChannelProposal) (*pclient.Channel, error)
+	ProposeChannel(context.Context, pclient.ChannelProposal) (*pclient.Channel, error)
 	Handle(pclient.ProposalHandler, pclient.UpdateHandler)
 	Channel(pchannel.ID) (*pclient.Channel, error)
 	Close() error
@@ -233,7 +233,7 @@ type SessionAPI interface {
 	HandleClose(string, error)
 	GetChInfos() []ChannelInfo
 	HandleUpdate(pclient.ChannelUpdate, *pclient.UpdateResponder)
-	HandleProposal(*pclient.ChannelProposal, *pclient.ProposalResponder)
+	HandleProposal(pclient.ChannelProposal, *pclient.ProposalResponder)
 	SubChProposals(ChProposalNotifier) error
 	UnsubChProposals() error
 	RespondChProposal(context.Context, string, bool) error
@@ -253,7 +253,7 @@ type (
 	ChProposalNotif struct {
 		ProposalID string
 		Currency   string
-		Proposal   *pclient.ChannelProposal
+		ChProposal pclient.ChannelProposal
 		Parts      []string
 		Expiry     int64
 	}

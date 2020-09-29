@@ -97,7 +97,7 @@ func (_m *SessionAPI) HandleClose(_a0 string, _a1 error) {
 }
 
 // HandleProposal provides a mock function with given fields: _a0, _a1
-func (_m *SessionAPI) HandleProposal(_a0 *client.ChannelProposal, _a1 *client.ProposalResponder) {
+func (_m *SessionAPI) HandleProposal(_a0 client.ChannelProposal, _a1 *client.ProposalResponder) {
 	_m.Called(_a0, _a1)
 }
 

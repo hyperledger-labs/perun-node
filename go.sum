@@ -607,6 +607,6 @@ honnef.co/go/tools v0.0.0-20190106161140-3f1c8253044a/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.0-20190418001031-e561f6794a2a/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.1-2019.2.3/go.mod h1:a3bituU0lyd329TUQxRnasdCoJDkEUEAqEt0JzvZhAg=
-perun.network/go-perun v0.4.1-0.20200820162312-ba500c4ec664 h1:abzJjxeKXhQX7WYAaXZSt/PGyeY9jSGuSf/gN997Ljs=
-perun.network/go-perun v0.4.1-0.20200820162312-ba500c4ec664/go.mod h1:xwFshtUdzOXqSntwRVhNZjvSWWSnnUMRzq9gyjBURKc=
+perun.network/go-perun v0.4.1-0.20200902124833-3b2d39f8dc54 h1:4QGh9YnXvTg1SJf97wvhEuF1U09EfjW9MWRz2GdU3No=
+perun.network/go-perun v0.4.1-0.20200902124833-3b2d39f8dc54/go.mod h1:xwFshtUdzOXqSntwRVhNZjvSWWSnnUMRzq9gyjBURKc=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
