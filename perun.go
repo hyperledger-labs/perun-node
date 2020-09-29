@@ -302,7 +302,7 @@ type (
 
 	// App represents the parameters of an App used in a channel.
 	App struct {
-		Def  pwallet.Address
+		Def  pchannel.App
 		Data pchannel.Data
 	}
 
