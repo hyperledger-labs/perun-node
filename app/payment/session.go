@@ -69,8 +69,8 @@ func OpenPayCh(pctx context.Context,
 	openingBals perun.BalInfo,
 	challengeDurSecs uint64) (PayChInfo, error) {
 	paymentApp := perun.App{
-		Def:  ppayment.AppDef(),
-		Data: &ppayment.NoData{},
+		Def:  ppayment.NewApp(),
+		Data: pchannel.NoData(),
 	}
 
 	chInfo, err := s.OpenCh(pctx, peerAlias, openingBals, paymentApp, challengeDurSecs)

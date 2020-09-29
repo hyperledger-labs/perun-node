@@ -116,8 +116,8 @@ func Test_Integ_Role(t *testing.T) {
 				Bals:     bals,
 			}
 			app := perun.App{
-				Def:  ppayment.AppDef(),
-				Data: &ppayment.NoData{},
+				Def:  ppayment.NewApp(),
+				Data: pchannel.NoData(),
 			}
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.
 			_, err := alice.OpenCh(ctx, bobAlias, balInfo, app, challengeDurSecs)
@@ -154,8 +154,8 @@ func Test_Integ_Role(t *testing.T) {
 				Bals:     bals,
 			}
 			app := perun.App{
-				Def:  ppayment.AppDef(),
-				Data: &ppayment.NoData{},
+				Def:  ppayment.NewApp(),
+				Data: pchannel.NoData(),
 			}
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.
 			_, err := bob.OpenCh(ctx, aliceAlias, balInfo, app, challengeDurSecs)

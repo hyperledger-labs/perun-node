@@ -69,8 +69,8 @@ var (
 func init() {
 	parts = []string{perun.OwnAlias, peerAlias}
 	app = perun.App{
-		Def:  ppayment.AppDef(),
-		Data: &ppayment.NoData{},
+		Def:  ppayment.NewApp(),
+		Data: pchannel.NoData(),
 	}
 
 	bals = make(map[string]string)
@@ -101,7 +101,7 @@ func init() {
 		Currency:  currency.ETH,
 		State: &pchannel.State{
 			App:  &ppayment.App{},
-			Data: &ppayment.NoData{},
+			Data: pchannel.NoData(),
 			Allocation: pchannel.Allocation{
 				Balances: [][]*big.Int{{ownAmountRaw, peerAmountRaw}},
 			},
@@ -115,7 +115,7 @@ func init() {
 		Currency:  currency.ETH,
 		State: &pchannel.State{
 			App:  &ppayment.App{},
-			Data: &ppayment.NoData{},
+			Data: pchannel.NoData(),
 			Allocation: pchannel.Allocation{
 				Balances: [][]*big.Int{{wantUpdatedOwnAmountRaw, wantUpdatedPeerAmountRaw}},
 			},
