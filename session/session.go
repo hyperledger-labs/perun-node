@@ -73,7 +73,7 @@ type (
 	}
 
 	chProposalResponderEntry struct {
-		proposal         *pclient.ChannelProposal
+		proposal         pclient.ChannelProposal
 		responder        chProposalResponder
 		challengeDurSecs uint64
 		parts            []string
@@ -235,7 +235,7 @@ func (s *session) OpenCh(
 	}
 	partAddrs := []pwallet.Address{s.user.OffChainAddr, peer.OffChainAddr}
 	parts := []string{perun.OwnAlias, peer.Alias}
-	proposal := pclient.NewChannelProposal(
+	proposal := pclient.NewLedgerChannelProposal(
 		challengeDurSecs,
 		s.user.OffChainAddr,
 		allocations,
@@ -295,17 +295,17 @@ func makeAllocation(bals perun.BalInfo, peerAlias string, chAsset pchannel.Asset
 	}, nil
 }
 
-func (s *session) HandleProposal(chProposal *pclient.ChannelProposal, responder *pclient.ProposalResponder) {
+func (s *session) HandleProposal(chProposal pclient.ChannelProposal, responder *pclient.ProposalResponder) {
 	s.Debugf("SDK Callback: HandleProposal. Params: %+v", chProposal)
 	s.Lock()
 	defer s.Unlock()
 	expiry := time.Now().UTC().Add(s.timeoutCfg.response).Unix()
 
-	parts := make([]string, len(chProposal.PeerAddrs))
-	for i := range chProposal.PeerAddrs {
-		p, ok := s.contacts.ReadByOffChainAddr(chProposal.PeerAddrs[i])
+	parts := make([]string, len(chProposal.Proposal().PeerAddrs))
+	for i := range chProposal.Proposal().PeerAddrs {
+		p, ok := s.contacts.ReadByOffChainAddr(chProposal.Proposal().PeerAddrs[i])
 		if !ok {
-			s.Info("Received channel proposal from unknonwn peer", chProposal.PeerAddrs[i].String())
+			s.Info("Received channel proposal from unknonwn peer", chProposal.Proposal().PeerAddrs[i].String())
 			// nolint: errcheck, gosec		// It is sufficient to just log this error.
 			s.rejectChProposal(context.Background(), responder, "peer not found in session contacts")
 			expiry = 0
@@ -314,11 +314,11 @@ func (s *session) HandleProposal(chProposal *pclient.ChannelProposal, responder 
 		parts[i] = p.Alias
 	}
 
-	proposalID := fmt.Sprintf("%x", chProposal.ProposalID())
+	proposalID := fmt.Sprintf("%x", chProposal.Proposal().ProposalID())
 	entry := chProposalResponderEntry{
 		proposal:         chProposal,
 		responder:        responder,
-		challengeDurSecs: chProposal.ChallengeDuration,
+		challengeDurSecs: chProposal.Proposal().ChallengeDuration,
 		parts:            parts,
 		expiry:           expiry,
 	}
@@ -329,7 +329,7 @@ func (s *session) HandleProposal(chProposal *pclient.ChannelProposal, responder 
 	notif := perun.ChProposalNotif{
 		ProposalID: proposalID,
 		Currency:   currency.ETH,
-		Proposal:   chProposal,
+		ChProposal: chProposal,
 		Parts:      parts,
 		Expiry:     expiry,
 	}

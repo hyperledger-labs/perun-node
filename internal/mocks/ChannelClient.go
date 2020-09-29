@@ -90,11 +90,11 @@ func (_m *ChannelClient) OnNewChannel(handler func(*client.Channel)) {
 }
 
 // ProposeChannel provides a mock function with given fields: _a0, _a1
-func (_m *ChannelClient) ProposeChannel(_a0 context.Context, _a1 *client.ChannelProposal) (*client.Channel, error) {
+func (_m *ChannelClient) ProposeChannel(_a0 context.Context, _a1 client.ChannelProposal) (*client.Channel, error) {
 	ret := _m.Called(_a0, _a1)
 
 	var r0 *client.Channel
-	if rf, ok := ret.Get(0).(func(context.Context, *client.ChannelProposal) *client.Channel); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, client.ChannelProposal) *client.Channel); ok {
 		r0 = rf(_a0, _a1)
 	} else {
 		if ret.Get(0) != nil {
@@ -103,7 +103,7 @@ func (_m *ChannelClient) ProposeChannel(_a0 context.Context, _a1 *client.Channel
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *client.ChannelProposal) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, client.ChannelProposal) error); ok {
 		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)

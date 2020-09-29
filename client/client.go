@@ -49,7 +49,7 @@ type client struct {
 
 // pClient represents the methods on client.Client that are used by client.
 type pClient interface {
-	ProposeChannel(context.Context, *pclient.ChannelProposal) (*pclient.Channel, error)
+	ProposeChannel(context.Context, pclient.ChannelProposal) (*pclient.Channel, error)
 	Handle(pclient.ProposalHandler, pclient.UpdateHandler)
 	Channel(pchannel.ID) (*pclient.Channel, error)
 	Close() error

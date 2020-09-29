@@ -102,12 +102,12 @@ func GetPayChs(s perun.SessionAPI) []PayChInfo {
 // SubPayChProposals sets up a subscription for payment channel proposals.
 func SubPayChProposals(s perun.SessionAPI, notifier PayChProposalNotifier) error {
 	return s.SubChProposals(func(notif perun.ChProposalNotif) {
-		balsBigInt := notif.Proposal.InitBals.Balances[0]
+		balsBigInt := notif.ChProposal.Proposal().InitBals.Balances[0]
 		notifier(PayChProposalNotif{
 			ProposalID:       notif.ProposalID,
 			Currency:         notif.Currency,
 			OpeningBals:      balsFromBigInt("ETH", balsBigInt, notif.Parts),
-			ChallengeDurSecs: notif.Proposal.ChallengeDuration,
+			ChallengeDurSecs: notif.ChProposal.Proposal().ChallengeDuration,
 			Expiry:           notif.Expiry,
 		})
 	})

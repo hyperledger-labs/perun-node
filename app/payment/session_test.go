@@ -127,10 +127,12 @@ func init() {
 	chProposalNotif = perun.ChProposalNotif{
 		ProposalID: proposalID,
 		Currency:   currency.ETH,
-		Proposal: &pclient.ChannelProposal{
-			ChallengeDuration: challengeDurSecs,
-			InitBals: &pchannel.Allocation{
-				Balances: [][]*big.Int{{ownAmountRaw, peerAmountRaw}},
+		ChProposal: &pclient.LedgerChannelProposal{
+			BaseChannelProposal: pclient.BaseChannelProposal{
+				ChallengeDuration: challengeDurSecs,
+				InitBals: &pchannel.Allocation{
+					Balances: [][]*big.Int{{ownAmountRaw, peerAmountRaw}},
+				},
 			},
 		},
 		Parts:  parts,
@@ -224,7 +226,7 @@ func Test_SubPayChProposals(t *testing.T) {
 		assert.Equal(t, chProposalNotif.ProposalID, notif.ProposalID)
 		assert.Equal(t, chProposalNotif.Currency, notif.Currency)
 		assert.Equal(t, wantBalInfo, notif.OpeningBals)
-		assert.Equal(t, chProposalNotif.Proposal.ChallengeDuration, notif.ChallengeDurSecs)
+		assert.Equal(t, chProposalNotif.ChProposal.Proposal().ChallengeDuration, notif.ChallengeDurSecs)
 		assert.Equal(t, chProposalNotif.Expiry, notif.Expiry)
 	})
 	t.Run("error", func(t *testing.T) {
