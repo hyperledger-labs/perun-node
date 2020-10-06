@@ -493,9 +493,9 @@ func (a *PayChServer) SubPayChUpdates(req *pb.SubpayChUpdatesReq, srv pb.Payment
 		// nolint: govet	// err does not shadow prev declarations as this runs in a different context.
 		err := srv.Send(&pb.SubPayChUpdatesResp{Response: &pb.SubPayChUpdatesResp_Notify_{
 			Notify: &pb.SubPayChUpdatesResp_Notify{
-				ProposedBalInfo: ToGrpcBalInfo(notif.ProposedBalInfo),
+				ProposedBalInfo: ToGrpcBalInfo(notif.ProposedPayChInfo.BalInfo),
 				UpdateID:        notif.UpdateID,
-				Final:           notif.Final,
+				Final:           notif.IsFinal,
 				Expiry:          notif.Expiry,
 			},
 		}})

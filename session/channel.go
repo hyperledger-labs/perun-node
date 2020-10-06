@@ -19,6 +19,7 @@ package session
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"time"
 
 	pchannel "perun.network/go-perun/channel"
@@ -26,6 +27,7 @@ import (
 	psync "perun.network/go-perun/pkg/sync"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/log"
 )
 
@@ -58,8 +60,8 @@ type (
 	chLockState string
 
 	chUpdateResponderEntry struct {
-		responder chUpdateResponder
-		expiry    int64
+		responder   chUpdateResponder
+		notifExpiry int64
 	}
 
 	//go:generate mockery --name ProposalResponder --output ../internal/mocks
@@ -163,8 +165,8 @@ func (ch *channel) RespondChUpdate(pctx context.Context, updateID string, accept
 	}
 	delete(ch.chUpdateResponders, updateID)
 	currTime := time.Now().UTC().Unix()
-	if entry.expiry < currTime {
-		ch.Error("timeout:", entry.expiry, "received response at:", currTime)
+	if entry.notifExpiry < currTime {
+		ch.Error("timeout:", entry.notifExpiry, "received response at:", currTime)
 		return perun.ErrRespTimeoutExpired
 	}
 
@@ -205,12 +207,48 @@ func (ch *channel) GetChInfo() perun.ChInfo {
 
 // This function assumes that caller has already locked the channel.
 func (ch *channel) getChInfo() perun.ChInfo {
+	return makeChInfo(ch.ID(), ch.parts, ch.currency, ch.currState)
+}
+
+func makeChInfo(chID string, parts []string, curr string, state *pchannel.State) perun.ChInfo {
 	return perun.ChInfo{
-		ChID:     ch.id,
-		Currency: ch.currency,
-		State:    ch.currState,
-		Parts:    ch.parts,
+		ChID:    chID,
+		BalInfo: makeBalInfoFromState(parts, curr, state),
+		App:     makeApp(state.App, state.Data),
+		IsFinal: state.IsFinal,
+		Version: fmt.Sprintf("%d", state.Version),
 	}
+}
+
+// makeApp returns perun.makeApp formed from the given add def and app data.
+func makeApp(def pchannel.App, data pchannel.Data) perun.App {
+	return perun.App{
+		Def:  def,
+		Data: data,
+	}
+}
+
+// makeBalInfoFromState retrieves balance information from the channel state.
+func makeBalInfoFromState(parts []string, curr string, state *pchannel.State) perun.BalInfo {
+	if state == nil {
+		return perun.BalInfo{}
+	}
+	return makeBalInfoFromRawBal(parts, curr, state.Balances[0])
+}
+
+// makeBalInfoFromRawBal retrieves balance information from the raw balance.
+func makeBalInfoFromRawBal(parts []string, curr string, rawBal []*big.Int) perun.BalInfo {
+	balInfo := perun.BalInfo{
+		Currency: curr,
+		Parts:    parts,
+		Bal:      make([]string, len(rawBal)),
+	}
+
+	parser := currency.NewParser(curr)
+	for i := range rawBal {
+		balInfo.Bal[i] = parser.Print(rawBal[i])
+	}
+	return balInfo
 }
 
 func (ch *channel) Close(pctx context.Context) (perun.ChInfo, error) {
