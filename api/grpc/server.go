@@ -201,7 +201,7 @@ func (a *PayChServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*pb.
 	if err != nil {
 		return errResponse(err), nil
 	}
-	balInfo := FromGrpcBalInfo(req.OpeningBalance)
+	balInfo := FromGrpcBalInfo(req.OpeningBalInfo)
 	payChInfo, err := payment.OpenPayCh(ctx, sess, req.PeerAlias, balInfo, req.ChallengeDurSecs)
 	if err != nil {
 		return errResponse(err), nil
@@ -210,10 +210,10 @@ func (a *PayChServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*pb.
 	return &pb.OpenPayChResp{
 		Response: &pb.OpenPayChResp_MsgSuccess_{
 			MsgSuccess: &pb.OpenPayChResp_MsgSuccess{
-				Channel: &pb.PaymentChannel{
-					ChannelID:   payChInfo.ChannelID,
-					Balanceinfo: ToGrpcBalInfo(payChInfo.BalInfo),
-					Version:     payChInfo.Version,
+				OpenedPayChInfo: &pb.PayChInfo{
+					ChID:    payChInfo.ChID,
+					BalInfo: ToGrpcBalInfo(payChInfo.BalInfo),
+					Version: payChInfo.Version,
 				},
 			},
 		},
@@ -234,23 +234,23 @@ func (a *PayChServer) GetPayChs(ctx context.Context, req *pb.GetPayChsReq) (*pb.
 	if err != nil {
 		return errResponse(err), nil
 	}
-	payChInfos := payment.GetPayChs(sess)
+	openPaysChInfo := payment.GetPayChsInfo(sess)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	payChInfosGrpc := make([]*pb.PaymentChannel, len(payChInfos))
-	for i := 0; i < len(payChInfosGrpc); i++ {
-		payChInfosGrpc[i] = &pb.PaymentChannel{
-			ChannelID:   payChInfos[i].ChannelID,
-			Balanceinfo: ToGrpcBalInfo(payChInfos[i].BalInfo),
-			Version:     payChInfos[i].Version,
+	openPayChsInfoGrpc := make([]*pb.PayChInfo, len(openPaysChInfo))
+	for i := 0; i < len(openPayChsInfoGrpc); i++ {
+		openPayChsInfoGrpc[i] = &pb.PayChInfo{
+			ChID:    openPaysChInfo[i].ChID,
+			BalInfo: ToGrpcBalInfo(openPaysChInfo[i].BalInfo),
+			Version: openPaysChInfo[i].Version,
 		}
 	}
 
 	return &pb.GetPayChsResp{
 		Response: &pb.GetPayChsResp_MsgSuccess_{
 			MsgSuccess: &pb.GetPayChsResp_MsgSuccess{
-				OpenChannels: payChInfosGrpc,
+				OpenPayChsInfo: openPayChsInfoGrpc,
 			},
 		},
 	}, nil
@@ -270,7 +270,7 @@ func (a *PayChServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
 		err := srv.Send(&pb.SubPayChProposalsResp{Response: &pb.SubPayChProposalsResp_Notify_{
 			Notify: &pb.SubPayChProposalsResp_Notify{
 				ProposalID:       notif.ProposalID,
-				OpeningBalance:   ToGrpcBalInfo(notif.OpeningBals),
+				OpeningBalInfo:   ToGrpcBalInfo(notif.OpeningBalInfo),
 				ChallengeDurSecs: notif.ChallengeDurSecs,
 				Expiry:           notif.Expiry,
 			},
@@ -374,10 +374,10 @@ func (a *PayChServer) SubPayChCloses(req *pb.SubPayChClosesReq, srv pb.Payment_A
 		// nolint: govet	// err does not shadow prev declarations as this runs in a different context.
 		err := srv.Send(&pb.SubPayChClosesResp{Response: &pb.SubPayChClosesResp_Notify_{
 			Notify: &pb.SubPayChClosesResp_Notify{
-				ClosingState: &pb.PaymentChannel{
-					ChannelID:   notif.ClosingState.ChannelID,
-					Balanceinfo: ToGrpcBalInfo(notif.ClosingState.BalInfo),
-					Version:     notif.ClosingState.Version,
+				ClosedPayChInfo: &pb.PayChInfo{
+					ChID:    notif.ClosedPayChInfo.ChID,
+					BalInfo: ToGrpcBalInfo(notif.ClosedPayChInfo.BalInfo),
+					Version: notif.ClosedPayChInfo.Version,
 				},
 				Error: notif.Error,
 			},
@@ -442,7 +442,7 @@ func (a *PayChServer) CloseSession(context.Context, *pb.CloseSessionReq) (*pb.Cl
 	return nil, nil
 }
 
-// SendPayChUpdate wraps channel.SendPayChUpdate.
+// SendPayChUpdate wraps ch.SendPayChUpdate.
 func (a *PayChServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpdateReq) (
 	*pb.SendPayChUpdateResp, error) {
 	errResponse := func(err error) *pb.SendPayChUpdateResp {
@@ -459,11 +459,11 @@ func (a *PayChServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpda
 	if err != nil {
 		return errResponse(err), nil
 	}
-	channel, err := sess.GetCh(req.ChannelID)
+	ch, err := sess.GetCh(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	err = payment.SendPayChUpdate(ctx, channel, req.Payee, req.Amount)
+	err = payment.SendPayChUpdate(ctx, ch, req.Payee, req.Amount)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -477,14 +477,14 @@ func (a *PayChServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpda
 	}, nil
 }
 
-// SubPayChUpdates wraps channel.SubPayChUpdates.
+// SubPayChUpdates wraps ch.SubPayChUpdates.
 func (a *PayChServer) SubPayChUpdates(req *pb.SubpayChUpdatesReq, srv pb.Payment_API_SubPayChUpdatesServer) error {
 	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		// TODO: (mano) Return a error response and not a protocol error.
 		return errors.WithMessage(err, "cannot register subscription")
 	}
-	channel, err := sess.GetCh(req.ChannelID)
+	ch, err := sess.GetCh(req.ChID)
 	if err != nil {
 		return errors.WithMessage(err, "cannot register subscription")
 	}
@@ -493,7 +493,7 @@ func (a *PayChServer) SubPayChUpdates(req *pb.SubpayChUpdatesReq, srv pb.Payment
 		// nolint: govet	// err does not shadow prev declarations as this runs in a different context.
 		err := srv.Send(&pb.SubPayChUpdatesResp{Response: &pb.SubPayChUpdatesResp_Notify_{
 			Notify: &pb.SubPayChUpdatesResp_Notify{
-				ProposedBalance: ToGrpcBalInfo(notif.ProposedBals),
+				ProposedBalInfo: ToGrpcBalInfo(notif.ProposedBalInfo),
 				UpdateID:        notif.UpdateID,
 				Final:           notif.Final,
 				Expiry:          notif.Expiry,
@@ -504,7 +504,7 @@ func (a *PayChServer) SubPayChUpdates(req *pb.SubpayChUpdatesReq, srv pb.Payment
 		// 	// TODO: (mano) Error handling when sending notification.
 		// }
 	}
-	err = payment.SubPayChUpdates(channel, notifier)
+	err = payment.SubPayChUpdates(ch, notifier)
 	if err != nil {
 		// TODO: (mano) Error handling when sending notification.
 		return errors.WithMessage(err, "cannot register subscription")
@@ -512,14 +512,14 @@ func (a *PayChServer) SubPayChUpdates(req *pb.SubpayChUpdatesReq, srv pb.Payment
 
 	signal := make(chan bool)
 	a.Lock()
-	a.chUpdatesNotif[req.SessionID][req.ChannelID] = signal
+	a.chUpdatesNotif[req.SessionID][req.ChID] = signal
 	a.Unlock()
 
 	<-signal
 	return nil
 }
 
-// UnsubPayChUpdates wraps channel.UnsubPayChUpdates.
+// UnsubPayChUpdates wraps ch.UnsubPayChUpdates.
 func (a *PayChServer) UnsubPayChUpdates(ctx context.Context, req *pb.UnsubPayChUpdatesReq) (
 	*pb.UnsubPayChUpdatesResp, error) {
 	errResponse := func(err error) *pb.UnsubPayChUpdatesResp {
@@ -535,17 +535,17 @@ func (a *PayChServer) UnsubPayChUpdates(ctx context.Context, req *pb.UnsubPayChU
 	if err != nil {
 		return errResponse(err), nil
 	}
-	channel, err := sess.GetCh(req.ChannelID)
+	ch, err := sess.GetCh(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	err = payment.UnsubPayChUpdates(channel)
+	err = payment.UnsubPayChUpdates(ch)
 	if err != nil {
 		return errResponse(err), nil
 	}
 
 	a.Lock()
-	signal := a.chUpdatesNotif[req.SessionID][req.ChannelID]
+	signal := a.chUpdatesNotif[req.SessionID][req.ChID]
 	a.Unlock()
 	close(signal)
 
@@ -558,7 +558,7 @@ func (a *PayChServer) UnsubPayChUpdates(ctx context.Context, req *pb.UnsubPayChU
 	}, nil
 }
 
-// RespondPayChUpdate wraps channel.RespondPayChUpdate.
+// RespondPayChUpdate wraps ch.RespondPayChUpdate.
 func (a *PayChServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPayChUpdateReq) (
 	*pb.RespondPayChUpdateResp, error) {
 	errResponse := func(err error) *pb.RespondPayChUpdateResp {
@@ -575,11 +575,11 @@ func (a *PayChServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPay
 	if err != nil {
 		return errResponse(err), nil
 	}
-	channel, err := sess.GetCh(req.ChannelID)
+	ch, err := sess.GetCh(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	err = payment.RespondPayChUpdate(ctx, channel, req.UpdateID, req.Accept)
+	err = payment.RespondPayChUpdate(ctx, ch, req.UpdateID, req.Accept)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -593,12 +593,12 @@ func (a *PayChServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPay
 	}, nil
 }
 
-// GetPayChBalance wraps channel.GetPayChBalance.
-func (a *PayChServer) GetPayChBalance(ctx context.Context, req *pb.GetPayChBalanceReq) (
-	*pb.GetPayChBalanceResp, error) {
-	errResponse := func(err error) *pb.GetPayChBalanceResp {
-		return &pb.GetPayChBalanceResp{
-			Response: &pb.GetPayChBalanceResp_Error{
+// GetPayChBalInfo wraps ch.GetBalInfo.
+func (a *PayChServer) GetPayChBalInfo(ctx context.Context, req *pb.GetPayChBalInfoReq) (
+	*pb.GetPayChBalInfoResp, error) {
+	errResponse := func(err error) *pb.GetPayChBalInfoResp {
+		return &pb.GetPayChBalInfoResp{
+			Response: &pb.GetPayChBalInfoResp_Error{
 				Error: &pb.MsgError{
 					Error: err.Error(),
 				},
@@ -610,26 +610,26 @@ func (a *PayChServer) GetPayChBalance(ctx context.Context, req *pb.GetPayChBalan
 	if err != nil {
 		return errResponse(err), nil
 	}
-	channel, err := sess.GetCh(req.ChannelID)
+	ch, err := sess.GetCh(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	balInfo := payment.GetBalInfo(channel)
+	balInfo := payment.GetBalInfo(ch)
 	if err != nil {
 		return errResponse(err), nil
 	}
 
-	return &pb.GetPayChBalanceResp{
-		Response: &pb.GetPayChBalanceResp_MsgSuccess_{
-			MsgSuccess: &pb.GetPayChBalanceResp_MsgSuccess{
-				CurrentBalance: ToGrpcBalInfo(balInfo),
+	return &pb.GetPayChBalInfoResp{
+		Response: &pb.GetPayChBalInfoResp_MsgSuccess_{
+			MsgSuccess: &pb.GetPayChBalInfoResp_MsgSuccess{
+				CurrentBalInfo: ToGrpcBalInfo(balInfo),
 				CurrentVersion: "",
 			},
 		},
 	}, nil
 }
 
-// ClosePayCh wraps channel.ClosePayCh.
+// ClosePayCh wraps ch.ClosePayCh.
 func (a *PayChServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*pb.ClosePayChResp, error) {
 	errResponse := func(err error) *pb.ClosePayChResp {
 		return &pb.ClosePayChResp{
@@ -645,11 +645,11 @@ func (a *PayChServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*p
 	if err != nil {
 		return errResponse(err), nil
 	}
-	channel, err := sess.GetCh(req.ChannelID)
+	ch, err := sess.GetCh(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	payChInfo, err := payment.ClosePayCh(ctx, channel)
+	payChInfo, err := payment.ClosePayCh(ctx, ch)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -657,8 +657,8 @@ func (a *PayChServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*p
 	return &pb.ClosePayChResp{
 		Response: &pb.ClosePayChResp_MsgSuccess_{
 			MsgSuccess: &pb.ClosePayChResp_MsgSuccess{
-				ClosingBalance: ToGrpcBalInfo(payChInfo.BalInfo),
-				ClosingVersion: payChInfo.Version,
+				ClosedBalInfo: ToGrpcBalInfo(payChInfo.BalInfo),
+				ClosedVersion: payChInfo.Version,
 			},
 		},
 	}, nil
@@ -666,12 +666,12 @@ func (a *PayChServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*p
 
 // FromGrpcBalInfo is a helper function to convert BalInfo struct defined in grpc package
 // to BalInfo struct defined in perun-node. It is exported for use in tests.
-func FromGrpcBalInfo(src *pb.BalanceInfo) perun.BalInfo {
+func FromGrpcBalInfo(src *pb.BalInfo) perun.BalInfo {
 	balInfo := perun.BalInfo{
 		Currency: src.Currency,
-		Bals:     make(map[string]string, len(src.Balances)),
+		Bals:     make(map[string]string, len(src.Bals)),
 	}
-	for _, aliasBalance := range src.Balances {
+	for _, aliasBalance := range src.Bals {
 		for key, value := range aliasBalance.Value {
 			balInfo.Bals[key] = value
 		}
@@ -681,17 +681,17 @@ func FromGrpcBalInfo(src *pb.BalanceInfo) perun.BalInfo {
 
 // ToGrpcBalInfo is a helper function to convert BalInfo struct defined in perun-node
 // to BalInfo struct defined in grpc package. It is exported for use in tests.
-func ToGrpcBalInfo(src perun.BalInfo) *pb.BalanceInfo {
-	balInfo := &pb.BalanceInfo{
+func ToGrpcBalInfo(src perun.BalInfo) *pb.BalInfo {
+	balInfo := &pb.BalInfo{
 		Currency: src.Currency,
-		Balances: make([]*pb.BalanceInfo_AliasBalance, len(src.Bals)),
+		Bals:     make([]*pb.BalInfo_AliasBal, len(src.Bals)),
 	}
 	i := 0
 	for key, value := range src.Bals {
-		balInfo.Balances[i] = &pb.BalanceInfo_AliasBalance{
+		balInfo.Bals[i] = &pb.BalInfo_AliasBal{
 			Value: make(map[string]string),
 		}
-		balInfo.Balances[i].Value[key] = value
+		balInfo.Bals[i].Value[key] = value
 		i++
 	}
 	return balInfo

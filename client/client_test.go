@@ -30,7 +30,7 @@ func Test_Client_Close(t *testing.T) {
 	// happy path test is covered in integration test, as internal components of
 	// the client should be initialized.
 	t.Run("err_channelClient_Err", func(t *testing.T) {
-		chClient := &mocks.ChannelClient{}
+		chClient := &mocks.ChClient{}
 		msgBus := &mocks.WireBus{}
 		Client := client.NewClientForTest(chClient, msgBus, nil)
 
@@ -40,7 +40,7 @@ func Test_Client_Close(t *testing.T) {
 	})
 
 	t.Run("err_wireBus_Err", func(t *testing.T) {
-		chClient := &mocks.ChannelClient{}
+		chClient := &mocks.ChClient{}
 		msgBus := &mocks.WireBus{}
 		Client := client.NewClientForTest(chClient, msgBus, nil)
 

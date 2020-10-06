@@ -44,7 +44,7 @@ func GetAPIError(err error) error {
 var (
 	ErrUnknownSessionID  = APIError("No session corresponding to the specified ID.")
 	ErrUnknownProposalID = APIError("No channel proposal corresponding to the specified ID.")
-	ErrUnknownChannelID  = APIError("No channel corresponding to the specified ID.")
+	ErrUnknownChID       = APIError("No channel corresponding to the specified ID.")
 	ErrUnknownAlias      = APIError("No peer corresponding to the specified ID was found in contacts.")
 	ErrUnknownUpdateID   = APIError("No response was expected for the given channel update ID")
 
@@ -69,6 +69,6 @@ var (
 	ErrRespTimeoutExpired = APIError("Response to the notification was sent after the timeout has expired.")
 	ErrPeerRejected       = APIError("The request was rejected by the peer.")
 
-	ErrUnclosedCh     = APIError("Session cannot be closed (without force option as there are unclosed channels.")
+	ErrOpenCh         = APIError("Session cannot be closed (without force option as there are open channels.")
 	ErrInternalServer = APIError("Internal Server Error")
 )

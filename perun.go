@@ -32,7 +32,7 @@ import (
 
 // Peer represents any participant in the off-chain network that the user wants to transact with.
 type Peer struct {
-	// Name assigned by user for referring to this peer in api requests to the node.
+	// Name assigned by user for referring to this peer in API requests to the node.
 	// It is unique within a session on the node.
 	Alias string `yaml:"alias"`
 
@@ -119,17 +119,17 @@ type User struct {
 //
 // Once established, a user can establish and transact on state channels. All the channels within a session will use
 // the same type and version of communication and state channel protocol. If a user desires to use multiple types or
-// versions of any protocol, it should request a seprate session for each combination of type and version of those.
+// versions of any protocol, it should request a separate session for each combination of type and version of those.
 type Session struct {
 	ID   string // ID uniquely identifies a session instance.
 	User User
 
-	ChannelClient ChannelClient
+	ChClient ChClient
 }
 
-//go:generate mockery --name ChannelClient --output ./internal/mocks
+//go:generate mockery --name ChClient --output ./internal/mocks
 
-// ChannelClient allows the user to establish off-chain channels and transact on these channels.
+// ChClient allows the user to establish off-chain channels and transact on these channels.
 //
 // It allows the user to enable persistence, where all data pertaining to the lifecycle of a channel is
 // persisted continuously. When it is enabled, the channel client can be stopped at any point of time and resumed later.
@@ -137,7 +137,7 @@ type Session struct {
 // However, the channel client is not responsible if any channel the user was participating in was closed
 // with a wrong state when the channel client was not running.
 // Hence it is highly recommended not to stop the channel client if there are open channels.
-type ChannelClient interface {
+type ChClient interface {
 	Registerer
 	ProposeChannel(context.Context, pclient.ChannelProposal) (*pclient.Channel, error)
 	Handle(pclient.ProposalHandler, pclient.UpdateHandler)
@@ -153,9 +153,9 @@ type ChannelClient interface {
 
 //go:generate mockery --name WireBus --output ./internal/mocks
 
-// WireBus is a an extension of the wire.Bus interface in go-perun to include a "Close" method.
+// WireBus is an extension of the wire.Bus interface in go-perun to include a "Close" method.
 // pwire.Bus (in go-perun) is a central message bus over which all clients of a channel network
-// communicate. It is used as the transport layer abstraction for the ChannelClient.
+// communicate. It is used as the transport layer abstraction for the ChClient.
 type WireBus interface {
 	pwire.Bus
 	Close() error
@@ -164,7 +164,7 @@ type WireBus interface {
 // ChainBackend wraps the methods required for instantiating and using components for
 // making on-chain transactions and reading on-chain values on a specific blockchain platform.
 // The timeout for on-chain transaction should be implemented by the corresponding backend. It is
-// upto the implementation to make the value user configurable.
+// up to the implementation to make the value user configurable.
 //
 // It defines methods for deploying contracts; validating deployed contracts and instantiating a funder, adjudicator.
 type ChainBackend interface {
@@ -183,7 +183,7 @@ type WalletBackend interface {
 }
 
 // Currency represents a parser that can convert between string representation of a currency and
-// its equivalent value in base unit represented as a big interger.
+// its equivalent value in base unit represented as a big integer.
 type Currency interface {
 	Parse(string) (*big.Int, error)
 	Print(*big.Int) string
@@ -191,7 +191,7 @@ type Currency interface {
 
 // NodeConfig represents the configurable parameters of a perun node.
 type NodeConfig struct {
-	LogLevel string // LogLevel represents the log level for the node and all dervied loggers.
+	LogLevel string // LogLevel represents the log level for the node and all derived loggers.
 	LogFile  string // LogFile represents the file to write logs. Empty string represents stdout.
 
 	ChainURL     string   // Address of the default blockchain node used by the perun node.
@@ -216,7 +216,7 @@ type NodeAPI interface {
 	OpenSession(configFile string) (string, error)
 
 	// This function is used internally to get a SessionAPI instance.
-	// Should not be exposed via userAPI.
+	// Should not be exposed via user API.
 	GetSession(string) (SessionAPI, error)
 }
 
@@ -229,9 +229,9 @@ type SessionAPI interface {
 	ID() string
 	AddContact(Peer) error
 	GetContact(alias string) (Peer, error)
-	OpenCh(context.Context, string, BalInfo, App, uint64) (ChannelInfo, error)
+	OpenCh(context.Context, string, BalInfo, App, uint64) (ChInfo, error)
 	HandleClose(string, error)
-	GetChInfos() []ChannelInfo
+	GetChsInfo() []ChInfo
 	HandleUpdate(pclient.ChannelUpdate, *pclient.UpdateResponder)
 	HandleProposal(pclient.ChannelProposal, *pclient.ProposalResponder)
 	SubChProposals(ChProposalNotifier) error
@@ -240,9 +240,9 @@ type SessionAPI interface {
 	SubChCloses(ChCloseNotifier) error
 	UnsubChCloses() error
 
-	// This function is used internally to get a ChannelAPI instance.
-	// Should not be exposed via userAPI.
-	GetCh(string) (ChannelAPI, error)
+	// This function is used internally to get a ChAPI instance.
+	// Should not be exposed via user API.
+	GetCh(string) (ChAPI, error)
 }
 
 type (
@@ -263,27 +263,27 @@ type (
 
 	// ChCloseNotif represents the parameters sent in a channel close notifications.
 	ChCloseNotif struct {
-		ChannelID string
-		Currency  string
-		ChState   *pchannel.State
-		Parts     []string
-		Error     string
+		ChID     string
+		Currency string
+		ChState  *pchannel.State
+		Parts    []string
+		Error    string
 	}
 )
 
-//go:generate mockery --name ChannelAPI --output ./internal/mocks
+//go:generate mockery --name ChAPI --output ./internal/mocks
 
-// ChannelAPI represents the APIs that can be accessed in the context of a perun channel.
+// ChAPI represents the APIs that can be accessed in the context of a perun channel.
 // First a channel has to be initialized using the SessionAPI. The channel can then be used
 // send and receive updates.
-type ChannelAPI interface {
+type ChAPI interface {
 	ID() string
 	SendChUpdate(context.Context, StateUpdater) error
 	SubChUpdates(ChUpdateNotifier) error
 	UnsubChUpdates() error
 	RespondChUpdate(context.Context, string, bool) error
-	GetInfo() ChannelInfo
-	Close(context.Context) (ChannelInfo, error)
+	GetChInfo() ChInfo
+	Close(context.Context) (ChInfo, error)
 }
 
 type (
@@ -306,12 +306,12 @@ type (
 		Data pchannel.Data
 	}
 
-	// ChannelInfo represents the info regarding a channel that will be sent to the user.
-	ChannelInfo struct {
-		ChannelID string
-		Currency  string
-		State     *pchannel.State
-		Parts     []string // List of Alias of channel participants.
+	// ChInfo represents the info regarding a channel that will be sent to the user.
+	ChInfo struct {
+		ChID     string
+		Currency string
+		State    *pchannel.State
+		Parts    []string // List of Alias of channel participants.
 	}
 
 	// BalInfo is used to send the balance information to the user.

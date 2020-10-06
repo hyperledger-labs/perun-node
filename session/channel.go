@@ -40,7 +40,7 @@ type (
 		log.Logger
 
 		id               string
-		pchannel         *pclient.Channel
+		pch              *pclient.Channel
 		lockState        chLockState
 		currency         string
 		parts            []string
@@ -71,12 +71,12 @@ type (
 	}
 )
 
-// NewChannel sets up a channel object from the passed pchannel.
-func newChannel(pch *pclient.Channel, currency string, parts []string, timeoutCfg timeoutConfig,
+// newCh sets up a channel object from the passed pchannel.
+func newCh(pch *pclient.Channel, currency string, parts []string, timeoutCfg timeoutConfig,
 	challengeDurSecs uint64) *channel {
 	ch := &channel{
 		id:                 fmt.Sprintf("%x", pch.ID()),
-		pchannel:           pch,
+		pch:                pch,
 		lockState:          open,
 		currState:          pch.State().Clone(),
 		timeoutCfg:         timeoutCfg,
@@ -108,13 +108,13 @@ func (ch *channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
 	defer cancel()
-	err := ch.pchannel.UpdateBy(ctx, ch.pchannel.Idx(), updater)
+	err := ch.pch.UpdateBy(ctx, ch.pch.Idx(), updater)
 	if err != nil {
 		ch.Error("Sending channel update:", err)
 		return perun.GetAPIError(err)
 	}
 	prevChInfo := ch.getChInfo()
-	ch.currState = ch.pchannel.State().Clone()
+	ch.currState = ch.pch.State().Clone()
 	ch.Debugf("State upated from %v to %v", prevChInfo, ch.getChInfo())
 	return nil
 }
@@ -177,7 +177,7 @@ func (ch *channel) RespondChUpdate(pctx context.Context, updateID string, accept
 			ch.Logger.Error("Accepting channel update", err)
 			return perun.GetAPIError(err)
 		}
-		ch.currState = ch.pchannel.State().Clone()
+		ch.currState = ch.pch.State().Clone()
 
 	case false:
 		ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdateReject())
@@ -196,24 +196,24 @@ func (ch *channel) RespondChUpdate(pctx context.Context, updateID string, accept
 	return nil
 }
 
-func (ch *channel) GetInfo() perun.ChannelInfo {
-	ch.Debug("Received request: channel.GetInfo")
+func (ch *channel) GetChInfo() perun.ChInfo {
+	ch.Debug("Received request: channel.GetChInfo")
 	ch.Lock()
 	defer ch.Unlock()
 	return ch.getChInfo()
 }
 
 // This function assumes that caller has already locked the channel.
-func (ch *channel) getChInfo() perun.ChannelInfo {
-	return perun.ChannelInfo{
-		ChannelID: ch.id,
-		Currency:  ch.currency,
-		State:     ch.currState,
-		Parts:     ch.parts,
+func (ch *channel) getChInfo() perun.ChInfo {
+	return perun.ChInfo{
+		ChID:     ch.id,
+		Currency: ch.currency,
+		State:    ch.currState,
+		Parts:    ch.parts,
 	}
 }
 
-func (ch *channel) Close(pctx context.Context) (perun.ChannelInfo, error) {
+func (ch *channel) Close(pctx context.Context) (perun.ChInfo, error) {
 	ch.Debug("Received request channel.Close")
 	ch.Lock()
 	defer ch.Unlock()
@@ -229,11 +229,11 @@ func (ch *channel) Close(pctx context.Context) (perun.ChannelInfo, error) {
 		}
 		upCtx, upCancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
 		defer upCancel()
-		if err := ch.pchannel.UpdateBy(upCtx, ch.pchannel.Idx(), chFinalizer); err != nil {
+		if err := ch.pch.UpdateBy(upCtx, ch.pch.Idx(), chFinalizer); err != nil {
 			ch.Logger.Info("Error when trying to finalize state for closing:", err)
 			ch.Logger.Info("Opting for non collaborative close")
 		} else {
-			ch.currState = ch.pchannel.State().Clone()
+			ch.currState = ch.pch.State().Clone()
 		}
 		fallthrough
 
@@ -241,11 +241,11 @@ func (ch *channel) Close(pctx context.Context) (perun.ChannelInfo, error) {
 		ch.lockState = closed
 		clCtx, clCancel := context.WithTimeout(pctx, ch.timeoutCfg.closeCh(ch.challengeDurSecs))
 		defer clCancel()
-		err := ch.pchannel.Settle(clCtx)
+		err := ch.pch.Settle(clCtx)
 
-		if cerr := ch.pchannel.Close(); err != nil {
+		if cerr := ch.pch.Close(); err != nil {
 			ch.Logger.Error("Settling channel", err)
-			return perun.ChannelInfo{}, perun.GetAPIError(err)
+			return perun.ChInfo{}, perun.GetAPIError(err)
 		} else if cerr != nil {
 			ch.Logger.Error("Closing channel", cerr)
 		}

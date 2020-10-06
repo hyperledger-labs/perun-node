@@ -59,10 +59,10 @@ type (
 		timeoutCfg timeoutConfig
 		user       perun.User
 		chAsset    pchannel.Asset
-		chClient   perun.ChannelClient
+		chClient   perun.ChClient
 		contacts   perun.Contacts
 
-		channels map[string]*channel
+		chs map[string]*channel
 
 		chProposalNotifier    perun.ChProposalNotifier
 		chProposalNotifsCache []perun.ChProposalNotif
@@ -141,7 +141,7 @@ func New(cfg Config) (*session, error) {
 		chAsset:              chAsset,
 		chClient:             chClient,
 		contacts:             contacts,
-		channels:             make(map[string]*channel),
+		chs:                  make(map[string]*channel),
 		chProposalResponders: make(map[string]chProposalResponderEntry),
 	}
 	chClient.Handle(sess, sess) // Init handlers
@@ -209,29 +209,29 @@ func (s *session) GetContact(alias string) (perun.Peer, error) {
 func (s *session) OpenCh(
 	pctx context.Context,
 	peerAlias string,
-	openingBals perun.BalInfo,
+	openingBalInfo perun.BalInfo,
 	app perun.App,
-	challengeDurSecs uint64) (perun.ChannelInfo, error) {
-	s.Debugf("\nReceived request:session.OpenCh Params %+v,%+v,%+v,%+v", peerAlias, openingBals, app, challengeDurSecs)
+	challengeDurSecs uint64) (perun.ChInfo, error) {
+	s.Debugf("\nReceived request:session.OpenCh Params %+v,%+v,%+v,%+v", peerAlias, openingBalInfo, app, challengeDurSecs)
 	s.Lock()
 	defer s.Unlock()
 
 	peer, isPresent := s.contacts.ReadByAlias(peerAlias) // Retrieve and register peer to pclient.
 	if !isPresent {
 		s.Error(perun.ErrUnknownAlias, "fetching peer from contacts")
-		return perun.ChannelInfo{}, perun.ErrUnknownAlias
+		return perun.ChInfo{}, perun.ErrUnknownAlias
 	}
 	s.chClient.Register(peer.OffChainAddr, peer.CommAddr)
 
-	if !currency.IsSupported(openingBals.Currency) { // Check if currency interpreter is supported.
+	if !currency.IsSupported(openingBalInfo.Currency) { // Check if currency interpreter is supported.
 		s.Error(perun.ErrUnsupportedCurrency.Error)
-		return perun.ChannelInfo{}, perun.ErrUnsupportedCurrency
+		return perun.ChInfo{}, perun.ErrUnsupportedCurrency
 	}
 
-	allocations, err := makeAllocation(openingBals, peerAlias, s.chAsset)
+	allocations, err := makeAllocation(openingBalInfo, peerAlias, s.chAsset)
 	if err != nil {
 		s.Error(err, "making allocations")
-		return perun.ChannelInfo{}, perun.GetAPIError(err)
+		return perun.ChInfo{}, perun.GetAPIError(err)
 	}
 	partAddrs := []pwallet.Address{s.user.OffChainAddr, peer.OffChainAddr}
 	parts := []string{perun.OwnAlias, peer.Alias}
@@ -248,23 +248,23 @@ func (s *session) OpenCh(
 	pch, err := s.chClient.ProposeChannel(ctx, proposal)
 	if err != nil {
 		s.Error(err)
-		// TODO: (mano) Use errors.Is here once a sentinal error value is defined in the sdk.
+		// TODO: (mano) Use errors.Is here once a sentinel error value is defined in the SDK.
 		if strings.Contains(err.Error(), "channel proposal rejected") {
 			err = perun.ErrPeerRejected
 		}
-		return perun.ChannelInfo{}, perun.GetAPIError(err)
+		return perun.ChInfo{}, perun.GetAPIError(err)
 	}
 
-	ch := newChannel(pch, openingBals.Currency, parts, s.timeoutCfg, challengeDurSecs)
+	ch := newCh(pch, openingBalInfo.Currency, parts, s.timeoutCfg, challengeDurSecs)
 	// TODO: (mano) use logger with multiple fields and use session-id, channel-id.
 	ch.Logger = log.NewLoggerWithField("channel-id", ch.id)
-	s.channels[ch.id] = ch
+	s.chs[ch.id] = ch
 	go func(s *session, chID string) {
 		ch.Debug("Started channel watcher")
 		err := pch.Watch()
 		s.HandleClose(chID, err)
 	}(s, ch.id)
-	return ch.GetInfo(), nil
+	return ch.GetChInfo(), nil
 }
 
 // makeAllocation makes an allocation or the given BalInfo and channel asset.
@@ -416,9 +416,9 @@ func (s *session) acceptChProposal(pctx context.Context, entry chProposalRespond
 
 	// Set ETH as the currency interpreter for incoming channel.
 	// TODO: (mano) Provide an option for user to configure when more currency interpreters are supported.
-	ch := newChannel(pch, currency.ETH, entry.parts, s.timeoutCfg, entry.challengeDurSecs)
+	ch := newCh(pch, currency.ETH, entry.parts, s.timeoutCfg, entry.challengeDurSecs)
 	ch.Logger = log.NewLoggerWithField("channel-id", ch.id)
-	s.channels[ch.id] = ch
+	s.chs[ch.id] = ch
 	go func(s *session, chID string) {
 		ch.Debug("Started channel watcher")
 		err := pch.Watch()
@@ -437,29 +437,29 @@ func (s *session) rejectChProposal(pctx context.Context, responder chProposalRes
 	return err
 }
 
-func (s *session) GetChInfos() []perun.ChannelInfo {
+func (s *session) GetChsInfo() []perun.ChInfo {
 	s.Debug("Received request: session.GetChInfos")
 	s.Lock()
 	defer s.Unlock()
 
-	chInfos := make([]perun.ChannelInfo, len(s.channels))
+	openChsInfo := make([]perun.ChInfo, len(s.chs))
 	i := 0
-	for _, ch := range s.channels {
-		chInfos[i] = ch.GetInfo()
+	for _, ch := range s.chs {
+		openChsInfo[i] = ch.GetChInfo()
 		i++
 	}
-	return chInfos
+	return openChsInfo
 }
 
-func (s *session) GetCh(channelID string) (perun.ChannelAPI, error) {
-	s.Debugf("Internal call to get channel instance. Params: %+v", channelID)
+func (s *session) GetCh(chID string) (perun.ChAPI, error) {
+	s.Debugf("Internal call to get channel instance. Params: %+v", chID)
 	s.Lock()
 	defer s.Unlock()
 
-	ch, ok := s.channels[channelID]
+	ch, ok := s.chs[chID]
 	if !ok {
-		s.Info(perun.ErrUnknownChannelID)
-		return nil, perun.ErrUnknownChannelID
+		s.Info(perun.ErrUnknownChID)
+		return nil, perun.ErrUnknownChID
 	}
 	return ch, nil
 }
@@ -470,14 +470,14 @@ func (s *session) HandleUpdate(chUpdate pclient.ChannelUpdate, responder *pclien
 	defer s.Unlock()
 	expiry := time.Now().UTC().Add(s.timeoutCfg.response).Unix()
 
-	channelID := fmt.Sprintf("%x", chUpdate.State.ID)
-	updateID := fmt.Sprintf("%s_%d", channelID, chUpdate.State.Version)
+	chID := fmt.Sprintf("%x", chUpdate.State.ID)
+	updateID := fmt.Sprintf("%s_%d", chID, chUpdate.State.Version)
 
-	ch, ok := s.channels[channelID]
+	ch, ok := s.chs[chID]
 	if !ok {
-		s.Info("Received update for unknown channel", channelID)
+		s.Info("Received update for unknown channel", chID)
 		err := responder.Reject(context.Background(), "unknown channel for this session")
-		s.Info("Error rejecting unknown channel with id %s: %v", channelID, err)
+		s.Info("Error rejecting unknown channel with id %s: %v", chID, err)
 		return
 	}
 
@@ -518,7 +518,7 @@ func (s *session) Close(force bool) error {
 func (s *session) HandleClose(chID string, err error) {
 	s.Debug("SDK Callback: Channel watcher returned.")
 
-	ch := s.channels[chID]
+	ch := s.chs[chID]
 	ch.Lock()
 	defer ch.Unlock()
 
@@ -528,10 +528,10 @@ func (s *session) HandleClose(chID string, err error) {
 
 	chInfo := ch.getChInfo()
 	notif := perun.ChCloseNotif{
-		ChannelID: chInfo.ChannelID,
-		Currency:  chInfo.Currency,
-		ChState:   chInfo.State,
-		Parts:     chInfo.Parts,
+		ChID:     chInfo.ChID,
+		Currency: chInfo.Currency,
+		ChState:  chInfo.State,
+		Parts:    chInfo.Parts,
 	}
 	if err != nil {
 		notif.Error = err.Error()

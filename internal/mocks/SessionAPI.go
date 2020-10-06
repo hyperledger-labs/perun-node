@@ -32,15 +32,15 @@ func (_m *SessionAPI) AddContact(_a0 perun.Peer) error {
 }
 
 // GetCh provides a mock function with given fields: _a0
-func (_m *SessionAPI) GetCh(_a0 string) (perun.ChannelAPI, error) {
+func (_m *SessionAPI) GetCh(_a0 string) (perun.ChAPI, error) {
 	ret := _m.Called(_a0)
 
-	var r0 perun.ChannelAPI
-	if rf, ok := ret.Get(0).(func(string) perun.ChannelAPI); ok {
+	var r0 perun.ChAPI
+	if rf, ok := ret.Get(0).(func(string) perun.ChAPI); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(perun.ChannelAPI)
+			r0 = ret.Get(0).(perun.ChAPI)
 		}
 	}
 
@@ -54,16 +54,16 @@ func (_m *SessionAPI) GetCh(_a0 string) (perun.ChannelAPI, error) {
 	return r0, r1
 }
 
-// GetChInfos provides a mock function with given fields:
-func (_m *SessionAPI) GetChInfos() []perun.ChannelInfo {
+// GetChsInfo provides a mock function with given fields:
+func (_m *SessionAPI) GetChsInfo() []perun.ChInfo {
 	ret := _m.Called()
 
-	var r0 []perun.ChannelInfo
-	if rf, ok := ret.Get(0).(func() []perun.ChannelInfo); ok {
+	var r0 []perun.ChInfo
+	if rf, ok := ret.Get(0).(func() []perun.ChInfo); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]perun.ChannelInfo)
+			r0 = ret.Get(0).([]perun.ChInfo)
 		}
 	}
 
@@ -121,14 +121,14 @@ func (_m *SessionAPI) ID() string {
 }
 
 // OpenCh provides a mock function with given fields: _a0, _a1, _a2, _a3, _a4
-func (_m *SessionAPI) OpenCh(_a0 context.Context, _a1 string, _a2 perun.BalInfo, _a3 perun.App, _a4 uint64) (perun.ChannelInfo, error) {
+func (_m *SessionAPI) OpenCh(_a0 context.Context, _a1 string, _a2 perun.BalInfo, _a3 perun.App, _a4 uint64) (perun.ChInfo, error) {
 	ret := _m.Called(_a0, _a1, _a2, _a3, _a4)
 
-	var r0 perun.ChannelInfo
-	if rf, ok := ret.Get(0).(func(context.Context, string, perun.BalInfo, perun.App, uint64) perun.ChannelInfo); ok {
+	var r0 perun.ChInfo
+	if rf, ok := ret.Get(0).(func(context.Context, string, perun.BalInfo, perun.App, uint64) perun.ChInfo); ok {
 		r0 = rf(_a0, _a1, _a2, _a3, _a4)
 	} else {
-		r0 = ret.Get(0).(perun.ChannelInfo)
+		r0 = ret.Get(0).(perun.ChInfo)
 	}
 
 	var r1 error

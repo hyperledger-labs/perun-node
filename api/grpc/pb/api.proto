@@ -28,19 +28,20 @@ message Peer {
     string commType=4;
 }
 
-// BalanceInfo represents the balanace of the corresponding alias 
+// BalInfo represents the balance of the channel in as a map of
+// alias of the participant to the amount held by the him/her
 // and the currency used for specifying the amount.
-message BalanceInfo {
+message BalInfo {
     string currency=1;
-    message AliasBalance {
+    message AliasBal {
     map<string, string> value = 1;
     }
-    repeated AliasBalance balances=2;
+    repeated AliasBal bals=2;
 }
 
-message PaymentChannel {
-    string channelID = 1;
-    BalanceInfo balanceinfo = 2;
+message PayChInfo {
+    string chID = 1;
+    BalInfo balInfo = 2;
     string version=3;
 }
 
@@ -72,7 +73,7 @@ service Payment_API{
     rpc SubPayChUpdates (SubpayChUpdatesReq) returns (stream SubPayChUpdatesResp) {}
     rpc UnsubPayChUpdates (UnsubPayChUpdatesReq) returns (UnsubPayChUpdatesResp) {}
     rpc RespondPayChUpdate (RespondPayChUpdateReq) returns (RespondPayChUpdateResp) {}
-    rpc GetPayChBalance (GetPayChBalanceReq) returns (GetPayChBalanceResp) {}
+    rpc GetPayChBalInfo (GetPayChBalInfoReq) returns (GetPayChBalInfoResp) {}
     rpc ClosePayCh (ClosePayChReq) returns (ClosePayChResp) {}
 }
 
@@ -148,7 +149,7 @@ message  GetContactResp {
 message OpenPayChReq {
     string sessionID = 1;
     string peerAlias = 2;
-    BalanceInfo openingBalance = 3;
+    BalInfo openingBalInfo = 3;
     uint64 challengeDurSecs = 4;
 }
 
@@ -158,7 +159,7 @@ message OpenPayChResp {
         MsgError error = 2;
     }
     message MsgSuccess {
-        PaymentChannel channel = 1;
+        PayChInfo openedPayChInfo = 1;
     }
 }
 
@@ -172,7 +173,7 @@ message GetPayChsResp {
         MsgError error = 2;
     }
     message MsgSuccess {
-        repeated PaymentChannel openChannels = 1;
+        repeated PayChInfo openPayChsInfo = 1;
     }
 }
 
@@ -187,7 +188,7 @@ message SubPayChProposalsResp {
     }
     message Notify {
         string proposalID = 2;
-        BalanceInfo openingBalance = 4;
+        BalInfo openingBalInfo = 4;
         uint64 challengeDurSecs = 5;
         int64 expiry = 6;
     }
@@ -220,7 +221,7 @@ message RespondPayChProposalResp {
     }
     message MsgSuccess {
         bool success=1;
-        PaymentChannel channel=2;
+        PayChInfo openedPayChInfo=2;
     }
 }
 
@@ -234,7 +235,7 @@ message subPayChClosesResp {
         MsgError error = 2;
     }
     message Notify {
-        PaymentChannel closingState = 1;
+        PayChInfo closedPayChInfo = 1;
         string error = 2;
     }
 }
@@ -264,13 +265,13 @@ message CloseSessionResp {
         string erro = 2;
     }
     message MsgSuccess {
-        repeated PaymentChannel unclosedChannels = 2;
+        repeated PayChInfo openPayChsInfo = 2;
     }
 }
 
 message SendPayChUpdateReq {
     string sessionID = 1;
-    string channelID = 2;
+    string chID = 2;
     string payee = 3;
     string amount = 4;
 }
@@ -287,7 +288,7 @@ message SendPayChUpdateResp {
 
 message SubpayChUpdatesReq {
     string sessionID = 1;
-    string channelID = 2;
+    string chID = 2;
 }
 
 message SubPayChUpdatesResp {
@@ -296,7 +297,7 @@ message SubPayChUpdatesResp {
         MsgError error = 2;
     }
     message Notify {
-        BalanceInfo proposedBalance = 1;
+        BalInfo proposedBalInfo = 1;
         string updateID = 2;
         bool final = 3;
         int64 expiry = 4;
@@ -305,7 +306,7 @@ message SubPayChUpdatesResp {
 
 message UnsubPayChUpdatesReq {
     string sessionID = 1;
-    string channelID = 2;
+    string chID = 2;
 }
 
 message UnsubPayChUpdatesResp {
@@ -320,7 +321,7 @@ message UnsubPayChUpdatesResp {
 
 message RespondPayChUpdateReq{
     string sessionID=1;
-    string channelID=2;
+    string chID=2;
     string updateID=3;
     bool accept=4;
 }
@@ -335,25 +336,25 @@ message RespondPayChUpdateResp {
     }
 }
 
-message GetPayChBalanceReq {
+message GetPayChBalInfoReq {
     string sessionID=1;
-    string channelID=2;
+    string chID=2;
 }
 
-message GetPayChBalanceResp {
+message GetPayChBalInfoResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
         MsgError error = 2;
     }
     message MsgSuccess {
-        BalanceInfo currentBalance = 1;
+        BalInfo currentBalInfo = 1;
         string currentVersion = 2;
     }
 }
 
 message ClosePayChReq {
     string sessionID = 1;
-    string channelID = 2;
+    string chID = 2;
 }
 
 message ClosePayChResp {
@@ -362,7 +363,7 @@ message ClosePayChResp {
         MsgError error = 2;
     }
     message MsgSuccess {
-        BalanceInfo closingBalance = 1;
-        string closingVersion = 2;
+        BalInfo closedBalInfo = 1;
+        string closedVersion = 2;
     }
 }

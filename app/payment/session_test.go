@@ -41,7 +41,7 @@ var (
 	versionString    string = "1"
 	challengeDurSecs uint64 = 10
 	app              perun.App
-	channelID              = "channel1"
+	chID                   = "channel1"
 	proposalID             = "proposal1"
 	updateID               = "update1"
 	expiry           int64 = 1597946401
@@ -59,7 +59,7 @@ var (
 	bals, wantBals, wantUpdatedBals          map[string]string
 	balInfo, wantBalInfo, wantUpdatedBalInfo perun.BalInfo
 
-	chInfo, updatedChInfo perun.ChannelInfo
+	chInfo, updatedChInfo perun.ChInfo
 
 	chProposalNotif perun.ChProposalNotif
 	chUpdateNotif   perun.ChUpdateNotif
@@ -96,9 +96,9 @@ func init() {
 		Bals:     wantUpdatedBals,
 	}
 
-	chInfo = perun.ChannelInfo{
-		ChannelID: channelID,
-		Currency:  currency.ETH,
+	chInfo = perun.ChInfo{
+		ChID:     chID,
+		Currency: currency.ETH,
 		State: &pchannel.State{
 			App:  &ppayment.App{},
 			Data: pchannel.NoData(),
@@ -110,9 +110,9 @@ func init() {
 		Parts: []string{perun.OwnAlias, peerAlias},
 	}
 
-	updatedChInfo = perun.ChannelInfo{
-		ChannelID: channelID,
-		Currency:  currency.ETH,
+	updatedChInfo = perun.ChInfo{
+		ChID:     chID,
+		Currency: currency.ETH,
 		State: &pchannel.State{
 			App:  &ppayment.App{},
 			Data: pchannel.NoData(),
@@ -156,8 +156,8 @@ func init() {
 	}
 
 	chCloseNotif = perun.ChCloseNotif{
-		ChannelID: channelID,
-		Currency:  currency.ETH,
+		ChID:     chID,
+		Currency: currency.ETH,
 		ChState: &pchannel.State{
 			Allocation: pchannel.Allocation{
 				Balances: [][]*big.Int{{wantUpdatedOwnAmountRaw, wantUpdatedPeerAmountRaw}},
@@ -178,13 +178,13 @@ func Test_OpenPayCh(t *testing.T) {
 		require.NoError(t, gotErr)
 		assert.Equal(t, wantBalInfo, gotPayChInfo.BalInfo)
 		assert.Equal(t, versionString, gotPayChInfo.Version)
-		assert.NotZero(t, gotPayChInfo.ChannelID)
+		assert.NotZero(t, gotPayChInfo.ChID)
 	})
 
 	t.Run("error", func(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
 		sessionAPI.On("OpenCh", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-			perun.ChannelInfo{}, assert.AnError)
+			perun.ChInfo{}, assert.AnError)
 
 		_, gotErr := payment.OpenPayCh(context.Background(), sessionAPI, peerAlias, balInfo, challengeDurSecs)
 		require.Error(t, gotErr)
@@ -194,13 +194,13 @@ func Test_OpenPayCh(t *testing.T) {
 func Test_GetPayChs(t *testing.T) {
 	t.Run("happy", func(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("GetChInfos").Return([]perun.ChannelInfo{chInfo})
+		sessionAPI.On("GetChsInfo").Return([]perun.ChInfo{chInfo})
 
-		gotPayChInfos := payment.GetPayChs(sessionAPI)
+		gotPayChInfos := payment.GetPayChsInfo(sessionAPI)
 		require.Len(t, gotPayChInfos, 1)
 		assert.Equal(t, versionString, gotPayChInfos[0].Version)
 		assert.Equal(t, wantBalInfo, gotPayChInfos[0].BalInfo)
-		assert.NotZero(t, gotPayChInfos[0].ChannelID)
+		assert.NotZero(t, gotPayChInfos[0].ChID)
 	})
 }
 
@@ -225,7 +225,7 @@ func Test_SubPayChProposals(t *testing.T) {
 		require.NotZero(t, notif)
 		assert.Equal(t, chProposalNotif.ProposalID, notif.ProposalID)
 		assert.Equal(t, chProposalNotif.Currency, notif.Currency)
-		assert.Equal(t, wantBalInfo, notif.OpeningBals)
+		assert.Equal(t, wantBalInfo, notif.OpeningBalInfo)
 		assert.Equal(t, chProposalNotif.ChProposal.Proposal().ChallengeDuration, notif.ChallengeDurSecs)
 		assert.Equal(t, chProposalNotif.Expiry, notif.Expiry)
 	})
@@ -304,9 +304,9 @@ func Test_SubPayChCloses(t *testing.T) {
 		require.NotNil(t, notifier)
 		notifier(chCloseNotif)
 		require.NotZero(t, notif)
-		assert.Equal(t, chCloseNotif.ChannelID, notif.ClosingState.ChannelID)
-		assert.Equal(t, wantUpdatedBalInfo, notif.ClosingState.BalInfo)
-		assert.Equal(t, versionString, notif.ClosingState.Version)
+		assert.Equal(t, chCloseNotif.ChID, notif.ClosedPayChInfo.ChID)
+		assert.Equal(t, wantUpdatedBalInfo, notif.ClosedPayChInfo.BalInfo)
+		assert.Equal(t, versionString, notif.ClosedPayChInfo.Version)
 	})
 	t.Run("error", func(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
