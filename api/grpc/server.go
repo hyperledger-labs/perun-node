@@ -234,16 +234,16 @@ func (a *PayChServer) GetPayChs(ctx context.Context, req *pb.GetPayChsReq) (*pb.
 	if err != nil {
 		return errResponse(err), nil
 	}
-	openPaysChInfo := payment.GetPayChsInfo(sess)
+	openPayChsInfo := payment.GetPayChsInfo(sess)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	openPayChsInfoGrpc := make([]*pb.PayChInfo, len(openPaysChInfo))
+	openPayChsInfoGrpc := make([]*pb.PayChInfo, len(openPayChsInfo))
 	for i := 0; i < len(openPayChsInfoGrpc); i++ {
 		openPayChsInfoGrpc[i] = &pb.PayChInfo{
-			ChID:    openPaysChInfo[i].ChID,
-			BalInfo: ToGrpcBalInfo(openPaysChInfo[i].BalInfo),
-			Version: openPaysChInfo[i].Version,
+			ChID:    openPayChsInfo[i].ChID,
+			BalInfo: ToGrpcBalInfo(openPayChsInfo[i].BalInfo),
+			Version: openPayChsInfo[i].Version,
 		}
 	}
 
@@ -671,8 +671,8 @@ func FromGrpcBalInfo(src *pb.BalInfo) perun.BalInfo {
 		Currency: src.Currency,
 		Bals:     make(map[string]string, len(src.Bals)),
 	}
-	for _, aliasBalance := range src.Bals {
-		for key, value := range aliasBalance.Value {
+	for _, aliasBal := range src.Bals {
+		for key, value := range aliasBal.Value {
 			balInfo.Bals[key] = value
 		}
 	}
