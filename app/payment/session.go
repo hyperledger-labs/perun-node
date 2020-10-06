@@ -63,17 +63,14 @@ func init() {
 }
 
 // OpenPayCh opens a payment channel using the given sessionAPI instance with the specified parameters.
-func OpenPayCh(pctx context.Context,
-	s perun.SessionAPI,
-	peerAlias string,
-	openingBalInfo perun.BalInfo,
-	challengeDurSecs uint64) (PayChInfo, error) {
+func OpenPayCh(pctx context.Context, s perun.SessionAPI, openingBalInfo perun.BalInfo, challengeDurSecs uint64) (
+	PayChInfo, error) {
 	paymentApp := perun.App{
 		Def:  ppayment.NewApp(),
 		Data: pchannel.NoData(),
 	}
 
-	chInfo, err := s.OpenCh(pctx, peerAlias, openingBalInfo, paymentApp, challengeDurSecs)
+	chInfo, err := s.OpenCh(pctx, openingBalInfo, paymentApp, challengeDurSecs)
 	if err != nil {
 		return PayChInfo{}, err
 	}
@@ -145,16 +142,16 @@ func balInfoFromState(currency string, state *pchannel.State, parts []string) pe
 	return balInfoFromRawBal(currency, state.Balances[0], parts)
 }
 
-func balInfoFromRawBal(chCurrency string, bigInt []*big.Int, parts []string) perun.BalInfo {
+func balInfoFromRawBal(chCurrency string, rawBal []*big.Int, parts []string) perun.BalInfo {
 	balInfo := perun.BalInfo{
 		Currency: chCurrency,
-		Bals:     make(map[string]string, len(parts)),
+		Parts:    parts,
+		Bal:      make([]string, len(rawBal)),
 	}
 
 	parser := currency.NewParser(chCurrency)
-	for i := range parts {
-		balInfo.Bals[parts[i]] = parser.Print(bigInt[i])
-		balInfo.Bals[parts[i]] = parser.Print(bigInt[i])
+	for i := range rawBal {
+		balInfo.Bal[i] = parser.Print(rawBal[i])
 	}
 	return balInfo
 }

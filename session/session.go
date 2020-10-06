@@ -206,43 +206,33 @@ func (s *session) GetContact(alias string) (perun.Peer, error) {
 	return peer, nil
 }
 
-func (s *session) OpenCh(
-	pctx context.Context,
-	peerAlias string,
-	openingBalInfo perun.BalInfo,
-	app perun.App,
-	challengeDurSecs uint64) (perun.ChInfo, error) {
-	s.Debugf("\nReceived request:session.OpenCh Params %+v,%+v,%+v,%+v", peerAlias, openingBalInfo, app, challengeDurSecs)
+func (s *session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app perun.App, challengeDurSecs uint64) (
+	perun.ChInfo, error) {
+	s.Debugf("\nReceived request:session.OpenCh Params %+v,%+v,%+v", openingBalInfo, app, challengeDurSecs)
 	s.Lock()
 	defer s.Unlock()
 
-	peer, isPresent := s.contacts.ReadByAlias(peerAlias) // Retrieve and register peer to pclient.
-	if !isPresent {
-		s.Error(perun.ErrUnknownAlias, "fetching peer from contacts")
-		return perun.ChInfo{}, perun.ErrUnknownAlias
+	sanitizeBalInfo(openingBalInfo)
+	parts, err := retrieveParts(openingBalInfo.Parts, s.contacts)
+	if err != nil {
+		s.Error(err, "retrieving channel participants using session contacts")
+		return perun.ChInfo{}, perun.GetAPIError(err)
 	}
-	s.chClient.Register(peer.OffChainAddr, peer.CommAddr)
+	registerParts(parts, s.chClient)
 
-	if !currency.IsSupported(openingBalInfo.Currency) { // Check if currency interpreter is supported.
-		s.Error(perun.ErrUnsupportedCurrency.Error)
-		return perun.ChInfo{}, perun.ErrUnsupportedCurrency
-	}
-
-	allocations, err := makeAllocation(openingBalInfo, peerAlias, s.chAsset)
+	allocations, err := makeAllocation(openingBalInfo, s.chAsset)
 	if err != nil {
 		s.Error(err, "making allocations")
 		return perun.ChInfo{}, perun.GetAPIError(err)
 	}
-	partAddrs := []pwallet.Address{s.user.OffChainAddr, peer.OffChainAddr}
-	parts := []string{perun.OwnAlias, peer.Alias}
+
 	proposal := pclient.NewLedgerChannelProposal(
 		challengeDurSecs,
 		s.user.OffChainAddr,
 		allocations,
-		partAddrs,
+		offChainAddrs(parts),
 		pclient.WithApp(app.Def, app.Data),
 		pclient.WithRandomNonce())
-
 	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.proposeCh(challengeDurSecs))
 	defer cancel()
 	pch, err := s.chClient.ProposeChannel(ctx, proposal)
@@ -255,44 +245,120 @@ func (s *session) OpenCh(
 		return perun.ChInfo{}, perun.GetAPIError(err)
 	}
 
-	ch := newCh(pch, openingBalInfo.Currency, parts, s.timeoutCfg, challengeDurSecs)
+	ch := newCh(pch, openingBalInfo.Currency, openingBalInfo.Parts, s.timeoutCfg, challengeDurSecs)
+	s.addCh(ch)
+	return ch.GetChInfo(), nil
+}
+
+// sanitizeBalInfo checks if the entry for ownAlias is at index 0,
+// if not it rearranges the Aliases & Balance lists to make the index of ownAlias 0.
+//
+// BalanceInfo will be unchanged if there is no entry for ownAlias.
+func sanitizeBalInfo(balInfo perun.BalInfo) {
+	ownIdx := 0
+	for idx := range balInfo.Parts {
+		if balInfo.Parts[idx] == perun.OwnAlias {
+			ownIdx = idx
+		}
+	}
+	// Rearrange when ownAlias is not index 0.
+	if ownIdx != 0 {
+		balInfo.Parts[ownIdx] = balInfo.Parts[0]
+		balInfo.Parts[0] = perun.OwnAlias
+
+		ownAmount := balInfo.Bal[ownIdx]
+		balInfo.Bal[ownIdx] = balInfo.Bal[0]
+		balInfo.Bal[0] = ownAmount
+	}
+}
+
+// retrieveParts retrieves the peers from corresponding to the aliases from the contacts provider.
+// The order of entries for parts list will be same as that of aliases. i.e aliases[i] = parts[i].Alias.
+func retrieveParts(aliases []string, contacts perun.ContactsReader) ([]perun.Peer, error) {
+	knownParts := make(map[string]perun.Peer, len(aliases))
+	parts := make([]perun.Peer, len(aliases))
+	missingParts := make([]string, 0, len(aliases))
+	repeatedParts := make([]string, 0, len(aliases))
+	foundOwnAlias := false
+	for idx, alias := range aliases {
+		if alias == perun.OwnAlias {
+			foundOwnAlias = true
+		}
+		peer, isPresent := contacts.ReadByAlias(alias)
+		if !isPresent {
+			missingParts = append(missingParts, alias)
+			continue
+		}
+		if _, isPresent := knownParts[alias]; isPresent {
+			repeatedParts = append(repeatedParts, alias)
+		}
+		knownParts[alias] = peer
+		parts[idx] = peer
+	}
+
+	if len(missingParts) != 0 {
+		return nil, errors.New(fmt.Sprintf("No peers found in contacts for the following alias(es): %v", knownParts))
+	}
+	if len(repeatedParts) != 0 {
+		return nil, errors.New(fmt.Sprintf("Repeated entries in aliases: %v", knownParts))
+	}
+	if !foundOwnAlias {
+		return nil, errors.New("No entry for self found in aliases")
+	}
+
+	return parts, nil
+}
+
+// registerParts will register the given parts to the passed registry.
+func registerParts(parts []perun.Peer, r perun.Registerer) {
+	for idx := range parts {
+		if parts[idx].Alias != perun.OwnAlias { // Skip own alias.
+			r.Register(parts[idx].OffChainAddr, parts[idx].CommAddr)
+		}
+	}
+}
+
+// offChainAddrs returns the list of off-chain addresses corresponding to the given list of peers.
+func offChainAddrs(parts []perun.Peer) []pwallet.Address {
+	addrs := make([]pwallet.Address, len(parts))
+	for i := range parts {
+		addrs[i] = parts[i].OffChainAddr
+	}
+	return addrs
+}
+
+// makeAllocation makes an allocation using the BalanceInfo and the chAsset.
+// Order of amounts in the balance is same as the order of Aliases in the Balance Info.
+// It errors if any of the amounts cannot be parsed using the interpreter corresponding to the currency.
+func makeAllocation(balInfo perun.BalInfo, chAsset pchannel.Asset) (*pchannel.Allocation, error) {
+	if !currency.IsSupported(balInfo.Currency) {
+		return nil, perun.ErrUnsupportedCurrency
+	}
+
+	balance := make([]*big.Int, len(balInfo.Bal))
+	var err error
+	for i := range balInfo.Bal {
+		balance[i], err = currency.NewParser(balInfo.Currency).Parse(balInfo.Bal[i])
+		if err != nil {
+			return nil, errors.WithMessagef(err, "Parsing amount: %v", balInfo.Bal[i])
+		}
+	}
+
+	return &pchannel.Allocation{
+		Assets:   []pchannel.Asset{chAsset},
+		Balances: [][]*big.Int{balance},
+	}, nil
+}
+
+func (s *session) addCh(ch *channel) {
 	// TODO: (mano) use logger with multiple fields and use session-id, channel-id.
 	ch.Logger = log.NewLoggerWithField("channel-id", ch.id)
 	s.chs[ch.id] = ch
 	go func(s *session, chID string) {
 		ch.Debug("Started channel watcher")
-		err := pch.Watch()
+		err := ch.pch.Watch()
 		s.HandleClose(chID, err)
 	}(s, ch.id)
-	return ch.GetChInfo(), nil
-}
-
-// makeAllocation makes an allocation or the given BalInfo and channel asset.
-// It errors, if the amounts in the balInfo are invalid.
-// It arranges balances in this order: own, peer.
-// PeerAddrs in channel also should be in the same order.
-func makeAllocation(bals perun.BalInfo, peerAlias string, chAsset pchannel.Asset) (*pchannel.Allocation, error) {
-	ownBalAmount, ok := bals.Bals[perun.OwnAlias]
-	if !ok {
-		return nil, errors.Wrap(perun.ErrMissingBalance, "for self")
-	}
-	peerBalAmount, ok := bals.Bals[peerAlias]
-	if !ok {
-		return nil, errors.Wrap(perun.ErrMissingBalance, "for peer")
-	}
-
-	ownBal, err := currency.NewParser(bals.Currency).Parse(ownBalAmount)
-	if err != nil {
-		return nil, errors.WithMessage(perun.ErrInvalidAmount, "for self"+err.Error())
-	}
-	peerBal, err := currency.NewParser(bals.Currency).Parse(peerBalAmount)
-	if err != nil {
-		return nil, errors.WithMessage(perun.ErrInvalidAmount, "for peer"+err.Error())
-	}
-	return &pchannel.Allocation{
-		Assets:   []pchannel.Asset{chAsset},
-		Balances: [][]*big.Int{{ownBal, peerBal}},
-	}, nil
 }
 
 func (s *session) HandleProposal(chProposal pclient.ChannelProposal, responder *pclient.ProposalResponder) {
@@ -417,13 +483,7 @@ func (s *session) acceptChProposal(pctx context.Context, entry chProposalRespond
 	// Set ETH as the currency interpreter for incoming channel.
 	// TODO: (mano) Provide an option for user to configure when more currency interpreters are supported.
 	ch := newCh(pch, currency.ETH, entry.parts, s.timeoutCfg, entry.challengeDurSecs)
-	ch.Logger = log.NewLoggerWithField("channel-id", ch.id)
-	s.chs[ch.id] = ch
-	go func(s *session, chID string) {
-		ch.Debug("Started channel watcher")
-		err := pch.Watch()
-		s.HandleClose(chID, err)
-	}(s, ch.id)
+	s.addCh(ch)
 	return nil
 }
 

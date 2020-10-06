@@ -28,15 +28,20 @@ message Peer {
     string commType=4;
 }
 
-// BalInfo represents the balance of the channel in as a map of
-// alias of the participant to the amount held by the him/her
-// and the currency used for specifying the amount.
+// BalInfo represents the balance information of the channel: Currency and the channel balance.
+// Balance is represented as two corresponding lists:
+// Parts contains the list of aliases of the channel participants and
+// Balance list contains the amount held by each channel participant in the give currency.
+//
+// A valid BalInfo should meet the following conditions, it should be validated when using them.
+//	1. Lengths of Parts list and Balance list are equal.
+//	2. All entries in Parts list are unique.
+//	3. Parts list has an entry "self", that represents the user of the session.
+//	4. No amount in Balance must be negative.
 message BalInfo {
     string currency=1;
-    message AliasBal {
-    map<string, string> value = 1;
-    }
-    repeated AliasBal bals=2;
+    repeated string parts=2;
+    repeated string bal=3;
 }
 
 message PayChInfo {
@@ -148,9 +153,8 @@ message  GetContactResp {
 
 message OpenPayChReq {
     string sessionID = 1;
-    string peerAlias = 2;
-    BalInfo openingBalInfo = 3;
-    uint64 challengeDurSecs = 4;
+    BalInfo openingBalInfo = 2;
+    uint64 challengeDurSecs = 3;
 }
 
 message OpenPayChResp {
