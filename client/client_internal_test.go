@@ -25,5 +25,5 @@ import (
 )
 
 func Test_ChannelClient_Interface(t *testing.T) {
-	assert.Implements(t, (*perun.ChannelClient)(nil), new(client))
+	assert.Implements(t, (*perun.ChClient)(nil), new(client))
 }

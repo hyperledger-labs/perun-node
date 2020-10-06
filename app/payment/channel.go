@@ -29,29 +29,29 @@ import (
 type (
 	// PayChInfo represents the interpretation of channelInfo for payment app.
 	PayChInfo struct {
-		ChannelID string
-		BalInfo   perun.BalInfo
-		Version   string
+		ChID    string
+		BalInfo perun.BalInfo
+		Version string
 	}
 	// PayChUpdateNotifier represents the channel update notification function for payment app.
 	PayChUpdateNotifier func(PayChUpdateNotif)
 
 	// PayChUpdateNotif represents the channel update notification data for payment app.
 	PayChUpdateNotif struct {
-		UpdateID     string
-		ProposedBals perun.BalInfo
-		Version      string
-		Final        bool
-		Currency     string
-		Parts        []string
-		Expiry       int64
+		UpdateID        string
+		ProposedBalInfo perun.BalInfo
+		Version         string
+		Final           bool
+		Currency        string
+		Parts           []string
+		Expiry          int64
 	}
 )
 
 // SendPayChUpdate send the given amount to the payee. Payee should be one of the channel participants.
 // Use "self" to request payments.
-func SendPayChUpdate(pctx context.Context, ch perun.ChannelAPI, payee, amount string) error {
-	chInfo := ch.GetInfo()
+func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string) error {
+	chInfo := ch.GetChInfo()
 	f, err := newUpdater(chInfo.State, chInfo.Parts, chInfo.Currency, payee, amount)
 	if err != nil {
 		return err
@@ -93,43 +93,43 @@ func newUpdater(currState *pchannel.State, parts []string, chCurrency, payee, am
 }
 
 // GetBalInfo returns the balance information for this channel.
-func GetBalInfo(ch perun.ChannelAPI) perun.BalInfo {
-	chInfo := ch.GetInfo()
-	return balsFromState(chInfo.Currency, chInfo.State, chInfo.Parts)
+func GetBalInfo(ch perun.ChAPI) perun.BalInfo {
+	chInfo := ch.GetChInfo()
+	return balInfoFromState(chInfo.Currency, chInfo.State, chInfo.Parts)
 }
 
 // SubPayChUpdates sets up a subscription for updates on this channel.
-func SubPayChUpdates(ch perun.ChannelAPI, notifier PayChUpdateNotifier) error {
+func SubPayChUpdates(ch perun.ChAPI, notifier PayChUpdateNotifier) error {
 	return ch.SubChUpdates(func(notif perun.ChUpdateNotif) {
 		notifier(PayChUpdateNotif{
-			UpdateID:     notif.UpdateID,
-			ProposedBals: balsFromState(notif.Currency, notif.Update.State, notif.Parts),
-			Version:      fmt.Sprintf("%d", notif.Update.State.Version),
-			Final:        notif.Update.State.IsFinal,
-			Expiry:       notif.Expiry,
+			UpdateID:        notif.UpdateID,
+			ProposedBalInfo: balInfoFromState(notif.Currency, notif.Update.State, notif.Parts),
+			Version:         fmt.Sprintf("%d", notif.Update.State.Version),
+			Final:           notif.Update.State.IsFinal,
+			Expiry:          notif.Expiry,
 		})
 	})
 }
 
 // UnsubPayChUpdates deletes the existing subscription for updates on this channel.
-func UnsubPayChUpdates(ch perun.ChannelAPI) error {
+func UnsubPayChUpdates(ch perun.ChAPI) error {
 	return ch.UnsubChUpdates()
 }
 
 // RespondPayChUpdate sends a response for a channel update notification.
-func RespondPayChUpdate(pctx context.Context, ch perun.ChannelAPI, updateID string, accept bool) error {
+func RespondPayChUpdate(pctx context.Context, ch perun.ChAPI, updateID string, accept bool) error {
 	return ch.RespondChUpdate(pctx, updateID, accept)
 }
 
 // ClosePayCh closes the payment channel.
-func ClosePayCh(pctx context.Context, ch perun.ChannelAPI) (PayChInfo, error) {
+func ClosePayCh(pctx context.Context, ch perun.ChAPI) (PayChInfo, error) {
 	chInfo, err := ch.Close(pctx)
 	if err != nil {
 		return PayChInfo{}, err
 	}
 	return PayChInfo{
-		ChannelID: chInfo.ChannelID,
-		BalInfo:   balsFromState(chInfo.Currency, chInfo.State, chInfo.Parts),
-		Version:   fmt.Sprintf("%d", chInfo.State.Version),
+		ChID:    chInfo.ChID,
+		BalInfo: balInfoFromState(chInfo.Currency, chInfo.State, chInfo.Parts),
+		Version: fmt.Sprintf("%d", chInfo.State.Version),
 	}, nil
 }

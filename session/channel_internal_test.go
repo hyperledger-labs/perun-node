@@ -24,6 +24,6 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 )
 
-func Test_ChannelAPI_Interface(t *testing.T) {
-	assert.Implements(t, (*perun.ChannelAPI)(nil), new(channel))
+func Test_ChAPI_Interface(t *testing.T) {
+	assert.Implements(t, (*perun.ChAPI)(nil), new(channel))
 }

@@ -47,7 +47,7 @@ func init() {
 	ppayment.SetAppDef(emptyAddr) // dummy app def.
 }
 
-// This test includes all methods on SessionAPI and ChannelAPI.
+// This test includes all methods on SessionAPI and ChAPI.
 func Test_Integ_Role(t *testing.T) {
 	prng := rand.New(rand.NewSource(1729))
 
@@ -180,18 +180,18 @@ func Test_Integ_Role(t *testing.T) {
 		wg.Wait()
 	})
 
-	var aliceCh, bobCh perun.ChannelAPI
-	t.Run("GetChInfos_GetCh", func(t *testing.T) {
-		aliceChInfos := alice.GetChInfos()
+	var aliceCh, bobCh perun.ChAPI
+	t.Run("GetChsInfo_GetCh", func(t *testing.T) {
+		aliceChInfos := alice.GetChsInfo()
 		require.Lenf(t, aliceChInfos, 1, "alice session should have exactly one channel")
-		bobChInfos := bob.GetChInfos()
+		bobChInfos := bob.GetChsInfo()
 		require.Lenf(t, bobChInfos, 1, "bob session should have exactly one channel")
 
-		aliceCh, err = alice.GetCh(aliceChInfos[0].ChannelID)
-		require.NoError(t, err, "getting alice ChannelAPI instance")
+		aliceCh, err = alice.GetCh(aliceChInfos[0].ChID)
+		require.NoError(t, err, "getting alice ChAPI instance")
 
-		bobCh, err = bob.GetCh(aliceChInfos[0].ChannelID)
-		require.NoError(t, err, "getting bob ChannelAPI instance")
+		bobCh, err = bob.GetCh(aliceChInfos[0].ChID)
+		require.NoError(t, err, "getting bob ChAPI instance")
 	})
 
 	t.Run("SendUpdate_Sub_Unsub_ChUpdate_Respond_Accept", func(t *testing.T) {
@@ -199,7 +199,7 @@ func Test_Integ_Role(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			bobChInfo := bobCh.GetInfo()
+			bobChInfo := bobCh.GetChInfo()
 			var ownIdx, peerIdx int
 			if bobChInfo.Parts[0] == perun.OwnAlias {
 				ownIdx = 0
@@ -242,7 +242,7 @@ func Test_Integ_Role(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			aliceChInfo := aliceCh.GetInfo()
+			aliceChInfo := aliceCh.GetChInfo()
 			var ownIdx, peerIdx int
 			if aliceChInfo.Parts[0] == perun.OwnAlias {
 				ownIdx = 0
