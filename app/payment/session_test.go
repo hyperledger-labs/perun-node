@@ -64,7 +64,6 @@ var (
 		ChID:    chID,
 		BalInfo: openingBalInfo,
 		App:     app,
-		IsFinal: false,
 		Version: "0",
 	}
 	wantOpenedPayChInfo = payment.PayChInfo{
@@ -93,7 +92,6 @@ var (
 		ChID:    chID,
 		BalInfo: updatedBalInfo,
 		App:     app,
-		IsFinal: false,
 		Version: "1",
 	}
 	wantUpdatedPayChInfo = payment.PayChInfo{
@@ -105,17 +103,16 @@ var (
 	chUpdateNotif = perun.ChUpdateNotif{
 		UpdateID:       updateID,
 		ProposedChInfo: updatedChInfo,
+		Type:           perun.ChUpdateTypeOpen,
 		Expiry:         expiry,
+		Error:          "",
 	}
-	wantPayChUpdateNotif = payment.PayChUpdateNotif{updateID, wantUpdatedPayChInfo, false, expiry}
-
-	chCloseNotif = perun.ChCloseNotif{
-		ClosedChInfo: updatedChInfo,
-		Error:        "",
-	}
-	wantPayChCloseNotif = payment.PayChCloseNotif{
-		ClosedPayChInfo: wantUpdatedPayChInfo,
-		Error:           "",
+	wantPayChUpdateNotif = payment.PayChUpdateNotif{
+		UpdateID:          updateID,
+		ProposedPayChInfo: wantUpdatedPayChInfo,
+		Type:              perun.ChUpdateTypeOpen,
+		Expiry:            expiry,
+		Error:             "",
 	}
 )
 
@@ -229,54 +226,5 @@ func Test_RespondPayChProposal(t *testing.T) {
 		_, gotErr := payment.RespondPayChProposal(context.Background(), sessionAPI, proposalID, accept)
 		assert.Error(t, gotErr)
 		t.Log(gotErr)
-	})
-}
-
-func Test_SubPayChCloses(t *testing.T) {
-	t.Run("happy", func(t *testing.T) {
-		var notifier perun.ChCloseNotifier
-		var notif payment.PayChCloseNotif
-		dummyNotifier := func(gotNotif payment.PayChCloseNotif) {
-			notif = gotNotif
-		}
-		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("SubChCloses", mock.MatchedBy(func(gotNotifier perun.ChCloseNotifier) bool {
-			notifier = gotNotifier
-			return true
-		})).Return(nil)
-
-		gotErr := payment.SubPayChCloses(sessionAPI, dummyNotifier)
-		require.NoError(t, gotErr)
-
-		// Test the notifier function, that interprets the notification for payment app.
-		require.NotNil(t, notifier)
-		notifier(chCloseNotif)
-		assert.Equal(t, wantPayChCloseNotif, notif)
-	})
-	t.Run("error", func(t *testing.T) {
-		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("SubChCloses", mock.Anything).Return(assert.AnError)
-
-		dummyNotifier := func(notif payment.PayChCloseNotif) {}
-		gotErr := payment.SubPayChCloses(sessionAPI, dummyNotifier)
-		assert.Error(t, gotErr)
-		t.Log(gotErr)
-	})
-}
-
-func Test_UnsubPayChCloses(t *testing.T) {
-	t.Run("happy", func(t *testing.T) {
-		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("UnsubChCloses", mock.Anything).Return(nil)
-
-		gotErr := payment.UnsubPayChCloses(sessionAPI)
-		assert.NoError(t, gotErr)
-	})
-	t.Run("error", func(t *testing.T) {
-		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("UnsubChCloses", mock.Anything).Return(assert.AnError)
-
-		gotErr := payment.UnsubPayChCloses(sessionAPI)
-		assert.Error(t, gotErr)
 	})
 }

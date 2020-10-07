@@ -26,6 +26,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	grpclib "google.golang.org/grpc"
 
@@ -36,6 +37,12 @@ import (
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
+
+// This file contains integration tests for all the APIs. Start the ganache cli node using the
+// below command before running the tests:
+//
+// ganache-cli -b 1 --account="0x1fedd636dbc7e8d41a0622a2040b86fea8842cef9d4aa4c582aad00465b7acff,100000000000000000000" \
+// --account="0xb0309c60b4622d3071fad3e16c2ce4d0b1e7758316c187754f4dd0cfb44ceb33,100000000000000000000"
 
 var (
 	nodeCfg = perun.NodeConfig{
@@ -72,7 +79,6 @@ func StartServer(t *testing.T) {
 
 	// Run Server in a go-routine.
 	t.Log("Starting server")
-
 	go func() {
 		if err := grpcServer.Serve(listener); err != nil {
 			t.Logf("failed to serve: %v", err)
@@ -155,32 +161,103 @@ func Test_Integ_Role(t *testing.T) {
 		AddContact(t, bobSessionID, alicePeer)
 	})
 
-	t.Run("OpenCh_Sub_Unsub_Respond", func(t *testing.T) {
+	t.Run("OpenCh_Sub_Unsub_Respond_Accept", func(t *testing.T) {
 		// Alice proposes a channel and bob accepts.
 		wg.Add(1)
 		go func() {
-			chID = OpenPayCh(t, aliceSessionID, []string{perun.OwnAlias, bobAlias}, []string{"1", "2"})
+			chID = OpenPayCh(t, aliceSessionID, []string{perun.OwnAlias, bobAlias}, []string{"1", "2"}, false)
+
 			wg.Done()
 		}()
-		SubRespondUnsubPayChProposal(t, bobSessionID, true)
+		sub := SubPayChProposal(t, bobSessionID)
+		notif := ReadPayChProposalNotif(t, bobSessionID, sub)
+		RespondPayChProposal(t, bobSessionID, notif.Notify.ProposalID, true)
+		UnsubPayChProposal(t, bobSessionID)
+
 		wg.Wait()
 	})
 
-	t.Run("SendPayChUpdate_Sub_Unsub_Respond", func(t *testing.T) {
+	t.Run("OpenCh_Sub_Unsub_Respond_Reject", func(t *testing.T) {
+		// Bob proposes a channel and alice accepts.
+		wg.Add(1)
+		go func() {
+			OpenPayCh(t, bobSessionID, []string{perun.OwnAlias, aliceAlias}, []string{"1", "2"}, true)
+
+			wg.Done()
+		}()
+		sub := SubPayChProposal(t, aliceSessionID)
+		notif := ReadPayChProposalNotif(t, aliceSessionID, sub)
+		RespondPayChProposal(t, aliceSessionID, notif.Notify.ProposalID, false)
+		UnsubPayChProposal(t, aliceSessionID)
+
+		wg.Wait()
+	})
+
+	t.Run("SendPayChUpdate_Sub_Unsub_Respond_Accept", func(t *testing.T) {
 		// Bob sends a payment and alice accepts.
 		wg.Add(1)
 		go func() {
-			SendPayChUpdate(t, bobSessionID, chID, aliceAlias, "0.5")
+			SendPayChUpdate(t, bobSessionID, chID, aliceAlias, "0.5", false)
+
 			wg.Done()
 		}()
-		SubRespondUnsubPayChUpdate(t, aliceSessionID, chID, true)
+
+		sub := SubPayChUpdate(t, aliceSessionID, chID)
+		notif := ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
+		assert.EqualValues(t, perun.ChUpdateTypeOpen, notif.Notify.Type)
+		RespondPayChUpdate(t, aliceSessionID, chID, notif.Notify.UpdateID, true)
+		UnsubPayChUpdate(t, aliceSessionID, chID)
+
 		wg.Wait()
 	})
+
+	t.Run("SendPayChUpdate_Sub_Unsub_Respond_Reject", func(t *testing.T) {
+		// Alice sends a payment and bob accepts.
+		wg.Add(1)
+		go func() {
+			SendPayChUpdate(t, aliceSessionID, chID, bobAlias, "0.5", true)
+
+			wg.Done()
+		}()
+
+		sub := SubPayChUpdate(t, bobSessionID, chID)
+		notif := ReadPayChUpdateNotif(t, bobSessionID, chID, sub)
+		assert.EqualValues(t, perun.ChUpdateTypeOpen, notif.Notify.Type)
+		RespondPayChUpdate(t, bobSessionID, chID, notif.Notify.UpdateID, false)
+		UnsubPayChUpdate(t, bobSessionID, chID)
+
+		wg.Wait()
+	})
+
 	t.Run("Close_Sub_Unsub", func(t *testing.T) {
-		// Bob closes payment channel.
+		// Bob closes payment channel, Alice receives notification for and rejects final update,
+		// both receive channel closed notifications.
+		wg.Add(2)
+		go func() {
+			sub := SubPayChUpdate(t, aliceSessionID, chID)
+			notif := ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
+			assert.EqualValues(t, perun.ChUpdateTypeFinal, notif.Notify.Type)
+			RespondPayChUpdate(t, aliceSessionID, chID, notif.Notify.UpdateID, false)
+			notif = ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
+			assert.EqualValues(t, perun.ChUpdateTypeClosed, notif.Notify.Type)
+			UnsubPayChUpdate(t, aliceSessionID, chID)
+
+			wg.Done()
+		}()
+		go func() {
+			sub := SubPayChUpdate(t, bobSessionID, chID)
+			notif := ReadPayChUpdateNotif(t, bobSessionID, chID, sub)
+			assert.EqualValues(t, perun.ChUpdateTypeClosed, notif.Notify.Type)
+			RespondPayChUpdateExpectError(t, bobSessionID, chID, notif.Notify.UpdateID, true)
+			UnsubPayChUpdate(t, bobSessionID, chID)
+
+			wg.Done()
+		}()
+
+		time.Sleep(2 * time.Second) // Wait for the subscriptions to be made.
 		ClosePayCh(t, bobSessionID, chID)
-		SubUnsubClose(t, aliceSessionID, chID)
-		SubUnsubClose(t, bobSessionID, chID)
+
+		wg.Wait()
 	})
 }
 
@@ -218,7 +295,7 @@ func AddContact(t *testing.T, sessionID string, peer *pb.Peer) {
 	require.True(t, ok, "AddContact returned error response")
 }
 
-func OpenPayCh(t *testing.T, sessionID string, parts, bal []string) string {
+func OpenPayCh(t *testing.T, sessionID string, parts, bal []string, wantErr bool) string {
 	req := pb.OpenPayChReq{
 		SessionID: sessionID,
 		OpeningBalInfo: &pb.BalInfo{
@@ -230,42 +307,56 @@ func OpenPayCh(t *testing.T, sessionID string, parts, bal []string) string {
 	}
 	resp, err := client.OpenPayCh(ctx, &req)
 	require.NoErrorf(t, err, "OpenPayCh")
+
+	if wantErr {
+		t.Logf("%+v", resp)
+		errMsg, ok := resp.Response.(*pb.OpenPayChResp_Error)
+		require.True(t, ok, "OpenPayCh returned success response")
+		t.Log(errMsg)
+		return ""
+	}
 	msg, ok := resp.Response.(*pb.OpenPayChResp_MsgSuccess_)
 	require.True(t, ok, "OpenPayCh returned error response")
 	return msg.MsgSuccess.OpenedPayChInfo.ChID
 }
 
-func SubRespondUnsubPayChProposal(t *testing.T, sessionID string, accept bool) {
-	// Subscribe to payment channel proposal notifications.
+func SubPayChProposal(t *testing.T, sessionID string) pb.Payment_API_SubPayChProposalsClient {
 	subReq := pb.SubPayChProposalsReq{
 		SessionID: sessionID,
 	}
 	subClient, err := client.SubPayChProposals(ctx, &subReq)
 	require.NoErrorf(t, err, "SubPayChProposals")
+	return subClient
+}
 
-	notifMsg, err := subClient.Recv()
+func ReadPayChProposalNotif(t *testing.T, sessionID string,
+	sub pb.Payment_API_SubPayChProposalsClient) *pb.SubPayChProposalsResp_Notify_ {
+	notifMsg, err := sub.Recv()
 	require.NoErrorf(t, err, "subClient.Recv")
 	notif, ok := notifMsg.Response.(*pb.SubPayChProposalsResp_Notify_)
 	require.True(t, ok, "subClient.Recv returned error response")
+	return notif
+}
 
-	// Respond to channel proposal notification.
+func RespondPayChProposal(t *testing.T, sessionID, proposalID string, accept bool) {
 	respondReq := pb.RespondPayChProposalReq{
 		SessionID:  sessionID,
-		ProposalID: notif.Notify.ProposalID,
+		ProposalID: proposalID,
 		Accept:     accept,
 	}
-	_, err = client.RespondPayChProposal(ctx, &respondReq)
+	_, err := client.RespondPayChProposal(ctx, &respondReq)
 	require.NoErrorf(t, err, "RespondPayChProposal")
+}
 
-	// Unsubscribes to channel proposal notifications.
+func UnsubPayChProposal(t *testing.T, sessionID string) {
 	unsubReq := pb.UnsubPayChProposalsReq{
 		SessionID: sessionID,
 	}
-	_, err = client.UnsubPayChProposals(ctx, &unsubReq)
+	_, err := client.UnsubPayChProposals(ctx, &unsubReq)
 	require.NoErrorf(t, err, "UnsubPayChProposals")
 }
 
-func SendPayChUpdate(t *testing.T, sessionID, chID, peerAlias, amount string) {
+func SendPayChUpdate(t *testing.T, sessionID, chID, peerAlias, amount string, wantErr bool) {
 	req := pb.SendPayChUpdateReq{
 		SessionID: sessionID,
 		ChID:      chID,
@@ -274,40 +365,67 @@ func SendPayChUpdate(t *testing.T, sessionID, chID, peerAlias, amount string) {
 	}
 	resp, err := client.SendPayChUpdate(ctx, &req)
 	require.NoErrorf(t, err, "SendPayChUpdate")
+	if wantErr {
+		errMsg, ok := resp.Response.(*pb.SendPayChUpdateResp_Error)
+		require.True(t, ok, "SendPayChUpdate returned success response")
+		t.Log(errMsg)
+		return
+	}
 	_, ok := resp.Response.(*pb.SendPayChUpdateResp_MsgSuccess_)
 	require.True(t, ok, "SendPayChUpdate returned error response")
 }
 
-func SubRespondUnsubPayChUpdate(t *testing.T, sessionID, chID string, accept bool) {
-	// Subscribe to payment channel update notifications.
+func SubPayChUpdate(t *testing.T, sessionID, chID string) pb.Payment_API_SubPayChUpdatesClient {
 	subReq := pb.SubpayChUpdatesReq{
 		SessionID: sessionID,
 		ChID:      chID,
 	}
 	subClient, err := client.SubPayChUpdates(ctx, &subReq)
 	require.NoErrorf(t, err, "SubPayChUpdates")
+	return subClient
+}
 
-	notifMsg, err := subClient.Recv()
+func ReadPayChUpdateNotif(t *testing.T, sessionID, chID string,
+	sub pb.Payment_API_SubPayChUpdatesClient) *pb.SubPayChUpdatesResp_Notify_ {
+	notifMsg, err := sub.Recv()
 	require.NoErrorf(t, err, "subClient.Recv")
 	notif, ok := notifMsg.Response.(*pb.SubPayChUpdatesResp_Notify_)
 	require.True(t, ok, "SendPayChUpdate returned error response")
+	return notif
+}
 
-	// Respond to payment channel update notification.
+func RespondPayChUpdate(t *testing.T, sessionID, chID, updateID string, accept bool) {
 	respondReq := pb.RespondPayChUpdateReq{
 		SessionID: sessionID,
-		UpdateID:  notif.Notify.UpdateID,
+		UpdateID:  updateID,
 		ChID:      chID,
-		Accept:    true,
+		Accept:    accept,
 	}
-	_, err = client.RespondPayChUpdate(ctx, &respondReq)
+	_, err := client.RespondPayChUpdate(ctx, &respondReq)
 	require.NoErrorf(t, err, "RespondPayChUpdate")
+}
 
-	// Unsubscribe to payment channel update notifications.
+func RespondPayChUpdateExpectError(t *testing.T, sessionID, chID, updateID string, accept bool) {
+	respondReq := pb.RespondPayChUpdateReq{
+		SessionID: sessionID,
+		UpdateID:  updateID,
+		ChID:      chID,
+		Accept:    accept,
+	}
+	resp, err := client.RespondPayChUpdate(ctx, &respondReq)
+	require.NoError(t, err, "client.RespondPayChUpdate")
+	respErrMsg, ok := resp.Response.(*pb.RespondPayChUpdateResp_Error)
+	require.True(t, ok)
+	require.NotZero(t, respErrMsg.Error.Error, "RespondPayChUpdate for closed channel notif")
+	t.Log("Error responding to channel close notif", respErrMsg.Error.Error)
+}
+
+func UnsubPayChUpdate(t *testing.T, sessionID, chID string) {
 	unsubReq := pb.UnsubPayChUpdatesReq{
 		SessionID: sessionID,
 		ChID:      chID,
 	}
-	_, err = client.UnsubPayChUpdates(ctx, &unsubReq)
+	_, err := client.UnsubPayChUpdates(ctx, &unsubReq)
 	require.NoErrorf(t, err, "UnsubPayChUpdates")
 }
 
@@ -321,24 +439,3 @@ func ClosePayCh(t *testing.T, sessionID, chID string) {
 	_, ok := resp.Response.(*pb.ClosePayChResp_MsgSuccess_)
 	require.True(t, ok, "ClosePayCh returned error response")
 }
-
-func SubUnsubClose(t *testing.T, sessionID, chID string) {
-	// Subscribe to payment channel close notifications.
-	subReq := pb.SubPayChClosesReq{
-		SessionID: sessionID,
-	}
-	subClient, err := client.SubPayChCloses(ctx, &subReq)
-	require.NoErrorf(t, err, "SubPayChCloses")
-
-	notifMsg, err := subClient.Recv()
-	require.NoErrorf(t, err, "subClient.Recv")
-	_, ok := notifMsg.Response.(*pb.SubPayChClosesResp_Notify_)
-	require.True(t, ok, "subClient.Recv returned error response")
-
-	// Unsubscribe to payment channel close notifications.
-	unsubReq := pb.UnsubPayChClosesReq{
-		SessionID: sessionID,
-	}
-	_, err = client.UnsubPayChClose(ctx, &unsubReq)
-	require.NoErrorf(t, err, "unsubscribing to payment channel proposals")
-} // nolint:gofumpt // unknown error, maybe a false positive

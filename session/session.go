@@ -67,9 +67,10 @@ type (
 		chProposalNotifier    perun.ChProposalNotifier
 		chProposalNotifsCache []perun.ChProposalNotif
 		chProposalResponders  map[string]chProposalResponderEntry
+	}
 
-		chCloseNotifier    perun.ChCloseNotifier
-		chCloseNotifsCache []perun.ChCloseNotif
+	closedChRemover interface {
+		removeClosedCh(chID string) bool
 	}
 
 	chProposalResponderEntry struct {
@@ -206,8 +207,8 @@ func (s *session) GetContact(alias string) (perun.Peer, error) {
 func (s *session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app perun.App, challengeDurSecs uint64) (
 	perun.ChInfo, error) {
 	s.Debugf("\nReceived request:session.OpenCh Params %+v,%+v,%+v", openingBalInfo, app, challengeDurSecs)
-	s.Lock()
-	defer s.Unlock()
+
+	// Session is locked only when adding the channel to session.
 
 	sanitizeBalInfo(openingBalInfo)
 	parts, err := retrieveParts(openingBalInfo.Parts, s.contacts)
@@ -227,7 +228,7 @@ func (s *session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 		challengeDurSecs,
 		s.user.OffChainAddr,
 		allocations,
-		offChainAddrs(parts),
+		makeOffChainAddrs(parts),
 		pclient.WithApp(app.Def, app.Data),
 		pclient.WithRandomNonce())
 	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.proposeCh(challengeDurSecs))
@@ -243,6 +244,7 @@ func (s *session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	}
 
 	ch := newCh(pch, openingBalInfo.Currency, openingBalInfo.Parts, s.timeoutCfg, challengeDurSecs)
+
 	s.addCh(ch)
 	return ch.GetChInfo(), nil
 }
@@ -315,8 +317,8 @@ func registerParts(parts []perun.Peer, r perun.Registerer) {
 	}
 }
 
-// offChainAddrs returns the list of off-chain addresses corresponding to the given list of peers.
-func offChainAddrs(parts []perun.Peer) []pwallet.Address {
+// makeOffChainAddrs returns the list of off-chain addresses corresponding to the given list of peers.
+func makeOffChainAddrs(parts []perun.Peer) []pwallet.Address {
 	addrs := make([]pwallet.Address, len(parts))
 	for i := range parts {
 		addrs[i] = parts[i].OffChainAddr
@@ -347,21 +349,17 @@ func makeAllocation(balInfo perun.BalInfo, chAsset pchannel.Asset) (*pchannel.Al
 	}, nil
 }
 
+// addCh adds the channel to session. It locks the session mutex during the operation.
 func (s *session) addCh(ch *channel) {
-	// TODO: (mano) use logger with multiple fields and use session-id, channel-id.
 	ch.Logger = log.NewLoggerWithField("channel-id", ch.id)
+	s.Lock()
+	// TODO: (mano) use logger with multiple fields and use session-id, channel-id.
 	s.chs[ch.id] = ch
-	go func(s *session, chID string) {
-		ch.Debug("Started channel watcher")
-		err := ch.pch.Watch()
-		s.HandleClose(chID, err)
-	}(s, ch.id)
+	s.Unlock()
 }
 
 func (s *session) HandleProposal(chProposal pclient.ChannelProposal, responder *pclient.ProposalResponder) {
 	s.Debugf("SDK Callback: HandleProposal. Params: %+v", chProposal)
-	s.Lock()
-	defer s.Unlock()
 	expiry := time.Now().UTC().Add(s.timeoutCfg.response).Unix()
 
 	parts := make([]string, len(chProposal.Proposal().PeerAddrs))
@@ -382,6 +380,9 @@ func (s *session) HandleProposal(chProposal pclient.ChannelProposal, responder *
 		notif:     notif,
 		responder: responder,
 	}
+
+	s.Lock()
+	defer s.Unlock()
 	// Need not store entries for notification with expiry = 0, as these update requests have
 	// already been rejected by the perun node. Hence no response is expected for these notifications.
 	if expiry != 0 {
@@ -442,15 +443,18 @@ func (s *session) UnsubChProposals() error {
 
 func (s *session) RespondChProposal(pctx context.Context, chProposalID string, accept bool) (perun.ChInfo, error) {
 	s.Debugf("Received request: session.RespondChProposal. Params: %+v, %+v", chProposalID, accept)
-	s.Lock()
-	defer s.Unlock()
 
+	// Lock the session mutex only when retrieving the channel responder and deleting it.
+	// It will again be locked when adding the channel to the session.
+	s.Lock()
 	entry, ok := s.chProposalResponders[chProposalID]
 	if !ok {
 		s.Info(perun.ErrUnknownProposalID)
+		s.Unlock()
 		return perun.ChInfo{}, perun.ErrUnknownProposalID
 	}
 	delete(s.chProposalResponders, chProposalID)
+	s.Unlock()
 
 	currTime := time.Now().UTC().Unix()
 	if entry.notif.Expiry < currTime {
@@ -511,14 +515,15 @@ func (s *session) GetChsInfo() []perun.ChInfo {
 
 func (s *session) GetCh(chID string) (perun.ChAPI, error) {
 	s.Debugf("Internal call to get channel instance. Params: %+v", chID)
-	s.Lock()
-	defer s.Unlock()
 
+	s.Lock()
 	ch, ok := s.chs[chID]
+	s.Unlock()
 	if !ok {
-		s.Info(perun.ErrUnknownChID)
+		s.Info(perun.ErrUnknownChID, "not found in session")
 		return nil, perun.ErrUnknownChID
 	}
+
 	return ch, nil
 }
 
@@ -526,112 +531,18 @@ func (s *session) HandleUpdate(chUpdate pclient.ChannelUpdate, responder *pclien
 	s.Debugf("SDK Callback: HandleUpdate. Params: %+v", chUpdate)
 	s.Lock()
 	defer s.Unlock()
-	expiry := time.Now().UTC().Add(s.timeoutCfg.response).Unix()
 
 	chID := fmt.Sprintf("%x", chUpdate.State.ID)
-	updateID := fmt.Sprintf("%s_%d", chID, chUpdate.State.Version)
-
 	ch, ok := s.chs[chID]
 	if !ok {
 		s.Info("Received update for unknown channel", chID)
 		err := responder.Reject(context.Background(), "unknown channel for this session")
-		s.Info("Error rejecting unknown channel with id %s: %v", chID, err)
+		s.Info("Error rejecting incoming update for unknown channel with id %s: %v", chID, err)
 		return
 	}
-
-	ch.Lock()
-	defer ch.Unlock()
-	if chUpdate.State.IsFinal {
-		ch.Info("Received final update from peer, channel is finalized.")
-		ch.lockState = finalized
-	}
-
-	entry := chUpdateResponderEntry{
-		responder:   responder,
-		notifExpiry: expiry,
-	}
-	// Need not store entries for notification with expiry = 0, as these update requests have
-	// already been rejected by the perun node. Hence no response is expected for these notifications.
-	if expiry != 0 {
-		ch.chUpdateResponders[updateID] = entry
-	}
-	notif := chUpdateNotif(ch.getChInfo(), chUpdate.State, expiry)
-	if ch.chUpdateNotifier == nil {
-		ch.chUpdateNotifCache = append(ch.chUpdateNotifCache, notif)
-		ch.Debug("HandleUpdate: Notification cached")
-	} else {
-		go ch.chUpdateNotifier(notif)
-		ch.Debug("HandleUpdate: Notification sent")
-	}
-}
-
-func chUpdateNotif(currChInfo perun.ChInfo, proposedState *pchannel.State, expiry int64) perun.ChUpdateNotif {
-	return perun.ChUpdateNotif{
-		UpdateID:       fmt.Sprintf("%s_%d", currChInfo.ChID, proposedState.Version),
-		CurrChInfo:     currChInfo,
-		ProposedChInfo: makeChInfo(currChInfo.ChID, currChInfo.BalInfo.Parts, currChInfo.BalInfo.Currency, proposedState),
-		Expiry:         expiry,
-	}
+	go ch.HandleUpdate(chUpdate, responder)
 }
 
 func (s *session) Close(force bool) error {
-	return nil
-}
-
-func (s *session) HandleClose(chID string, err error) {
-	s.Debug("SDK Callback: Channel watcher returned.")
-
-	ch := s.chs[chID]
-	ch.Lock()
-	defer ch.Unlock()
-
-	if ch.lockState == open || ch.lockState == finalized {
-		ch.lockState = closed
-	}
-
-	notif := perun.ChCloseNotif{
-		ClosedChInfo: ch.getChInfo(),
-	}
-	if err != nil {
-		notif.Error = err.Error()
-	}
-
-	if s.chCloseNotifier == nil {
-		s.chCloseNotifsCache = append(s.chCloseNotifsCache, notif)
-		s.Debug("HandleClose: Notification cached")
-	} else {
-		go s.chCloseNotifier(notif)
-		s.Debug("HandleClose: Notification sent")
-	}
-}
-
-func (s *session) SubChCloses(notifier perun.ChCloseNotifier) error {
-	s.Debug("Received request: session.SubChCloses")
-	s.Lock()
-	defer s.Unlock()
-
-	if s.chCloseNotifier != nil {
-		return perun.ErrSubAlreadyExists
-	}
-	s.chCloseNotifier = notifier
-
-	// Send all cached notifications
-	for i := len(s.chCloseNotifsCache); i > 0; i-- {
-		go s.chCloseNotifier(s.chCloseNotifsCache[0])
-		s.chCloseNotifsCache = s.chCloseNotifsCache[1:i]
-
-	}
-	return nil
-}
-
-func (s *session) UnsubChCloses() error {
-	s.Debug("Received request: session.UnsubChCloses")
-	s.Lock()
-	defer s.Unlock()
-
-	if s.chCloseNotifier == nil {
-		return perun.ErrNoActiveSub
-	}
-	s.chCloseNotifier = nil
 	return nil
 }

@@ -131,9 +131,41 @@ func Test_SubPayChUpdates(t *testing.T) {
 		require.NotNil(t, notifier)
 
 		// Test the notifier function, that interprets the notification for payment app.
-		require.NotNil(t, notifier)
-		notifier(chUpdateNotif)
-		require.Equal(t, wantPayChUpdateNotif, notif)
+		t.Run("notifier_typeOpen", func(t *testing.T) {
+			notifier(chUpdateNotif)
+			require.Equal(t, wantPayChUpdateNotif, notif)
+		})
+		t.Run("notifier_typeFinal", func(t *testing.T) {
+			chUpdateNotifFinal := chUpdateNotif
+			chUpdateNotifFinal.Type = perun.ChUpdateTypeFinal
+			wantPayChUpdateNotifFinal := wantPayChUpdateNotif
+			wantPayChUpdateNotifFinal.Type = perun.ChUpdateTypeFinal
+
+			notifier(chUpdateNotifFinal)
+			require.Equal(t, wantPayChUpdateNotifFinal, notif)
+		})
+		t.Run("notifier_typeClosed", func(t *testing.T) {
+			chUpdateNotifClosed := chUpdateNotif
+			chUpdateNotifClosed.Type = perun.ChUpdateTypeClosed
+			chUpdateNotifClosed.CurrChInfo = chUpdateNotif.ProposedChInfo
+			wantPayChUpdateNotifClosed := wantPayChUpdateNotif
+			wantPayChUpdateNotifClosed.Type = perun.ChUpdateTypeClosed
+
+			notifier(chUpdateNotifClosed)
+			require.Equal(t, wantPayChUpdateNotifClosed, notif)
+		})
+		t.Run("notifier_typeClosedWithError", func(t *testing.T) {
+			chUpdateNotifClosed := chUpdateNotif
+			chUpdateNotifClosed.Type = perun.ChUpdateTypeClosed
+			chUpdateNotifClosed.CurrChInfo = chUpdateNotif.ProposedChInfo
+			chUpdateNotifClosed.Error = assert.AnError.Error()
+			wantPayChUpdateNotifClosed := wantPayChUpdateNotif
+			wantPayChUpdateNotifClosed.Type = perun.ChUpdateTypeClosed
+			wantPayChUpdateNotifClosed.Error = assert.AnError.Error()
+
+			notifier(chUpdateNotifClosed)
+			require.Equal(t, wantPayChUpdateNotifClosed, notif)
+		})
 	})
 	t.Run("error", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
