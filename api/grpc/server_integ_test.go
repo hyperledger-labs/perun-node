@@ -159,7 +159,7 @@ func Test_Integ_Role(t *testing.T) {
 		// Alice proposes a channel and bob accepts.
 		wg.Add(1)
 		go func() {
-			chID = OpenPayCh(t, aliceSessionID, bobAlias, "1", "2")
+			chID = OpenPayCh(t, aliceSessionID, []string{perun.OwnAlias, bobAlias}, []string{"1", "2"})
 			wg.Done()
 		}()
 		SubRespondUnsubPayChProposal(t, bobSessionID, true)
@@ -218,17 +218,14 @@ func AddContact(t *testing.T, sessionID string, peer *pb.Peer) {
 	require.True(t, ok, "AddContact returned error response")
 }
 
-func OpenPayCh(t *testing.T, sessionID string, peerAlias string, ownBal, peerBal string) string {
-	balInfo := perun.BalInfo{
-		Currency: currency.ETH,
-		Bals:     make(map[string]string),
-	}
-	balInfo.Bals[perun.OwnAlias] = ownBal
-	balInfo.Bals[peerAlias] = peerBal
+func OpenPayCh(t *testing.T, sessionID string, parts, bal []string) string {
 	req := pb.OpenPayChReq{
-		SessionID:        sessionID,
-		PeerAlias:        peerAlias,
-		OpeningBalInfo:   grpc.ToGrpcBalInfo(balInfo),
+		SessionID: sessionID,
+		OpeningBalInfo: &pb.BalInfo{
+			Currency: currency.ETH,
+			Parts:    parts,
+			Bal:      bal,
+		},
 		ChallengeDurSecs: 10,
 	}
 	resp, err := client.OpenPayCh(ctx, &req)

@@ -229,7 +229,7 @@ type SessionAPI interface {
 	ID() string
 	AddContact(Peer) error
 	GetContact(alias string) (Peer, error)
-	OpenCh(context.Context, string, BalInfo, App, uint64) (ChInfo, error)
+	OpenCh(context.Context, BalInfo, App, uint64) (ChInfo, error)
 	HandleClose(string, error)
 	GetChsInfo() []ChInfo
 	HandleUpdate(pclient.ChannelUpdate, *pclient.UpdateResponder)
@@ -314,10 +314,16 @@ type (
 		Parts    []string // List of Alias of channel participants.
 	}
 
-	// BalInfo is used to send the balance information to the user.
+	// BalInfo represents the Balance information of the channel participants.
+	// A valid BalInfo should meet the following conditions (will be validated before using the struct):
+	//	1. Lengths of Parts list and Balance list are equal.
+	//	2. All entries in Parts list are unique.
+	//	3. Parts list has an entry "self", that represents the user of the session.
+	//	4. No amount in Balance must be negative.
 	BalInfo struct {
-		Currency string
-		Bals     map[string]string // Map of alias to balance.
+		Currency string   // Currency interpreter used to interpret the amounts in the balance.
+		Parts    []string // List of aliases of channel participants.
+		Bal      []string // Amounts held by each participant in this channel for the given currency.
 	}
 
 	// StateUpdater function is the function that will be used for applying state updates.

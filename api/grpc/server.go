@@ -201,8 +201,8 @@ func (a *PayChServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*pb.
 	if err != nil {
 		return errResponse(err), nil
 	}
-	balInfo := FromGrpcBalInfo(req.OpeningBalInfo)
-	payChInfo, err := payment.OpenPayCh(ctx, sess, req.PeerAlias, balInfo, req.ChallengeDurSecs)
+	openingBalInfo := FromGrpcBalInfo(req.OpeningBalInfo)
+	payChInfo, err := payment.OpenPayCh(ctx, sess, openingBalInfo, req.ChallengeDurSecs)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -667,32 +667,19 @@ func (a *PayChServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*p
 // FromGrpcBalInfo is a helper function to convert BalInfo struct defined in grpc package
 // to BalInfo struct defined in perun-node. It is exported for use in tests.
 func FromGrpcBalInfo(src *pb.BalInfo) perun.BalInfo {
-	balInfo := perun.BalInfo{
+	return perun.BalInfo{
 		Currency: src.Currency,
-		Bals:     make(map[string]string, len(src.Bals)),
+		Parts:    src.Parts,
+		Bal:      src.Bal,
 	}
-	for _, aliasBal := range src.Bals {
-		for key, value := range aliasBal.Value {
-			balInfo.Bals[key] = value
-		}
-	}
-	return balInfo
 }
 
 // ToGrpcBalInfo is a helper function to convert BalInfo struct defined in perun-node
 // to BalInfo struct defined in grpc package. It is exported for use in tests.
 func ToGrpcBalInfo(src perun.BalInfo) *pb.BalInfo {
-	balInfo := &pb.BalInfo{
+	return &pb.BalInfo{
 		Currency: src.Currency,
-		Bals:     make([]*pb.BalInfo_AliasBal, len(src.Bals)),
+		Parts:    src.Parts,
+		Bal:      src.Bal,
 	}
-	i := 0
-	for key, value := range src.Bals {
-		balInfo.Bals[i] = &pb.BalInfo_AliasBal{
-			Value: make(map[string]string),
-		}
-		balInfo.Bals[i].Value[key] = value
-		i++
-	}
-	return balInfo
 }

@@ -108,19 +108,17 @@ func Test_Integ_Role(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			bals := make(map[string]string)
-			bals[perun.OwnAlias] = "1"
-			bals[bobAlias] = "2"
-			balInfo := perun.BalInfo{
+			openingBalInfo := perun.BalInfo{
 				Currency: currency.ETH,
-				Bals:     bals,
+				Parts:    []string{perun.OwnAlias, bobAlias},
+				Bal:      []string{"1", "2"},
 			}
 			app := perun.App{
 				Def:  ppayment.NewApp(),
 				Data: pchannel.NoData(),
 			}
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.
-			_, err := alice.OpenCh(ctx, bobAlias, balInfo, app, challengeDurSecs)
+			_, err := alice.OpenCh(ctx, openingBalInfo, app, challengeDurSecs)
 			require.NoErrorf(t, err, "alice opening channel with bob")
 		}()
 
@@ -146,19 +144,17 @@ func Test_Integ_Role(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			bals := make(map[string]string)
-			bals[aliceAlias] = "1"
-			bals[perun.OwnAlias] = "2"
-			balInfo := perun.BalInfo{
+			openingBalInfo := perun.BalInfo{
 				Currency: currency.ETH,
-				Bals:     bals,
+				Parts:    []string{aliceAlias, perun.OwnAlias},
+				Bal:      []string{"1", "2"},
 			}
 			app := perun.App{
 				Def:  ppayment.NewApp(),
 				Data: pchannel.NoData(),
 			}
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.
-			_, err := bob.OpenCh(ctx, aliceAlias, balInfo, app, challengeDurSecs)
+			_, err := bob.OpenCh(ctx, openingBalInfo, app, challengeDurSecs)
 			require.Error(t, err, "bob channel rejected by alice")
 			t.Log(err)
 		}()

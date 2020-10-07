@@ -35,91 +35,68 @@ import (
 )
 
 var (
-	peerAlias        = "peer"
-	parts            []string
+	peerAlias               = "peer"
+	parts                   = []string{perun.OwnAlias, peerAlias}
 	version          uint64 = 1
 	versionString    string = "1"
 	challengeDurSecs uint64 = 10
-	app              perun.App
-	chID                   = "channel1"
-	proposalID             = "proposal1"
-	updateID               = "update1"
-	expiry           int64 = 1597946401
-
-	ownAmount, peerAmount         = "1", "2"
-	ownAmountRaw, peerAmountRaw   = big.NewInt(1e18), big.NewInt(2e18)
-	wantOwnAmount, wantPeerAmount = "1.000000", "2.000000"
-
-	amountToSend             = "0.5"
-	wantUpdatedOwnAmountRaw  = big.NewInt(0.5e18)
-	wantUpdatedPeerAmountRaw = big.NewInt(2.5e18)
-	wantUpdatedOwnAmount     = "0.500000"
-	wantUpdatedPeerAmount    = "2.500000"
-
-	bals, wantBals, wantUpdatedBals          map[string]string
-	balInfo, wantBalInfo, wantUpdatedBalInfo perun.BalInfo
-
-	chInfo, updatedChInfo perun.ChInfo
-
-	chProposalNotif perun.ChProposalNotif
-	chUpdateNotif   perun.ChUpdateNotif
-	chCloseNotif    perun.ChCloseNotif
-)
-
-func init() {
-	parts = []string{perun.OwnAlias, peerAlias}
-	app = perun.App{
+	app                     = perun.App{
 		Def:  ppayment.NewApp(),
 		Data: pchannel.NoData(),
 	}
 
-	bals = make(map[string]string)
-	bals[perun.OwnAlias] = ownAmount
-	bals[peerAlias] = peerAmount
+	chID             = "channel1"
+	proposalID       = "proposal1"
+	updateID         = "update1"
+	expiry     int64 = 1597946401
+
+	balance    = []string{"1", "2"}
+	allocation = pchannel.Allocation{
+		Balances: [][]*big.Int{{big.NewInt(1e18), big.NewInt(2e18)}},
+	}
+	wantBalance = []string{"1.000000", "2.000000"}
+
+	amountToSend      = "0.5"
+	updatedAllocation = pchannel.Allocation{
+		Balances: [][]*big.Int{{big.NewInt(0.5e18), big.NewInt(2.5e18)}},
+	}
+	wantUpdatedBalance = []string{"0.500000", "2.500000"}
+
 	balInfo = perun.BalInfo{
 		Currency: currency.ETH,
-		Bals:     bals,
+		Parts:    parts,
+		Bal:      balance,
 	}
-	wantBals = make(map[string]string)
-	wantBals[perun.OwnAlias] = wantOwnAmount
-	wantBals[peerAlias] = wantPeerAmount
 	wantBalInfo = perun.BalInfo{
 		Currency: currency.ETH,
-		Bals:     wantBals,
+		Parts:    parts,
+		Bal:      wantBalance,
 	}
-
-	wantUpdatedBals = make(map[string]string)
-	wantUpdatedBals[perun.OwnAlias] = wantUpdatedOwnAmount
-	wantUpdatedBals[peerAlias] = wantUpdatedPeerAmount
 	wantUpdatedBalInfo = perun.BalInfo{
 		Currency: currency.ETH,
-		Bals:     wantUpdatedBals,
+		Parts:    parts,
+		Bal:      wantUpdatedBalance,
 	}
 
 	chInfo = perun.ChInfo{
 		ChID:     chID,
 		Currency: currency.ETH,
 		State: &pchannel.State{
-			App:  &ppayment.App{},
-			Data: pchannel.NoData(),
-			Allocation: pchannel.Allocation{
-				Balances: [][]*big.Int{{ownAmountRaw, peerAmountRaw}},
-			},
-			Version: version,
+			App:        &ppayment.App{},
+			Data:       pchannel.NoData(),
+			Allocation: allocation,
+			Version:    version,
 		},
 		Parts: []string{perun.OwnAlias, peerAlias},
 	}
-
 	updatedChInfo = perun.ChInfo{
 		ChID:     chID,
 		Currency: currency.ETH,
 		State: &pchannel.State{
-			App:  &ppayment.App{},
-			Data: pchannel.NoData(),
-			Allocation: pchannel.Allocation{
-				Balances: [][]*big.Int{{wantUpdatedOwnAmountRaw, wantUpdatedPeerAmountRaw}},
-			},
-			Version: version,
+			App:        &ppayment.App{},
+			Data:       pchannel.NoData(),
+			Allocation: updatedAllocation,
+			Version:    version,
 		},
 		Parts: []string{perun.OwnAlias, peerAlias},
 	}
@@ -130,51 +107,43 @@ func init() {
 		ChProposal: &pclient.LedgerChannelProposal{
 			BaseChannelProposal: pclient.BaseChannelProposal{
 				ChallengeDuration: challengeDurSecs,
-				InitBals: &pchannel.Allocation{
-					Balances: [][]*big.Int{{ownAmountRaw, peerAmountRaw}},
-				},
+				InitBals:          &allocation,
 			},
 		},
 		Parts:  parts,
 		Expiry: expiry,
 	}
-
 	chUpdateNotif = perun.ChUpdateNotif{
 		UpdateID: updateID,
 		Currency: currency.ETH,
 		Update: &pclient.ChannelUpdate{
 			State: &pchannel.State{
-				Allocation: pchannel.Allocation{
-					Balances: [][]*big.Int{{wantUpdatedOwnAmountRaw, wantUpdatedPeerAmountRaw}},
-				},
-				IsFinal: true,
-				Version: version,
+				Allocation: updatedAllocation,
+				IsFinal:    true,
+				Version:    version,
 			},
 		},
 		Parts:  parts,
 		Expiry: expiry,
 	}
-
 	chCloseNotif = perun.ChCloseNotif{
 		ChID:     chID,
 		Currency: currency.ETH,
 		ChState: &pchannel.State{
-			Allocation: pchannel.Allocation{
-				Balances: [][]*big.Int{{wantUpdatedOwnAmountRaw, wantUpdatedPeerAmountRaw}},
-			},
-			Version: version,
+			Allocation: updatedAllocation,
+			Version:    version,
 		},
 		Parts: parts,
 		Error: "",
 	}
-}
+)
 
 func Test_OpenPayCh(t *testing.T) {
 	t.Run("happy", func(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("OpenCh", context.Background(), peerAlias, balInfo, app, challengeDurSecs).Return(chInfo, nil)
+		sessionAPI.On("OpenCh", context.Background(), balInfo, app, challengeDurSecs).Return(chInfo, nil)
 
-		gotPayChInfo, gotErr := payment.OpenPayCh(context.Background(), sessionAPI, peerAlias, balInfo, challengeDurSecs)
+		gotPayChInfo, gotErr := payment.OpenPayCh(context.Background(), sessionAPI, balInfo, challengeDurSecs)
 		require.NoError(t, gotErr)
 		assert.Equal(t, wantBalInfo, gotPayChInfo.BalInfo)
 		assert.Equal(t, versionString, gotPayChInfo.Version)
@@ -183,10 +152,10 @@ func Test_OpenPayCh(t *testing.T) {
 
 	t.Run("error", func(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("OpenCh", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		sessionAPI.On("OpenCh", context.Background(), balInfo, app, challengeDurSecs).Return(
 			perun.ChInfo{}, assert.AnError)
 
-		_, gotErr := payment.OpenPayCh(context.Background(), sessionAPI, peerAlias, balInfo, challengeDurSecs)
+		_, gotErr := payment.OpenPayCh(context.Background(), sessionAPI, balInfo, challengeDurSecs)
 		require.Error(t, gotErr)
 	})
 }
