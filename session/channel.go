@@ -220,7 +220,7 @@ func makeChInfo(chID string, parts []string, curr string, state *pchannel.State)
 	}
 }
 
-// makeApp returns perun.makeApp formed from the given add def and app data.
+// makeApp returns perun.makeApp formed from the given app def and app data.
 func makeApp(def pchannel.App, data pchannel.Data) perun.App {
 	return perun.App{
 		Def:  def,
