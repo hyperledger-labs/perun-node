@@ -18,22 +18,18 @@ package payment
 
 import (
 	"context"
-	"fmt"
-	"math/big"
 
 	ppayment "perun.network/go-perun/apps/payment"
 	pchannel "perun.network/go-perun/channel"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
-	"github.com/hyperledger-labs/perun-node/currency"
 )
 
 type (
 	// PayChProposalNotif represents the channel update notification data for payment app.
 	PayChProposalNotif struct {
 		ProposalID       string
-		Currency         string
 		OpeningBalInfo   perun.BalInfo
 		ChallengeDurSecs uint64
 		Expiry           int64
@@ -71,40 +67,27 @@ func OpenPayCh(pctx context.Context, s perun.SessionAPI, openingBalInfo perun.Ba
 	}
 
 	chInfo, err := s.OpenCh(pctx, openingBalInfo, paymentApp, challengeDurSecs)
-	if err != nil {
-		return PayChInfo{}, err
-	}
-	return PayChInfo{
-		ChID:    chInfo.ChID,
-		BalInfo: balInfoFromState(chInfo.Currency, chInfo.State, chInfo.Parts),
-		Version: fmt.Sprintf("%d", chInfo.State.Version),
-	}, nil
+	return ToPayChInfo(chInfo), err
 }
 
 // GetPayChsInfo returns a list of payment channel info for all the channels in this session.
 func GetPayChsInfo(s perun.SessionAPI) []PayChInfo {
 	chsInfo := s.GetChsInfo()
 
-	openPayChsInfo := make([]PayChInfo, len(chsInfo))
+	payChsInfo := make([]PayChInfo, len(chsInfo))
 	for i := range chsInfo {
-		openPayChsInfo[i] = PayChInfo{
-			ChID:    chsInfo[i].ChID,
-			BalInfo: balInfoFromState(chsInfo[i].Currency, chsInfo[i].State, chsInfo[i].Parts),
-			Version: fmt.Sprintf("%d", chsInfo[i].State.Version),
-		}
+		payChsInfo[i] = ToPayChInfo(chsInfo[i])
 	}
-	return openPayChsInfo
+	return payChsInfo
 }
 
 // SubPayChProposals sets up a subscription for payment channel proposals.
 func SubPayChProposals(s perun.SessionAPI, notifier PayChProposalNotifier) error {
 	return s.SubChProposals(func(notif perun.ChProposalNotif) {
-		balsBigInt := notif.ChProposal.Proposal().InitBals.Balances[0]
 		notifier(PayChProposalNotif{
 			ProposalID:       notif.ProposalID,
-			Currency:         notif.Currency,
-			OpeningBalInfo:   balInfoFromRawBal("ETH", balsBigInt, notif.Parts),
-			ChallengeDurSecs: notif.ChProposal.Proposal().ChallengeDuration,
+			OpeningBalInfo:   notif.OpeningBalInfo,
+			ChallengeDurSecs: notif.ChallengeDurSecs,
 			Expiry:           notif.Expiry,
 		})
 	})
@@ -124,11 +107,8 @@ func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID s
 func SubPayChCloses(s perun.SessionAPI, notifier PayChCloseNotifier) error {
 	return s.SubChCloses(func(notif perun.ChCloseNotif) {
 		notifier(PayChCloseNotif{
-			ClosedPayChInfo: PayChInfo{
-				ChID:    notif.ChID,
-				BalInfo: balInfoFromState(notif.Currency, notif.ChState, notif.Parts),
-				Version: fmt.Sprintf("%d", notif.ChState.Version),
-			},
+			ClosedPayChInfo: ToPayChInfo(notif.ClosedChInfo),
+			Error:           notif.Error,
 		})
 	})
 }
@@ -136,22 +116,4 @@ func SubPayChCloses(s perun.SessionAPI, notifier PayChCloseNotifier) error {
 // UnsubPayChCloses deletes the existing subscription for payment channel closes.
 func UnsubPayChCloses(s perun.SessionAPI) error {
 	return s.UnsubChCloses()
-}
-
-func balInfoFromState(currency string, state *pchannel.State, parts []string) perun.BalInfo {
-	return balInfoFromRawBal(currency, state.Balances[0], parts)
-}
-
-func balInfoFromRawBal(chCurrency string, rawBal []*big.Int, parts []string) perun.BalInfo {
-	balInfo := perun.BalInfo{
-		Currency: chCurrency,
-		Parts:    parts,
-		Bal:      make([]string, len(rawBal)),
-	}
-
-	parser := currency.NewParser(chCurrency)
-	for i := range rawBal {
-		balInfo.Bal[i] = parser.Print(rawBal[i])
-	}
-	return balInfo
 }

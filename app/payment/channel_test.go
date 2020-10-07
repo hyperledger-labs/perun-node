@@ -33,9 +33,8 @@ import (
 func Test_SendPayChUpdate(t *testing.T) {
 	t.Run("happy_sendPayment", func(t *testing.T) {
 		var updater perun.StateUpdater
-
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("GetChInfo").Return(chInfo)
+		chAPI.On("GetChInfo").Return(openedChInfo)
 		chAPI.On("SendChUpdate", context.Background(), mock.MatchedBy(func(gotUpdater perun.StateUpdater) bool {
 			updater = gotUpdater
 			return true
@@ -45,33 +44,24 @@ func Test_SendPayChUpdate(t *testing.T) {
 		require.NoError(t, gotErr)
 		require.NotNil(t, updater)
 
-		stateCopy := chInfo.State.Clone()
-		updater(stateCopy)
-		assert.Equal(t, chUpdateNotif.Update.State.Allocation.Balances, stateCopy.Allocation.Balances)
+		// TODO: Now that State is not available, how to test the updater function ?
+		// stateCopy := chInfo.State.Clone()
+		// updater(stateCopy)
+		// assert.Equal(t, chUpdateNotif.ProposedChInfo.State.Balances, stateCopy.Allocation.Balances)
 	})
 
 	t.Run("happy_requestPayment", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("GetChInfo").Return(chInfo)
+		chAPI.On("GetChInfo").Return(openedChInfo)
 		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(nil)
 
 		gotErr := payment.SendPayChUpdate(context.Background(), chAPI, perun.OwnAlias, amountToSend)
 		require.NoError(t, gotErr)
 	})
 
-	t.Run("error_InsufficientBalance", func(t *testing.T) {
-		chAPI := &mocks.ChAPI{}
-		chAPI.On("GetChInfo").Return(chInfo)
-		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(nil)
-
-		amount := "10" // This amount is greater than the channel balance of "1"
-		gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, amount)
-		require.True(t, errors.Is(gotErr, perun.ErrInsufficientBal))
-	})
-
 	t.Run("error_InvalidAmount", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("GetChInfo").Return(chInfo)
+		chAPI.On("GetChInfo").Return(openedChInfo)
 		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(nil)
 
 		invalidAmount := "abc"
@@ -81,7 +71,7 @@ func Test_SendPayChUpdate(t *testing.T) {
 
 	t.Run("error_InvalidPayee", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("GetChInfo").Return(chInfo)
+		chAPI.On("GetChInfo").Return(openedChInfo)
 		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(nil)
 
 		invalidPayee := "invalid-payee"
@@ -91,21 +81,29 @@ func Test_SendPayChUpdate(t *testing.T) {
 
 	t.Run("error_SendChUpdate", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("GetChInfo").Return(chInfo)
+		chAPI.On("GetChInfo").Return(openedChInfo)
 		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(assert.AnError)
 
 		gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, amountToSend)
 		require.Error(t, gotErr)
+		t.Log(gotErr)
 	})
 }
 
 func Test_GetBalInfo(t *testing.T) {
-	t.Run("happy", func(t *testing.T) {
+	t.Run("happy1", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("GetChInfo").Return(chInfo)
+		chAPI.On("GetChInfo").Return(openedChInfo)
 
 		gotBalInfo := payment.GetBalInfo(chAPI)
-		assert.Equal(t, wantBalInfo, gotBalInfo)
+		assert.Equal(t, openingBalInfo, gotBalInfo)
+	})
+	t.Run("happy2", func(t *testing.T) {
+		chAPI := &mocks.ChAPI{}
+		chAPI.On("GetChInfo").Return(updatedChInfo)
+
+		gotBalInfo := payment.GetBalInfo(chAPI)
+		assert.Equal(t, updatedBalInfo, gotBalInfo)
 	})
 }
 
@@ -126,13 +124,10 @@ func Test_SubPayChUpdates(t *testing.T) {
 		assert.NoError(t, gotErr)
 		require.NotNil(t, notifier)
 
+		// Test the notifier function, that interprets the notification for payment app.
+		require.NotNil(t, notifier)
 		notifier(chUpdateNotif)
-		require.NotZero(t, notif)
-		require.Equal(t, chUpdateNotif.UpdateID, notif.UpdateID)
-		require.Equal(t, wantUpdatedBalInfo, notif.ProposedBalInfo)
-		require.Equal(t, versionString, notif.Version)
-		require.Equal(t, chUpdateNotif.Update.State.IsFinal, notif.Final)
-		require.Equal(t, chUpdateNotif.Expiry, notif.Expiry)
+		require.Equal(t, wantPayChUpdateNotif, notif)
 	})
 	t.Run("error", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
@@ -141,6 +136,7 @@ func Test_SubPayChUpdates(t *testing.T) {
 		dummyNotifier := func(notif payment.PayChUpdateNotif) {}
 		gotErr := payment.SubPayChUpdates(chAPI, dummyNotifier)
 		assert.Error(t, gotErr)
+		t.Log(gotErr)
 	})
 }
 
@@ -187,6 +183,7 @@ func Test_RespondPayChUpdate(t *testing.T) {
 
 		gotErr := payment.RespondPayChUpdate(context.Background(), chAPI, updateID, accept)
 		assert.Error(t, gotErr)
+		t.Log(gotErr)
 	})
 }
 
@@ -197,15 +194,14 @@ func Test_ClosePayCh(t *testing.T) {
 
 		gotPayChInfo, err := payment.ClosePayCh(context.Background(), chAPI)
 		require.NoError(t, err)
-		assert.Equal(t, wantUpdatedBalInfo, gotPayChInfo.BalInfo)
-		assert.Equal(t, versionString, gotPayChInfo.Version)
-		assert.NotZero(t, gotPayChInfo.ChID)
+		assert.Equal(t, wantUpdatedPayChInfo, gotPayChInfo)
 	})
 	t.Run("error", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("Close", context.Background()).Return(chInfo, assert.AnError)
+		chAPI.On("Close", context.Background()).Return(updatedChInfo, assert.AnError)
 
-		_, err := payment.ClosePayCh(context.Background(), chAPI)
-		require.Error(t, err)
+		_, gotErr := payment.ClosePayCh(context.Background(), chAPI)
+		require.Error(t, gotErr)
+		t.Log(gotErr)
 	})
 }

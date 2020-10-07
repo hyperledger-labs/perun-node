@@ -73,11 +73,8 @@ type (
 	}
 
 	chProposalResponderEntry struct {
-		proposal         pclient.ChannelProposal
-		responder        chProposalResponder
-		challengeDurSecs uint64
-		parts            []string
-		expiry           int64
+		notif     perun.ChProposalNotif
+		responder chProposalResponder
 	}
 
 	//go:generate mockery --name chProposalResponder --output ../internal/mocks
@@ -380,31 +377,36 @@ func (s *session) HandleProposal(chProposal pclient.ChannelProposal, responder *
 		parts[i] = p.Alias
 	}
 
-	proposalID := fmt.Sprintf("%x", chProposal.Proposal().ProposalID())
+	notif := chProposalNotif(parts, currency.ETH, chProposal.Proposal(), expiry)
 	entry := chProposalResponderEntry{
-		proposal:         chProposal,
-		responder:        responder,
-		challengeDurSecs: chProposal.Proposal().ChallengeDuration,
-		parts:            parts,
-		expiry:           expiry,
+		notif:     notif,
+		responder: responder,
 	}
-	s.chProposalResponders[proposalID] = entry
+	// Need not store entries for notification with expiry = 0, as these update requests have
+	// already been rejected by the perun node. Hence no response is expected for these notifications.
+	if expiry != 0 {
+		s.chProposalResponders[notif.ProposalID] = entry
+	}
 
 	// Set ETH as the currency interpreter for incoming channel.
 	// TODO: (mano) Provide an option for user to configure when more currency interpretters are supported.
-	notif := perun.ChProposalNotif{
-		ProposalID: proposalID,
-		Currency:   currency.ETH,
-		ChProposal: chProposal,
-		Parts:      parts,
-		Expiry:     expiry,
-	}
 	if s.chProposalNotifier == nil {
 		s.chProposalNotifsCache = append(s.chProposalNotifsCache, notif)
 		s.Debugf("HandleProposal: Notification cached", notif)
 	} else {
 		go s.chProposalNotifier(notif)
 		s.Debugf("HandleProposal: Notification sent", notif)
+	}
+}
+
+func chProposalNotif(parts []string, curr string, chProposal *pclient.BaseChannelProposal,
+	expiry int64) perun.ChProposalNotif {
+	return perun.ChProposalNotif{
+		ProposalID:       fmt.Sprintf("%x", chProposal.ProposalID()),
+		OpeningBalInfo:   makeBalInfoFromRawBal(parts, curr, chProposal.InitBals.Balances[0]),
+		App:              makeApp(chProposal.Proposal().App, chProposal.InitData),
+		ChallengeDurSecs: chProposal.ChallengeDuration,
+		Expiry:           expiry,
 	}
 }
 
@@ -451,8 +453,8 @@ func (s *session) RespondChProposal(pctx context.Context, chProposalID string, a
 	delete(s.chProposalResponders, chProposalID)
 
 	currTime := time.Now().UTC().Unix()
-	if entry.expiry < currTime {
-		s.Info("timeout:", entry.expiry, "received response at:", currTime)
+	if entry.notif.Expiry < currTime {
+		s.Info("timeout:", entry.notif.Expiry, "received response at:", currTime)
 		return perun.ErrRespTimeoutExpired
 	}
 
@@ -472,7 +474,7 @@ func (s *session) RespondChProposal(pctx context.Context, chProposalID string, a
 }
 
 func (s *session) acceptChProposal(pctx context.Context, entry chProposalResponderEntry) error {
-	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.respChProposalAccept(entry.challengeDurSecs))
+	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.respChProposalAccept(entry.notif.ChallengeDurSecs))
 	defer cancel()
 	pch, err := entry.responder.Accept(ctx, pclient.ProposalAcc{Participant: s.user.OffChainAddr})
 	if err != nil {
@@ -482,7 +484,7 @@ func (s *session) acceptChProposal(pctx context.Context, entry chProposalRespond
 
 	// Set ETH as the currency interpreter for incoming channel.
 	// TODO: (mano) Provide an option for user to configure when more currency interpreters are supported.
-	ch := newCh(pch, currency.ETH, entry.parts, s.timeoutCfg, entry.challengeDurSecs)
+	ch := newCh(pch, currency.ETH, entry.notif.OpeningBalInfo.Parts, s.timeoutCfg, entry.notif.ChallengeDurSecs)
 	s.addCh(ch)
 	return nil
 }
@@ -549,25 +551,30 @@ func (s *session) HandleUpdate(chUpdate pclient.ChannelUpdate, responder *pclien
 	}
 
 	entry := chUpdateResponderEntry{
-		responder: responder,
-		expiry:    expiry,
+		responder:   responder,
+		notifExpiry: expiry,
 	}
-	ch.chUpdateResponders[updateID] = entry
-
-	notif := perun.ChUpdateNotif{
-		UpdateID:  updateID,
-		Currency:  ch.currency,
-		CurrState: ch.currState,
-		Update:    &chUpdate,
-		Parts:     ch.parts,
-		Expiry:    expiry,
+	// Need not store entries for notification with expiry = 0, as these update requests have
+	// already been rejected by the perun node. Hence no response is expected for these notifications.
+	if expiry != 0 {
+		ch.chUpdateResponders[updateID] = entry
 	}
+	notif := chUpdateNotif(ch.getChInfo(), chUpdate.State, expiry)
 	if ch.chUpdateNotifier == nil {
 		ch.chUpdateNotifCache = append(ch.chUpdateNotifCache, notif)
 		ch.Debug("HandleUpdate: Notification cached")
 	} else {
 		go ch.chUpdateNotifier(notif)
 		ch.Debug("HandleUpdate: Notification sent")
+	}
+}
+
+func chUpdateNotif(currChInfo perun.ChInfo, proposedState *pchannel.State, expiry int64) perun.ChUpdateNotif {
+	return perun.ChUpdateNotif{
+		UpdateID:       fmt.Sprintf("%s_%d", currChInfo.ChID, proposedState.Version),
+		CurrChInfo:     currChInfo,
+		ProposedChInfo: makeChInfo(currChInfo.ChID, currChInfo.BalInfo.Parts, currChInfo.BalInfo.Currency, proposedState),
+		Expiry:         expiry,
 	}
 }
 
@@ -586,12 +593,8 @@ func (s *session) HandleClose(chID string, err error) {
 		ch.lockState = closed
 	}
 
-	chInfo := ch.getChInfo()
 	notif := perun.ChCloseNotif{
-		ChID:     chInfo.ChID,
-		Currency: chInfo.Currency,
-		ChState:  chInfo.State,
-		Parts:    chInfo.Parts,
+		ClosedChInfo: ch.getChInfo(),
 	}
 	if err != nil {
 		notif.Error = err.Error()

@@ -197,7 +197,7 @@ func Test_Integ_Role(t *testing.T) {
 			defer wg.Done()
 			bobChInfo := bobCh.GetChInfo()
 			var ownIdx, peerIdx int
-			if bobChInfo.Parts[0] == perun.OwnAlias {
+			if bobChInfo.BalInfo.Parts[0] == perun.OwnAlias {
 				ownIdx = 0
 			} else {
 				ownIdx = 1
@@ -240,7 +240,7 @@ func Test_Integ_Role(t *testing.T) {
 			defer wg.Done()
 			aliceChInfo := aliceCh.GetChInfo()
 			var ownIdx, peerIdx int
-			if aliceChInfo.Parts[0] == perun.OwnAlias {
+			if aliceChInfo.BalInfo.Parts[0] == perun.OwnAlias {
 				ownIdx = 0
 			} else {
 				ownIdx = 1

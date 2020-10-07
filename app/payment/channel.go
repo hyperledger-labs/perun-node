@@ -18,7 +18,7 @@ package payment
 
 import (
 	"context"
-	"fmt"
+	"math/big"
 
 	pchannel "perun.network/go-perun/channel"
 
@@ -38,75 +38,68 @@ type (
 
 	// PayChUpdateNotif represents the channel update notification data for payment app.
 	PayChUpdateNotif struct {
-		UpdateID        string
-		ProposedBalInfo perun.BalInfo
-		Version         string
-		Final           bool
-		Currency        string
-		Parts           []string
-		Expiry          int64
+		UpdateID          string
+		ProposedPayChInfo PayChInfo
+		IsFinal           bool
+		Expiry            int64
 	}
 )
 
 // SendPayChUpdate send the given amount to the payee. Payee should be one of the channel participants.
 // Use "self" to request payments.
 func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string) error {
-	chInfo := ch.GetChInfo()
-	f, err := newUpdater(chInfo.State, chInfo.Parts, chInfo.Currency, payee, amount)
+	balInfo := ch.GetChInfo().BalInfo
+	parsedAmount, err := parseAmount(balInfo.Currency, amount)
 	if err != nil {
 		return err
 	}
-	return ch.SendChUpdate(pctx, f)
+	payerIdx, payeeIdx, err := getPayerPayeeIdx(balInfo.Parts, payee)
+	if err != nil {
+		return err
+	}
+	return ch.SendChUpdate(pctx, newUpdate(payerIdx, payeeIdx, parsedAmount))
 }
 
-func newUpdater(currState *pchannel.State, parts []string, chCurrency, payee, amount string) (
-	perun.StateUpdater, error) {
+func parseAmount(chCurrency string, amount string) (*big.Int, error) {
 	parsedAmount, err := currency.NewParser(chCurrency).Parse(amount)
 	if err != nil {
 		return nil, perun.ErrInvalidAmount
 	}
+	return parsedAmount, nil
+}
 
-	// find index
-	var payerIdx, payeeIdx int
-	if parts[0] == payee {
-		payeeIdx = 0
-	} else if parts[1] == payee {
-		payeeIdx = 1
-	} else {
-		return nil, perun.ErrInvalidPayee
+func getPayerPayeeIdx(parts []string, payee string) (payerIdx, payeeIdx int, _ error) {
+	for i := range parts {
+		if parts[i] == payee {
+			payeeIdx = i
+			payerIdx = payeeIdx ^ 1
+			return payerIdx, payeeIdx, nil
+		}
 	}
-	payerIdx = payeeIdx ^ 1
+	return 0, 0, perun.ErrInvalidPayee
+}
 
-	// check sufficient balance
-	bals := currState.Allocation.Clone().Balances[0]
-	bals[payerIdx].Sub(bals[payerIdx], parsedAmount)
-	bals[payeeIdx].Add((bals[payeeIdx]), parsedAmount)
-	if bals[payerIdx].Sign() == -1 {
-		return nil, perun.ErrInsufficientBal
-	}
-
-	// return updater func
+func newUpdate(payerIdx, payeeIdx int, parsedAmount *big.Int) perun.StateUpdater {
 	return func(state *pchannel.State) {
-		state.Allocation.Balances[0][payerIdx] = bals[payerIdx]
-		state.Allocation.Balances[0][payeeIdx] = bals[payeeIdx]
-	}, nil
+		bal := state.Allocation.Balances[0]
+		bal[payerIdx].Sub(bal[payerIdx], parsedAmount)
+		bal[payeeIdx].Add(bal[payeeIdx], parsedAmount)
+	}
 }
 
 // GetBalInfo returns the balance information for this channel.
 func GetBalInfo(ch perun.ChAPI) perun.BalInfo {
-	chInfo := ch.GetChInfo()
-	return balInfoFromState(chInfo.Currency, chInfo.State, chInfo.Parts)
+	return ch.GetChInfo().BalInfo
 }
 
 // SubPayChUpdates sets up a subscription for updates on this channel.
 func SubPayChUpdates(ch perun.ChAPI, notifier PayChUpdateNotifier) error {
 	return ch.SubChUpdates(func(notif perun.ChUpdateNotif) {
 		notifier(PayChUpdateNotif{
-			UpdateID:        notif.UpdateID,
-			ProposedBalInfo: balInfoFromState(notif.Currency, notif.Update.State, notif.Parts),
-			Version:         fmt.Sprintf("%d", notif.Update.State.Version),
-			Final:           notif.Update.State.IsFinal,
-			Expiry:          notif.Expiry,
+			UpdateID:          notif.UpdateID,
+			ProposedPayChInfo: ToPayChInfo(notif.ProposedChInfo),
+			IsFinal:           notif.ProposedChInfo.IsFinal,
+			Expiry:            notif.Expiry,
 		})
 	})
 }
@@ -124,12 +117,14 @@ func RespondPayChUpdate(pctx context.Context, ch perun.ChAPI, updateID string, a
 // ClosePayCh closes the payment channel.
 func ClosePayCh(pctx context.Context, ch perun.ChAPI) (PayChInfo, error) {
 	chInfo, err := ch.Close(pctx)
-	if err != nil {
-		return PayChInfo{}, err
-	}
+	return ToPayChInfo(chInfo), err
+}
+
+// ToPayChInfo converts ChInfo to PayChInfo.
+func ToPayChInfo(chInfo perun.ChInfo) PayChInfo {
 	return PayChInfo{
 		ChID:    chInfo.ChID,
-		BalInfo: balInfoFromState(chInfo.Currency, chInfo.State, chInfo.Parts),
-		Version: fmt.Sprintf("%d", chInfo.State.Version),
-	}, nil
-}
+		BalInfo: chInfo.BalInfo,
+		Version: chInfo.Version,
+	}
+} // nolint:gofumpt // unknown error, maybe a false positive
