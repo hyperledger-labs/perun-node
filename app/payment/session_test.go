@@ -228,3 +228,21 @@ func Test_RespondPayChProposal(t *testing.T) {
 		t.Log(gotErr)
 	})
 }
+
+func Test_CloseSession(t *testing.T) {
+	t.Run("happy_noForce", func(t *testing.T) {
+		force := false
+		sessionAPI := &mocks.SessionAPI{}
+		sessionAPI.On("Close", force).Return(nil, nil)
+	})
+	t.Run("happy_Force", func(t *testing.T) {
+		force := true
+		sessionAPI := &mocks.SessionAPI{}
+		sessionAPI.On("Close", force).Return(nil, nil)
+	})
+	t.Run("ErrorOpenChs_noForce", func(t *testing.T) {
+		force := false
+		sessionAPI := &mocks.SessionAPI{}
+		sessionAPI.On("Close", force).Return([]perun.ChInfo{updatedChInfo}, nil)
+	})
+}

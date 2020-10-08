@@ -107,7 +107,10 @@ func Test_Integ_Role(t *testing.T) {
 		// Propose Channel by alice.
 		wg.Add(1)
 		go func() {
-			defer wg.Done()
+			defer func() {
+				wg.Done()
+				t.Logf("\ncompleted")
+			}()
 			openingBalInfo := perun.BalInfo{
 				Currency: currency.ETH,
 				Parts:    []string{perun.OwnAlias, bobAlias},
@@ -121,6 +124,7 @@ func Test_Integ_Role(t *testing.T) {
 			_, err := alice.OpenCh(ctx, openingBalInfo, app, challengeDurSecs)
 			require.NoErrorf(t, err, "alice opening channel with bob")
 		}()
+		defer wg.Wait()
 
 		// Accept channel by bob.
 		bobChProposalNotif := make(chan perun.ChProposalNotif)
@@ -136,7 +140,7 @@ func Test_Integ_Role(t *testing.T) {
 
 		err = bob.UnsubChProposals()
 		require.NoError(t, err, "bob unsubscribing channel proposals")
-		wg.Wait()
+		t.Logf("\nwait completed")
 	})
 
 	t.Run("OpenCh_Sub_Unsub_ChProposal_Respond_Reject", func(t *testing.T) {
@@ -158,6 +162,7 @@ func Test_Integ_Role(t *testing.T) {
 			require.Error(t, err, "bob channel rejected by alice")
 			t.Log(err)
 		}()
+		defer wg.Wait()
 
 		// Reject channel by alice.
 		aliceChProposalNotif := make(chan perun.ChProposalNotif)
@@ -173,7 +178,6 @@ func Test_Integ_Role(t *testing.T) {
 
 		err = alice.UnsubChProposals()
 		require.NoError(t, err, "alice unsubscribing channel proposals")
-		wg.Wait()
 	})
 
 	var aliceCh, bobCh perun.ChAPI
@@ -212,9 +216,11 @@ func Test_Integ_Role(t *testing.T) {
 				state.Allocation.Balances[0] = bals
 			}
 
-			_, err = bobCh.SendChUpdate(ctx, updater)
+			// nolint: govet	// err does not shadow, using a new var to prevent data race.
+			_, err := bobCh.SendChUpdate(ctx, updater)
 			require.NoError(t, err)
 		}()
+		defer wg.Wait()
 
 		// Accept channel by alice.
 		aliceChUpdateNotif := make(chan perun.ChUpdateNotif)
@@ -230,7 +236,6 @@ func Test_Integ_Role(t *testing.T) {
 
 		err = aliceCh.UnsubChUpdates()
 		require.NoError(t, err, "alice unsubscribing channel updates")
-		wg.Wait()
 	})
 
 	t.Run("SendUpdate_Sub_Unsub_ChUpdate_Respond_Reject", func(t *testing.T) {
@@ -255,10 +260,12 @@ func Test_Integ_Role(t *testing.T) {
 				state.Allocation.Balances[0] = bals
 			}
 
-			_, err = aliceCh.SendChUpdate(ctx, updater)
+			// nolint: govet	// err does not shadow, using a new var to prevent data race.
+			_, err := aliceCh.SendChUpdate(ctx, updater)
 			require.Error(t, err, "alice update rejected by bob")
 			t.Log(err)
 		}()
+		defer wg.Wait()
 
 		// Reject channel by bob.
 		bobChUpdateNotif := make(chan perun.ChUpdateNotif)
@@ -274,7 +281,15 @@ func Test_Integ_Role(t *testing.T) {
 
 		err = bobCh.UnsubChUpdates()
 		require.NoError(t, err, "bob unsubscribing channel updates")
-		wg.Wait()
+	})
+
+	t.Run("Session_Close_NoForce_Error", func(t *testing.T) {
+		var openChsInfo []perun.ChInfo
+		openChsInfo, err = alice.Close(false)
+		require.Error(t, err)
+		t.Log(err)
+		require.Len(t, openChsInfo, 1)
+		assert.Equal(t, aliceCh.ID(), openChsInfo[0].ChID)
 	})
 
 	// Note: Watcher does not return on collaborative close for the
@@ -294,17 +309,19 @@ func Test_Integ_Role(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			closingChInfo, err := aliceCh.Close(ctx)
+			// nolint: govet	// err does not shadow, using a new var to prevent data race.
+			closedChInfo, err := aliceCh.Close(ctx)
 			require.NoError(t, err)
-			t.Log("alice", closingChInfo)
+			t.Log("alice", closedChInfo)
 		}()
+		defer wg.Wait()
 
 		// Reject final channel by bob.
 		bobChUpdateNotif := make(chan perun.ChUpdateNotif)
 		bobChUpdateNotifier := func(notif perun.ChUpdateNotif) {
 			bobChUpdateNotif <- notif
 		}
-		err := bobCh.SubChUpdates(bobChUpdateNotifier)
+		err = bobCh.SubChUpdates(bobChUpdateNotifier)
 		require.NoError(t, err, "bob subscribing channel updates")
 
 		notif := <-bobChUpdateNotif
@@ -324,6 +341,7 @@ func Test_Integ_Role(t *testing.T) {
 		assert.Error(t, err)
 		t.Log(err, "UnsubChUpdates for alice")
 
+		require.EqualError(t, err, perun.ErrChClosed.Error())
 		// Receive, unsub channel close notifs.
 		notif = <-aliceChUpdateNotif
 		t.Log("alice", notif)
@@ -332,6 +350,18 @@ func Test_Integ_Role(t *testing.T) {
 		assert.Error(t, err)
 		t.Log(err, "UnsubChUpdates for alice")
 
-		wg.Wait()
+		t.Run("Session_Close_NoForce_Sucesss", func(t *testing.T) {
+			var openChsInfo []perun.ChInfo
+			openChsInfo, err = alice.Close(false)
+			require.NoError(t, err)
+			require.Len(t, openChsInfo, 0)
+		})
+
+		t.Run("Session_Close_Force_Sucesss", func(t *testing.T) {
+			var openChsInfo []perun.ChInfo
+			openChsInfo, err = bob.Close(true)
+			require.NoError(t, err)
+			require.Len(t, openChsInfo, 0)
+		})
 	})
 }

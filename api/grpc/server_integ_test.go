@@ -132,8 +132,9 @@ func Test_Integ_Role(t *testing.T) {
 	var alicePeer, bobPeer *pb.Peer
 	var chID string
 	prng := rand.New(rand.NewSource(1729))
-	aliceCfgFile := sessiontest.NewConfigFile(t, sessiontest.NewConfig(t, prng))
-	bobCfgFile := sessiontest.NewConfigFile(t, sessiontest.NewConfig(t, prng))
+	aliceCfg, bobCfg := sessiontest.NewConfig(t, prng), sessiontest.NewConfig(t, prng)
+	aliceCfgFile := sessiontest.NewConfigFile(t, aliceCfg)
+	bobCfgFile := sessiontest.NewConfigFile(t, bobCfg)
 	wg := &sync.WaitGroup{}
 
 	// Run OpenSession for Alice, Bob in top level test, because cleaup functions
@@ -170,12 +171,21 @@ func Test_Integ_Role(t *testing.T) {
 
 			wg.Done()
 		}()
-		sub := SubPayChProposal(t, bobSessionID)
-		notif := ReadPayChProposalNotif(t, bobSessionID, sub)
-		RespondPayChProposal(t, bobSessionID, notif.Notify.ProposalID, true)
-		UnsubPayChProposal(t, bobSessionID)
+		sub := SubPayChProposal(t, bobSessionID, false)
+		notif := ReadPayChProposalNotif(t, bobSessionID, sub, false)
+		RespondPayChProposal(t, bobSessionID, notif.Notify.ProposalID, true, false)
+		UnsubPayChProposal(t, bobSessionID, false)
 
 		wg.Wait()
+	})
+
+	t.Run("CloseSession_NoForce_ErrOpenPayChs", func(t *testing.T) {
+		openPayChsInfo := CloseSession(t, aliceSessionID, false, true)
+		require.Len(t, openPayChsInfo, 1)
+		assert.Equal(t, chID, openPayChsInfo[0].ChID)
+		openPayChsInfo = CloseSession(t, bobSessionID, false, true)
+		require.Len(t, openPayChsInfo, 1)
+		assert.Equal(t, chID, openPayChsInfo[0].ChID)
 	})
 
 	t.Run("OpenCh_Sub_Unsub_Respond_Reject", func(t *testing.T) {
@@ -186,10 +196,10 @@ func Test_Integ_Role(t *testing.T) {
 
 			wg.Done()
 		}()
-		sub := SubPayChProposal(t, aliceSessionID)
-		notif := ReadPayChProposalNotif(t, aliceSessionID, sub)
-		RespondPayChProposal(t, aliceSessionID, notif.Notify.ProposalID, false)
-		UnsubPayChProposal(t, aliceSessionID)
+		sub := SubPayChProposal(t, aliceSessionID, false)
+		notif := ReadPayChProposalNotif(t, aliceSessionID, sub, false)
+		RespondPayChProposal(t, aliceSessionID, notif.Notify.ProposalID, false, false)
+		UnsubPayChProposal(t, aliceSessionID, false)
 
 		wg.Wait()
 	})
@@ -230,6 +240,7 @@ func Test_Integ_Role(t *testing.T) {
 		wg.Wait()
 	})
 
+	isClosePayChSuccessful := make(chan bool, 1)
 	t.Run("Close_Sub_Unsub", func(t *testing.T) {
 		// Bob closes payment channel, Alice receives notification for rejects and final update,
 		// both receive channel closed notifications.
@@ -256,9 +267,24 @@ func Test_Integ_Role(t *testing.T) {
 		}()
 
 		time.Sleep(2 * time.Second) // Wait for the subscriptions to be made.
-		ClosePayCh(t, bobSessionID, chID)
+		isClosePayChSuccessful <- ClosePayCh(t, bobSessionID, chID)
 
 		wg.Wait()
+	})
+
+	require.True(t, <-isClosePayChSuccessful)
+	t.Run("CloseSession_NoForce_", func(t *testing.T) {
+		openPayChsInfo := CloseSession(t, aliceSessionID, false, false)
+		require.Len(t, openPayChsInfo, 0)
+		openPayChsInfo = CloseSession(t, bobSessionID, false, false)
+		require.Len(t, openPayChsInfo, 0)
+	})
+	t.Run("APIs error when session is closed", func(t *testing.T) {
+		OpenPayCh(t, bobSessionID, []string{perun.OwnAlias, aliceAlias}, []string{"1", "2"}, true)
+		sub := SubPayChProposal(t, aliceSessionID, true)
+		ReadPayChProposalNotif(t, aliceSessionID, sub, true)
+		RespondPayChProposal(t, aliceSessionID, "", false, true)
+		UnsubPayChProposal(t, aliceSessionID, true)
 	})
 }
 
@@ -271,6 +297,25 @@ func OpenSession(t *testing.T, cfgFile string) string {
 	msg, ok := resp.Response.(*pb.OpenSessionResp_MsgSuccess_)
 	require.True(t, ok, "OpenSession returned error response")
 	return msg.MsgSuccess.SessionID
+}
+
+func CloseSession(t *testing.T, sessionID string, force bool, wantErr bool) []*pb.PayChInfo {
+	req := pb.CloseSessionReq{
+		SessionID: sessionID,
+		Force:     force,
+	}
+	resp, err := client.CloseSession(ctx, &req)
+	require.NoErrorf(t, err, "CloseSession")
+	if wantErr {
+		msg, ok := resp.Response.(*pb.CloseSessionResp_Error)
+		require.True(t, ok, "CloseSession returned success response")
+		t.Log(msg.Error.Error)
+		return msg.Error.OpenPayChsInfo
+	}
+
+	msg, ok := resp.Response.(*pb.CloseSessionResp_MsgSuccess_)
+	require.True(t, ok, "CloseSession returned error response")
+	return msg.MsgSuccess.OpenPayChsInfo
 }
 
 func GetContact(t *testing.T, sessionID string, alias string) *pb.Peer {
@@ -310,51 +355,79 @@ func OpenPayCh(t *testing.T, sessionID string, parts, bal []string, wantErr bool
 	require.NoErrorf(t, err, "OpenPayCh")
 
 	if wantErr {
-		t.Logf("%+v", resp)
 		errMsg, ok := resp.Response.(*pb.OpenPayChResp_Error)
 		require.True(t, ok, "OpenPayCh returned success response")
 		t.Log(errMsg)
 		return ""
 	}
 	msg, ok := resp.Response.(*pb.OpenPayChResp_MsgSuccess_)
-	require.True(t, ok, "OpenPayCh returned error response")
+	assert.True(t, ok, "OpenPayCh returned error response")
 	return msg.MsgSuccess.OpenedPayChInfo.ChID
 }
 
-func SubPayChProposal(t *testing.T, sessionID string) pb.Payment_API_SubPayChProposalsClient {
+func SubPayChProposal(t *testing.T, sessionID string, wantErr bool) pb.Payment_API_SubPayChProposalsClient {
 	subReq := pb.SubPayChProposalsReq{
 		SessionID: sessionID,
 	}
 	subClient, err := client.SubPayChProposals(ctx, &subReq)
+	// if wantErr {
+	// 	require.NoError(t, err)
+	// 	t.Log(t, err)
+	// 	return nil
+	// }
 	require.NoErrorf(t, err, "SubPayChProposals")
 	return subClient
 }
 
-func ReadPayChProposalNotif(t *testing.T, sessionID string,
-	sub pb.Payment_API_SubPayChProposalsClient) *pb.SubPayChProposalsResp_Notify_ {
+func ReadPayChProposalNotif(t *testing.T, sessionID string, sub pb.Payment_API_SubPayChProposalsClient,
+	wantErr bool) *pb.SubPayChProposalsResp_Notify_ {
 	notifMsg, err := sub.Recv()
+
+	if wantErr {
+		require.Error(t, err)
+		t.Log(err)
+		return nil
+	}
 	require.NoErrorf(t, err, "subClient.Recv")
 	notif, ok := notifMsg.Response.(*pb.SubPayChProposalsResp_Notify_)
 	require.True(t, ok, "subClient.Recv returned error response")
 	return notif
 }
 
-func RespondPayChProposal(t *testing.T, sessionID, proposalID string, accept bool) {
+func RespondPayChProposal(t *testing.T, sessionID, proposalID string, accept bool, wantErr bool) {
 	respondReq := pb.RespondPayChProposalReq{
 		SessionID:  sessionID,
 		ProposalID: proposalID,
 		Accept:     accept,
 	}
-	_, err := client.RespondPayChProposal(ctx, &respondReq)
+	resp, err := client.RespondPayChProposal(ctx, &respondReq)
 	require.NoErrorf(t, err, "RespondPayChProposal")
+
+	if wantErr {
+		errMsg, ok := resp.Response.(*pb.RespondPayChProposalResp_Error)
+		require.True(t, ok, "RespondPayChProposal returned success response")
+		t.Log(errMsg)
+		return
+	}
+	msg, ok := resp.Response.(*pb.RespondPayChProposalResp_MsgSuccess_)
+	require.True(t, ok, "RespondPayChProposal returned error response")
+	t.Log(msg)
 }
 
-func UnsubPayChProposal(t *testing.T, sessionID string) {
+func UnsubPayChProposal(t *testing.T, sessionID string, wantErr bool) {
 	unsubReq := pb.UnsubPayChProposalsReq{
 		SessionID: sessionID,
 	}
-	_, err := client.UnsubPayChProposals(ctx, &unsubReq)
+	resp, err := client.UnsubPayChProposals(ctx, &unsubReq)
 	require.NoErrorf(t, err, "UnsubPayChProposals")
+	if wantErr {
+		errMsg, ok := resp.Response.(*pb.UnsubPayChProposalsResp_Error)
+		require.True(t, ok, "UnsubPayChProposals returned success response")
+		t.Log(errMsg)
+		return
+	}
+	_, ok := resp.Response.(*pb.UnsubPayChProposalsResp_MsgSuccess_)
+	require.True(t, ok, "UnsubPayChProposals returned error response")
 }
 
 func SendPayChUpdate(t *testing.T, sessionID, chID, peerAlias, amount string, wantErr bool) {
@@ -430,13 +503,13 @@ func UnsubPayChUpdate(t *testing.T, sessionID, chID string) {
 	require.NoErrorf(t, err, "UnsubPayChUpdates")
 }
 
-func ClosePayCh(t *testing.T, sessionID, chID string) {
+func ClosePayCh(t *testing.T, sessionID, chID string) (isClosePayChSuccessful bool) {
 	req := pb.ClosePayChReq{
 		SessionID: sessionID,
 		ChID:      chID,
 	}
 	resp, err := client.ClosePayCh(ctx, &req)
 	require.NoErrorf(t, err, "ClosePayCh")
-	_, ok := resp.Response.(*pb.ClosePayChResp_MsgSuccess_)
-	require.True(t, ok, "ClosePayCh returned error response")
+	_, isClosePayChSuccessful = resp.Response.(*pb.ClosePayChResp_MsgSuccess_)
+	return isClosePayChSuccessful
 } // nolint:gofumpt // unknown error, maybe a false positive

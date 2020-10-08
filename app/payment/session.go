@@ -58,7 +58,7 @@ func OpenPayCh(pctx context.Context, s perun.SessionAPI, openingBalInfo perun.Ba
 	}
 
 	chInfo, err := s.OpenCh(pctx, openingBalInfo, paymentApp, challengeDurSecs)
-	return ToPayChInfo(chInfo), err
+	return toPayChInfo(chInfo), err
 }
 
 // GetPayChsInfo returns a list of payment channel info for all the channels in this session.
@@ -67,7 +67,7 @@ func GetPayChsInfo(s perun.SessionAPI) []PayChInfo {
 
 	payChsInfo := make([]PayChInfo, len(chsInfo))
 	for i := range chsInfo {
-		payChsInfo[i] = ToPayChInfo(chsInfo[i])
+		payChsInfo[i] = toPayChInfo(chsInfo[i])
 	}
 	return payChsInfo
 }
@@ -92,5 +92,11 @@ func UnsubPayChProposals(s perun.SessionAPI) error {
 // RespondPayChProposal sends the response to a payment channel proposal notification.
 func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID string, accept bool) (PayChInfo, error) {
 	chInfo, err := s.RespondChProposal(pctx, proposalID, accept)
-	return ToPayChInfo(chInfo), err
+	return toPayChInfo(chInfo), err
+}
+
+// CloseSession sessions closes the current session.
+func CloseSession(s perun.SessionAPI, force bool) ([]PayChInfo, error) {
+	openChsInfo, err := s.Close(force)
+	return toPayChsInfo(openChsInfo), err
 }

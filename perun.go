@@ -234,6 +234,7 @@ type SessionAPI interface {
 	SubChProposals(ChProposalNotifier) error
 	UnsubChProposals() error
 	RespondChProposal(context.Context, string, bool) (ChInfo, error)
+	Close(force bool) ([]ChInfo, error)
 
 	// This function is used internally to get a ChAPI instance.
 	// Should not be exposed via user API.

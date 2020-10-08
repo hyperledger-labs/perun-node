@@ -28,6 +28,29 @@ func (_m *SessionAPI) AddContact(_a0 perun.Peer) error {
 	return r0
 }
 
+// Close provides a mock function with given fields: force
+func (_m *SessionAPI) Close(force bool) ([]perun.ChInfo, error) {
+	ret := _m.Called(force)
+
+	var r0 []perun.ChInfo
+	if rf, ok := ret.Get(0).(func(bool) []perun.ChInfo); ok {
+		r0 = rf(force)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]perun.ChInfo)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(bool) error); ok {
+		r1 = rf(force)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetCh provides a mock function with given fields: _a0
 func (_m *SessionAPI) GetCh(_a0 string) (perun.ChAPI, error) {
 	ret := _m.Called(_a0)
