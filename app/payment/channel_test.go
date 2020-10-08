@@ -27,21 +27,30 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/app/payment"
+	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/internal/mocks"
 )
 
 func Test_SendPayChUpdate(t *testing.T) {
+	// Returns a mock with API calls set up for currency and parts.
+	newChAPIMock := func() *mocks.ChAPI {
+		chAPI := &mocks.ChAPI{}
+		chAPI.On("Currency").Return(currency.ETH)
+		chAPI.On("Parts").Return(parts)
+		return chAPI
+	}
+
 	t.Run("happy_sendPayment", func(t *testing.T) {
 		var updater perun.StateUpdater
-		chAPI := &mocks.ChAPI{}
-		chAPI.On("GetChInfo").Return(openedChInfo)
+		chAPI := newChAPIMock()
 		chAPI.On("SendChUpdate", context.Background(), mock.MatchedBy(func(gotUpdater perun.StateUpdater) bool {
 			updater = gotUpdater
 			return true
-		})).Return(nil)
+		})).Return(updatedChInfo, nil)
 
-		gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, amountToSend)
+		gotPayChInfo, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, amountToSend)
 		require.NoError(t, gotErr)
+		assert.Equal(t, wantUpdatedPayChInfo, gotPayChInfo)
 		require.NotNil(t, updater)
 
 		// TODO: Now that State is not available, how to test the updater function ?
@@ -51,59 +60,56 @@ func Test_SendPayChUpdate(t *testing.T) {
 	})
 
 	t.Run("happy_requestPayment", func(t *testing.T) {
-		chAPI := &mocks.ChAPI{}
-		chAPI.On("GetChInfo").Return(openedChInfo)
-		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(nil)
+		chAPI := newChAPIMock()
+		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(updatedChInfo, nil)
 
-		gotErr := payment.SendPayChUpdate(context.Background(), chAPI, perun.OwnAlias, amountToSend)
+		gotPayChInfo, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, perun.OwnAlias, amountToSend)
 		require.NoError(t, gotErr)
+		require.Equal(t, wantUpdatedPayChInfo, gotPayChInfo)
 	})
 
 	t.Run("error_InvalidAmount", func(t *testing.T) {
-		chAPI := &mocks.ChAPI{}
-		chAPI.On("GetChInfo").Return(openedChInfo)
-		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(nil)
+		chAPI := newChAPIMock()
+		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(perun.ChInfo{}, nil)
 
 		invalidAmount := "abc"
-		gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, invalidAmount)
+		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, invalidAmount)
 		require.True(t, errors.Is(gotErr, perun.ErrInvalidAmount))
 	})
 
 	t.Run("error_InvalidPayee", func(t *testing.T) {
-		chAPI := &mocks.ChAPI{}
-		chAPI.On("GetChInfo").Return(openedChInfo)
-		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(nil)
+		chAPI := newChAPIMock()
+		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(perun.ChInfo{}, nil)
 
 		invalidPayee := "invalid-payee"
-		gotErr := payment.SendPayChUpdate(context.Background(), chAPI, invalidPayee, amountToSend)
+		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, invalidPayee, amountToSend)
 		require.True(t, errors.Is(gotErr, perun.ErrInvalidPayee))
 	})
 
 	t.Run("error_SendChUpdate", func(t *testing.T) {
-		chAPI := &mocks.ChAPI{}
-		chAPI.On("GetChInfo").Return(openedChInfo)
-		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(assert.AnError)
+		chAPI := newChAPIMock()
+		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(perun.ChInfo{}, assert.AnError)
 
-		gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, amountToSend)
+		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, amountToSend)
 		require.Error(t, gotErr)
 		t.Log(gotErr)
 	})
 }
 
-func Test_GetBalInfo(t *testing.T) {
+func Test_GetPayChInfo(t *testing.T) {
 	t.Run("happy1", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
 		chAPI.On("GetChInfo").Return(openedChInfo)
 
-		gotBalInfo := payment.GetBalInfo(chAPI)
-		assert.Equal(t, openingBalInfo, gotBalInfo)
+		gotPayChInfo := payment.GetPayChInfo(chAPI)
+		assert.Equal(t, wantOpenedPayChInfo, gotPayChInfo)
 	})
 	t.Run("happy2", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
 		chAPI.On("GetChInfo").Return(updatedChInfo)
 
-		gotBalInfo := payment.GetBalInfo(chAPI)
-		assert.Equal(t, updatedBalInfo, gotBalInfo)
+		gotPayChInfo := payment.GetPayChInfo(chAPI)
+		assert.Equal(t, wantUpdatedPayChInfo, gotPayChInfo)
 	})
 }
 
@@ -163,25 +169,26 @@ func Test_RespondPayChUpdate(t *testing.T) {
 	t.Run("happy_accept", func(t *testing.T) {
 		accept := true
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("RespondChUpdate", context.Background(), updateID, accept).Return(nil)
+		chAPI.On("RespondChUpdate", context.Background(), updateID, accept).Return(updatedChInfo, nil)
 
-		gotErr := payment.RespondPayChUpdate(context.Background(), chAPI, updateID, accept)
+		gotPayChInfo, gotErr := payment.RespondPayChUpdate(context.Background(), chAPI, updateID, accept)
 		assert.NoError(t, gotErr)
+		assert.Equal(t, wantUpdatedPayChInfo, gotPayChInfo)
 	})
 	t.Run("happy_reject", func(t *testing.T) {
 		accept := false
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("RespondChUpdate", context.Background(), updateID, accept).Return(nil)
+		chAPI.On("RespondChUpdate", context.Background(), updateID, accept).Return(perun.ChInfo{}, nil)
 
-		gotErr := payment.RespondPayChUpdate(context.Background(), chAPI, updateID, accept)
+		_, gotErr := payment.RespondPayChUpdate(context.Background(), chAPI, updateID, accept)
 		assert.NoError(t, gotErr)
 	})
 	t.Run("error", func(t *testing.T) {
 		accept := true
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("RespondChUpdate", context.Background(), updateID, accept).Return(assert.AnError)
+		chAPI.On("RespondChUpdate", context.Background(), updateID, accept).Return(perun.ChInfo{}, assert.AnError)
 
-		gotErr := payment.RespondPayChUpdate(context.Background(), chAPI, updateID, accept)
+		_, gotErr := payment.RespondPayChUpdate(context.Background(), chAPI, updateID, accept)
 		assert.Error(t, gotErr)
 		t.Log(gotErr)
 	})

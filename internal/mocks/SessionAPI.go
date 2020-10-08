@@ -142,17 +142,24 @@ func (_m *SessionAPI) OpenCh(_a0 context.Context, _a1 perun.BalInfo, _a2 perun.A
 }
 
 // RespondChProposal provides a mock function with given fields: _a0, _a1, _a2
-func (_m *SessionAPI) RespondChProposal(_a0 context.Context, _a1 string, _a2 bool) error {
+func (_m *SessionAPI) RespondChProposal(_a0 context.Context, _a1 string, _a2 bool) (perun.ChInfo, error) {
 	ret := _m.Called(_a0, _a1, _a2)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool) error); ok {
+	var r0 perun.ChInfo
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool) perun.ChInfo); ok {
 		r0 = rf(_a0, _a1, _a2)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(perun.ChInfo)
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, bool) error); ok {
+		r1 = rf(_a0, _a1, _a2)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // SubChCloses provides a mock function with given fields: _a0

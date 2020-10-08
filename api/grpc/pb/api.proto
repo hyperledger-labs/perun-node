@@ -78,7 +78,7 @@ service Payment_API{
     rpc SubPayChUpdates (SubpayChUpdatesReq) returns (stream SubPayChUpdatesResp) {}
     rpc UnsubPayChUpdates (UnsubPayChUpdatesReq) returns (UnsubPayChUpdatesResp) {}
     rpc RespondPayChUpdate (RespondPayChUpdateReq) returns (RespondPayChUpdateResp) {}
-    rpc GetPayChBalInfo (GetPayChBalInfoReq) returns (GetPayChBalInfoResp) {}
+    rpc GetPayChInfo (GetPayChInfoReq) returns (GetPayChInfoResp) {}
     rpc ClosePayCh (ClosePayChReq) returns (ClosePayChResp) {}
 }
 
@@ -224,7 +224,6 @@ message RespondPayChProposalResp {
         MsgError error = 2;
     }
     message MsgSuccess {
-        bool success=1;
         PayChInfo openedPayChInfo=2;
     }
 }
@@ -269,7 +268,7 @@ message CloseSessionResp {
         string erro = 2;
     }
     message MsgSuccess {
-        repeated PayChInfo openPayChsInfo = 2;
+        repeated PayChInfo openPayChsInfo = 1;
     }
 }
 
@@ -286,7 +285,7 @@ message SendPayChUpdateResp {
         MsgError error = 2;
     }
     message MsgSuccess {
-        bool success = 1;
+        PayChInfo updatedPayChInfo = 1;
     }
 }
 
@@ -336,23 +335,22 @@ message RespondPayChUpdateResp {
         MsgError error = 2;
     }
     message MsgSuccess {
-        bool success=1;
+        PayChInfo updatedPayChInfo = 1;
     }
 }
 
-message GetPayChBalInfoReq {
+message GetPayChInfoReq {
     string sessionID=1;
     string chID=2;
 }
 
-message GetPayChBalInfoResp {
+message GetPayChInfoResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
         MsgError error = 2;
     }
     message MsgSuccess {
-        BalInfo currentBalInfo = 1;
-        string currentVersion = 2;
+        PayChInfo payChInfo = 1;
     }
 }
 
@@ -367,7 +365,6 @@ message ClosePayChResp {
         MsgError error = 2;
     }
     message MsgSuccess {
-        BalInfo closedBalInfo = 1;
-        string closedVersion = 2;
+        PayChInfo closedPayChInfo = 1;
     }
 }

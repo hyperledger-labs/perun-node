@@ -348,7 +348,7 @@ func (a *PayChServer) RespondPayChProposal(ctx context.Context, req *pb.RespondP
 	if err != nil {
 		return errResponse(err), nil
 	}
-	err = payment.RespondPayChProposal(ctx, sess, req.ProposalID, req.Accept)
+	openedPayChInfo, err := payment.RespondPayChProposal(ctx, sess, req.ProposalID, req.Accept)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -356,7 +356,7 @@ func (a *PayChServer) RespondPayChProposal(ctx context.Context, req *pb.RespondP
 	return &pb.RespondPayChProposalResp{
 		Response: &pb.RespondPayChProposalResp_MsgSuccess_{
 			MsgSuccess: &pb.RespondPayChProposalResp_MsgSuccess{
-				Success: true,
+				OpenedPayChInfo: ToGrpcPayChInfo(openedPayChInfo),
 			},
 		},
 	}, nil
@@ -463,7 +463,7 @@ func (a *PayChServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpda
 	if err != nil {
 		return errResponse(err), nil
 	}
-	err = payment.SendPayChUpdate(ctx, ch, req.Payee, req.Amount)
+	updatedPayChInfo, err := payment.SendPayChUpdate(ctx, ch, req.Payee, req.Amount)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -471,7 +471,7 @@ func (a *PayChServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpda
 	return &pb.SendPayChUpdateResp{
 		Response: &pb.SendPayChUpdateResp_MsgSuccess_{
 			MsgSuccess: &pb.SendPayChUpdateResp_MsgSuccess{
-				Success: true,
+				UpdatedPayChInfo: ToGrpcPayChInfo(updatedPayChInfo),
 			},
 		},
 	}, nil
@@ -579,7 +579,7 @@ func (a *PayChServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPay
 	if err != nil {
 		return errResponse(err), nil
 	}
-	err = payment.RespondPayChUpdate(ctx, ch, req.UpdateID, req.Accept)
+	updatedPayChInfo, err := payment.RespondPayChUpdate(ctx, ch, req.UpdateID, req.Accept)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -587,18 +587,18 @@ func (a *PayChServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPay
 	return &pb.RespondPayChUpdateResp{
 		Response: &pb.RespondPayChUpdateResp_MsgSuccess_{
 			MsgSuccess: &pb.RespondPayChUpdateResp_MsgSuccess{
-				Success: true,
+				UpdatedPayChInfo: ToGrpcPayChInfo(updatedPayChInfo),
 			},
 		},
 	}, nil
 }
 
-// GetPayChBalInfo wraps ch.GetBalInfo.
-func (a *PayChServer) GetPayChBalInfo(ctx context.Context, req *pb.GetPayChBalInfoReq) (
-	*pb.GetPayChBalInfoResp, error) {
-	errResponse := func(err error) *pb.GetPayChBalInfoResp {
-		return &pb.GetPayChBalInfoResp{
-			Response: &pb.GetPayChBalInfoResp_Error{
+// GetPayChInfo wraps ch.GetBalInfo.
+func (a *PayChServer) GetPayChInfo(ctx context.Context, req *pb.GetPayChInfoReq) (
+	*pb.GetPayChInfoResp, error) {
+	errResponse := func(err error) *pb.GetPayChInfoResp {
+		return &pb.GetPayChInfoResp{
+			Response: &pb.GetPayChInfoResp_Error{
 				Error: &pb.MsgError{
 					Error: err.Error(),
 				},
@@ -614,16 +614,15 @@ func (a *PayChServer) GetPayChBalInfo(ctx context.Context, req *pb.GetPayChBalIn
 	if err != nil {
 		return errResponse(err), nil
 	}
-	balInfo := payment.GetBalInfo(ch)
+	payChInfo := payment.GetPayChInfo(ch)
 	if err != nil {
 		return errResponse(err), nil
 	}
 
-	return &pb.GetPayChBalInfoResp{
-		Response: &pb.GetPayChBalInfoResp_MsgSuccess_{
-			MsgSuccess: &pb.GetPayChBalInfoResp_MsgSuccess{
-				CurrentBalInfo: ToGrpcBalInfo(balInfo),
-				CurrentVersion: "",
+	return &pb.GetPayChInfoResp{
+		Response: &pb.GetPayChInfoResp_MsgSuccess_{
+			MsgSuccess: &pb.GetPayChInfoResp_MsgSuccess{
+				PayChInfo: ToGrpcPayChInfo(payChInfo),
 			},
 		},
 	}, nil
@@ -649,7 +648,7 @@ func (a *PayChServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*p
 	if err != nil {
 		return errResponse(err), nil
 	}
-	payChInfo, err := payment.ClosePayCh(ctx, ch)
+	closedPayChInfo, err := payment.ClosePayCh(ctx, ch)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -657,11 +656,20 @@ func (a *PayChServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*p
 	return &pb.ClosePayChResp{
 		Response: &pb.ClosePayChResp_MsgSuccess_{
 			MsgSuccess: &pb.ClosePayChResp_MsgSuccess{
-				ClosedBalInfo: ToGrpcBalInfo(payChInfo.BalInfo),
-				ClosedVersion: payChInfo.Version,
+				ClosedPayChInfo: ToGrpcPayChInfo(closedPayChInfo),
 			},
 		},
 	}, nil
+}
+
+// ToGrpcPayChInfo is a helper function to convert PayChInfo struct defined in perun-node
+// to PayChInfo struct defined in grpc package. It is exported for use in tests.
+func ToGrpcPayChInfo(src payment.PayChInfo) *pb.PayChInfo {
+	return &pb.PayChInfo{
+		ChID:    src.ChID,
+		BalInfo: ToGrpcBalInfo(src.BalInfo),
+		Version: src.Version,
+	}
 }
 
 // FromGrpcBalInfo is a helper function to convert BalInfo struct defined in grpc package

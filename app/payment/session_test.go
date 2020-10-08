@@ -207,25 +207,26 @@ func Test_RespondPayChProposal(t *testing.T) {
 	t.Run("happy_accept", func(t *testing.T) {
 		accept := true
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("RespondChProposal", context.Background(), proposalID, accept).Return(nil)
+		sessionAPI.On("RespondChProposal", context.Background(), proposalID, accept).Return(openedChInfo, nil)
 
-		gotErr := payment.RespondPayChProposal(context.Background(), sessionAPI, proposalID, accept)
+		gotPayChInfo, gotErr := payment.RespondPayChProposal(context.Background(), sessionAPI, proposalID, accept)
 		assert.NoError(t, gotErr)
+		assert.Equal(t, wantOpenedPayChInfo, gotPayChInfo)
 	})
 	t.Run("happy_reject", func(t *testing.T) {
 		accept := false
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("RespondChProposal", context.Background(), proposalID, accept).Return(nil)
+		sessionAPI.On("RespondChProposal", context.Background(), proposalID, accept).Return(perun.ChInfo{}, nil)
 
-		gotErr := payment.RespondPayChProposal(context.Background(), sessionAPI, proposalID, accept)
+		_, gotErr := payment.RespondPayChProposal(context.Background(), sessionAPI, proposalID, accept)
 		assert.NoError(t, gotErr)
 	})
 	t.Run("error", func(t *testing.T) {
 		accept := true
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("RespondChProposal", context.Background(), proposalID, accept).Return(assert.AnError)
+		sessionAPI.On("RespondChProposal", context.Background(), proposalID, accept).Return(perun.ChInfo{}, assert.AnError)
 
-		gotErr := payment.RespondPayChProposal(context.Background(), sessionAPI, proposalID, accept)
+		_, gotErr := payment.RespondPayChProposal(context.Background(), sessionAPI, proposalID, accept)
 		assert.Error(t, gotErr)
 		t.Log(gotErr)
 	})

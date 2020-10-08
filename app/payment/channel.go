@@ -47,17 +47,17 @@ type (
 
 // SendPayChUpdate send the given amount to the payee. Payee should be one of the channel participants.
 // Use "self" to request payments.
-func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string) error {
-	balInfo := ch.GetChInfo().BalInfo
-	parsedAmount, err := parseAmount(balInfo.Currency, amount)
+func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string) (PayChInfo, error) {
+	parsedAmount, err := parseAmount(ch.Currency(), amount)
 	if err != nil {
-		return err
+		return PayChInfo{}, err
 	}
-	payerIdx, payeeIdx, err := getPayerPayeeIdx(balInfo.Parts, payee)
+	payerIdx, payeeIdx, err := getPayerPayeeIdx(ch.Parts(), payee)
 	if err != nil {
-		return err
+		return PayChInfo{}, err
 	}
-	return ch.SendChUpdate(pctx, newUpdate(payerIdx, payeeIdx, parsedAmount))
+	chInfo, err := ch.SendChUpdate(pctx, newUpdate(payerIdx, payeeIdx, parsedAmount))
+	return ToPayChInfo(chInfo), err
 }
 
 func parseAmount(chCurrency string, amount string) (*big.Int, error) {
@@ -87,9 +87,9 @@ func newUpdate(payerIdx, payeeIdx int, parsedAmount *big.Int) perun.StateUpdater
 	}
 }
 
-// GetBalInfo returns the balance information for this channel.
-func GetBalInfo(ch perun.ChAPI) perun.BalInfo {
-	return ch.GetChInfo().BalInfo
+// GetPayChInfo returns the balance information for this channel.
+func GetPayChInfo(ch perun.ChAPI) PayChInfo {
+	return ToPayChInfo(ch.GetChInfo())
 }
 
 // SubPayChUpdates sets up a subscription for updates on this channel.
@@ -110,8 +110,9 @@ func UnsubPayChUpdates(ch perun.ChAPI) error {
 }
 
 // RespondPayChUpdate sends a response for a channel update notification.
-func RespondPayChUpdate(pctx context.Context, ch perun.ChAPI, updateID string, accept bool) error {
-	return ch.RespondChUpdate(pctx, updateID, accept)
+func RespondPayChUpdate(pctx context.Context, ch perun.ChAPI, updateID string, accept bool) (PayChInfo, error) {
+	chInfo, err := ch.RespondChUpdate(pctx, updateID, accept)
+	return ToPayChInfo(chInfo), err
 }
 
 // ClosePayCh closes the payment channel.

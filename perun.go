@@ -236,7 +236,7 @@ type SessionAPI interface {
 	HandleProposal(pclient.ChannelProposal, *pclient.ProposalResponder)
 	SubChProposals(ChProposalNotifier) error
 	UnsubChProposals() error
-	RespondChProposal(context.Context, string, bool) error
+	RespondChProposal(context.Context, string, bool) (ChInfo, error)
 	SubChCloses(ChCloseNotifier) error
 	UnsubChCloses() error
 
@@ -274,11 +274,19 @@ type (
 // First a channel has to be initialized using the SessionAPI. The channel can then be used
 // send and receive updates.
 type ChAPI interface {
+	// Methods for reading the channel information is doesn't change.
+	// These APIs don't use mutex lock.
 	ID() string
-	SendChUpdate(context.Context, StateUpdater) error
+	Currency() string
+	Parts() []string
+	ChallengeDurSecs() uint64
+
+	// Methods to trasact on, close the channel and read its state.
+	// These APIs use a mutex lock.
+	SendChUpdate(context.Context, StateUpdater) (ChInfo, error)
 	SubChUpdates(ChUpdateNotifier) error
 	UnsubChUpdates() error
-	RespondChUpdate(context.Context, string, bool) error
+	RespondChUpdate(context.Context, string, bool) (ChInfo, error)
 	GetChInfo() ChInfo
 	Close(context.Context) (ChInfo, error)
 }

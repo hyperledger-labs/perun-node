@@ -26,6 +26,8 @@ import (
 	pclient "perun.network/go-perun/client"
 	psync "perun.network/go-perun/pkg/sync"
 
+	"github.com/pkg/errors"
+
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/log"
@@ -91,21 +93,46 @@ func newCh(pch *pclient.Channel, currency string, parts []string, timeoutCfg tim
 	return ch
 }
 
+// ID() returns the ID of the channel.
+//
+// Does not require a mutex lock, as the data will remain unchanged throughout the lifecycle of the channel.
 func (ch *channel) ID() string {
 	return ch.id
 }
 
-func (ch *channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater) error {
+// Currency returns the currency interpreter used in the channel.
+//
+// Does not require a mutex lock, as the data will remain unchanged throughout the lifecycle of the channel.
+func (ch *channel) Currency() string {
+	return ch.currency
+}
+
+// Parts returns the list of aliases of the channel participants.
+//
+// Does not require a mutex lock, as the data will remain unchanged throughout the lifecycle of the channel.
+func (ch *channel) Parts() []string {
+	return ch.parts
+}
+
+// ChallengeDurSecs returns the challenge duration for the channel (in seconds) for refuting when
+// an invalid/older state is registered on the blockchain closing the channel.
+//
+// Does not require a mutex lock, as the data will remain unchanged throughout the lifecycle of the channel.
+func (ch *channel) ChallengeDurSecs() uint64 {
+	return ch.challengeDurSecs
+}
+
+func (ch *channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater) (perun.ChInfo, error) {
 	ch.Debug("Received request: channel.SendChUpdate")
 	ch.Lock()
 	defer ch.Unlock()
 
 	if ch.lockState == finalized {
 		ch.Error("Dropping update request as the channel is " + ch.lockState)
-		return perun.ErrChFinalized
+		return perun.ChInfo{}, perun.ErrChFinalized
 	} else if ch.lockState == closed {
 		ch.Error("Dropping update request as the channel is " + ch.lockState)
-		return perun.ErrChClosed
+		return perun.ChInfo{}, perun.ErrChClosed
 	}
 
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
@@ -113,12 +140,12 @@ func (ch *channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 	err := ch.pch.UpdateBy(ctx, ch.pch.Idx(), updater)
 	if err != nil {
 		ch.Error("Sending channel update:", err)
-		return perun.GetAPIError(err)
+		return perun.ChInfo{}, perun.GetAPIError(err)
 	}
 	prevChInfo := ch.getChInfo()
 	ch.currState = ch.pch.State().Clone()
 	ch.Debugf("State upated from %v to %v", prevChInfo, ch.getChInfo())
-	return nil
+	return ch.getChInfo(), nil
 }
 
 func (ch *channel) SubChUpdates(notifier perun.ChUpdateNotifier) error {
@@ -153,7 +180,7 @@ func (ch *channel) UnsubChUpdates() error {
 	return nil
 }
 
-func (ch *channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) error {
+func (ch *channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) (perun.ChInfo, error) {
 	ch.Debug("Received request channel.RespondChUpdate")
 	ch.Lock()
 	defer ch.Unlock()
@@ -161,41 +188,52 @@ func (ch *channel) RespondChUpdate(pctx context.Context, updateID string, accept
 	entry, ok := ch.chUpdateResponders[updateID]
 	if !ok {
 		ch.Error(perun.ErrUnknownUpdateID, updateID)
-		return perun.ErrUnknownUpdateID
+		return perun.ChInfo{}, perun.ErrUnknownUpdateID
 	}
 	delete(ch.chUpdateResponders, updateID)
+
 	currTime := time.Now().UTC().Unix()
 	if entry.notifExpiry < currTime {
 		ch.Error("timeout:", entry.notifExpiry, "received response at:", currTime)
-		return perun.ErrRespTimeoutExpired
+		return perun.ChInfo{}, perun.ErrRespTimeoutExpired
 	}
 
+	var updatedChInfo perun.ChInfo
+	var err error
 	switch accept {
 	case true:
-		ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdateAccept())
-		defer cancel()
-		err := entry.responder.Accept(ctx)
-		if err != nil {
-			ch.Logger.Error("Accepting channel update", err)
-			return perun.GetAPIError(err)
-		}
-		ch.currState = ch.pch.State().Clone()
-
+		updatedChInfo, err = ch.acceptChUpdate(pctx, entry)
 	case false:
-		ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdateReject())
-		defer cancel()
-		err := entry.responder.Reject(ctx, "rejected by user")
-		if err != nil {
-			ch.Logger.Error("Rejecting channel update", err)
-			return perun.GetAPIError(err)
-		}
+		err = ch.rejectChUpdate(pctx, entry, "rejected by user")
 	}
 
 	// TODO: (mano) Provide an option for user to config the node to close finalized channels automatically.
 	// For now, it is upto the user to close a channel that has been set to finalized state.
 	// if ch.lockState == finalized {
 	// }
-	return nil
+	return updatedChInfo, err
+}
+
+func (ch *channel) acceptChUpdate(pctx context.Context, entry chUpdateResponderEntry) (perun.ChInfo, error) {
+	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdateAccept())
+	defer cancel()
+	err := entry.responder.Accept(ctx)
+	if err != nil {
+		ch.Error("Accepting channel update", err)
+		return perun.ChInfo{}, perun.GetAPIError(errors.Wrap(err, "accepting update"))
+	}
+	ch.currState = ch.pch.State().Clone()
+	return ch.getChInfo(), nil
+}
+
+func (ch *channel) rejectChUpdate(pctx context.Context, entry chUpdateResponderEntry, reason string) error {
+	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdateReject())
+	defer cancel()
+	err := entry.responder.Reject(ctx, reason)
+	if err != nil {
+		ch.Logger.Error("Rejecting channel update", err)
+	}
+	return perun.GetAPIError(errors.Wrap(err, "rejecting update"))
 }
 
 func (ch *channel) GetChInfo() perun.ChInfo {
