@@ -131,7 +131,7 @@ func Test_Integ_Role(t *testing.T) {
 		require.NoError(t, err, "bob subscribing channel proposals")
 
 		notif := <-bobChProposalNotif
-		err = bob.RespondChProposal(ctx, notif.ProposalID, true)
+		_, err = bob.RespondChProposal(ctx, notif.ProposalID, true)
 		require.NoError(t, err, "bob accepting channel proposal")
 
 		err = bob.UnsubChProposals()
@@ -168,7 +168,7 @@ func Test_Integ_Role(t *testing.T) {
 		require.NoError(t, err, "alice subscribing channel proposals")
 
 		notif := <-aliceChProposalNotif
-		err = alice.RespondChProposal(ctx, notif.ProposalID, false)
+		_, err = alice.RespondChProposal(ctx, notif.ProposalID, false)
 		require.NoError(t, err, "alice rejecting channel proposal")
 
 		err = alice.UnsubChProposals()
@@ -212,7 +212,7 @@ func Test_Integ_Role(t *testing.T) {
 				state.Allocation.Balances[0] = bals
 			}
 
-			err := bobCh.SendChUpdate(ctx, updater)
+			_, err := bobCh.SendChUpdate(ctx, updater)
 			require.NoError(t, err)
 		}()
 
@@ -225,7 +225,7 @@ func Test_Integ_Role(t *testing.T) {
 		require.NoError(t, err, "alice subscribing channel proposals")
 
 		notif := <-aliceChUpdateNotif
-		err = aliceCh.RespondChUpdate(ctx, notif.UpdateID, true)
+		_, err = aliceCh.RespondChUpdate(ctx, notif.UpdateID, true)
 		require.NoError(t, err, "alice accepting channel update")
 
 		err = aliceCh.UnsubChUpdates()
@@ -255,7 +255,7 @@ func Test_Integ_Role(t *testing.T) {
 				state.Allocation.Balances[0] = bals
 			}
 
-			err := aliceCh.SendChUpdate(ctx, updater)
+			_, err := aliceCh.SendChUpdate(ctx, updater)
 			require.Error(t, err, "alice update rejected by bob")
 			t.Log(err)
 		}()
@@ -269,7 +269,7 @@ func Test_Integ_Role(t *testing.T) {
 		require.NoError(t, err, "bob subscribing channel proposals")
 
 		notif := <-bobChUpdateNotif
-		err = bobCh.RespondChUpdate(ctx, notif.UpdateID, false)
+		_, err = bobCh.RespondChUpdate(ctx, notif.UpdateID, false)
 		require.NoError(t, err, "bob accepting channel update")
 
 		err = bobCh.UnsubChUpdates()
@@ -300,7 +300,7 @@ func Test_Integ_Role(t *testing.T) {
 		require.NoError(t, err, "bob subscribing channel updates")
 
 		notif := <-bobChUpdateNotif
-		err = bobCh.RespondChUpdate(ctx, notif.UpdateID, false)
+		_, err = bobCh.RespondChUpdate(ctx, notif.UpdateID, false)
 		require.NoError(t, err, "bob accepting channel update")
 
 		err = bobCh.UnsubChUpdates()

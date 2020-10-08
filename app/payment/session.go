@@ -99,8 +99,9 @@ func UnsubPayChProposals(s perun.SessionAPI) error {
 }
 
 // RespondPayChProposal sends the response to a payment channel proposal notification.
-func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID string, accept bool) error {
-	return s.RespondChProposal(pctx, proposalID, accept)
+func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID string, accept bool) (PayChInfo, error) {
+	chInfo, err := s.RespondChProposal(pctx, proposalID, accept)
+	return ToPayChInfo(chInfo), err
 }
 
 // SubPayChCloses sets up a subscription for payment channel closes.
