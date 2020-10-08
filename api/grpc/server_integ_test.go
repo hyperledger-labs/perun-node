@@ -231,7 +231,7 @@ func Test_Integ_Role(t *testing.T) {
 	})
 
 	t.Run("Close_Sub_Unsub", func(t *testing.T) {
-		// Bob closes payment channel, Alice receives notification for and rejects final update,
+		// Bob closes payment channel, Alice receives notification for rejects and final update,
 		// both receive channel closed notifications.
 		wg.Add(2)
 		go func() {
