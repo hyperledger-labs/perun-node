@@ -389,8 +389,7 @@ func (a *PayChServer) CloseSession(ctx context.Context, req *pb.CloseSessionReq)
 }
 
 // SendPayChUpdate wraps ch.SendPayChUpdate.
-func (a *PayChServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpdateReq) ( // nolint:dupl
-	// SendPayChUpdate is not duplicate of RespondPayChUpdate.
+func (a *PayChServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpdateReq) (
 	*pb.SendPayChUpdateResp, error) {
 	errResponse := func(err error) *pb.SendPayChUpdateResp {
 		return &pb.SendPayChUpdateResp{
@@ -524,8 +523,7 @@ func (a *PayChServer) closeGrpcPayChUpdateSub(sessionID, chID string) {
 }
 
 // RespondPayChUpdate wraps ch.RespondPayChUpdate.
-func (a *PayChServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPayChUpdateReq) ( // nolint:dupl
-	// RespondPayChUpdate is not duplicate of SendPayChUpdate.
+func (a *PayChServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPayChUpdateReq) (
 	*pb.RespondPayChUpdateResp, error) {
 	errResponse := func(err error) *pb.RespondPayChUpdateResp {
 		return &pb.RespondPayChUpdateResp{
