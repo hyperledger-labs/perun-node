@@ -212,7 +212,7 @@ func Test_Integ_Role(t *testing.T) {
 				state.Allocation.Balances[0] = bals
 			}
 
-			_, err := bobCh.SendChUpdate(ctx, updater)
+			_, err = bobCh.SendChUpdate(ctx, updater)
 			require.NoError(t, err)
 		}()
 
@@ -221,7 +221,7 @@ func Test_Integ_Role(t *testing.T) {
 		aliceChUpdateNotifier := func(notif perun.ChUpdateNotif) {
 			aliceChUpdateNotif <- notif
 		}
-		err := aliceCh.SubChUpdates(aliceChUpdateNotifier)
+		err = aliceCh.SubChUpdates(aliceChUpdateNotifier)
 		require.NoError(t, err, "alice subscribing channel proposals")
 
 		notif := <-aliceChUpdateNotif
@@ -255,7 +255,7 @@ func Test_Integ_Role(t *testing.T) {
 				state.Allocation.Balances[0] = bals
 			}
 
-			_, err := aliceCh.SendChUpdate(ctx, updater)
+			_, err = aliceCh.SendChUpdate(ctx, updater)
 			require.Error(t, err, "alice update rejected by bob")
 			t.Log(err)
 		}()
@@ -265,7 +265,7 @@ func Test_Integ_Role(t *testing.T) {
 		bobChUpdateNotifier := func(notif perun.ChUpdateNotif) {
 			bobChUpdateNotif <- notif
 		}
-		err := bobCh.SubChUpdates(bobChUpdateNotifier)
+		err = bobCh.SubChUpdates(bobChUpdateNotifier)
 		require.NoError(t, err, "bob subscribing channel proposals")
 
 		notif := <-bobChUpdateNotif
@@ -282,6 +282,14 @@ func Test_Integ_Role(t *testing.T) {
 	// setting accept=true in RespondChUpdate in this test.
 	// It will cause the test to never end.
 	t.Run("Non collaborative channel close", func(t *testing.T) {
+		// Sub channel close notifs.
+		aliceChUpdateNotif := make(chan perun.ChUpdateNotif)
+		aliceChUpdateNotifier := func(notif perun.ChUpdateNotif) {
+			aliceChUpdateNotif <- notif
+		}
+		err = aliceCh.SubChUpdates(aliceChUpdateNotifier)
+		require.NoError(t, err, "alice subscribing channel updates")
+
 		// Send close by bob.
 		wg.Add(1)
 		go func() {
@@ -291,7 +299,7 @@ func Test_Integ_Role(t *testing.T) {
 			t.Log("alice", closingChInfo)
 		}()
 
-		// Accept final channel by bob.
+		// Reject final channel by bob.
 		bobChUpdateNotif := make(chan perun.ChUpdateNotif)
 		bobChUpdateNotifier := func(notif perun.ChUpdateNotif) {
 			bobChUpdateNotif <- notif
@@ -303,30 +311,26 @@ func Test_Integ_Role(t *testing.T) {
 		_, err = bobCh.RespondChUpdate(ctx, notif.UpdateID, false)
 		require.NoError(t, err, "bob accepting channel update")
 
+		// closing update for bob.
+		notif = <-bobChUpdateNotif
+		t.Log("bob", notif)
+		assert.Equal(t, perun.ChUpdateTypeClosed, notif.Type)
+
+		// error on responding to channel update closed.
+		_, err = bobCh.RespondChUpdate(ctx, notif.UpdateID, false)
+		require.Error(t, err, "bob responding to channel update closed")
+
 		err = bobCh.UnsubChUpdates()
-		require.NoError(t, err, "bob unsubscribing channel updates")
+		assert.Error(t, err)
+		t.Log(err, "UnsubChUpdates for alice")
 
-		// Sub, receive, unsub channel close notifs.
-		bobChCloseNotif := make(chan perun.ChCloseNotif)
-		bobChCloseNotifier := func(notif perun.ChCloseNotif) {
-			bobChCloseNotif <- notif
-		}
-		err = bob.SubChCloses(bobChCloseNotifier)
-		require.NoError(t, err, "bob subscribing channel closes")
-
-		chCloseNotif := <-bobChCloseNotif
-		t.Log("bob", chCloseNotif)
-
-		// Sub, receive, unsub channel close notifs.
-		aliceChCloseNotif := make(chan perun.ChCloseNotif)
-		aliceChCloseNotifier := func(notif perun.ChCloseNotif) {
-			aliceChCloseNotif <- notif
-		}
-		err = alice.SubChCloses(aliceChCloseNotifier)
-		require.NoError(t, err, "alice subscribing channel closes")
-
-		chCloseNotif = <-aliceChCloseNotif
-		t.Log("alice", chCloseNotif)
+		// Receive, unsub channel close notifs.
+		notif = <-aliceChUpdateNotif
+		t.Log("alice", notif)
+		assert.Equal(t, perun.ChUpdateTypeClosed, notif.Type)
+		err = aliceCh.UnsubChUpdates()
+		assert.Error(t, err)
+		t.Log(err, "UnsubChUpdates for alice")
 
 		wg.Wait()
 	})

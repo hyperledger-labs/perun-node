@@ -44,31 +44,30 @@ func (t timeoutConfig) respChProposalAccept(challegeDurSecs uint64) time.Duratio
 }
 
 func (t timeoutConfig) respChProposalReject() time.Duration {
-	// The only time taken is to send the rejection and receive the response.
+	// The time taken to send response.
 	return t.response + processingTime
 }
 
 func (t timeoutConfig) chUpdate() time.Duration {
-	// The only time taken is to send the rejection and receive the response.
+	// The time taken to receive the response.
 	return t.response + processingTime
 }
 
-func (t timeoutConfig) respChUpdateAccept() time.Duration {
-	// The only time taken is to send the rejection and receive the response.
+func (t timeoutConfig) respChUpdate() time.Duration {
+	// The time taken to send response.
 	return t.response + processingTime
 }
 
-func (t timeoutConfig) respChUpdateReject() time.Duration {
-	// The only time taken is to send the rejection and receive the response.
-	return t.response + processingTime
-}
-
-func (t timeoutConfig) closeCh(challegeDurSecs uint64) time.Duration {
+func (t timeoutConfig) settleChPrimary(challegeDurSecs uint64) time.Duration {
 	// The worst case path considered is
-	// 1. Send final update to peer and not get a response.
 	// 2. Register state on blockchain and wait for challenge duration to expire.
 	// 3. Conclude the final state on blockchain.
 	// 4. Withdraw amount.
 	challegeDur := time.Duration(challegeDurSecs) * time.Second
-	return 1*t.response + 3*t.onChainTx + 1*challegeDur + processingTime
+	return 3*t.onChainTx + 1*challegeDur + processingTime
+}
+
+func (t timeoutConfig) settleChSecondary(challegeDurSecs uint64) time.Duration {
+	// Time taken for settleChPrimary + a waiting period of 2 on chain transaction timeouts.
+	return t.settleChPrimary(challegeDurSecs) + 2*t.onChainTx
 }

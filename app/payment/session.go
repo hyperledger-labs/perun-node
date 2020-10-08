@@ -37,15 +37,6 @@ type (
 
 	// PayChProposalNotifier represents the channel update notification function for payment app.
 	PayChProposalNotifier func(PayChProposalNotif)
-
-	// PayChCloseNotif represents the channel close notification data for payment app.
-	PayChCloseNotif struct {
-		ClosedPayChInfo PayChInfo
-		Error           string
-	}
-
-	// PayChCloseNotifier represents the channel close notification function for payment app.
-	PayChCloseNotifier func(PayChCloseNotif)
 )
 
 // init() initializes the payment app in go-perun.
@@ -102,19 +93,4 @@ func UnsubPayChProposals(s perun.SessionAPI) error {
 func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID string, accept bool) (PayChInfo, error) {
 	chInfo, err := s.RespondChProposal(pctx, proposalID, accept)
 	return ToPayChInfo(chInfo), err
-}
-
-// SubPayChCloses sets up a subscription for payment channel closes.
-func SubPayChCloses(s perun.SessionAPI, notifier PayChCloseNotifier) error {
-	return s.SubChCloses(func(notif perun.ChCloseNotif) {
-		notifier(PayChCloseNotif{
-			ClosedPayChInfo: ToPayChInfo(notif.ClosedChInfo),
-			Error:           notif.Error,
-		})
-	})
-}
-
-// UnsubPayChCloses deletes the existing subscription for payment channel closes.
-func UnsubPayChCloses(s perun.SessionAPI) error {
-	return s.UnsubChCloses()
 }

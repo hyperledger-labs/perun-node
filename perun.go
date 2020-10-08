@@ -230,15 +230,10 @@ type SessionAPI interface {
 	AddContact(Peer) error
 	GetContact(alias string) (Peer, error)
 	OpenCh(context.Context, BalInfo, App, uint64) (ChInfo, error)
-	HandleClose(string, error)
 	GetChsInfo() []ChInfo
-	HandleUpdate(pclient.ChannelUpdate, *pclient.UpdateResponder)
-	HandleProposal(pclient.ChannelProposal, *pclient.ProposalResponder)
 	SubChProposals(ChProposalNotifier) error
 	UnsubChProposals() error
 	RespondChProposal(context.Context, string, bool) (ChInfo, error)
-	SubChCloses(ChCloseNotifier) error
-	UnsubChCloses() error
 
 	// This function is used internally to get a ChAPI instance.
 	// Should not be exposed via user API.
@@ -291,16 +286,50 @@ type ChAPI interface {
 	Close(context.Context) (ChInfo, error)
 }
 
+// Enumeration of values for ChUpdateType:
+// Open: If accepted, channel will be updated and it will remain in open for off-chain tx.
+// Final: If accepted, channel will be updated and closed (settled on-chain and amount withdrawn).
+// Closed: Channel has been closed (settled on-chain and amount withdrawn).
+const (
+	ChUpdateTypeOpen ChUpdateType = iota
+	ChUpdateTypeFinal
+	ChUpdateTypeClosed
+)
+
 type (
+	// ChUpdateType is the type of channel update. It can have three values: "open", "final" and "closed".
+	ChUpdateType uint8
+
 	// ChUpdateNotifier is the notifier function that is used for sending channel update notifications.
 	ChUpdateNotifier func(ChUpdateNotif)
 
-	// ChUpdateNotif represents the parameters sent in a channel update notifications.
+	// ChUpdateNotif represents the parameters sent in a channel update notification.
+	// The update can be of two types
+	// 1. Regular update proposed by the peer to progress the offchain state of the channel.
+	// 2. Closing update when a channel is closed, balance is settled on the blockchain and
+	// the amount corresponding to this user is withdrawn.
+	//
+	// The two types of updates can be differentiated using the status field,
+	// which is "open" or "final" for a regular update and "closed" for a closing update.
+	//
 	ChUpdateNotif struct {
+		// UpdateID denotes the unique ID for this update. It is derived from the channel ID and version number.
 		UpdateID       string
 		CurrChInfo     ChInfo
 		ProposedChInfo ChInfo
-		Expiry         int64
+
+		Type ChUpdateType
+
+		// It is with reference to the system clock on the computer running the perun-node.
+		// Time (in unix timestamp) before which response to this notification should be sent.
+		//
+		// It is 0, when no response is expected.
+		Expiry int64
+
+		// Error represents any error encountered while processing incoming updates or
+		// while a channel is closed by the watcher..
+		// When this is non empty, expiry will also be zero and no response is expected
+		Error string
 	}
 
 	// App represents the app definition and the corresponding app data for a channel.
@@ -316,11 +345,6 @@ type (
 		BalInfo BalInfo
 		// App used in the channel.
 		App App
-		// Indicates if the state of the channel is marked as "final". Once a state of channel is marked final,
-		// no further update can be made to the channel and the channel can be settled on the blockchain
-		// instantaneously without a challenge duration. It is used when all participants of a channel decide to
-		// close a channel collaboratively.
-		IsFinal bool
 		// Current Version Number for the channel. This will be zero when a channel is opened and will be incremented
 		// during each update. When registering the state on-chain, if different participants register states with
 		// different versions, channel will be settled according to the state with highest version number.

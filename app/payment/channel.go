@@ -33,15 +33,19 @@ type (
 		BalInfo perun.BalInfo
 		Version string
 	}
-	// PayChUpdateNotifier represents the channel update notification function for payment app.
+	// PayChUpdateNotifier represents the interpretation of channel update notifier for payment app.
 	PayChUpdateNotifier func(PayChUpdateNotif)
 
-	// PayChUpdateNotif represents the channel update notification data for payment app.
+	// PayChUpdateNotif represents the interpretation of channel update notification for payment app.
+	// ProposedChInfo (of ChUpdateNotif) is sent in the ChInfo field for regular updates and
+	// CurrChInfo (of ChCloseNotif) is sent in the ChInfo field for channel close update.
+	// See perun.ChUpdateNotif for documentation on the other struct fields.
 	PayChUpdateNotif struct {
 		UpdateID          string
 		ProposedPayChInfo PayChInfo
-		IsFinal           bool
+		Type              perun.ChUpdateType
 		Expiry            int64
+		Error             string
 	}
 )
 
@@ -95,11 +99,18 @@ func GetPayChInfo(ch perun.ChAPI) PayChInfo {
 // SubPayChUpdates sets up a subscription for updates on this channel.
 func SubPayChUpdates(ch perun.ChAPI, notifier PayChUpdateNotifier) error {
 	return ch.SubChUpdates(func(notif perun.ChUpdateNotif) {
+		var ProposedPayChInfo PayChInfo
+		if notif.Type == perun.ChUpdateTypeClosed {
+			ProposedPayChInfo = ToPayChInfo(notif.CurrChInfo)
+		} else {
+			ProposedPayChInfo = ToPayChInfo(notif.ProposedChInfo)
+		}
 		notifier(PayChUpdateNotif{
 			UpdateID:          notif.UpdateID,
-			ProposedPayChInfo: ToPayChInfo(notif.ProposedChInfo),
-			IsFinal:           notif.ProposedChInfo.IsFinal,
+			ProposedPayChInfo: ProposedPayChInfo,
+			Type:              notif.Type,
 			Expiry:            notif.Expiry,
+			Error:             notif.Error,
 		})
 	})
 }
