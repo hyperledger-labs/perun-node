@@ -41,7 +41,8 @@ import (
 // This file contains integration tests for all the APIs. Start the ganache cli node using the
 // below command before running the tests:
 //
-// ganache-cli -b 1 --account="0x1fedd636dbc7e8d41a0622a2040b86fea8842cef9d4aa4c582aad00465b7acff,100000000000000000000" \
+// ganache-cli -b 1 \
+// --account="0x1fedd636dbc7e8d41a0622a2040b86fea8842cef9d4aa4c582aad00465b7acff,100000000000000000000" \
 // --account="0xb0309c60b4622d3071fad3e16c2ce4d0b1e7758316c187754f4dd0cfb44ceb33,100000000000000000000"
 
 var (

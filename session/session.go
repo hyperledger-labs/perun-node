@@ -69,10 +69,6 @@ type (
 		chProposalResponders  map[string]chProposalResponderEntry
 	}
 
-	closedChRemover interface {
-		removeClosedCh(chID string) bool
-	}
-
 	chProposalResponderEntry struct {
 		notif     perun.ChProposalNotif
 		responder chProposalResponder
