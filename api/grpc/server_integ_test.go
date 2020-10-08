@@ -439,4 +439,4 @@ func ClosePayCh(t *testing.T, sessionID, chID string) {
 	require.NoErrorf(t, err, "ClosePayCh")
 	_, ok := resp.Response.(*pb.ClosePayChResp_MsgSuccess_)
 	require.True(t, ok, "ClosePayCh returned error response")
-}
+} // nolint:gofumpt // unknown error, maybe a false positive
