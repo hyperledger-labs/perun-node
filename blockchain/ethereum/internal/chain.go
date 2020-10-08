@@ -20,6 +20,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/pkg/errors"
 	pethchannel "perun.network/go-perun/backend/ethereum/channel"
 	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
@@ -38,13 +39,19 @@ type ChainBackend struct {
 }
 
 // NewFunder initializes and returns an instance of ethereum funder.
-func (cb *ChainBackend) NewFunder(assetAddr pwallet.Address) pchannel.Funder {
-	return pethchannel.NewETHFunder(*cb.Cb, pethwallet.AsEthAddr(assetAddr))
+func (cb *ChainBackend) NewFunder(assetAddr pwallet.Address, cred pwallet.Address) pchannel.Funder {
+	asset := pethwallet.AsWalletAddr(pethwallet.AsEthAddr(assetAddr))
+	acc := accounts.Account{Address: pethwallet.AsEthAddr(cred)}
+	accounts := map[pethchannel.Asset]accounts.Account{*asset: acc}
+	depositors := map[pethchannel.Asset]pethchannel.Depositor{*asset: new(pethchannel.ETHDepositor)}
+	return pethchannel.NewFunder(*cb.Cb, accounts, depositors)
 }
 
 // NewAdjudicator initializes and returns an instance of ethereum adjudicator.
-func (cb *ChainBackend) NewAdjudicator(adjAddr, receiverAddr pwallet.Address) pchannel.Adjudicator {
-	return pethchannel.NewAdjudicator(*cb.Cb, pethwallet.AsEthAddr(adjAddr), pethwallet.AsEthAddr(receiverAddr))
+func (cb *ChainBackend) NewAdjudicator(adjAddr, acct pwallet.Address) pchannel.Adjudicator {
+	acc := accounts.Account{Address: pethwallet.AsEthAddr(acct)}
+	return pethchannel.NewAdjudicator(*cb.Cb, pethwallet.AsEthAddr(adjAddr),
+		pethwallet.AsEthAddr(acct), acc)
 }
 
 // ValidateContracts validates the integrity of given adjudicator and asset holder contracts.
@@ -61,18 +68,21 @@ func (cb *ChainBackend) ValidateContracts(adjAddr, assetAddr pwallet.Address) er
 }
 
 // DeployAdjudicator deploys the adjudicator contract.
-func (cb *ChainBackend) DeployAdjudicator() (pwallet.Address, error) {
+func (cb *ChainBackend) DeployAdjudicator(onChainAddr pwallet.Address) (pwallet.Address, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), cb.TxTimeout)
 	defer cancel()
-	addr, err := pethchannel.DeployAdjudicator(ctx, *cb.Cb)
+
+	acc := accounts.Account{Address: pethwallet.AsEthAddr(onChainAddr)}
+	addr, err := pethchannel.DeployAdjudicator(ctx, *cb.Cb, acc)
 	return pethwallet.AsWalletAddr(addr), errors.Wrap(err, "deploying adjudicator contract")
 }
 
 // DeployAsset deploys the asset holder contract, setting the adjudicator address to given value.
-func (cb *ChainBackend) DeployAsset(adjAddr pwallet.Address) (pwallet.Address, error) {
+func (cb *ChainBackend) DeployAsset(adjAddr, cred pwallet.Address) (pwallet.Address, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), cb.TxTimeout)
 	defer cancel()
 
-	addr, err := pethchannel.DeployETHAssetholder(ctx, *cb.Cb, pethwallet.AsEthAddr(adjAddr))
+	acc := accounts.Account{Address: pethwallet.AsEthAddr(cred)}
+	addr, err := pethchannel.DeployETHAssetholder(ctx, *cb.Cb, pethwallet.AsEthAddr(adjAddr), acc)
 	return pethwallet.AsWalletAddr(addr), errors.Wrap(err, "deploying asset contract")
-}
+} // nolint:gofumpt // unknown error, maybe a false positive

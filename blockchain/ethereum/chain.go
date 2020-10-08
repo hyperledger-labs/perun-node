@@ -59,6 +59,6 @@ func NewChainBackend(url string, chainConnTimeout, onChainTxTimeout time.Duratio
 		return nil, err
 	}
 	tr := pkeystore.NewTransactor(*ksWallet)
-	cb := pethchannel.NewContractBackend(ethereumBackend, tr, &acc)
+	cb := pethchannel.NewContractBackend(ethereumBackend, tr)
 	return &internal.ChainBackend{Cb: &cb, TxTimeout: chainConnTimeout}, nil
 }

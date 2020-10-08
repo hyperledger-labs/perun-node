@@ -36,9 +36,9 @@ func Test_ChainBackend_Deploy(t *testing.T) {
 	rng := rand.New(rand.NewSource(1729))
 	setup := ethereumtest.NewChainBackendSetup(t, rng, 1)
 
-	adjAddr, err := setup.ChainBackend.DeployAdjudicator()
+	adjAddr, err := setup.ChainBackend.DeployAdjudicator(setup.Accs[0].Address())
 	require.NoError(t, err)
-	assetAddr, err := setup.ChainBackend.DeployAsset(adjAddr)
+	assetAddr, err := setup.ChainBackend.DeployAsset(adjAddr, setup.Accs[0].Address())
 	require.NoError(t, err)
 	assert.NoError(t, setup.ChainBackend.ValidateContracts(adjAddr, assetAddr))
 }
@@ -60,16 +60,16 @@ func Test_ChainBackend_ValidateContracts(t *testing.T) {
 func Test_ChainBackend_NewFunder(t *testing.T) {
 	rng := rand.New(rand.NewSource(1729))
 	setup := ethereumtest.NewChainBackendSetup(t, rng, 1)
-	randomAddr1 := ethereumtest.NewRandomAddress(rng)
+	assetAddr := setup.AssetAddr
+	addr := setup.Accs[0].Address()
 
-	assert.NotNil(t, setup.ChainBackend.NewFunder(randomAddr1))
+	assert.NotNil(t, setup.ChainBackend.NewFunder(assetAddr, addr))
 }
 
 func Test_ChainBackend_NewAdjudicator(t *testing.T) {
 	rng := rand.New(rand.NewSource(1729))
 	setup := ethereumtest.NewChainBackendSetup(t, rng, 1)
-	randomAddr1 := ethereumtest.NewRandomAddress(rng)
-	randomAddr2 := ethereumtest.NewRandomAddress(rng)
 
-	assert.NotNil(t, setup.ChainBackend.NewAdjudicator(randomAddr1, randomAddr2))
+	assert.NotNil(t, setup.ChainBackend.NewAdjudicator(setup.AssetAddr,
+		setup.Accs[0].Address()))
 }

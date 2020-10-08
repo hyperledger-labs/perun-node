@@ -127,7 +127,8 @@ func (c *client) Close() error {
 	return nil
 }
 
-func connectToChain(cfg ChainConfig, cred perun.Credential) (pchannel.Funder, pchannel.Adjudicator, error) {
+func connectToChain(cfg ChainConfig, cred perun.Credential) (pchannel.Funder,
+	pchannel.Adjudicator, error) {
 	walletBackend := ethereum.NewWalletBackend()
 	assetAddr, err := walletBackend.ParseAddr(cfg.Asset)
 	if err != nil {
@@ -143,7 +144,8 @@ func connectToChain(cfg ChainConfig, cred perun.Credential) (pchannel.Funder, pc
 		return nil, nil, err
 	}
 	err = chain.ValidateContracts(adjudicatorAddr, assetAddr)
-	return chain.NewFunder(assetAddr), chain.NewAdjudicator(adjudicatorAddr, cred.Addr), err
+	return chain.NewFunder(assetAddr, cred.Addr),
+		chain.NewAdjudicator(adjudicatorAddr, cred.Addr), err
 }
 
 func loadPersister(c *pclient.Client, dbPath string, reconnTimeout time.Duration) error {

@@ -56,9 +56,10 @@ func NewChainBackendSetup(t *testing.T, rng *rand.Rand, numAccs uint) *ChainBack
 	cbEth := newSimContractBackend(t, walletSetup.Accs, walletSetup.Keystore)
 	cb := &internal.ChainBackend{Cb: &cbEth, TxTimeout: ChainTxTimeout}
 
-	adjudicator, err := cb.DeployAdjudicator()
+	addr := walletSetup.Accs[0].Address()
+	adjudicator, err := cb.DeployAdjudicator(addr)
 	require.NoError(t, err)
-	asset, err := cb.DeployAsset(adjudicator)
+	asset, err := cb.DeployAsset(adjudicator, addr)
 	require.NoError(t, err)
 
 	// No cleanup required.
@@ -84,6 +85,5 @@ func newSimContractBackend(t *testing.T, accs []pwallet.Account, ks *keystore.Ke
 	require.NoError(t, err)
 
 	tr := pkeystore.NewTransactor(*ksWallet)
-	onChainAcc := &accs[0].(*pkeystore.Account).Account
-	return pethchannel.NewContractBackend(simBackend, tr, onChainAcc)
+	return pethchannel.NewContractBackend(simBackend, tr)
 }

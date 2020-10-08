@@ -73,7 +73,7 @@ func SetupContracts(t *testing.T, onChainCred perun.Credential, chainURL string,
 
 	if err = chain.ValidateContracts(adjudicator, asset); err != nil {
 		t.Log("\nFirst run of test for this ganache-cli instance. Deploying contracts.\n")
-		return deployContracts(t, chain)
+		return deployContracts(t, chain, onChainCred)
 	}
 	t.Log("\nRepeated run of test for this ganache-cli instance. Using deployed contracts.\n")
 	return adjudicator, asset
@@ -84,10 +84,11 @@ func isBlockchainRunning(url string) bool {
 	return err == nil
 }
 
-func deployContracts(t *testing.T, chain perun.ChainBackend) (adjudicator, asset pwallet.Address) {
-	adjudicator, err := chain.DeployAdjudicator()
+func deployContracts(t *testing.T, chain perun.ChainBackend,
+	onChainCred perun.Credential) (adjudicator, asset pwallet.Address) {
+	adjudicator, err := chain.DeployAdjudicator(onChainCred.Addr)
 	require.NoError(t, err)
-	asset, err = chain.DeployAsset(adjudicator)
+	asset, err = chain.DeployAsset(adjudicator, onChainCred.Addr)
 	require.NoError(t, err)
 	return adjudicator, asset
 }
