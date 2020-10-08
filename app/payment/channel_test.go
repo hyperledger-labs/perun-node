@@ -171,9 +171,9 @@ func Test_RespondPayChUpdate(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
 		chAPI.On("RespondChUpdate", context.Background(), updateID, accept).Return(updatedChInfo, nil)
 
-		gotPayChInfo, gotErr := payment.RespondPayChUpdate(context.Background(), chAPI, updateID, accept)
+		gotUpdatedPayChInfo, gotErr := payment.RespondPayChUpdate(context.Background(), chAPI, updateID, accept)
 		assert.NoError(t, gotErr)
-		assert.Equal(t, wantUpdatedPayChInfo, gotPayChInfo)
+		assert.Equal(t, wantUpdatedPayChInfo, gotUpdatedPayChInfo)
 	})
 	t.Run("happy_reject", func(t *testing.T) {
 		accept := false

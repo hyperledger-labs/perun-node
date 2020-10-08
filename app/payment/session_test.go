@@ -209,9 +209,9 @@ func Test_RespondPayChProposal(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
 		sessionAPI.On("RespondChProposal", context.Background(), proposalID, accept).Return(openedChInfo, nil)
 
-		gotPayChInfo, gotErr := payment.RespondPayChProposal(context.Background(), sessionAPI, proposalID, accept)
+		gotOpenedPayChInfo, gotErr := payment.RespondPayChProposal(context.Background(), sessionAPI, proposalID, accept)
 		assert.NoError(t, gotErr)
-		assert.Equal(t, wantOpenedPayChInfo, gotPayChInfo)
+		assert.Equal(t, wantOpenedPayChInfo, gotOpenedPayChInfo)
 	})
 	t.Run("happy_reject", func(t *testing.T) {
 		accept := false
