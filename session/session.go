@@ -56,6 +56,7 @@ type (
 		psync.Mutex
 
 		id         string
+		isOpen     bool
 		timeoutCfg timeoutConfig
 		user       perun.User
 		chAsset    pchannel.Asset
@@ -131,6 +132,7 @@ func New(cfg Config) (*session, error) {
 	sess := &session{
 		Logger:               log.NewLoggerWithField("session-id", sessionID),
 		id:                   sessionID,
+		isOpen:               true,
 		timeoutCfg:           timeoutCfg,
 		user:                 user,
 		chAsset:              chAsset,
@@ -181,6 +183,10 @@ func (s *session) AddContact(peer perun.Peer) error {
 	s.Lock()
 	defer s.Unlock()
 
+	if !s.isOpen {
+		return perun.ErrSessionClosed
+	}
+
 	err := s.contacts.Write(peer.Alias, peer)
 	if err != nil {
 		s.Error(err)
@@ -193,6 +199,10 @@ func (s *session) GetContact(alias string) (perun.Peer, error) {
 	s.Lock()
 	defer s.Unlock()
 
+	if !s.isOpen {
+		return perun.Peer{}, perun.ErrSessionClosed
+	}
+
 	peer, isPresent := s.contacts.ReadByAlias(alias)
 	if !isPresent {
 		s.Error(perun.ErrUnknownAlias)
@@ -204,8 +214,11 @@ func (s *session) GetContact(alias string) (perun.Peer, error) {
 func (s *session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app perun.App, challengeDurSecs uint64) (
 	perun.ChInfo, error) {
 	s.Debugf("\nReceived request:session.OpenCh Params %+v,%+v,%+v", openingBalInfo, app, challengeDurSecs)
-
 	// Session is locked only when adding the channel to session.
+
+	if !s.isOpen {
+		return perun.ChInfo{}, perun.ErrSessionClosed
+	}
 
 	sanitizeBalInfo(openingBalInfo)
 	parts, err := retrieveParts(openingBalInfo.Parts, s.contacts)
@@ -359,6 +372,12 @@ func (s *session) HandleProposal(chProposal pclient.ChannelProposal, responder *
 	s.Debugf("SDK Callback: HandleProposal. Params: %+v", chProposal)
 	expiry := time.Now().UTC().Add(s.timeoutCfg.response).Unix()
 
+	if !s.isOpen {
+		// Code will not reach here during runtime as chClient is closed when closing a session.
+		s.Error("Unexpected HandleProposal callback invoked on a closed session")
+		return
+	}
+
 	parts := make([]string, len(chProposal.Proposal().PeerAddrs))
 	for i := range chProposal.Proposal().PeerAddrs {
 		p, ok := s.contacts.ReadByOffChainAddr(chProposal.Proposal().PeerAddrs[i])
@@ -414,6 +433,10 @@ func (s *session) SubChProposals(notifier perun.ChProposalNotifier) error {
 	s.Lock()
 	defer s.Unlock()
 
+	if !s.isOpen {
+		return perun.ErrSessionClosed
+	}
+
 	if s.chProposalNotifier != nil {
 		return perun.ErrSubAlreadyExists
 	}
@@ -432,6 +455,10 @@ func (s *session) UnsubChProposals() error {
 	s.Lock()
 	defer s.Unlock()
 
+	if !s.isOpen {
+		return perun.ErrSessionClosed
+	}
+
 	if s.chProposalNotifier == nil {
 		return perun.ErrNoActiveSub
 	}
@@ -441,6 +468,10 @@ func (s *session) UnsubChProposals() error {
 
 func (s *session) RespondChProposal(pctx context.Context, chProposalID string, accept bool) (perun.ChInfo, error) {
 	s.Debugf("Received request: session.RespondChProposal. Params: %+v, %+v", chProposalID, accept)
+
+	if !s.isOpen {
+		return perun.ChInfo{}, perun.ErrSessionClosed
+	}
 
 	// Lock the session mutex only when retrieving the channel responder and deleting it.
 	// It will again be locked when adding the channel to the session.
@@ -533,6 +564,12 @@ func (s *session) HandleUpdate(chUpdate pclient.ChannelUpdate, responder *pclien
 	s.Lock()
 	defer s.Unlock()
 
+	if !s.isOpen {
+		// Code will not reach here during runtime as chClient is closed when closing a session.
+		s.Error("Unexpected HandleUpdate callback invoked on a closed session")
+		return
+	}
+
 	chID := fmt.Sprintf("%x", chUpdate.State.ID)
 	ch, ok := s.chs[chID]
 	if !ok {
@@ -544,6 +581,65 @@ func (s *session) HandleUpdate(chUpdate pclient.ChannelUpdate, responder *pclien
 	go ch.HandleUpdate(chUpdate, responder)
 }
 
-func (s *session) Close(force bool) error {
-	return nil
+func (s *session) Close(force bool) ([]perun.ChInfo, error) {
+	s.Debug("Received request: session.Close")
+	s.Lock()
+	defer s.Unlock()
+
+	if !s.isOpen {
+		return nil, perun.ErrSessionClosed
+	}
+
+	openChsInfo := []perun.ChInfo{}
+	unexpectedPhaseChIDs := []string{}
+
+	for _, ch := range s.chs {
+		// Acquire channel mutex to ensure any ongoing operation on the channel is finished.
+		ch.Lock()
+
+		// Calling Phase() also waits for the mutex on pchannel that ensures any handling of Registered event
+		// in the Watch routine is also completed. But if the event was received after acquiring channel mutex
+		// and completed before pc.Phase() returned, this event will not yet be serviced by perun-node.
+		// A solution to this is to add a provision (that is currenlt missing) to suspend the Watcher (only
+		// for open channels) before acquiring channel mutex and restoring it later if force option is false.
+		//
+		// TODO (mano): Add a provision in go-perun to suspend the watcher and it use it here.
+		//
+		// Since there will be no ongoing operations in perun-node, the pchannel is should be in one of the two
+		// stable phases knonwn to perun node (see state diagram in the docs for details) : Acting or Withdrawn.
+		phase := ch.pch.Phase()
+		if phase != pchannel.Acting && phase != pchannel.Withdrawn {
+			unexpectedPhaseChIDs = append(unexpectedPhaseChIDs, ch.ID())
+		}
+		if ch.status == open {
+			openChsInfo = append(openChsInfo, ch.getChInfo())
+		}
+	}
+	if len(unexpectedPhaseChIDs) != 0 {
+		err := fmt.Errorf("chs in unexpected phase during session close: %v", unexpectedPhaseChIDs)
+		s.Error(err.Error())
+		s.unlockAllChs()
+		return nil, perun.GetAPIError(errors.WithStack(err))
+	}
+	if !force && len(openChsInfo) != 0 {
+		err := fmt.Errorf("open chs during session close with force = false: %v", openChsInfo)
+		s.Error(err.Error())
+		s.unlockAllChs()
+		return openChsInfo, perun.GetAPIError(errors.WithStack(err))
+	}
+
+	s.isOpen = false
+	return openChsInfo, s.close()
+}
+
+func (s *session) unlockAllChs() {
+	for _, ch := range s.chs {
+		ch.Unlock()
+	}
+}
+
+func (s *session) close() error {
+	s.user.OnChain.Wallet.LockAll()
+	s.user.OffChain.Wallet.LockAll()
+	return errors.WithMessage(s.chClient.Close(), "closing session")
 }

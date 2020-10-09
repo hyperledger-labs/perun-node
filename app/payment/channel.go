@@ -61,7 +61,7 @@ func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string)
 		return PayChInfo{}, err
 	}
 	chInfo, err := ch.SendChUpdate(pctx, newUpdate(payerIdx, payeeIdx, parsedAmount))
-	return ToPayChInfo(chInfo), err
+	return toPayChInfo(chInfo), err
 }
 
 func parseAmount(chCurrency string, amount string) (*big.Int, error) {
@@ -93,7 +93,7 @@ func newUpdate(payerIdx, payeeIdx int, parsedAmount *big.Int) perun.StateUpdater
 
 // GetPayChInfo returns the balance information for this channel.
 func GetPayChInfo(ch perun.ChAPI) PayChInfo {
-	return ToPayChInfo(ch.GetChInfo())
+	return toPayChInfo(ch.GetChInfo())
 }
 
 // SubPayChUpdates sets up a subscription for updates on this channel.
@@ -101,9 +101,9 @@ func SubPayChUpdates(ch perun.ChAPI, notifier PayChUpdateNotifier) error {
 	return ch.SubChUpdates(func(notif perun.ChUpdateNotif) {
 		var ProposedPayChInfo PayChInfo
 		if notif.Type == perun.ChUpdateTypeClosed {
-			ProposedPayChInfo = ToPayChInfo(notif.CurrChInfo)
+			ProposedPayChInfo = toPayChInfo(notif.CurrChInfo)
 		} else {
-			ProposedPayChInfo = ToPayChInfo(notif.ProposedChInfo)
+			ProposedPayChInfo = toPayChInfo(notif.ProposedChInfo)
 		}
 		notifier(PayChUpdateNotif{
 			UpdateID:          notif.UpdateID,
@@ -123,17 +123,26 @@ func UnsubPayChUpdates(ch perun.ChAPI) error {
 // RespondPayChUpdate sends a response for a channel update notification.
 func RespondPayChUpdate(pctx context.Context, ch perun.ChAPI, updateID string, accept bool) (PayChInfo, error) {
 	chInfo, err := ch.RespondChUpdate(pctx, updateID, accept)
-	return ToPayChInfo(chInfo), err
+	return toPayChInfo(chInfo), err
 }
 
 // ClosePayCh closes the payment channel.
 func ClosePayCh(pctx context.Context, ch perun.ChAPI) (PayChInfo, error) {
 	chInfo, err := ch.Close(pctx)
-	return ToPayChInfo(chInfo), err
+	return toPayChInfo(chInfo), err
 }
 
-// ToPayChInfo converts ChInfo to PayChInfo.
-func ToPayChInfo(chInfo perun.ChInfo) PayChInfo {
+// toPaysChInfo converts ChInfo to PayChInfo.
+func toPayChsInfo(chsInfo []perun.ChInfo) []PayChInfo {
+	payChsInfo := make([]PayChInfo, len(chsInfo))
+	for i := range chsInfo {
+		payChsInfo[i] = toPayChInfo(chsInfo[i])
+	}
+	return payChsInfo
+}
+
+// toPayChInfo converts ChInfo to PayChInfo.
+func toPayChInfo(chInfo perun.ChInfo) PayChInfo {
 	return PayChInfo{
 		ChID:    chInfo.ChID,
 		BalInfo: chInfo.BalInfo,
