@@ -70,6 +70,7 @@ type (
 	}
 
 	chProposalResponderEntry struct {
+		proposal  pclient.ChannelProposal
 		notif     perun.ChProposalNotif
 		responder chProposalResponder
 	}
@@ -78,7 +79,7 @@ type (
 
 	// Proposal Responder defines the methods on proposal responder that will be used by the perun node.
 	chProposalResponder interface {
-		Accept(context.Context, pclient.ProposalAcc) (*pclient.Channel, error)
+		Accept(context.Context, *pclient.ChannelProposalAcc) (*pclient.Channel, error)
 		Reject(ctx context.Context, reason string) error
 	}
 )
@@ -472,7 +473,9 @@ func (s *session) RespondChProposal(pctx context.Context, chProposalID string, a
 func (s *session) acceptChProposal(pctx context.Context, entry chProposalResponderEntry) (perun.ChInfo, error) {
 	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.respChProposalAccept(entry.notif.ChallengeDurSecs))
 	defer cancel()
-	pch, err := entry.responder.Accept(ctx, pclient.ProposalAcc{Participant: s.user.OffChainAddr})
+	nonceShare := pclient.WithRandomNonce()
+	resp := s.chProposalResponders[""].proposal.Proposal().NewChannelProposalAcc(s.user.OffChainAddr, nonceShare)
+	pch, err := entry.responder.Accept(ctx, resp)
 	if err != nil {
 		s.Error("Accepting channel proposal", err)
 		return perun.ChInfo{}, err
