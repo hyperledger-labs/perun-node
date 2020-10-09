@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package perunnode_test
+package node_test
 
 import (
 	"path/filepath"
@@ -25,15 +25,15 @@ import (
 	"gotest.tools/assert"
 
 	"github.com/hyperledger-labs/perun-node"
-	"github.com/hyperledger-labs/perun-node/cmd/perunnode"
+	node "github.com/hyperledger-labs/perun-node/node"
 )
 
 var (
-	testdataDir       = "../../testdata/perunnode"
+	testdataDir       = "../testdata/node"
 	validConfigFile   = "valid.yaml"
 	invalidConfigFile = "invalid.yaml"
 	// test config as expected from the testdata file at
-	// ${PROJECT_ROOT}/testdata/perunnode/valid.yaml.
+	// ${PROJECT_ROOT}/testdata/node/valid.yaml.
 	testCfg = perun.NodeConfig{
 		LogLevel:         "debug",
 		LogFile:          "Node.log",
@@ -48,17 +48,17 @@ var (
 
 func Test_ParseConfig(t *testing.T) {
 	t.Run("happy", func(t *testing.T) {
-		gotCfg, err := perunnode.ParseConfig(filepath.Join(testdataDir, validConfigFile))
+		gotCfg, err := node.ParseConfig(filepath.Join(testdataDir, validConfigFile))
 		require.NoError(t, err)
 		assert.DeepEqual(t, testCfg, gotCfg)
 	})
 	t.Run("err_invalid_file", func(t *testing.T) {
-		_, err := perunnode.ParseConfig(filepath.Join(testdataDir, invalidConfigFile))
+		_, err := node.ParseConfig(filepath.Join(testdataDir, invalidConfigFile))
 		require.Error(t, err)
 		t.Log(err)
 	})
 	t.Run("err_missingFile", func(t *testing.T) {
-		_, err := perunnode.ParseConfig("missing_file")
+		_, err := node.ParseConfig("missing_file")
 		require.Error(t, err)
 		t.Log(err)
 	})

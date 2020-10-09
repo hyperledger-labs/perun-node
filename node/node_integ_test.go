@@ -16,7 +16,7 @@
 
 // +build integration
 
-package perunnode_test
+package node_test
 
 import (
 	"math/rand"
@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hyperledger-labs/perun-node"
-	"github.com/hyperledger-labs/perun-node/cmd/perunnode"
+	"github.com/hyperledger-labs/perun-node/node"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
@@ -57,27 +57,27 @@ func Test_Integ_New(t *testing.T) {
 	t.Run("err_invalid_log_level", func(t *testing.T) {
 		cfg := validConfig
 		cfg.LogLevel = ""
-		_, err := perunnode.New(cfg)
+		_, err := node.New(cfg)
 		require.Error(t, err)
 	})
 
 	t.Run("err_invalid_adjudicator", func(t *testing.T) {
 		cfg := validConfig
 		cfg.Adjudicator = "invalid-addr"
-		_, err := perunnode.New(cfg)
+		_, err := node.New(cfg)
 		require.Error(t, err)
 	})
 
 	t.Run("err_invalid_asset", func(t *testing.T) {
 		cfg := validConfig
 		cfg.Asset = "invalid-addr"
-		_, err := perunnode.New(cfg)
+		_, err := node.New(cfg)
 		require.Error(t, err)
 	})
 
 	t.Run("err_invalid_asset", func(t *testing.T) {
 		var err error
-		n, err = perunnode.New(validConfig)
+		n, err = node.New(validConfig)
 		require.NoError(t, err)
 		require.NotNil(t, n)
 	})

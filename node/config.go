@@ -14,16 +14,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package perunnode
+package node
 
 import (
-	"testing"
+	"path/filepath"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/spf13/viper"
 
 	"github.com/hyperledger-labs/perun-node"
 )
 
-func Test_NodeAPI_Interface(t *testing.T) {
-	assert.Implements(t, (*perun.NodeAPI)(nil), new(node))
+// ParseConfig parses the node configuration from a file.
+func ParseConfig(configFile string) (perun.NodeConfig, error) {
+	v := viper.New()
+	v.SetConfigFile(filepath.Clean(configFile))
+
+	var cfg perun.NodeConfig
+	err := v.ReadInConfig()
+	if err != nil {
+		return perun.NodeConfig{}, err
+	}
+	return cfg, v.Unmarshal(&cfg)
 }
