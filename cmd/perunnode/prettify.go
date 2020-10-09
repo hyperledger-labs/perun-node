@@ -14,25 +14,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package node
+package main
 
 import (
-	"path/filepath"
+	"fmt"
+	"reflect"
+	"time"
 
-	"github.com/spf13/viper"
-
-	"github.com/hyperledger-labs/perun-node"
+	"github.com/kylelemons/godebug/pretty"
 )
 
-// ParseConfig parses the node configuration from a file.
-func ParseConfig(configFile string) (perun.NodeConfig, error) {
-	v := viper.New()
-	v.SetConfigFile(filepath.Clean(configFile))
+var prettyFormatterOverrides = map[reflect.Type]interface{}{
+	reflect.TypeOf(time.Duration(0)): fmt.Sprint,
+}
 
-	var cfg perun.NodeConfig
-	err := v.ReadInConfig()
-	if err != nil {
-		return perun.NodeConfig{}, err
-	}
-	return cfg, v.Unmarshal(&cfg)
+var prettyFormatterConfig = &pretty.Config{
+	Formatter:         prettyFormatterOverrides,
+	IncludeUnexported: true,
+}
+
+// prettify returns a prettified string version of the input data.
+// For structs, it includes both exported and unexported fields.
+// Formatting of time strings is preserved.
+func prettify(vals ...interface{}) string {
+	return prettyFormatterConfig.Sprint(vals...)
 }

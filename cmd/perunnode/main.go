@@ -14,5 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package node implements the node API.
-package node
+package main
+
+import (
+	"fmt"
+	"os"
+)
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+}

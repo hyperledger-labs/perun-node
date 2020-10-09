@@ -21,7 +21,6 @@ package grpc_test
 import (
 	"context"
 	"math/rand"
-	"net"
 	"sync"
 	"testing"
 	"time"
@@ -47,14 +46,14 @@ import (
 
 var (
 	nodeCfg = perun.NodeConfig{
-		LogFile:      "",
-		LogLevel:     "debug",
-		ChainURL:     "ws://127.0.0.1:8545",
-		Adjudicator:  "0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63",
-		Asset:        "0x5992089d61cE79B6CF90506F70DD42B8E42FB21d",
-		CommTypes:    []string{"tcp"},
-		ContactTypes: []string{"yaml"},
-		Currencies:   []string{"ETH"},
+		LogFile:              "",
+		LogLevel:             "debug",
+		ChainURL:             "ws://127.0.0.1:8545",
+		Adjudicator:          "0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63",
+		Asset:                "0x5992089d61cE79B6CF90506F70DD42B8E42FB21d",
+		CommTypes:            []string{"tcp"},
+		ContactTypes:         []string{"yaml"},
+		CurrencyInterpreters: []string{"ETH"},
 
 		ChainConnTimeout: 30 * time.Second,
 		OnChainTxTimeout: 10 * time.Second,
@@ -62,45 +61,35 @@ var (
 	}
 
 	grpcPort = ":50001"
-)
 
-func StartServer(t *testing.T) {
-	// Initialize a listener.
-	listener, err := net.Listen("tcp", grpcPort)
-	require.NoErrorf(t, err, "starting listener")
-
-	// Initialize a grpc payment API.
-	nodeAPI, err := node.New(nodeCfg)
-	require.NoErrorf(t, err, "initializing nodeAPI")
-	grpcGrpcPayChServer := grpc.NewPayChServer(nodeAPI)
-
-	// Create grpc server.
-	grpcServer := grpclib.NewServer()
-	pb.RegisterPayment_APIServer(grpcServer, grpcGrpcPayChServer)
-
-	// Run Server in a go-routine.
-	t.Log("Starting server")
-	go func() {
-		if err := grpcServer.Serve(listener); err != nil {
-			t.Logf("failed to serve: %v", err)
-		}
-	}()
-}
-
-var (
+	// singleton instance of client and context that will be used for all tests.
 	client pb.Payment_APIClient
 	ctx    context.Context
 )
 
-func Test_Integ_Role(t *testing.T) {
-	StartServer(t)
+func StartServer(t *testing.T, nodeCfg perun.NodeConfig, grpcPort string) {
+	nodeAPI, err := node.New(nodeCfg)
+	require.NoErrorf(t, err, "initializing nodeAPI")
 
+	t.Log("Started ListenAndServePayChAPI")
+	go func() {
+		if err := grpc.ListenAndServePayChAPI(nodeAPI, grpcPort); err != nil {
+			t.Logf("server returned with error: %v", err)
+		}
+	}()
+	time.Sleep(1 * time.Second) // Wait for the server to start.
+}
+
+func Test_Integ_Role(t *testing.T) {
+	// Run server in a go routine.
+	StartServer(t, nodeCfg, grpcPort)
+
+	// Inititalize client.
 	conn, err := grpclib.Dial(grpcPort, grpclib.WithInsecure())
 	require.NoError(t, err, "dialing to grpc server")
 	t.Log("connected to server")
-
-	// Inititalize client.
 	client = pb.NewPayment_APIClient(conn)
+
 	ctx = context.Background()
 
 	t.Run("Node.Time", func(t *testing.T) {
