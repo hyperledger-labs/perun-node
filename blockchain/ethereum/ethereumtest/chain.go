@@ -56,10 +56,10 @@ func NewChainBackendSetup(t *testing.T, rng *rand.Rand, numAccs uint) *ChainBack
 	cbEth := newSimContractBackend(t, walletSetup.Accs, walletSetup.Keystore)
 	cb := &internal.ChainBackend{Cb: &cbEth, TxTimeout: ChainTxTimeout}
 
-	addr := walletSetup.Accs[0].Address()
-	adjudicator, err := cb.DeployAdjudicator(addr)
+	onChainAddr := walletSetup.Accs[0].Address()
+	adjudicator, err := cb.DeployAdjudicator(onChainAddr)
 	require.NoError(t, err)
-	asset, err := cb.DeployAsset(adjudicator, addr)
+	asset, err := cb.DeployAsset(adjudicator, onChainAddr)
 	require.NoError(t, err)
 
 	// No cleanup required.
