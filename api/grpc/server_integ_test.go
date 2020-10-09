@@ -132,7 +132,8 @@ func Test_Integ_Role(t *testing.T) {
 	var alicePeer, bobPeer *pb.Peer
 	var chID string
 	prng := rand.New(rand.NewSource(1729))
-	aliceCfg, bobCfg := sessiontest.NewConfig(t, prng), sessiontest.NewConfig(t, prng)
+	aliceCfg := sessiontest.NewConfig(t, prng)
+	bobCfg := sessiontest.NewConfig(t, prng)
 	aliceCfgFile := sessiontest.NewConfigFile(t, aliceCfg)
 	bobCfgFile := sessiontest.NewConfigFile(t, bobCfg)
 	wg := &sync.WaitGroup{}
@@ -171,7 +172,7 @@ func Test_Integ_Role(t *testing.T) {
 
 			wg.Done()
 		}()
-		sub := SubPayChProposal(t, bobSessionID, false)
+		sub := SubPayChProposal(t, bobSessionID)
 		notif := ReadPayChProposalNotif(t, bobSessionID, sub, false)
 		RespondPayChProposal(t, bobSessionID, notif.Notify.ProposalID, true, false)
 		UnsubPayChProposal(t, bobSessionID, false)
@@ -196,7 +197,7 @@ func Test_Integ_Role(t *testing.T) {
 
 			wg.Done()
 		}()
-		sub := SubPayChProposal(t, aliceSessionID, false)
+		sub := SubPayChProposal(t, aliceSessionID)
 		notif := ReadPayChProposalNotif(t, aliceSessionID, sub, false)
 		RespondPayChProposal(t, aliceSessionID, notif.Notify.ProposalID, false, false)
 		UnsubPayChProposal(t, aliceSessionID, false)
@@ -281,7 +282,7 @@ func Test_Integ_Role(t *testing.T) {
 	})
 	t.Run("APIs error when session is closed", func(t *testing.T) {
 		OpenPayCh(t, bobSessionID, []string{perun.OwnAlias, aliceAlias}, []string{"1", "2"}, true)
-		sub := SubPayChProposal(t, aliceSessionID, true)
+		sub := SubPayChProposal(t, aliceSessionID)
 		ReadPayChProposalNotif(t, aliceSessionID, sub, true)
 		RespondPayChProposal(t, aliceSessionID, "", false, true)
 		UnsubPayChProposal(t, aliceSessionID, true)
@@ -365,16 +366,11 @@ func OpenPayCh(t *testing.T, sessionID string, parts, bal []string, wantErr bool
 	return msg.MsgSuccess.OpenedPayChInfo.ChID
 }
 
-func SubPayChProposal(t *testing.T, sessionID string, wantErr bool) pb.Payment_API_SubPayChProposalsClient {
+func SubPayChProposal(t *testing.T, sessionID string) pb.Payment_API_SubPayChProposalsClient {
 	subReq := pb.SubPayChProposalsReq{
 		SessionID: sessionID,
 	}
 	subClient, err := client.SubPayChProposals(ctx, &subReq)
-	// if wantErr {
-	// 	require.NoError(t, err)
-	// 	t.Log(t, err)
-	// 	return nil
-	// }
 	require.NoErrorf(t, err, "SubPayChProposals")
 	return subClient
 }

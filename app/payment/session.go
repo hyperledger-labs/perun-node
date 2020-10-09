@@ -95,7 +95,7 @@ func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID s
 	return toPayChInfo(chInfo), err
 }
 
-// CloseSession sessions closes the current session.
+// CloseSession closes the current session.
 func CloseSession(s perun.SessionAPI, force bool) ([]PayChInfo, error) {
 	openChsInfo, err := s.Close(force)
 	return toPayChsInfo(openChsInfo), err
