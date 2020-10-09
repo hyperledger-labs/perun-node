@@ -168,10 +168,10 @@ type WireBus interface {
 //
 // It defines methods for deploying contracts; validating deployed contracts and instantiating a funder, adjudicator.
 type ChainBackend interface {
-	DeployAdjudicator() (adjAddr pwallet.Address, _ error)
-	DeployAsset(adjAddr pwallet.Address) (assetAddr pwallet.Address, _ error)
+	DeployAdjudicator(onChainAddr pwallet.Address) (adjAddr pwallet.Address, _ error)
+	DeployAsset(adjAddr, onChainAddr pwallet.Address) (assetAddr pwallet.Address, _ error)
 	ValidateContracts(adjAddr, assetAddr pwallet.Address) error
-	NewFunder(assetAddr pwallet.Address) pchannel.Funder
+	NewFunder(assetAddr, onChainAddr pwallet.Address) pchannel.Funder
 	NewAdjudicator(adjAddr, receiverAddr pwallet.Address) pchannel.Adjudicator
 }
 
