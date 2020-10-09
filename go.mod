@@ -17,5 +17,5 @@ require (
 	google.golang.org/protobuf v1.24.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 	gotest.tools v2.2.0+incompatible
-	perun.network/go-perun v0.4.1-0.20200910151003-4bede739a3e4
+	perun.network/go-perun v0.4.1-0.20200916124044-27be1b2016bd
 )
