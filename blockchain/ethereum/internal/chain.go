@@ -48,10 +48,10 @@ func (cb *ChainBackend) NewFunder(assetAddr pwallet.Address, onChainAddr pwallet
 }
 
 // NewAdjudicator initializes and returns an instance of ethereum adjudicator.
-func (cb *ChainBackend) NewAdjudicator(adjAddr, receiverAddr pwallet.Address) pchannel.Adjudicator {
-	receiverAcc := accounts.Account{Address: pethwallet.AsEthAddr(receiverAddr)}
+func (cb *ChainBackend) NewAdjudicator(adjAddr, onChainAddr pwallet.Address) pchannel.Adjudicator {
+	onChainAcc := accounts.Account{Address: pethwallet.AsEthAddr(onChainAddr)}
 	return pethchannel.NewAdjudicator(*cb.Cb, pethwallet.AsEthAddr(adjAddr),
-		pethwallet.AsEthAddr(receiverAddr), receiverAcc)
+		pethwallet.AsEthAddr(onChainAddr), onChainAcc)
 }
 
 // ValidateContracts validates the integrity of given adjudicator and asset holder contracts.
