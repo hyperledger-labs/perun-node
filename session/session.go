@@ -622,7 +622,7 @@ func (s *session) Close(force bool) ([]perun.ChInfo, error) {
 		return nil, perun.GetAPIError(errors.WithStack(err))
 	}
 	if !force && len(openChsInfo) != 0 {
-		err := fmt.Errorf("open chs during session close with force = false: %v", openChsInfo)
+		err := fmt.Errorf("%w: %v", perun.ErrOpenCh, openChsInfo)
 		s.Error(err.Error())
 		s.unlockAllChs()
 		return openChsInfo, perun.GetAPIError(errors.WithStack(err))

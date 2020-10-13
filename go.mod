@@ -3,13 +3,20 @@ module github.com/hyperledger-labs/perun-node
 go 1.14
 
 require (
+	github.com/abiosoft/ishell v2.0.0+incompatible
+	github.com/abiosoft/readline v0.0.0-20180607040430-155bce2042db // indirect
+	github.com/chzyer/logex v1.1.10 // indirect
+	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/ethereum/go-ethereum v1.9.14
+	github.com/fatih/color v1.7.0
+	github.com/flynn-archive/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/gorilla/websocket v1.4.2
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kylelemons/godebug v1.1.0
 	github.com/magiconair/properties v1.8.4 // indirect
+	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
