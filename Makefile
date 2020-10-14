@@ -11,4 +11,4 @@ build:
 	go build $(LDFLAGS) $(NODE_PKG)
 
 clean:
-	rm perunnode
+	rm -rf perunnode node.yaml alice bob

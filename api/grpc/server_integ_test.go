@@ -32,6 +32,7 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/api/grpc"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/node"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
@@ -81,6 +82,9 @@ func StartServer(t *testing.T, nodeCfg perun.NodeConfig, grpcPort string) {
 }
 
 func Test_Integ_Role(t *testing.T) {
+	// Deploy contracts on blockchain.
+	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainTxTimeout)
+
 	// Run server in a go routine.
 	StartServer(t, nodeCfg, grpcPort)
 
@@ -121,10 +125,10 @@ func Test_Integ_Role(t *testing.T) {
 	var alicePeer, bobPeer *pb.Peer
 	var chID string
 	prng := rand.New(rand.NewSource(1729))
-	aliceCfg := sessiontest.NewConfig(t, prng)
-	bobCfg := sessiontest.NewConfig(t, prng)
-	aliceCfgFile := sessiontest.NewConfigFile(t, aliceCfg)
-	bobCfgFile := sessiontest.NewConfigFile(t, bobCfg)
+	aliceCfg := sessiontest.NewConfigT(t, prng)
+	bobCfg := sessiontest.NewConfigT(t, prng)
+	aliceCfgFile := sessiontest.NewConfigFileT(t, aliceCfg)
+	bobCfgFile := sessiontest.NewConfigFileT(t, bobCfg)
 	wg := &sync.WaitGroup{}
 
 	// Run OpenSession for Alice, Bob in top level test, because cleaup functions

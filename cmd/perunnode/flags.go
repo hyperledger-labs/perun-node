@@ -18,8 +18,19 @@ package main
 
 import "github.com/spf13/pflag"
 
+// areAllFlagsUnspecified returns true if any of the flags were unspecified
+// when invoking the command to which the passed flagset was attached to.
+func areAllFlagsUnspecified(fs *pflag.FlagSet, flags ...string) bool {
+	for i := range flags {
+		if fs.Changed(flags[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 // areAllFlagsSpecified returns true if all of the flags were specified
-// invoking the command to which the passed flagset was attached to.
+// when invoking the command to which the passed flagset was attached to.
 func areAllFlagsSpecified(fs *pflag.FlagSet, flags ...string) bool {
 	for i := range flags {
 		if !fs.Changed(flags[i]) {

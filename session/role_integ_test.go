@@ -32,6 +32,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
@@ -49,13 +50,14 @@ func init() {
 
 // This test includes all methods on SessionAPI and ChAPI.
 func Test_Integ_Role(t *testing.T) {
-	prng := rand.New(rand.NewSource(1729))
+	// Deploy contracts.
+	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainTxTimeout)
 
 	aliceAlias, bobAlias := "alice", "bob"
 
-	// Start with empty contacts.
-	aliceCfg := sessiontest.NewConfig(t, prng)
-	bobCfg := sessiontest.NewConfig(t, prng)
+	prng := rand.New(rand.NewSource(1729))
+	aliceCfg := sessiontest.NewConfigT(t, prng)
+	bobCfg := sessiontest.NewConfigT(t, prng)
 
 	alice, err := session.New(aliceCfg)
 	require.NoErrorf(t, err, "initializing alice session")

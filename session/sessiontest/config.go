@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/phayes/freeport"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
@@ -34,24 +35,58 @@ import (
 	"github.com/hyperledger-labs/perun-node/session"
 )
 
-// NewConfigFile creates a temporary file containing the given session configuration and
-// returns the path to it. It also registers a cleanup function on the passed test handler.
-func NewConfigFile(t *testing.T, config session.Config) string {
-	tempFile, err := ioutil.TempFile("", "*.yaml")
-	defer func() {
-		require.NoErrorf(t, tempFile.Close(), "closing temporary file")
-	}()
+// NewConfigFileT is the test friendly version of NewConfigFile.
+// It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
+func NewConfigFileT(t *testing.T, config session.Config) string {
+	configFile, err := NewConfigFile(config)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		if err = os.Remove(tempFile.Name()); err != nil {
-			t.Log("Error in test cleanup: removing file - " + tempFile.Name())
+		if err = os.Remove(configFile); err != nil {
+			t.Log("Error in test cleanup: removing file - " + configFile)
 		}
 	})
+	return configFile
+}
 
+// NewConfigFile creates a temporary file containing the given session configuration and
+// returns the path to it. It also registers a cleanup function on the passed test handler.
+func NewConfigFile(config interface{}) (string, error) {
+	tempFile, err := ioutil.TempFile("", "*.yaml")
+	if err != nil {
+		return "", errors.Wrap(err, "creating temp file for config")
+	}
 	encoder := yaml.NewEncoder(tempFile)
-	require.NoErrorf(t, encoder.Encode(config), "encoding config")
-	require.NoErrorf(t, encoder.Close(), "closing encoder")
-	return tempFile.Name()
+	if err := encoder.Encode(config); err != nil {
+		tempFile.Close()           // nolint: errcheck
+		os.Remove(tempFile.Name()) // nolint: errcheck
+		return "", errors.Wrap(err, "encoding config")
+	}
+	if err := encoder.Close(); err != nil {
+		tempFile.Close()           // nolint: errcheck
+		os.Remove(tempFile.Name()) // nolint: errcheck
+		return "", errors.Wrap(err, "closing encoder")
+	}
+	return tempFile.Name(), tempFile.Close()
+}
+
+// NewConfigT is the test friendly version of NewConfig.
+// It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
+func NewConfigT(t *testing.T, rng *rand.Rand, contacts ...perun.Peer) session.Config {
+	sessionCfg, err := NewConfig(rng, contacts...)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err = os.RemoveAll(sessionCfg.DatabaseDir); err != nil {
+			t.Log("Error in test cleanup: removing directory - " + sessionCfg.DatabaseDir)
+		}
+		// Currently, onChainWallet & offChainWallet use same keystore, so delete once.
+		if err = os.RemoveAll(sessionCfg.User.OnChainWallet.KeystorePath); err != nil {
+			t.Log("Error in test cleanup: removing directory - " + sessionCfg.User.OnChainWallet.KeystorePath)
+		}
+		if err = os.Remove(sessionCfg.ContactsURL); err != nil {
+			t.Log("Error in test cleanup: removing file - " + sessionCfg.ContactsURL)
+		}
+	})
+	return sessionCfg
 }
 
 // NewConfig generates random configuration data for the session using the given prng and contacts.
@@ -61,55 +96,73 @@ func NewConfigFile(t *testing.T, config session.Config) string {
 // This function returns a session config with user on-chain addresses that are funded on blockchain when
 // using a particular seed for prng. The first two consecutive calls to this function will return
 // funded accounts when using prng := rand.New(rand.NewSource(1729)).
-func NewConfig(t *testing.T, rng *rand.Rand, contacts ...perun.Peer) session.Config {
-	walletSetup, userCfg := newUserConfig(t, rng, 0)
-	cred := perun.Credential{
-		Addr:     walletSetup.Accs[0].Address(),
-		Wallet:   walletSetup.Wallet,
-		Keystore: walletSetup.KeystorePath,
-		Password: "",
+func NewConfig(rng *rand.Rand, contacts ...perun.Peer) (session.Config, error) {
+	_, userCfg, err := newUserConfig(rng, 0)
+	if err != nil {
+		return session.Config{}, errors.WithMessage(err, "new user config")
 	}
-	chainURL := ethereumtest.ChainURL
-	onChainTxTimeout := ethereumtest.OnChainTxTimeout
-	adjudicator, asset := ethereumtest.SetupContracts(t, cred, chainURL, onChainTxTimeout)
+	adjudicator, asset := ethereumtest.ContractAddrs()
+	databaseDir, err := newDatabaseDir()
+	if err != nil {
+		return session.Config{}, err
+	}
+	contactsYAMLFile, err := contactstest.NewYAMLFile(contacts...)
+	if err != nil {
+		return session.Config{}, err
+	}
 
 	return session.Config{
 		User:             userCfg,
-		ChainURL:         chainURL,
+		ChainURL:         ethereumtest.ChainURL,
 		Adjudicator:      adjudicator.String(),
 		Asset:            asset.String(),
 		ChainConnTimeout: 30 * time.Second,
 		ResponseTimeout:  10 * time.Second,
 		OnChainTxTimeout: 5 * time.Second,
-		DatabaseDir:      newDatabaseDir(t),
+		DatabaseDir:      databaseDir,
 
 		ContactsType: "yaml",
-		ContactsURL:  contactstest.NewYAMLFile(t, contacts...),
-	}
+		ContactsURL:  contactsYAMLFile,
+	}, nil
 }
 
-func newDatabaseDir(t *testing.T) (dir string) {
+func newDatabaseDir() (string, error) {
 	databaseDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return "", errors.Wrap(err, "creating temp directory for database")
+	}
+	return databaseDir, nil
+}
+
+// NewUserConfigT is the test friendly version of NewUserConfig.
+// It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
+func NewUserConfigT(t *testing.T, rng *rand.Rand, n uint) (perun.WalletBackend, session.UserConfig) {
+	wb, userCfg, err := NewUserConfig(rng, n)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		if err := os.RemoveAll(databaseDir); err != nil {
-			t.Logf("Error in removing the file in test cleanup - %v", err)
+		if err := os.RemoveAll(userCfg.OnChainWallet.KeystorePath); err != nil {
+			t.Log("error in cleanup - ", err)
 		}
 	})
-	return databaseDir
+	return wb, userCfg
 }
 
 // NewUserConfig returns a test user configuration with random data generated using the given rng.
 // It creates "n" participant accounts to the user.
-func NewUserConfig(t *testing.T, rng *rand.Rand, n uint) (perun.WalletBackend, session.UserConfig) {
-	ws, userCfg := newUserConfig(t, rng, 2+n)
-	return ws.WalletBackend, userCfg
+func NewUserConfig(rng *rand.Rand, n uint) (perun.WalletBackend, session.UserConfig, error) {
+	ws, userCfg, err := newUserConfig(rng, 2+n)
+	return ws.WalletBackend, userCfg, err
 }
 
-func newUserConfig(t *testing.T, rng *rand.Rand, n uint) (*ethereumtest.WalletSetup, session.UserConfig) {
-	ws := ethereumtest.NewWalletSetup(t, rng, 2+n)
+func newUserConfig(rng *rand.Rand, n uint) (*ethereumtest.WalletSetup, session.UserConfig, error) {
+	ws, err := ethereumtest.NewWalletSetup(rng, 2+n)
+	if err != nil {
+		return nil, session.UserConfig{}, errors.WithMessage(err, "new wallet setup")
+	}
 	port, err := freeport.GetFreePort()
-	require.NoError(t, err)
+	if err != nil {
+		return nil, session.UserConfig{}, errors.Wrap(err, "acquiring free port")
+	}
 
 	cfg := session.UserConfig{}
 	cfg.Alias = "test-user"
@@ -129,5 +182,5 @@ func newUserConfig(t *testing.T, rng *rand.Rand, n uint) (*ethereumtest.WalletSe
 	}
 	cfg.CommType = "tcp"
 	cfg.CommAddr = fmt.Sprintf("127.0.0.1:%d", port)
-	return ws, cfg
+	return ws, cfg, nil
 }

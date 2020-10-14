@@ -51,7 +51,7 @@ type ChainBackendSetup struct {
 // It also generates the given number of accounts and funds them each with 10 ether.
 // and returns a test ChainBackend using the given randomness.
 func NewChainBackendSetup(t *testing.T, rng *rand.Rand, numAccs uint) *ChainBackendSetup {
-	walletSetup := NewWalletSetup(t, rng, numAccs)
+	walletSetup := NewWalletSetupT(t, rng, numAccs)
 
 	cbEth := newSimContractBackend(t, walletSetup.Accs, walletSetup.Keystore)
 	cb := &internal.ChainBackend{Cb: &cbEth, TxTimeout: ChainTxTimeout}

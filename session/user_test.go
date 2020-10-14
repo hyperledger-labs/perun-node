@@ -32,7 +32,7 @@ import (
 func Test_New_Happy(t *testing.T) {
 	rng := rand.New(rand.NewSource(1729))
 	cntParts := uint(4)
-	wb, userCfg := sessiontest.NewUserConfig(t, rng, cntParts)
+	wb, userCfg := sessiontest.NewUserConfigT(t, rng, cntParts)
 
 	t.Run("non_empty_parts", func(t *testing.T) {
 		userCfgCopy := userCfg
@@ -69,7 +69,7 @@ func compareUserWithCfg(t *testing.T, gotUser perun.User, userCfg session.UserCo
 func Test_New_Unhappy(t *testing.T) {
 	rng := rand.New(rand.NewSource(1729))
 	cntParts := uint(1)
-	wb, userCfg := sessiontest.NewUserConfig(t, rng, cntParts)
+	wb, userCfg := sessiontest.NewUserConfigT(t, rng, cntParts)
 
 	t.Run("invalid_parts_address", func(t *testing.T) {
 		userCfgCopy := userCfg

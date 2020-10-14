@@ -36,7 +36,7 @@ func Test_WalletBackend_Interface(t *testing.T) {
 func Test_WalletBackend_NewWallet(t *testing.T) {
 	rng := rand.New(rand.NewSource(1729))
 	wb := ethereumtest.NewTestWalletBackend()
-	setup := ethereumtest.NewWalletSetup(t, rng, 1)
+	setup := ethereumtest.NewWalletSetupT(t, rng, 1)
 
 	t.Run("happy", func(t *testing.T) {
 		w, err := wb.NewWallet(setup.KeystorePath, "")
@@ -58,7 +58,7 @@ func Test_WalletBackend_NewWallet(t *testing.T) {
 func Test_WalletBackend_NewAccount(t *testing.T) {
 	rng := rand.New(rand.NewSource(1729))
 	wb := ethereumtest.NewTestWalletBackend()
-	setup := ethereumtest.NewWalletSetup(t, rng, 1)
+	setup := ethereumtest.NewWalletSetupT(t, rng, 1)
 
 	t.Run("happy", func(t *testing.T) {
 		w, err := wb.UnlockAccount(setup.Wallet, setup.Accs[0].Address())

@@ -21,32 +21,49 @@ import (
 	"os"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
 	"github.com/hyperledger-labs/perun-node"
 )
 
-// NewYAMLFile creates a temporary file containing the details of given peers and
-// returns the path to it. It also registers a cleanup function on the passed test handler.
-func NewYAMLFile(t *testing.T, peers ...perun.Peer) string {
-	tempFile, err := ioutil.TempFile("", "")
-	defer func() {
-		require.NoErrorf(t, tempFile.Close(), "closing temporary file")
-	}()
+// NewYAMLFileT is the test friendly version of NewYAMLFile.
+// It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
+func NewYAMLFileT(t *testing.T, peers ...perun.Peer) string {
+	contactsFile, err := NewYAMLFile(peers...)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		if err = os.Remove(tempFile.Name()); err != nil {
-			t.Log("Error in test cleanup: removing file - " + tempFile.Name())
+		if err = os.Remove(contactsFile); err != nil {
+			t.Log("Error in test cleanup: removing file - " + contactsFile)
 		}
 	})
+	return contactsFile
+}
+
+// NewYAMLFile creates a temporary file containing the details of given peers and
+// returns the path to it. It also registers a cleanup function on the passed test handler.
+func NewYAMLFile(peers ...perun.Peer) (string, error) {
+	tempFile, err := ioutil.TempFile("", "")
+	if err != nil {
+		return "", errors.Wrap(err, "creating temp file for yaml contacts")
+	}
+	// if err = os.Remove(tempFile.Name()); err != nil {
 	contacts := make(map[string]perun.Peer, len(peers))
 	for _, peer := range peers {
 		contacts[peer.Alias] = peer
 	}
 
 	encoder := yaml.NewEncoder(tempFile)
-	require.NoErrorf(t, encoder.Encode(contacts), "encoding contacts")
-	require.NoErrorf(t, encoder.Close(), "closing encoder")
-	return tempFile.Name()
+	if err := encoder.Encode(contacts); err != nil {
+		tempFile.Close()           // nolint: errcheck
+		os.Remove(tempFile.Name()) // nolint: errcheck
+		return "", errors.Wrap(err, "encoding contacts")
+	}
+	if err := encoder.Close(); err != nil {
+		tempFile.Close()           // nolint: errcheck
+		os.Remove(tempFile.Name()) // nolint: errcheck
+		return "", errors.Wrap(err, "closing encoder")
+	}
+	return tempFile.Name(), tempFile.Close()
 }
