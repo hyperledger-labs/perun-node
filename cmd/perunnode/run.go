@@ -99,7 +99,7 @@ func defineFlags() {
 	runCmd.Flags().String(configfileF, defaultConfigFile, "node config file")
 	runCmd.Flags().Uint64(grpcPortF, defaultGrpcPort, "port for grpc payment channel API server to listen")
 
-	// All these flags should have zero values for defaults, as their only purpose is allow	the user to
+	// Default values of all these flags should be zero, as their only purpose is to allow the user to
 	// explicitly specify the configuration.
 	runCmd.Flags().String(loglevelF, "", "Log level. Supported levels: debug, info, error")
 	runCmd.Flags().String(logfileF, "", "Log file path. Use empty string for stdout")
