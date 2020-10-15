@@ -33,8 +33,8 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/api/grpc"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
-	"github.com/hyperledger-labs/perun-node/cmd/perunnode"
 	"github.com/hyperledger-labs/perun-node/currency"
+	"github.com/hyperledger-labs/perun-node/node"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
@@ -70,7 +70,7 @@ func StartServer(t *testing.T) {
 	require.NoErrorf(t, err, "starting listener")
 
 	// Initialize a grpc payment API.
-	nodeAPI, err := perunnode.New(nodeCfg)
+	nodeAPI, err := node.New(nodeCfg)
 	require.NoErrorf(t, err, "initializing nodeAPI")
 	grpcGrpcPayChServer := grpc.NewPayChServer(nodeAPI)
 

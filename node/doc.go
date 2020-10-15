@@ -14,5 +14,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package perunnode implements the perun node API.
-package perunnode
+// Package node implements the perun node API.
+package node
