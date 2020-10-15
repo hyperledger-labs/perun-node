@@ -35,7 +35,7 @@ var prettyFormatterConfig = &pretty.Config{
 
 // prettify returns a prettified string version of the input data.
 // For structs, it includes both exported and unexported fields.
-// Formatting of time strings is preserved.
+// Formatting of time strings are preserved.
 func prettify(vals ...interface{}) string {
 	return prettyFormatterConfig.Sprint(vals...)
 }
