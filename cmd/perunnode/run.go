@@ -56,7 +56,7 @@ var (
 	nodeCfgViper *viper.Viper
 
 	// Flags corresponding to node configuration parameters. Each of this flag can individually override the
-	// values default in config file. Also, the node configuration can be fully specified by using all of these
+	// default values in config file. Also, the node configuration can be fully specified by using all of these
 	// flags, in which case no config file
 	// is needed and configFile flag can be unspecified.
 	nodeCfgFlags = []string{
