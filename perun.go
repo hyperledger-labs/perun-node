@@ -191,19 +191,21 @@ type Currency interface {
 
 // NodeConfig represents the configurable parameters of a perun node.
 type NodeConfig struct {
-	LogLevel string // LogLevel represents the log level for the node and all derived loggers.
-	LogFile  string // LogFile represents the file to write logs. Empty string represents stdout.
-
-	ChainURL     string   // Address of the default blockchain node used by the perun node.
-	Adjudicator  string   // Address of the default Adjudicator contract used by the perun node.
-	Asset        string   // Address of the default Asset Holder contract used by the perun node.
-	CommTypes    []string // Communication protocols supported by the node for off-chain communication.
-	ContactTypes []string // Contacts Provider backends supported by the node.
-	Currencies   []string // Currencies supported by the node.
-
+	// User configurable values.
+	LogLevel         string        // LogLevel represents the log level for the node and all derived loggers.
+	LogFile          string        // LogFile represents the file to write logs. Empty string represents stdout.
+	ChainURL         string        // Address of the default blockchain node used by the perun node.
+	Adjudicator      string        // Address of the default Adjudicator contract used by the perun node.
+	Asset            string        // Address of the default Asset Holder contract used by the perun node.
 	ChainConnTimeout time.Duration // Timeout for connecting to blockchain node.
 	OnChainTxTimeout time.Duration // Timeout to wait for confirmation of on-chain tx.
 	ResponseTimeout  time.Duration // Timeout to wait for a response from the peer / user.
+
+	// Hard coded values. See cmd/perunnode/run.go.
+	CommTypes            []string // Communication protocols supported by the node for off-chain communication.
+	ContactTypes         []string // Contacts Provider backends supported by the node.
+	CurrencyInterpreters []string // Currencies Interpreters supported by the node.
+
 }
 
 // NodeAPI represents the APIs that can be accessed in the context of a perun node.

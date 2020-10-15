@@ -14,5 +14,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package node implements the node API.
-package node
+package main
+
+import (
+	"github.com/spf13/cobra"
+)
+
+func init() {
+	rootCmd.SetHelpCommand(&cobra.Command{
+		Use:    "no-help",
+		Hidden: true,
+	})
+}
+
+var rootCmd = &cobra.Command{
+	Use:   "perunnode",
+	Short: "A node for connecting to perun state channel network.",
+	Long: `
+A node for connecting to perun state channel network. It is a multi-user node,
+which can be simultaneously used by many users, with each user opening a
+separate, isolated session in the node. The user can first open a session and
+within the session use state channels APIs.Currently it implements and supports
+only ethereum payment channels.`,
+}

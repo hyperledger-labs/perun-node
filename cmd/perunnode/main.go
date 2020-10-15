@@ -14,25 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package node
+package main
 
 import (
-	"path/filepath"
-
-	"github.com/spf13/viper"
-
-	"github.com/hyperledger-labs/perun-node"
+	"fmt"
+	"os"
 )
 
-// ParseConfig parses the node configuration from a file.
-func ParseConfig(configFile string) (perun.NodeConfig, error) {
-	v := viper.New()
-	v.SetConfigFile(filepath.Clean(configFile))
-
-	var cfg perun.NodeConfig
-	err := v.ReadInConfig()
-	if err != nil {
-		return perun.NodeConfig{}, err
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(0)
 	}
-	return cfg, v.Unmarshal(&cfg)
 }

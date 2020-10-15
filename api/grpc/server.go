@@ -18,18 +18,19 @@ package grpc
 
 import (
 	"context"
-
-	psync "perun.network/go-perun/pkg/sync"
+	"net"
 
 	"github.com/pkg/errors"
+	grpclib "google.golang.org/grpc"
+	psync "perun.network/go-perun/pkg/sync"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
 	"github.com/hyperledger-labs/perun-node/app/payment"
 )
 
-// PayChServer represents a grpc server that implements payment channel API.
-type PayChServer struct {
+// payChAPIServer represents a grpc server that can serve payment channel API.
+type payChAPIServer struct {
 	n perun.NodeAPI
 
 	// The mutex should be used when accessing the map data structures.
@@ -50,17 +51,27 @@ type PayChServer struct {
 	chUpdatesNotif   map[string]map[string]chan bool
 }
 
-// NewPayChServer returns a new grpc server that can server the payment channel API.
-func NewPayChServer(n perun.NodeAPI) *PayChServer {
-	return &PayChServer{
+// ListenAndServePayChAPI starts a payment channel API server that listens for incoming grpc
+// requests at the specified address and serves those requests using the node API instance.
+func ListenAndServePayChAPI(n perun.NodeAPI, grpcPort string) error {
+	apiServer := &payChAPIServer{
 		n:                n,
 		chProposalsNotif: make(map[string]chan bool),
 		chUpdatesNotif:   make(map[string]map[string]chan bool),
 	}
+
+	listener, err := net.Listen("tcp", grpcPort)
+	if err != nil {
+		return errors.Wrap(err, "starting listener")
+	}
+	grpcServer := grpclib.NewServer()
+	pb.RegisterPayment_APIServer(grpcServer, apiServer)
+
+	return grpcServer.Serve(listener)
 }
 
 // GetConfig wraps node.GetConfig.
-func (a *PayChServer) GetConfig(context.Context, *pb.GetConfigReq) (*pb.GetConfigResp, error) {
+func (a *payChAPIServer) GetConfig(context.Context, *pb.GetConfigReq) (*pb.GetConfigResp, error) {
 	cfg := a.n.GetConfig()
 	return &pb.GetConfigResp{
 		ChainAddress:       cfg.ChainURL,
@@ -72,21 +83,21 @@ func (a *PayChServer) GetConfig(context.Context, *pb.GetConfigReq) (*pb.GetConfi
 }
 
 // Time wraps node.Time.
-func (a *PayChServer) Time(context.Context, *pb.TimeReq) (*pb.TimeResp, error) {
+func (a *payChAPIServer) Time(context.Context, *pb.TimeReq) (*pb.TimeResp, error) {
 	return &pb.TimeResp{
 		Time: a.n.Time(),
 	}, nil
 }
 
 // Help wraps node.Help.
-func (a *PayChServer) Help(context.Context, *pb.HelpReq) (*pb.HelpResp, error) {
+func (a *payChAPIServer) Help(context.Context, *pb.HelpReq) (*pb.HelpResp, error) {
 	return &pb.HelpResp{
 		Apis: a.n.Help(),
 	}, nil
 }
 
 // OpenSession wraps node.OpenSession.
-func (a *PayChServer) OpenSession(ctx context.Context, req *pb.OpenSessionReq) (*pb.OpenSessionResp, error) {
+func (a *payChAPIServer) OpenSession(ctx context.Context, req *pb.OpenSessionReq) (*pb.OpenSessionResp, error) {
 	errResponse := func(err error) *pb.OpenSessionResp {
 		return &pb.OpenSessionResp{
 			Response: &pb.OpenSessionResp_Error{
@@ -116,7 +127,7 @@ func (a *PayChServer) OpenSession(ctx context.Context, req *pb.OpenSessionReq) (
 }
 
 // AddContact wraps session.AddContact.
-func (a *PayChServer) AddContact(ctx context.Context, req *pb.AddContactReq) (*pb.AddContactResp, error) {
+func (a *payChAPIServer) AddContact(ctx context.Context, req *pb.AddContactReq) (*pb.AddContactResp, error) {
 	errResponse := func(err error) *pb.AddContactResp {
 		return &pb.AddContactResp{
 			Response: &pb.AddContactResp_Error{
@@ -151,7 +162,7 @@ func (a *PayChServer) AddContact(ctx context.Context, req *pb.AddContactReq) (*p
 }
 
 // GetContact wraps session.GetContact.
-func (a *PayChServer) GetContact(ctx context.Context, req *pb.GetContactReq) (*pb.GetContactResp, error) {
+func (a *payChAPIServer) GetContact(ctx context.Context, req *pb.GetContactReq) (*pb.GetContactResp, error) {
 	errResponse := func(err error) *pb.GetContactResp {
 		return &pb.GetContactResp{
 			Response: &pb.GetContactResp_Error{
@@ -186,7 +197,7 @@ func (a *PayChServer) GetContact(ctx context.Context, req *pb.GetContactReq) (*p
 }
 
 // OpenPayCh wraps session.OpenPayCh.
-func (a *PayChServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*pb.OpenPayChResp, error) {
+func (a *payChAPIServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*pb.OpenPayChResp, error) {
 	errResponse := func(err error) *pb.OpenPayChResp {
 		return &pb.OpenPayChResp{
 			Response: &pb.OpenPayChResp_Error{
@@ -219,7 +230,7 @@ func (a *PayChServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*pb.
 }
 
 // GetPayChsInfo wraps session.GetPayChs.
-func (a *PayChServer) GetPayChsInfo(ctx context.Context, req *pb.GetPayChsInfoReq) (*pb.GetPayChsInfoResp, error) {
+func (a *payChAPIServer) GetPayChsInfo(ctx context.Context, req *pb.GetPayChsInfoReq) (*pb.GetPayChsInfoResp, error) {
 	errResponse := func(err error) *pb.GetPayChsInfoResp {
 		return &pb.GetPayChsInfoResp{
 			Response: &pb.GetPayChsInfoResp_Error{
@@ -247,7 +258,7 @@ func (a *PayChServer) GetPayChsInfo(ctx context.Context, req *pb.GetPayChsInfoRe
 }
 
 // SubPayChProposals wraps session.SubPayChProposals.
-func (a *PayChServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
+func (a *payChAPIServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
 	srv pb.Payment_API_SubPayChProposalsServer) error {
 	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
@@ -286,7 +297,7 @@ func (a *PayChServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
 }
 
 // UnsubPayChProposals wraps session.UnsubPayChProposals.
-func (a *PayChServer) UnsubPayChProposals(ctx context.Context, req *pb.UnsubPayChProposalsReq) (
+func (a *payChAPIServer) UnsubPayChProposals(ctx context.Context, req *pb.UnsubPayChProposalsReq) (
 	*pb.UnsubPayChProposalsResp, error) {
 	errResponse := func(err error) *pb.UnsubPayChProposalsResp {
 		return &pb.UnsubPayChProposalsResp{
@@ -318,7 +329,7 @@ func (a *PayChServer) UnsubPayChProposals(ctx context.Context, req *pb.UnsubPayC
 	}, nil
 }
 
-func (a *PayChServer) closeGrpcPayChProposalSub(sessionID string) {
+func (a *payChAPIServer) closeGrpcPayChProposalSub(sessionID string) {
 	a.Lock()
 	signal := a.chProposalsNotif[sessionID]
 	delete(a.chProposalsNotif, sessionID)
@@ -327,7 +338,7 @@ func (a *PayChServer) closeGrpcPayChProposalSub(sessionID string) {
 }
 
 // RespondPayChProposal wraps session.RespondPayChProposal.
-func (a *PayChServer) RespondPayChProposal(ctx context.Context, req *pb.RespondPayChProposalReq) (
+func (a *payChAPIServer) RespondPayChProposal(ctx context.Context, req *pb.RespondPayChProposalReq) (
 	*pb.RespondPayChProposalResp, error) {
 	errResponse := func(err error) *pb.RespondPayChProposalResp {
 		return &pb.RespondPayChProposalResp{
@@ -358,7 +369,7 @@ func (a *PayChServer) RespondPayChProposal(ctx context.Context, req *pb.RespondP
 }
 
 // CloseSession wraps session.CloseSession. For now, this is a stub.
-func (a *PayChServer) CloseSession(ctx context.Context, req *pb.CloseSessionReq) (*pb.CloseSessionResp, error) {
+func (a *payChAPIServer) CloseSession(ctx context.Context, req *pb.CloseSessionReq) (*pb.CloseSessionResp, error) {
 	errResponse := func(openPayChsInfo []*pb.PayChInfo, err error) *pb.CloseSessionResp {
 		return &pb.CloseSessionResp{
 			Response: &pb.CloseSessionResp_Error{
@@ -389,7 +400,7 @@ func (a *PayChServer) CloseSession(ctx context.Context, req *pb.CloseSessionReq)
 }
 
 // SendPayChUpdate wraps ch.SendPayChUpdate.
-func (a *PayChServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpdateReq) (
+func (a *payChAPIServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpdateReq) (
 	*pb.SendPayChUpdateResp, error) {
 	errResponse := func(err error) *pb.SendPayChUpdateResp {
 		return &pb.SendPayChUpdateResp{
@@ -424,7 +435,7 @@ func (a *PayChServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpda
 }
 
 // SubPayChUpdates wraps ch.SubPayChUpdates.
-func (a *PayChServer) SubPayChUpdates(req *pb.SubpayChUpdatesReq, srv pb.Payment_API_SubPayChUpdatesServer) error {
+func (a *payChAPIServer) SubPayChUpdates(req *pb.SubpayChUpdatesReq, srv pb.Payment_API_SubPayChUpdatesServer) error {
 	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		// TODO: (mano) Return a error response and not a protocol error.
@@ -480,7 +491,7 @@ var ToGrpcChUpdateType = map[perun.ChUpdateType]pb.SubPayChUpdatesResp_Notify_Ch
 }
 
 // UnsubPayChUpdates wraps ch.UnsubPayChUpdates.
-func (a *PayChServer) UnsubPayChUpdates(ctx context.Context, req *pb.UnsubPayChUpdatesReq) (
+func (a *payChAPIServer) UnsubPayChUpdates(ctx context.Context, req *pb.UnsubPayChUpdatesReq) (
 	*pb.UnsubPayChUpdatesResp, error) {
 	errResponse := func(err error) *pb.UnsubPayChUpdatesResp {
 		return &pb.UnsubPayChUpdatesResp{
@@ -514,7 +525,7 @@ func (a *PayChServer) UnsubPayChUpdates(ctx context.Context, req *pb.UnsubPayChU
 	}, nil
 }
 
-func (a *PayChServer) closeGrpcPayChUpdateSub(sessionID, chID string) {
+func (a *payChAPIServer) closeGrpcPayChUpdateSub(sessionID, chID string) {
 	a.Lock()
 	signal := a.chUpdatesNotif[sessionID][chID]
 	delete(a.chUpdatesNotif[sessionID], chID)
@@ -523,7 +534,7 @@ func (a *PayChServer) closeGrpcPayChUpdateSub(sessionID, chID string) {
 }
 
 // RespondPayChUpdate wraps ch.RespondPayChUpdate.
-func (a *PayChServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPayChUpdateReq) (
+func (a *payChAPIServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPayChUpdateReq) (
 	*pb.RespondPayChUpdateResp, error) {
 	errResponse := func(err error) *pb.RespondPayChUpdateResp {
 		return &pb.RespondPayChUpdateResp{
@@ -558,7 +569,7 @@ func (a *PayChServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPay
 }
 
 // GetPayChInfo wraps ch.GetBalInfo.
-func (a *PayChServer) GetPayChInfo(ctx context.Context, req *pb.GetPayChInfoReq) (
+func (a *payChAPIServer) GetPayChInfo(ctx context.Context, req *pb.GetPayChInfoReq) (
 	*pb.GetPayChInfoResp, error) {
 	errResponse := func(err error) *pb.GetPayChInfoResp {
 		return &pb.GetPayChInfoResp{
@@ -593,7 +604,7 @@ func (a *PayChServer) GetPayChInfo(ctx context.Context, req *pb.GetPayChInfoReq)
 }
 
 // ClosePayCh wraps ch.ClosePayCh.
-func (a *PayChServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*pb.ClosePayChResp, error) {
+func (a *payChAPIServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*pb.ClosePayChResp, error) {
 	errResponse := func(err error) *pb.ClosePayChResp {
 		return &pb.ClosePayChResp{
 			Response: &pb.ClosePayChResp_Error{

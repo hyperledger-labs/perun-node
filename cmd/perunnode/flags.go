@@ -14,5 +14,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package node implements the node API.
-package node
+package main
+
+import "github.com/spf13/pflag"
+
+// areAllFlagsSpecified returns true if all of the flags were specified
+// invoking the command to which the passed flagset was attached to.
+func areAllFlagsSpecified(fs *pflag.FlagSet, flags ...string) bool {
+	for i := range flags {
+		if !fs.Changed(flags[i]) {
+			return false
+		}
+	}
+	return true
+}

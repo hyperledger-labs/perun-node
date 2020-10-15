@@ -14,5 +14,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package node implements the node API.
-package node
+package main
+
+import (
+	"fmt"
+	"reflect"
+	"time"
+
+	"github.com/kylelemons/godebug/pretty"
+)
+
+var prettyFormatterOverrides = map[reflect.Type]interface{}{
+	reflect.TypeOf(time.Duration(0)): fmt.Sprint,
+}
+
+var prettyFormatterConfig = &pretty.Config{
+	Formatter:         prettyFormatterOverrides,
+	IncludeUnexported: true,
+}
+
+// prettify returns a prettified string version of the input data.
+// For structs, it includes both exported and unexported fields.
+// Formatting of time strings are preserved.
+func prettify(vals ...interface{}) string {
+	return prettyFormatterConfig.Sprint(vals...)
+}
