@@ -1,4 +1,4 @@
-# Trying it out: perunnode and perunnodecli
+# Trying out Perun Node and Perun Node CLIi
 
 
 #### perunnode
