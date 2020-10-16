@@ -36,6 +36,8 @@ import (
 )
 
 //go:generate mockery --name Closer --output ../internal/mocks
+
+// Closer is used to call close on database.
 type Closer interface {
 	Close() error
 }

@@ -70,7 +70,8 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 	t.Run("happy", func(t *testing.T) {
 		cfg.DatabaseDir = newDatabaseDir(t) // start with empty persistence dir each time.
 		client, err := client.NewEthereumPaymentClient(cfg, user, tcp.NewTCPBackend(5*time.Second))
-		client.RestoreChs(func(*pclient.Channel) {})
+		assert.NoError(t, err)
+		err = client.RestoreChs(func(*pclient.Channel) {})
 		assert.NoError(t, err)
 		assert.NoError(t, client.Close())
 	})
