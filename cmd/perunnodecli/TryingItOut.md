@@ -15,7 +15,7 @@ An application with interactive CLI interface that uses generated grpc client
 stubs to interact with a running instance of perun node. Besides this, it does
 not share any code with rest of the project.
 
-It provides different sets of commands:chain, node, session, contact, channel,
+It provides different sets of commands: chain, node, session, contact, channel,
 payment. Each of these commands have sub-commands to do specific operations.
 In the app, type `help` to get information on each of these commands.
 
