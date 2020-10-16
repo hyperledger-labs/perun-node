@@ -267,7 +267,7 @@ session close no-force
 12. To try out persistence of channels:
 
 - (a) Open a session for alice, bob and then open a few channels using commands
-  described in step 5.
+  described in step 4.
 
 - (b) Close the session using force option:
 
