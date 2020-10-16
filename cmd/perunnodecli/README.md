@@ -60,7 +60,7 @@ This will generate the following artifacts:
 4. Start the perunnode:
 
 ```
-./perunnode generate
+./perunnode run
 ```
 
 This will start the perunnode using the config file located at default path
