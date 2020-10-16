@@ -1,0 +1,5 @@
+bob:
+    alias: bob
+    offchain_address: 0x7b7E212652b9C3755C4E1f1718a142dDE3817523
+    comm_address: 127.0.0.1:33947
+    comm_type: tcp

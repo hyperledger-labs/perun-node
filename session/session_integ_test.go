@@ -142,6 +142,26 @@ func Test_Integ_New(t *testing.T) {
 	})
 }
 
+func Test_Integ_Persistence(t *testing.T) {
+	prng := rand.New(rand.NewSource(1729))
+
+	aliceCfg := sessiontest.NewConfigT(t, prng)
+	// Use contacts and databaseDir from a session that was persisted already.
+	aliceCfg.DatabaseDir = "../testdata/session/persistence/alice-database"
+	aliceCfg.ContactsURL = "../testdata/session/persistence/alice-contacts.yaml"
+
+	alice, err := session.New(aliceCfg)
+	require.NoErrorf(t, err, "initializing alice session")
+	t.Logf("alice session id: %s\n", alice.ID())
+	t.Logf("alice database dir is: %s\n", aliceCfg.DatabaseDir)
+
+	t.Run("GetChannelInfos", func(t *testing.T) {
+		t.Run("happy", func(t *testing.T) {
+			require.Equal(t, 3, len(alice.GetChsInfo()))
+		})
+	})
+}
+
 func newPeers(t *testing.T, prng *rand.Rand, n uint) []perun.Peer {
 	peers := make([]perun.Peer, n)
 	for i := range peers {

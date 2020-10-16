@@ -141,6 +141,10 @@ func New(cfg Config) (*session, error) {
 		chs:                  make(map[string]*channel),
 		chProposalResponders: make(map[string]chProposalResponderEntry),
 	}
+	err = sess.chClient.RestoreChs(sess.handleRestoredCh)
+	if err != nil {
+		return nil, errors.WithMessage(err, "restoring channels")
+	}
 	chClient.Handle(sess, sess) // Init handlers
 	return sess, nil
 }
@@ -176,6 +180,33 @@ func calcSessionID(userOffChainAddr []byte) string {
 
 func (s *session) ID() string {
 	return s.id
+}
+
+func (s *session) handleRestoredCh(pch *pclient.Channel) {
+	s.Debugf("found channel in persistence: 0x%x", pch.ID())
+
+	// Restore only those channels that are in acting phase.
+	if pch.Phase() != pchannel.Acting {
+		return
+	}
+	peers := pch.Peers()
+	parts := make([]perun.Peer, len(peers))
+	aliases := make([]string, len(peers))
+	for i := range pch.Peers() {
+		p, ok := s.contacts.ReadByOffChainAddr(peers[i])
+		if !ok {
+			s.Info("Unknown peer address in a persisted channel, will not be restored", pch.Peers()[i].String())
+			return
+		}
+		parts[i] = p
+		aliases[i] = p.Alias
+	}
+
+	registerParts(parts, s.chClient)
+
+	ch := newCh(pch, currency.ETH, aliases, s.timeoutCfg, pch.Params().ChallengeDuration)
+	s.addCh(ch)
+	s.Debugf("restored channel from persistence: %v", ch.getChInfo())
 }
 
 func (s *session) AddContact(peer perun.Peer) error {

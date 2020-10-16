@@ -147,6 +147,7 @@ type ChClient interface {
 	EnablePersistence(ppersistence.PersistRestorer)
 	OnNewChannel(handler func(*pclient.Channel))
 	Restore(context.Context) error
+	RestoreChs(func(*pclient.Channel)) error
 
 	Log() pLog.Logger
 }
@@ -215,7 +216,7 @@ type NodeAPI interface {
 	Time() int64
 	GetConfig() NodeConfig
 	Help() []string
-	OpenSession(configFile string) (string, error)
+	OpenSession(configFile string) (string, []ChInfo, error)
 
 	// This function is used internally to get a SessionAPI instance.
 	// Should not be exposed via user API.

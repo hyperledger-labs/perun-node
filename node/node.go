@@ -85,7 +85,7 @@ func (n *node) Help() []string {
 
 // OpenSession opens a session on this node using the given config file and returns the
 // session id, which can be used to retrieve a SessionAPI instance from this node instance.
-func (n *node) OpenSession(configFile string) (string, error) {
+func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, error) {
 	n.Debug("Received request: node.OpenSession", configFile)
 	n.Lock()
 	defer n.Unlock()
@@ -93,15 +93,15 @@ func (n *node) OpenSession(configFile string) (string, error) {
 	sessionConfig, err := session.ParseConfig(configFile)
 	if err != nil {
 		n.Error(err, "parsing session config")
-		return "", perun.ErrInvalidConfig
+		return "", nil, perun.ErrInvalidConfig
 	}
 	sess, err := session.New(sessionConfig)
 	if err != nil {
 		n.Error(err, "initializing session")
-		return "", perun.GetAPIError(err)
+		return "", nil, perun.GetAPIError(err)
 	}
 	n.sessions[sess.ID()] = sess
-	return sess.ID(), nil
+	return sess.ID(), sess.GetChsInfo(), nil
 }
 
 // GetSession is a special call that should be used internally to retrieve a SessionAPI

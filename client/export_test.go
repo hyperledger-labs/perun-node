@@ -18,10 +18,11 @@ package client
 
 import "github.com/hyperledger-labs/perun-node"
 
-func NewClientForTest(pClient pClient, bus perun.WireBus, msgBusRegistry perun.Registerer) *client {
+func NewClientForTest(pClient pClient, bus perun.WireBus, msgBusRegistry perun.Registerer, dbConn Closer) *client {
 	return &client{
 		pClient:        pClient,
 		msgBus:         bus,
 		msgBusRegistry: msgBusRegistry,
+		dbConn:         dbConn,
 	}
 }

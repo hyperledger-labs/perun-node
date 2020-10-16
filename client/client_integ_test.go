@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	pclient "perun.network/go-perun/client"
 
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/client"
@@ -62,13 +63,14 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 			URL:         ethereumtest.ChainURL,
 			ConnTimeout: 10 * time.Second,
 		},
-		PeerReconnTimeout: 0,
+		PeerReconnTimeout: 20 * time.Second,
 	}
 	// TODO: (mano) Test if handle and lister are running as expected.
 
 	t.Run("happy", func(t *testing.T) {
 		cfg.DatabaseDir = newDatabaseDir(t) // start with empty persistence dir each time.
 		client, err := client.NewEthereumPaymentClient(cfg, user, tcp.NewTCPBackend(5*time.Second))
+		client.RestoreChs(func(*pclient.Channel) {})
 		assert.NoError(t, err)
 		assert.NoError(t, client.Close())
 	})
@@ -168,27 +170,6 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 		_, err := client.NewEthereumPaymentClient(cfg, invalidUser, tcp.NewTCPBackend(5*time.Second))
 		assert.Error(t, err)
 	})
-
-	t.Run("err_persistence_path_is_file", func(t *testing.T) {
-		emptyFile, err := ioutil.TempFile("", "")
-		require.NoError(t, err)
-		err = emptyFile.Close()
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			// nolint:govet // err does not shadow the prev declaration as this func will be executed later.
-			if err := os.Remove(emptyFile.Name()); err != nil {
-				t.Logf("Error in removing the file in test cleanup - %v", err)
-			}
-		})
-
-		cfgInvalidPeristence := cfg
-		cfgInvalidPeristence.DatabaseDir = emptyFile.Name()
-		_, err = client.NewEthereumPaymentClient(cfgInvalidPeristence, user, tcp.NewTCPBackend(5*time.Second))
-		t.Log(err)
-		assert.Error(t, err)
-	})
-
-	// TODO: (mano) Faulty Persistence data and Reconnection errors.
 }
 
 func newDatabaseDir(t *testing.T) (dir string) {

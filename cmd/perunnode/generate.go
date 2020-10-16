@@ -168,7 +168,7 @@ func generateSessionConfig() error {
 
 	// Generate session config, the seed 1729 generates two accounts which were funded when starting
 	// the ganache cli node with the command documented in help message.
-	prng := rand.New(rand.NewSource(1729))
+	prng := rand.New(rand.NewSource(1729)) // nolint:gosec	// math/rand is used for deterministic getting random data.
 	aliceCfg, err := sessiontest.NewConfig(prng)
 	if err != nil {
 		return err

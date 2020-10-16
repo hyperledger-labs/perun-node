@@ -112,14 +112,15 @@ func NewConfig(rng *rand.Rand, contacts ...perun.Peer) (session.Config, error) {
 	}
 
 	return session.Config{
-		User:             userCfg,
-		ChainURL:         ethereumtest.ChainURL,
-		Adjudicator:      adjudicator.String(),
-		Asset:            asset.String(),
-		ChainConnTimeout: 30 * time.Second,
-		ResponseTimeout:  10 * time.Second,
-		OnChainTxTimeout: 5 * time.Second,
-		DatabaseDir:      databaseDir,
+		User:              userCfg,
+		ChainURL:          ethereumtest.ChainURL,
+		Adjudicator:       adjudicator.String(),
+		Asset:             asset.String(),
+		ChainConnTimeout:  30 * time.Second,
+		ResponseTimeout:   10 * time.Second,
+		OnChainTxTimeout:  5 * time.Second,
+		DatabaseDir:       databaseDir,
+		PeerReconnTimeout: 20 * time.Second,
 
 		ContactsType: "yaml",
 		ContactsURL:  contactsYAMLFile,

@@ -214,7 +214,7 @@ terminal as the payment was rejected by user.
    error.
 
 ```
-session close
+session close no-force
 ```
 
 9. Close the channel.
@@ -255,13 +255,37 @@ command as in step 8, but without any error.
 
 ```
 # [Alice]
-session close
+session close no-force
 ```
 
 ```
 # [Bob]
-session close
+session close no-force
 ```
+
+11. To try out persistence of channels:
+
+- (a) Open a session for alice, bob and then open a few channels using commands
+  described in step 5.
+
+- (b) Close the session using force option:
+
+```
+# [Alice]
+session close force
+```
+
+```
+# [Bob]
+session close force
+```
+
+- (c) Open sessions for alice and bob again using the commands in step 3. Once
+  the session is opened, the channels restored from persistence will be printed
+  along with their aliases. You can send payments on these channels and close
+  them as before. There is no difference between a channel opened in current
+  session and a channel restored from persistence.
+
 
 ## Remarks
 
