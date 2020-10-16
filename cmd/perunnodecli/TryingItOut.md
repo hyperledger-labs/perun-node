@@ -1,4 +1,4 @@
-# Trying out Perun Node and Perun Node CLIi
+# Trying out Perun Node and Perun Node CLI
 
 
 #### perunnode
