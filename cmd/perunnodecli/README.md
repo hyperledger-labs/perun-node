@@ -58,7 +58,41 @@ This will generate the following artifacts:
   contacts.yaml file and keystore directory with keys corresponding to the
   on-chain and off-chain accounts.
 
-4. Start the perunnode:
+
+4. Set the blockchain address. Besides of commands to use API of perunnode,
+   this application also has a few helper commands to directly interact with
+   blockchain that are organized as sub-commands of chain command. To use these
+   commands, you need to first set the address of the blockchain node:
+
+```
+chain set-blockchain-address ws://127.0.0.1:8545
+```
+
+5. Deploy perun contracts on the newly started `ganache-cli` node using the
+   chain command.
+
+```
+chain deploy-perun-contracts
+```
+
+6. Reading on-chain balance. For reading the on-chain balance, you need to
+   specify the address as a hex string with a prefix of '0x'. For convenience,
+   the on-chain addresses that were funded when starting the ganache-cli node as
+   described in step 1 are already added to autocomplete. However, this command
+   can also be used to read on-chain balance for other addresses.
+
+First address is that of alice and second is that of bob. This can be verified
+by looking at the `alice/session.yaml` and `bob/session.yaml` files.
+
+```
+chain get-on-chain-balance 0x8450c0055cB180C7C37A25866132A740b812937B
+chain get-on-chain-balance 0xc4bA4815c82727554e4c12A07a139b74c6742322
+```
+
+You can use these commands at any time before opening, while open or after
+closing a payment channel.
+
+7. Start the perunnode:
 
 ```
 ./perunnode run
@@ -243,7 +277,7 @@ Now the program will opt for non-collaborative close by registering the state
 on the blockchain, waiting for the challenge duration to expire and then
 withdrawing the funds.
 
-Even if Bob doesn't respond, alice's request will wait until response timeout
+Even if Bob doesn't respond, Alice's request will wait until response timeout
 expires (in this demo it is 10s) and then proceed with non-collaborative
 close. Bob's node on the other hand will receive a notification when the
 channel is finalized on the blockchain and funds will be withdrawn

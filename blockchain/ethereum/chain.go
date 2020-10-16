@@ -18,6 +18,7 @@ package ethereum
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -27,6 +28,7 @@ import (
 	pethchannel "perun.network/go-perun/backend/ethereum/channel"
 	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	pkeystore "perun.network/go-perun/backend/ethereum/wallet/keystore"
+	pwallet "perun.network/go-perun/wallet"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/internal"
@@ -61,4 +63,23 @@ func NewChainBackend(url string, chainConnTimeout, onChainTxTimeout time.Duratio
 	tr := pkeystore.NewTransactor(*ksWallet)
 	cb := pethchannel.NewContractBackend(ethereumBackend, tr)
 	return &internal.ChainBackend{Cb: &cb, TxTimeout: chainConnTimeout}, nil
+}
+
+// BalanceAt reads the on-chain balance of the given address.
+func BalanceAt(url string, chainConnTimeout, onChainTxTimeout time.Duration, addr pwallet.Address) (
+	*big.Int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), chainConnTimeout)
+	defer cancel()
+	ethereumBackend, err := ethclient.DialContext(ctx, url)
+	if err != nil {
+		return nil, errors.Wrap(err, "connecting to ethereum node at "+url)
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), onChainTxTimeout)
+	defer cancel()
+	bal, err := ethereumBackend.BalanceAt(ctx, pethwallet.AsEthAddr(addr), nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "reading on-chain balance for "+addr.String())
+	}
+	return bal, nil
 }
