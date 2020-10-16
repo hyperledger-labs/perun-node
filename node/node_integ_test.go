@@ -99,8 +99,8 @@ func Test_Integ_New(t *testing.T) {
 	prng := rand.New(rand.NewSource(1729))
 	t.Run("happy_OpenSession", func(t *testing.T) {
 		var err error
-		sessionCfg := sessiontest.NewConfig(t, prng)
-		sessionCfgFile := sessiontest.NewConfigFile(t, sessionCfg)
+		sessionCfg := sessiontest.NewConfigT(t, prng)
+		sessionCfgFile := sessiontest.NewConfigFileT(t, sessionCfg)
 		sessionID, err = n.OpenSession(sessionCfgFile)
 		require.NoError(t, err)
 		assert.NotZero(t, sessionID)
@@ -123,9 +123,9 @@ func Test_Integ_New(t *testing.T) {
 	// Simulate one error to fail session.New
 	// Complete test of session.New is done in the session package.
 	t.Run("err_OpenSession_init_error", func(t *testing.T) {
-		sessionCfg := sessiontest.NewConfig(t, prng)
+		sessionCfg := sessiontest.NewConfigT(t, prng)
 		sessionCfg.ChainURL = "invalid-url"
-		sessionCfgFile := sessiontest.NewConfigFile(t, sessionCfg)
+		sessionCfgFile := sessiontest.NewConfigFileT(t, sessionCfg)
 		_, err := n.OpenSession(sessionCfgFile)
 		require.Error(t, err)
 		t.Log(err)

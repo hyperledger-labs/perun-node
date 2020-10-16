@@ -50,11 +50,10 @@ import (
 
 func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 	prng := rand.New(rand.NewSource(1729))
-	wb, userCfg := sessiontest.NewUserConfig(t, prng, 0)
+	wb, userCfg := sessiontest.NewUserConfigT(t, prng, 0)
 	user, err := session.NewUnlockedUser(wb, userCfg)
 	require.NoError(t, err, "initializing user")
-	adjudicator, asset := ethereumtest.SetupContracts(t, user.OnChain,
-		ethereumtest.ChainURL, ethereumtest.OnChainTxTimeout)
+	adjudicator, asset := ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.OnChainTxTimeout)
 
 	cfg := client.Config{
 		Chain: client.ChainConfig{
@@ -141,7 +140,7 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 	t.Run("err_invalid_on_chain_password", func(t *testing.T) {
 		cfg.DatabaseDir = newDatabaseDir(t) // start with empty persistence dir each time.
 		invalidUser := user
-		ws := ethereumtest.NewWalletSetup(t, prng, 0)
+		ws := ethereumtest.NewWalletSetupT(t, prng, 0)
 		invalidUser.OnChain.Wallet = ws.Wallet
 		invalidUser.OnChain.Keystore = ws.KeystorePath
 		invalidUser.OnChain.Password = "invalid-password"
@@ -153,7 +152,7 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 	t.Run("err_invalid_off_chain_password", func(t *testing.T) {
 		cfg.DatabaseDir = newDatabaseDir(t) // start with empty persistence dir each time.
 		invalidUser := user
-		ws := ethereumtest.NewWalletSetup(t, prng, 0)
+		ws := ethereumtest.NewWalletSetupT(t, prng, 0)
 		invalidUser.OffChain.Wallet = ws.Wallet
 		invalidUser.OffChain.Keystore = ws.KeystorePath
 		invalidUser.OffChain.Password = "invalid-password"

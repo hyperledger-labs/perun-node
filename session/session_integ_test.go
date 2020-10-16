@@ -45,7 +45,7 @@ func Test_Integ_New(t *testing.T) {
 	peers := newPeers(t, prng, uint(2))
 
 	prng = rand.New(rand.NewSource(1729))
-	cfg := sessiontest.NewConfig(t, prng, peers...)
+	cfg := sessiontest.NewConfigT(t, prng, peers...)
 
 	t.Run("happy", func(t *testing.T) {
 		sess, err := session.New(cfg)
@@ -135,7 +135,7 @@ func Test_Integ_New(t *testing.T) {
 		}
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.ContactsURL = contactstest.NewYAMLFile(t, ownPeer)
+		cfgCopy.ContactsURL = contactstest.NewYAMLFileT(t, ownPeer)
 		_, err := session.New(cfgCopy)
 		t.Log(err)
 		assert.Error(t, err)

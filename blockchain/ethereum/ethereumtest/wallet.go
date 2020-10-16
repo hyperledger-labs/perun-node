@@ -24,6 +24,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	pkswallet "perun.network/go-perun/backend/ethereum/wallet/keystore"
@@ -51,33 +52,45 @@ type WalletSetup struct {
 	Accs          []pwallet.Account
 }
 
+// NewWalletSetupT is the test friendly version of NewWalletSetup.
+// It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
+func NewWalletSetupT(t *testing.T, rng *rand.Rand, n uint) *WalletSetup {
+	ws, err := NewWalletSetup(rng, n)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := os.RemoveAll(ws.KeystorePath); err != nil {
+			t.Log("error in cleanup - ", err)
+		}
+	})
+	return ws
+}
+
 // NewWalletSetup initializes a wallet with n accounts. Empty password string and weak encrytion parameters are used.
-func NewWalletSetup(t *testing.T, rng *rand.Rand, n uint) *WalletSetup {
+func NewWalletSetup(rng *rand.Rand, n uint) (*WalletSetup, error) {
 	wb := NewTestWalletBackend()
 
 	ksPath, err := ioutil.TempDir("", "perun-node-test-keystore-*")
-	require.NoErrorf(t, err, "Error creating temp directory for keystore: %v", err)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating temp directory for keystore")
+	}
 	ks := keystore.NewKeyStore(ksPath, internal.WeakScryptN, internal.WeakScryptP)
 	w, err := pkswallet.NewWallet(ks, "")
-	require.NoErrorf(t, err, "Error creating wallet: %v", err)
+	if err != nil {
+		os.RemoveAll(ksPath) // nolint: errcheck
+		return nil, errors.Wrap(err, "creating creating wallet")
+	}
 
 	accs := make([]pwallet.Account, n)
 	for idx := uint(0); idx < n; idx++ {
 		accs[idx] = w.NewRandomAccount(rng)
 	}
-
-	t.Cleanup(func() {
-		if err := os.RemoveAll(ksPath); err != nil {
-			t.Log("error in cleanup - ", err)
-		}
-	})
 	return &WalletSetup{
 		WalletBackend: wb,
 		KeystorePath:  ksPath,
 		Keystore:      ks,
 		Wallet:        w,
 		Accs:          accs,
-	}
+	}, nil
 }
 
 // NewRandomAddress generates a random wallet address. It generates the address only as a byte array.
