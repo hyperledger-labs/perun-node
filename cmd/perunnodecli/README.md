@@ -17,8 +17,9 @@ API of the node.
 To try out the perunnode-cli app on your machine, you would require the
 following things to be running:
 
-1. Running perunnode connected to a blockchain node.
-2. Configuration files for session, in a path accessible by perunnode.
+1. A running blockchain node with perun contracts deployed on it.
+2. Running perunnode connected to the blockchain node.
+3. Configuration files for session, in a path accessible by perunnode.
 
 ### Pre-requisites
 
@@ -123,7 +124,7 @@ session open bob/session.yaml
 contact get alice
 ```
 
-5. Sending a request to open a payment channel and accepting it.
+4. Sending a request to open a payment channel and accepting it.
 
 - (a) [Alice] Send a request to open a channel with bob:
 
@@ -143,14 +144,14 @@ channel accept-opening-request request_1_alice
 - Once successfully accepted, information on the opened channel is printed in
   both terminals.
 
-6. Listing out open channels. In any of the terminals, type the below command
+5. Listing out open channels. In any of the terminals, type the below command
    to see the list of open channels:
 
 ```
 channel list-open-channels
 ```
 
-5. Sending a request to open a payment channel and rejecting it.
+6. Sending a request to open a payment channel and rejecting it.
 
 - (a) [Bob] Send a request to open a channel with bob:
 
@@ -189,7 +190,7 @@ payment accept-payment-update-from-peer ch_1_alice
 
 Once payment is accepted, the updated information is printed on both terminals.
 
-7. Sending a payment on the open channel and rejecting it.
+8. Sending a payment on the open channel and rejecting it.
 
 - (a) [Bob] Send a payment to bob on an open channel:
 
@@ -209,7 +210,7 @@ Once payment is rejected, green message is printed on alice terminal for
 successfully rejecting the payment. Red error message is printed on bob
 terminal as the payment was rejected by user.
 
-8. Try to close the session will return error when there are open channels. Run
+9. Try to close the session will return error when there are open channels. Run
    the below command in any or both of the terminals and they should return an
    error.
 
@@ -217,7 +218,7 @@ terminal as the payment was rejected by user.
 session close no-force
 ```
 
-9. Close the channel.
+10. Close the channel.
 
 - (a) [Alice] Close the channel with the below command.
 
@@ -248,7 +249,7 @@ close. Bob's node on the other hand will receive a notification when the
 channel is finalized on the blockchain and funds will be withdrawn
 automatically. A channel closed notification will be printed.
 
-10. Close the session:
+11. Close the session:
 
 Since the open channels are closed, the session can be closed with the same
 command as in step 8, but without any error.
@@ -263,7 +264,7 @@ session close no-force
 session close no-force
 ```
 
-11. To try out persistence of channels:
+12. To try out persistence of channels:
 
 - (a) Open a session for alice, bob and then open a few channels using commands
   described in step 5.
