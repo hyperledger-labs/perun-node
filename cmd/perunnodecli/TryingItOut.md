@@ -1,4 +1,4 @@
-# Trying it out: perunnode and perunnode
+# Trying it out: perunnode and perunnodecli
 
 
 #### perunnode
