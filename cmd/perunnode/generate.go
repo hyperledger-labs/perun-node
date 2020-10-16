@@ -58,7 +58,7 @@ var (
 
 		ChainConnTimeout: 30 * time.Second,
 		OnChainTxTimeout: 10 * time.Second,
-		ResponseTimeout:  10 * time.Second,
+		ResponseTimeout:  20 * time.Second,
 	}
 
 	generateCmd = &cobra.Command{

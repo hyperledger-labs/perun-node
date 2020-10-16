@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -142,7 +143,7 @@ func (ch *channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 
 	err := ch.sendChUpdate(pctx, updater)
 	if err != nil {
-		return perun.ChInfo{}, perun.GetAPIError(err)
+		return perun.ChInfo{}, err
 	}
 	prevChInfo := ch.getChInfo()
 	ch.currState = ch.pch.State().Clone()
@@ -156,6 +157,10 @@ func (ch *channel) sendChUpdate(pctx context.Context, updater perun.StateUpdater
 	err := ch.pch.UpdateBy(ctx, ch.pch.Idx(), updater)
 	if err != nil {
 		ch.Error("Sending channel update:", err)
+		// TODO: (mano) Use errors.Is here once a sentinel error value is defined in the SDK.
+		if strings.Contains(err.Error(), "rejected by user") {
+			err = perun.ErrPeerRejected
+		}
 	}
 	return perun.GetAPIError(err)
 }
