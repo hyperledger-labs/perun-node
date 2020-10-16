@@ -72,7 +72,7 @@ Now all the pre-requisites for `perunnode-cli` are setup.
 
 ### Opening a session, opening channel within it, making payments & closing it
 
-1. Open two new terminals side by side, once each for alice and bob roles
+1. Open two new terminals side by side, one each for alice and bob roles
    respectively. In both the terminal, start the perunnode-cli app using below
 command:
 
