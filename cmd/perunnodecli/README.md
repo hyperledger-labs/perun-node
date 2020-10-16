@@ -133,7 +133,7 @@ channel send-opening-request bob 1 2
 ```
 
 - (b) [Bob] Receives a channel opening request notification that includes
-  request ID. Accept it:
+  request ID. Type the command to accept the channel opening request directly after receiving the notification:
 
 ```
 # [Bob]
