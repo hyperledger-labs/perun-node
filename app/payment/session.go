@@ -49,7 +49,7 @@ func init() {
 	ppayment.SetAppDef(emptyAddr) // dummy app def.
 }
 
-// OpenSession opens a session and interprts the restored channels as payment channels.
+// OpenSession opens a session and interprets the restored channels as payment channels.
 func OpenSession(n perun.NodeAPI, configFile string) (string, []PayChInfo, error) {
 	sessionID, restoredChsInfo, err := n.OpenSession(configFile)
 	return sessionID, toPayChsInfo(restoredChsInfo), err
