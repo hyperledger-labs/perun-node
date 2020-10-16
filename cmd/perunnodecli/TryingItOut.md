@@ -1,18 +1,30 @@
-# Perun Node CLI - A client application to connect with and use the API of perun node.
+# Trying it out: perunnode and perunnode
 
 
-Perun Node CLI is an interactive CLI based client application to connect with
-and use the API of perun node. Currently the app connects via grpc protocol to
-the payment channel API. The app provides different sets of commands:chain,
-node, session, contact, channel, payment. Each of these commands have
-sub-commands to do specific operations.  In the app, type `help` to get
-information on each of these commands. Typing the command without any
-sub-command will return the help messages with the list of sub-commands.
-The chain command provides options to directly interact with blockchain such as
-for deploying contracts, while the rest of the commands are for accessing the
-API of the node.
+#### perunnode
 
-## Trying out perunnode-cli
+An application for starting a running version of perun node that
+serves payment channel API on using grpc protocol. Any application can connect
+with the perunnode by directly integrating the grpc client stubs in their
+project. The proto file for generating the grpc stub can be found at
+`api/grpc/pb/api.proto`.
+
+#### perunnodecli
+
+An application with interactive CLI interface that uses generated grpc client
+stubs to interact with a running instance of perun node. Besides this, it does
+not share any code with rest of the project.
+
+It provides different sets of commands:chain, node, session, contact, channel,
+payment. Each of these commands have sub-commands to do specific operations.
+In the app, type `help` to get information on each of these commands.
+
+The chain command provides options to directly interact with blockchain such
+as for deploying contracts, while the rest of the commands are for accessing
+the API of the node.
+
+
+## Pre-requisites
 
 To try out the perunnode-cli app on your machine, you would require the
 following things to be running:
@@ -21,7 +33,7 @@ following things to be running:
 2. Running perunnode connected to the blockchain node.
 3. Configuration files for session, in a path accessible by perunnode.
 
-### Pre-requisites
+Follow the below the steps to setup the pre-requisites:
 
 1. Start a blockchain node:
 
@@ -105,7 +117,7 @@ Leave this running in this terminal.
 
 Now all the pre-requisites for `perunnode-cli` are setup.
 
-### Opening a session, opening channel within it, making payments & closing it
+## Opening a session, opening channel within it, making payments & closing it
 
 1. Open two new terminals side by side, one each for alice and bob roles
    respectively. In both the terminal, start the perunnode-cli app using below

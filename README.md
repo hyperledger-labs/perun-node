@@ -55,11 +55,21 @@ The current version provides the following features:
 |Contacts Provider|YAML file |
 |User API|Two Party Payment API |
 |User API Adapter|gRPC |
+|Persistence|LevelDB|
 
-An example for a complete sequence of using the perun node can be found in
-the integration test in `api/grpc` package in `server_integ_test.go`. An
-independently running node binary is yet to be implemented and will be
-included in the next release.
+This project currently contains two executable packages located in the `cmd` directory.
+
+- `perunnode`: An app for starting a running instance of perun node. It can
+  also generate configuration artifacts for trying out the node.
+
+- `perunnodecli` is an app with interactive CLI interface that serves two purposes:
+    - easy way to try out payment channel API.
+    - reference implementation for using the generated grpc client stubs for
+      payment channel API.
+
+For detailed information on the features offered by these two applications and
+steps on how to try them out, see the
+[Trying It Out](cmd/perunnodecli/TryingItOut.md) article.
 
 ## Getting Started
 
@@ -95,7 +105,11 @@ golangci-lint run ./...
 
 # Test
 go test -tags=integration -count=1 ./...
+
+# Build peurnnode and perunnodecli binaries
+make
 ```
+
 
 ## License
 
