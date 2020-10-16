@@ -33,7 +33,7 @@ following things to be running:
 2. Running perunnode connected to the blockchain node.
 3. Configuration files for session, in a path accessible by perunnode.
 
-Follow the below the steps to setup the pre-requisites:
+Follow the below steps to setup the pre-requisites:
 
 1. Start a blockchain node:
 
