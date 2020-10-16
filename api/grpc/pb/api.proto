@@ -102,6 +102,7 @@ message OpenSessionResp {
     }
     message MsgSuccess {
         string sessionID = 1;
+        repeated PayChInfo restoredChs = 2;
     }
 }
 

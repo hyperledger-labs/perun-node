@@ -108,7 +108,7 @@ func (a *payChAPIServer) OpenSession(ctx context.Context, req *pb.OpenSessionReq
 		}
 	}
 
-	sessionID, err := a.n.OpenSession(req.ConfigFile)
+	sessionID, restoredChs, err := payment.OpenSession(a.n, req.ConfigFile)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -120,7 +120,8 @@ func (a *payChAPIServer) OpenSession(ctx context.Context, req *pb.OpenSessionReq
 	return &pb.OpenSessionResp{
 		Response: &pb.OpenSessionResp_MsgSuccess_{
 			MsgSuccess: &pb.OpenSessionResp_MsgSuccess{
-				SessionID: sessionID,
+				SessionID:   sessionID,
+				RestoredChs: toGrpcPayChsInfo(restoredChs),
 			},
 		},
 	}, nil

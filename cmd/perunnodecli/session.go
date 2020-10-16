@@ -41,10 +41,14 @@ var (
 		},
 		Func: sessionOpenFn,
 	}
-	sessionCloseCmdUsage = "Usage: session close"
+	sessionCloseOpts     = []string{"force", "no-force"}
+	sessionCloseCmdUsage = "Usage: session close force|no-force"
 	sessionCloseCmd      = &ishell.Cmd{
 		Name: "close",
-		Help: "Close the current session." + sessionCloseCmdUsage,
+		Help: "Close the current session. Force will persist open chs" + sessionCloseCmdUsage,
+		Completer: func([]string) []string {
+			return sessionCloseOpts
+		},
 		Func: sessionCloseFn,
 	}
 )
@@ -90,6 +94,14 @@ func sessionOpenFn(c *ishell.Context) {
 	sessionID = msg.MsgSuccess.SessionID
 	c.Printf("%s\n\n", greenf("Session opened."))
 
+	for i := range msg.MsgSuccess.RestoredChs {
+		chAlias := addOpenChannelID(msg.MsgSuccess.RestoredChs[i].ChID,
+			findPeerAlias(msg.MsgSuccess.RestoredChs[i].BalInfo.Parts))
+		c.Printf("%s\n", greenf("Channel restored. Alias: %s.\n%s.", chAlias,
+			prettifyPayChInfo(msg.MsgSuccess.RestoredChs[i])))
+		paymentSub(c, chAlias)
+	}
+	c.Printf("\n")
 	// Automatically subscribe to channel opening request notifications in this session.
 	channelSub(c)
 }
@@ -99,7 +111,7 @@ func sessionCloseFn(c *ishell.Context) {
 		printNodeNotConnectedError(c)
 		return
 	}
-	countReqArgs := 0
+	countReqArgs := 1
 	if len(c.Args) != countReqArgs {
 		printArgCountError(c, countReqArgs)
 		return
@@ -109,8 +121,16 @@ func sessionCloseFn(c *ishell.Context) {
 
 	req := pb.CloseSessionReq{
 		SessionID: sessionID,
-		Force:     false,
 	}
+	if c.Args[0] == "force" {
+		req.Force = true
+	} else if c.Args[0] == "no-force" {
+		req.Force = false
+	} else {
+		c.Printf("%s\n\n", redf("Parameter should be one of these values: %v", sessionCloseOpts))
+		return
+	}
+
 	resp, err := client.CloseSession(context.Background(), &req)
 	if err != nil {
 		printCommandSendingError(c, err)
@@ -123,5 +143,27 @@ func sessionCloseFn(c *ishell.Context) {
 		c.Printf("%s\n\n", redf("Error closing session : %v", msgErr.Error.Error))
 		return
 	}
+	msg := resp.Response.(*pb.CloseSessionResp_MsgSuccess_)
+	resetLocalCache()
 	c.Printf("%s\n\n", greenf("Session closed. ID: %s.", sessionID))
+	if c.Args[0] == "force" {
+		for i := range msg.MsgSuccess.OpenPayChsInfo {
+			chAlias := openChannelsRevMap[msg.MsgSuccess.OpenPayChsInfo[i].ChID]
+			c.Printf("%s\n", greenf("Channel persisted. Alias: %s.\n%s.", chAlias,
+				prettifyPayChInfo(msg.MsgSuccess.OpenPayChsInfo[i])))
+		}
+	}
+}
+
+func resetLocalCache() {
+	channelNotifCounter = 0
+	channelNotifList = []string{}
+	channelNotifMap = make(map[string]*pb.SubPayChProposalsResp_Notify)
+
+	openChannelsCounter = 0
+	openChannelsMap = make(map[string]*openChannelInfo)
+	openChannelsRevMap = make(map[string]string)
+	openChannelsList = []string{}
+
+	knownAliasesList = []string{}
 }

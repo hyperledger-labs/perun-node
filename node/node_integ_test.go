@@ -101,7 +101,7 @@ func Test_Integ_New(t *testing.T) {
 		var err error
 		sessionCfg := sessiontest.NewConfigT(t, prng)
 		sessionCfgFile := sessiontest.NewConfigFileT(t, sessionCfg)
-		sessionID, err = n.OpenSession(sessionCfgFile)
+		sessionID, _, err = n.OpenSession(sessionCfgFile)
 		require.NoError(t, err)
 		assert.NotZero(t, sessionID)
 	})
@@ -116,7 +116,7 @@ func Test_Integ_New(t *testing.T) {
 		t.Log(err)
 	})
 	t.Run("err_OpenSession_config_file_error", func(t *testing.T) {
-		_, err := n.OpenSession("random-config-file")
+		_, _, err := n.OpenSession("random-config-file")
 		require.Error(t, err)
 		t.Log(err)
 	})
@@ -126,7 +126,7 @@ func Test_Integ_New(t *testing.T) {
 		sessionCfg := sessiontest.NewConfigT(t, prng)
 		sessionCfg.ChainURL = "invalid-url"
 		sessionCfgFile := sessiontest.NewConfigFileT(t, sessionCfg)
-		_, err := n.OpenSession(sessionCfgFile)
+		_, _, err := n.OpenSession(sessionCfgFile)
 		require.Error(t, err)
 		t.Log(err)
 	})

@@ -62,10 +62,12 @@ func Test_Integ_Role(t *testing.T) {
 	alice, err := session.New(aliceCfg)
 	require.NoErrorf(t, err, "initializing alice session")
 	t.Logf("alice session id: %s\n", alice.ID())
+	t.Logf("alice database dir is: %s\n", aliceCfg.DatabaseDir)
 
 	bob, err := session.New(bobCfg)
 	require.NoErrorf(t, err, "initializing bob session")
 	t.Logf("bob session id: %s\n", bob.ID())
+	t.Logf("alice database dir is: %s\n", aliceCfg.DatabaseDir)
 
 	var aliceContact, bobContact perun.Peer
 	t.Run("GetContact", func(t *testing.T) {

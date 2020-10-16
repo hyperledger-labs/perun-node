@@ -35,6 +35,13 @@ import (
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 )
 
+//go:generate mockery --name Closer --output ../internal/mocks
+
+// Closer is used to call close on database.
+type Closer interface {
+	Close() error
+}
+
 // client is a wrapper type around the state channel client implementation from go-perun.
 // It also manages the lifecycle of a message bus that is used for off-chain communication.
 type client struct {
@@ -43,6 +50,10 @@ type client struct {
 
 	// Registry that is used by the channel client for resolving off-chain address to comm address.
 	msgBusRegistry perun.Registerer
+
+	dbPath        string        // Database path, because restore will be called later.
+	reconnTimeout time.Duration // Reconn Timeout, because restore will be called later.
+	dbConn        Closer        // Database connection for closing it during client.Close.
 
 	wg *sync.WaitGroup
 }
@@ -80,14 +91,13 @@ func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBacken
 	if err != nil {
 		return nil, errors.Wrap(err, "initializing state channel client")
 	}
-	if err = loadPersister(pcClient, cfg.DatabaseDir, cfg.PeerReconnTimeout); err != nil {
-		return nil, err
-	}
 
 	c := &client{
 		pClient:        pcClient,
 		msgBus:         msgBus,
 		msgBusRegistry: dialer,
+		dbPath:         cfg.DatabaseDir,
+		reconnTimeout:  cfg.PeerReconnTimeout,
 		wg:             &sync.WaitGroup{},
 	}
 
@@ -111,7 +121,25 @@ func (c *client) Handle(ph pclient.ProposalHandler, ch pclient.UpdateHandler) {
 	c.runAsGoRoutine(func() { c.pClient.Handle(ph, ch) })
 }
 
-// Close closes the client and waits until the listener and handler go routines return.
+// RestoreChs will restore the persisted channels. Register OnNewChannel Callback
+// before calling this function.
+func (c *client) RestoreChs(handler func(*pclient.Channel)) error {
+	c.OnNewChannel(handler)
+	db, err := pleveldb.LoadDatabase(c.dbPath)
+	if err != nil {
+		return errors.Wrap(err, "initializing persistence database in dir - "+c.dbPath)
+	}
+	c.dbConn = db
+
+	pr := pkeyvalue.NewPersistRestorer(db)
+	c.EnablePersistence(pr)
+	ctx, cancel := context.WithTimeout(context.Background(), c.reconnTimeout)
+	defer cancel()
+	return c.Restore(ctx)
+}
+
+// Close closes the client and waits until the listener and handler go routines return. It then closes the
+// database connection used for persistence.
 //
 // Close depends on the following mechanisms implemented in client.Close and bus.Close to signal the go-routines:
 // 1. When client.Close is invoked, it cancels the Update and Proposal handlers via a context.
@@ -124,7 +152,7 @@ func (c *client) Close() error {
 		return errors.Wrap(busErr, "closing message bus")
 	}
 	c.wg.Wait()
-	return nil
+	return errors.Wrap(c.dbConn.Close(), "closing persistence database")
 }
 
 func connectToChain(cfg ChainConfig, cred perun.Credential) (pchannel.Funder,
@@ -146,18 +174,6 @@ func connectToChain(cfg ChainConfig, cred perun.Credential) (pchannel.Funder,
 	err = chain.ValidateContracts(adjudicatorAddr, assetAddr)
 	return chain.NewFunder(assetAddr, cred.Addr),
 		chain.NewAdjudicator(adjudicatorAddr, cred.Addr), err
-}
-
-func loadPersister(c *pclient.Client, dbPath string, reconnTimeout time.Duration) error {
-	db, err := pleveldb.LoadDatabase(dbPath)
-	if err != nil {
-		return errors.Wrap(err, "initializing persistence database in dir - "+dbPath)
-	}
-	pr := pkeyvalue.NewPersistRestorer(db)
-	c.EnablePersistence(pr)
-	ctx, cancel := context.WithTimeout(context.Background(), reconnTimeout)
-	defer cancel()
-	return c.Restore(ctx)
 }
 
 func (c *client) runAsGoRoutine(f func()) {

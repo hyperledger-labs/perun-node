@@ -32,7 +32,8 @@ func Test_Client_Close(t *testing.T) {
 	t.Run("err_channelClient_Err", func(t *testing.T) {
 		chClient := &mocks.ChClient{}
 		msgBus := &mocks.WireBus{}
-		Client := client.NewClientForTest(chClient, msgBus, nil)
+		dbConnCloser := &mocks.Closer{}
+		Client := client.NewClientForTest(chClient, msgBus, nil, dbConnCloser)
 
 		chClient.On("Close").Return(errors.New("error for test"))
 		msgBus.On("Close").Return(nil)
@@ -42,7 +43,8 @@ func Test_Client_Close(t *testing.T) {
 	t.Run("err_wireBus_Err", func(t *testing.T) {
 		chClient := &mocks.ChClient{}
 		msgBus := &mocks.WireBus{}
-		Client := client.NewClientForTest(chClient, msgBus, nil)
+		dbConnCloser := &mocks.Closer{}
+		Client := client.NewClientForTest(chClient, msgBus, nil, dbConnCloser)
 
 		chClient.On("Close").Return(nil)
 		msgBus.On("Close").Return(errors.New("error for test"))
@@ -55,7 +57,8 @@ func Test_Client_Register(t *testing.T) {
 	// the client should be initialized.
 	t.Run("happy", func(t *testing.T) {
 		registere := &mocks.Registerer{}
-		Client := client.NewClientForTest(nil, nil, registere)
+		dbConnCloser := &mocks.Closer{}
+		Client := client.NewClientForTest(nil, nil, registere, dbConnCloser)
 		registere.On("Register", nil, "").Return()
 		Client.Register(nil, "")
 	})
