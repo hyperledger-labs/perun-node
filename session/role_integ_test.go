@@ -121,7 +121,7 @@ func Test_Integ_Role(t *testing.T) {
 				Bal:      []string{"1", "2"},
 			}
 			app := perun.App{
-				Def:  ppayment.NewApp(),
+				Def:  pchannel.NoApp(),
 				Data: pchannel.NoData(),
 			}
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.
@@ -158,7 +158,7 @@ func Test_Integ_Role(t *testing.T) {
 				Bal:      []string{"1", "2"},
 			}
 			app := perun.App{
-				Def:  ppayment.NewApp(),
+				Def:  pchannel.NoApp(),
 				Data: pchannel.NoData(),
 			}
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.

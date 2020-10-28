@@ -59,7 +59,7 @@ func OpenSession(n perun.NodeAPI, configFile string) (string, []PayChInfo, error
 func OpenPayCh(pctx context.Context, s perun.SessionAPI, openingBalInfo perun.BalInfo, challengeDurSecs uint64) (
 	PayChInfo, error) {
 	paymentApp := perun.App{
-		Def:  ppayment.NewApp(),
+		Def:  pchannel.NoApp(),
 		Data: pchannel.NoData(),
 	}
 
