@@ -31,7 +31,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
-	"github.com/hyperledger-labs/perun-node/contacts/contactstest"
+	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
 	"github.com/hyperledger-labs/perun-node/session"
 )
 
@@ -106,7 +106,7 @@ func NewConfig(rng *rand.Rand, contacts ...perun.Peer) (session.Config, error) {
 	if err != nil {
 		return session.Config{}, err
 	}
-	contactsYAMLFile, err := contactstest.NewYAMLFile(contacts...)
+	localFile, err := idprovidertest.NewYAMLFile(contacts...)
 	if err != nil {
 		return session.Config{}, err
 	}
@@ -123,7 +123,7 @@ func NewConfig(rng *rand.Rand, contacts ...perun.Peer) (session.Config, error) {
 		PeerReconnTimeout: 20 * time.Second,
 
 		ContactsType: "yaml",
-		ContactsURL:  contactsYAMLFile,
+		ContactsURL:  localFile,
 	}, nil
 }
 

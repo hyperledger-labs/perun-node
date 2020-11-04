@@ -28,7 +28,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
-	"github.com/hyperledger-labs/perun-node/contacts/contactstest"
+	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
 	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
@@ -181,11 +181,11 @@ func generateSessionConfig() error {
 	bobCfg.User.Alias = bobAlias
 
 	// Create Contacts file.
-	aliceContactsFile, err := contactstest.NewYAMLFile(peer(bobCfg.User))
+	aliceContactsFile, err := idprovidertest.NewYAMLFile(peer(bobCfg.User))
 	if err != nil {
 		return err
 	}
-	bobContactsFile, err := contactstest.NewYAMLFile(peer(aliceCfg.User))
+	bobContactsFile, err := idprovidertest.NewYAMLFile(peer(aliceCfg.User))
 	if err != nil {
 		return err
 	}

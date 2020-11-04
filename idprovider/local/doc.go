@@ -14,6 +14,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package contactstest provides a helper functions to create contacts file from
-// a list of peers for use in tests.
-package contactstest
+// Package local implements contacts provider to access contacts stored
+// in a yaml file.
+//
+// The complete list of contacts are loaded into an in-memory cache during
+// initialization. The entries in the cache are indexed by both alias and
+// off-chain address of the peer and can be using either of these as reference.
+//
+// Read, Write and Delete operations act only on the cache and do
+// not affect the contents of the file.
+//
+// Latest state of cache can be updated to the file by explicitly calling
+// UpdateStorage method. Normally this should be called before shutting down
+// the node.
+package local

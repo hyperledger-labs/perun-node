@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package contactsyaml_test
+package local_test
 
 import (
 	"bytes"
@@ -27,8 +27,8 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
-	"github.com/hyperledger-labs/perun-node/contacts/contactstest"
-	"github.com/hyperledger-labs/perun-node/contacts/contactsyaml"
+	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
+	"github.com/hyperledger-labs/perun-node/idprovider/local"
 )
 
 var (
@@ -71,18 +71,18 @@ func init() {
 }
 
 func Test_ContactsReader_Interface(t *testing.T) {
-	assert.Implements(t, (*perun.ContactsReader)(nil), new(contactsyaml.Provider))
+	assert.Implements(t, (*perun.ContactsReader)(nil), new(local.Provider))
 }
 
 func Test_Contacts_Interface(t *testing.T) {
-	assert.Implements(t, (*perun.Contacts)(nil), new(contactsyaml.Provider))
+	assert.Implements(t, (*perun.Contacts)(nil), new(local.Provider))
 }
 
 func Test_NewContactsFromYaml_ReadByAlias(t *testing.T) {
 	t.Run("happy", func(t *testing.T) {
-		contactsFile := contactstest.NewYAMLFileT(t, peer1, peer2)
+		contactsFile := idprovidertest.NewYAMLFileT(t, peer1, peer2)
 
-		gotContacts, err := contactsyaml.New(contactsFile, walletBackend)
+		gotContacts, err := local.New(contactsFile, walletBackend)
 
 		assert.NoError(t, err)
 		gotPeer1, isPresent := gotContacts.ReadByAlias(peer1.Alias)
@@ -97,7 +97,7 @@ func Test_NewContactsFromYaml_ReadByAlias(t *testing.T) {
 
 	t.Run("corrupted_yaml", func(t *testing.T) {
 		contactsFile := newCorruptedYAMLFile(t)
-		_, err := contactsyaml.New(contactsFile, walletBackend)
+		_, err := local.New(contactsFile, walletBackend)
 		assert.Error(t, err)
 		t.Log(err)
 	})
@@ -105,15 +105,15 @@ func Test_NewContactsFromYaml_ReadByAlias(t *testing.T) {
 	t.Run("invalid_offchain_addr", func(t *testing.T) {
 		peer1Copy := peer1
 		peer1Copy.OffChainAddrString = "invalid address"
-		contactsFile := contactstest.NewYAMLFileT(t, peer1Copy, peer2)
+		contactsFile := idprovidertest.NewYAMLFileT(t, peer1Copy, peer2)
 
-		_, err := contactsyaml.New(contactsFile, walletBackend)
+		_, err := local.New(contactsFile, walletBackend)
 		assert.Error(t, err)
 		t.Log(err)
 	})
 
 	t.Run("missing_file", func(t *testing.T) {
-		_, err := contactsyaml.New("./random-file.yaml", walletBackend)
+		_, err := local.New("./random-file.yaml", walletBackend)
 		assert.Error(t, err)
 		t.Log(err)
 	})
@@ -147,8 +147,8 @@ Bob:
 
 // nolint:dupl  // False positive. ReadByAlias is diff from ReadByOffChainAddr.
 func Test_YAML_ReadByAlias(t *testing.T) {
-	contactsFile := contactstest.NewYAMLFileT(t, peer1, peer2)
-	c, err := contactsyaml.New(contactsFile, walletBackend)
+	contactsFile := idprovidertest.NewYAMLFileT(t, peer1, peer2)
+	c, err := local.New(contactsFile, walletBackend)
 	assert.NoError(t, err)
 
 	t.Run("happy", func(t *testing.T) {
@@ -165,8 +165,8 @@ func Test_YAML_ReadByAlias(t *testing.T) {
 
 // nolint:dupl  // False positive. ReadByOffChainAddr is diff from ReadByAlias.
 func Test_YAML_ReadByOffChainAddr(t *testing.T) {
-	contactsFile := contactstest.NewYAMLFileT(t, peer1, peer2)
-	c, err := contactsyaml.New(contactsFile, walletBackend)
+	contactsFile := idprovidertest.NewYAMLFileT(t, peer1, peer2)
+	c, err := local.New(contactsFile, walletBackend)
 	assert.NoError(t, err)
 
 	t.Run("happy", func(t *testing.T) {
@@ -182,8 +182,8 @@ func Test_YAML_ReadByOffChainAddr(t *testing.T) {
 }
 
 func Test_YAML_Write_Read(t *testing.T) {
-	contactsFile := contactstest.NewYAMLFileT(t, peer1, peer2)
-	c, err := contactsyaml.New(contactsFile, walletBackend)
+	contactsFile := idprovidertest.NewYAMLFileT(t, peer1, peer2)
+	c, err := local.New(contactsFile, walletBackend)
 	assert.NoError(t, err)
 
 	t.Run("happy", func(t *testing.T) {
@@ -206,8 +206,8 @@ func Test_YAML_Write_Read(t *testing.T) {
 	})
 
 	t.Run("invalid_offchain_addr", func(t *testing.T) {
-		contactsFile := contactstest.NewYAMLFileT(t, peer1, peer2)
-		c, err := contactsyaml.New(contactsFile, walletBackend)
+		contactsFile := idprovidertest.NewYAMLFileT(t, peer1, peer2)
+		c, err := local.New(contactsFile, walletBackend)
 		assert.NoError(t, err)
 
 		peer3Copy := peer3
@@ -219,8 +219,8 @@ func Test_YAML_Write_Read(t *testing.T) {
 }
 
 func Test_YAML_Delete_Read(t *testing.T) {
-	contactsFile := contactstest.NewYAMLFileT(t, peer1, peer2)
-	c, err := contactsyaml.New(contactsFile, walletBackend)
+	contactsFile := idprovidertest.NewYAMLFileT(t, peer1, peer2)
+	c, err := local.New(contactsFile, walletBackend)
 	assert.NoError(t, err)
 
 	t.Run("happy", func(t *testing.T) {
@@ -239,9 +239,9 @@ func Test_YAML_Delete_Read(t *testing.T) {
 func Test_YAML_UpdateStorage(t *testing.T) {
 	t.Run("happy_empty_file", func(t *testing.T) {
 		// Setup: NewYAML with zero entries
-		emptyFile := contactstest.NewYAMLFileT(t)
-		fileWithTwoPeers := contactstest.NewYAMLFileT(t, peer1, peer2)
-		c, err := contactsyaml.New(emptyFile, walletBackend)
+		emptyFile := idprovidertest.NewYAMLFileT(t)
+		fileWithTwoPeers := idprovidertest.NewYAMLFileT(t, peer1, peer2)
+		c, err := local.New(emptyFile, walletBackend)
 		assert.NoError(t, err)
 
 		// Setup: Add entries to cache.
@@ -254,9 +254,9 @@ func Test_YAML_UpdateStorage(t *testing.T) {
 	})
 
 	t.Run("happy_non_empty_file", func(t *testing.T) {
-		fileWithTwoPeers := contactstest.NewYAMLFileT(t, peer1, peer2)
-		fileWithThreePeers := contactstest.NewYAMLFileT(t, peer1, peer2, peer3)
-		c, err := contactsyaml.New(fileWithTwoPeers, walletBackend)
+		fileWithTwoPeers := idprovidertest.NewYAMLFileT(t, peer1, peer2)
+		fileWithThreePeers := idprovidertest.NewYAMLFileT(t, peer1, peer2, peer3)
+		c, err := local.New(fileWithTwoPeers, walletBackend)
 		assert.NoError(t, err)
 		assert.NoError(t, c.Write(peer3.Alias, peer3))
 
@@ -267,8 +267,8 @@ func Test_YAML_UpdateStorage(t *testing.T) {
 
 	t.Run("file_permission_error", func(t *testing.T) {
 		// Setup: Create a copy of contacts file with test data and add entry
-		contactsFile := contactstest.NewYAMLFileT(t, peer1, peer2)
-		c, err := contactsyaml.New(contactsFile, walletBackend)
+		contactsFile := idprovidertest.NewYAMLFileT(t, peer1, peer2)
+		c, err := local.New(contactsFile, walletBackend)
 		assert.NoError(t, err)
 		assert.NoError(t, c.Write(peer3.Alias, peer3))
 

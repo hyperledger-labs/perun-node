@@ -34,8 +34,8 @@ import (
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/client"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
-	"github.com/hyperledger-labs/perun-node/contacts/contactsyaml"
 	"github.com/hyperledger-labs/perun-node/currency"
+	"github.com/hyperledger-labs/perun-node/idprovider/local"
 	"github.com/hyperledger-labs/perun-node/log"
 )
 
@@ -153,7 +153,7 @@ func initContacts(contactsType, contactsURL string, wb perun.WalletBackend, own 
 	if contactsType != "yaml" {
 		return nil, perun.ErrUnsupportedContactsType
 	}
-	contacts, err := contactsyaml.New(contactsURL, wb)
+	contacts, err := local.New(contactsURL, wb)
 	if err != nil {
 		return nil, err
 	}

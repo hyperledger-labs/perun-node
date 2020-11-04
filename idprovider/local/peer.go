@@ -14,17 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package contactsyaml implements contacts provider to access contacts stored
-// in a yaml file.
-//
-// The complete list of contacts are loaded into an in-memory cache during
-// initialization. The entries in the cache are indexed by both alias and
-// off-chain address of the peer and can be using either of these as reference.
-//
-// Read, Write and Delete operations act only on the cache and do
-// not affect the contents of the file.
-//
-// Latest state of cache can be updated to the file by explicitly calling
-// UpdateStorage method. Normally this should be called before shutting down
-// the node.
-package contactsyaml
+package local
+
+import "github.com/hyperledger-labs/perun-node"
+
+// PeerEqual returns true if all fields in the Peer except OffChainAddr are equal.
+func PeerEqual(p1, p2 perun.Peer) bool {
+	return p1.Alias == p2.Alias && p1.OffChainAddrString == p2.OffChainAddrString &&
+		p1.CommType == p2.CommType && p1.CommAddr == p2.CommAddr
+}

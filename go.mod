@@ -14,9 +14,11 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/gorilla/websocket v1.4.2
 	github.com/kr/pretty v0.2.1 // indirect
+	github.com/ksubedi/gomove v0.0.0-20200106182546-e1fa47256217 // indirect
 	github.com/kylelemons/godebug v1.1.0
 	github.com/magiconair/properties v1.8.4 // indirect
-	github.com/mattn/go-colorable v0.1.7 // indirect
+	github.com/mattn/go-colorable v0.1.8 // indirect
+	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/otiai10/copy v1.2.0
 	github.com/pelletier/go-toml v1.8.1 // indirect
@@ -31,8 +33,10 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.0
-	golang.org/x/net v0.0.0-20200528225125-3c3fba18258b
-	golang.org/x/sys v0.0.0-20201009025420-dfb3f7c4e634 // indirect
+	github.com/urfave/cli v1.22.5 // indirect
+	golang.org/x/net v0.0.0-20201021035429-f5854403a974
+	golang.org/x/sys v0.0.0-20201101102859-da207088b7d1 // indirect
+	golang.org/x/tools v0.0.0-20201103235415-b653051172e4 // indirect
 	google.golang.org/grpc v1.27.1
 	google.golang.org/protobuf v1.24.0
 	gopkg.in/ini.v1 v1.62.0 // indirect

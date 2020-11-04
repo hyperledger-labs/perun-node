@@ -14,12 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package contactsyaml
-
-import "github.com/hyperledger-labs/perun-node"
-
-// PeerEqual returns true if all fields in the Peer except OffChainAddr are equal.
-func PeerEqual(p1, p2 perun.Peer) bool {
-	return p1.Alias == p2.Alias && p1.OffChainAddrString == p2.OffChainAddrString &&
-		p1.CommType == p2.CommType && p1.CommAddr == p2.CommAddr
-}
+// Package idprovidertest provides a helper functions to create contacts file from
+// a list of peers for use in tests.
+package idprovidertest

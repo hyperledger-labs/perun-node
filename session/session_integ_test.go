@@ -32,7 +32,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
-	"github.com/hyperledger-labs/perun-node/contacts/contactstest"
+	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
 	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
@@ -136,7 +136,7 @@ func Test_Integ_New(t *testing.T) {
 		}
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.ContactsURL = contactstest.NewYAMLFileT(t, ownPeer)
+		cfgCopy.ContactsURL = idprovidertest.NewYAMLFileT(t, ownPeer)
 		_, err := session.New(cfgCopy)
 		t.Log(err)
 		assert.Error(t, err)
