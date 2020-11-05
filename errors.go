@@ -45,7 +45,7 @@ var (
 	ErrUnknownSessionID  = APIError("No session corresponding to the specified ID")
 	ErrUnknownProposalID = APIError("No channel proposal corresponding to the specified ID")
 	ErrUnknownChID       = APIError("No channel corresponding to the specified ID")
-	ErrUnknownAlias      = APIError("No peer corresponding to the specified ID was found in contacts")
+	ErrUnknownAlias      = APIError("No peer corresponding to the specified ID was found in idProvider")
 	ErrUnknownUpdateID   = APIError("No response was expected for the given channel update ID")
 
 	ErrUnsupportedCurrency       = APIError("Currency not supported by this node instance")
@@ -65,7 +65,7 @@ var (
 	ErrSessionClosed      = APIError("Session is closed")
 	ErrChFinalized        = APIError("Channel is finalized")
 	ErrChClosed           = APIError("Channel is closed")
-	ErrPeerAliasInUse     = APIError("Alias already used by another peer in the contacts")
+	ErrPeerAliasInUse     = APIError("Alias already used by another peer in the idProvider")
 	ErrPeerExists         = APIError("Peer already available in the idprovider")
 	ErrRespTimeoutExpired = APIError("Response to the notification was sent after the timeout has expired")
 	ErrPeerRejected       = APIError("The request was rejected by peer")

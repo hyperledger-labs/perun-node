@@ -29,21 +29,21 @@ var (
 	contactCmdUsage = "Usage: contact [sub-command]"
 	contactCmd      = &ishell.Cmd{
 		Name: "contact",
-		Help: "Use this command to add/get contacts." + contactCmdUsage,
+		Help: "Use this command to add/get idProvider." + contactCmdUsage,
 		Func: contactFn,
 	}
 
 	contactAddCmdUsage = "Usage: contact add [peer alias] [off-chain address] [comm address] [comm type]"
 	contactAddCmd      = &ishell.Cmd{
 		Name: "add",
-		Help: "Add a peer to contacts." + contactAddCmdUsage,
+		Help: "Add a peer to idProvider." + contactAddCmdUsage,
 		Func: contactAddFn,
 	}
 
 	contactGetCmdUsage = "Usage: contact get [peer alias]"
 	contactGetCmd      = &ishell.Cmd{
 		Name: "get",
-		Help: "Get peer info from contacts." + contactGetCmdUsage,
+		Help: "Get peer info from idProvider." + contactGetCmdUsage,
 		Func: contactGetFn,
 	}
 

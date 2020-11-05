@@ -11,7 +11,7 @@
 | Participant Address | Address used for representing a user in a channel. Currently, the off-chain address is reused as the participant address.|
 |Comm Address|Address for establishing physical network connection for off-chain communication.|
 |Comm Type|Type of physical network connection protocol for off-chain communication.|
-|Alias| A user-friendly used for referring to a peer in user API calls. It is assigned by the user in his/her contacts file. |
+|Alias| A user-friendly used for referring to a peer in user API calls. It is assigned by the user in his/her idprovider file. |
 | Adjudicator Address | Address of the adjudicator contract. (See Configuration and Timeouts.) |
 | Asset Address | Address of the asset contract. (See Configuration and Timeouts.) |
 

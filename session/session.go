@@ -40,7 +40,7 @@ import (
 )
 
 // walletBackend for initializing user wallets and parsing off-chain addresses
-// in incoming contacts. A package level unexported variable is used so that a
+// in incoming idProvider. A package level unexported variable is used so that a
 // test wallet backend can be set using a function defined in export_test.go.
 // Because real backend have large unlocking times and hence tests take very long.
 var walletBackend perun.WalletBackend
@@ -254,7 +254,7 @@ func (s *session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	sanitizeBalInfo(openingBalInfo)
 	parts, err := retrieveParts(openingBalInfo.Parts, s.idProvider)
 	if err != nil {
-		s.Error(err, "retrieving channel participants using session contacts")
+		s.Error(err, "retrieving channel participants using session idProvider")
 		return perun.ChInfo{}, perun.GetAPIError(err)
 	}
 	registerParts(parts, s.chClient)
@@ -415,7 +415,7 @@ func (s *session) HandleProposal(chProposal pclient.ChannelProposal, responder *
 		if !ok {
 			s.Info("Received channel proposal from unknonwn peer", chProposal.Proposal().PeerAddrs[i].String())
 			// nolint: errcheck, gosec		// It is sufficient to just log this error.
-			s.rejectChProposal(context.Background(), responder, "peer not found in session contacts")
+			s.rejectChProposal(context.Background(), responder, "peer not found in session idProvider")
 			expiry = 0
 			break
 		}

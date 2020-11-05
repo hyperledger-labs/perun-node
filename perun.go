@@ -211,7 +211,7 @@ type NodeConfig struct {
 
 // NodeAPI represents the APIs that can be accessed in the context of a perun node.
 // Multiple sessions can be opened in a single node. Each instance will have a dedicated
-// keystore and contacts provider.
+// keystore and idprovider.
 type NodeAPI interface {
 	Time() int64
 	GetConfig() NodeConfig
