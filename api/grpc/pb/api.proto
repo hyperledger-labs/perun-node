@@ -88,7 +88,7 @@ message GetConfigResp{
     string adjudicatorAddress = 2;
     string assetAddress = 3;
     repeated string commTypes = 4;
-    repeated string contactTypes = 5;
+    repeated string idProviderTypes = 5;
 }
 
 message OpenSessionReq {

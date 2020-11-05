@@ -31,14 +31,14 @@ import (
 // NewYAMLFileT is the test friendly version of NewYAMLFile.
 // It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
 func NewYAMLFileT(t *testing.T, peers ...perun.Peer) string {
-	contactsFile, err := NewYAMLFile(peers...)
+	idProviderFile, err := NewYAMLFile(peers...)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		if err = os.Remove(contactsFile); err != nil {
-			t.Log("Error in test cleanup: removing file - " + contactsFile)
+		if err = os.Remove(idProviderFile); err != nil {
+			t.Log("Error in test cleanup: removing file - " + idProviderFile)
 		}
 	})
-	return contactsFile
+	return idProviderFile
 }
 
 // NewYAMLFile creates a temporary file containing the details of given peers and
@@ -46,19 +46,19 @@ func NewYAMLFileT(t *testing.T, peers ...perun.Peer) string {
 func NewYAMLFile(peers ...perun.Peer) (string, error) {
 	tempFile, err := ioutil.TempFile("", "")
 	if err != nil {
-		return "", errors.Wrap(err, "creating temp file for yaml contacts")
+		return "", errors.Wrap(err, "creating temp file for yaml idProvider")
 	}
 	// if err = os.Remove(tempFile.Name()); err != nil {
-	contacts := make(map[string]perun.Peer, len(peers))
+	idProvider := make(map[string]perun.Peer, len(peers))
 	for _, peer := range peers {
-		contacts[peer.Alias] = peer
+		idProvider[peer.Alias] = peer
 	}
 
 	encoder := yaml.NewEncoder(tempFile)
-	if err := encoder.Encode(contacts); err != nil {
+	if err := encoder.Encode(idProvider); err != nil {
 		tempFile.Close()           // nolint: errcheck
 		os.Remove(tempFile.Name()) // nolint: errcheck
-		return "", errors.Wrap(err, "encoding contacts")
+		return "", errors.Wrap(err, "encoding idProvider")
 	}
 	if err := encoder.Close(); err != nil {
 		tempFile.Close()           // nolint: errcheck

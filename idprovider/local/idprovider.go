@@ -28,7 +28,7 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 )
 
-// Provider represents a contacts provider that provides access to contacts stored in a yaml file.
+// Provider represents an idprovider that provides access to contacts stored in a yaml file.
 //
 // It generates a cache of all contacts in the yaml file during initialization. Read, Write and Delete
 // operations act only on the cached list of contacts and do not update the yaml file.
@@ -36,12 +36,12 @@ import (
 //
 // It also stores an instance of wallet backend that will be used or decoding address strings.
 type Provider struct {
-	*contactsCache
+	*idProviderCache
 
-	contactsFilePath string
+	idProviderFilePath string
 }
 
-// New returns an instance of contacts provider to access the contacts in the given yaml file.
+// New returns an instance of idprovider to access the contacts in the given yaml file.
 //
 // All the contacts are cached in memory during initialization and Read, Write, Delete operations
 // affect only the cache. The changes are updated to the yaml file only when UpdateStorage method
@@ -61,24 +61,24 @@ func New(filePath string, backend perun.WalletBackend) (*Provider, error) {
 		return nil, err
 	}
 
-	contactsCache, err := newContactsCache(cache, backend)
+	idProviderCache, err := newIdProviderCache(cache, backend)
 	if err != nil {
 		return nil, err
 	}
 	return &Provider{
-		contactsCache:    contactsCache,
-		contactsFilePath: filePath,
+		idProviderCache:    idProviderCache,
+		idProviderFilePath: filePath,
 	}, nil
 }
 
-// UpdateStorage writes the latest state of contacts cache to the yaml file.
+// UpdateStorage writes the latest state of idprovider cache to the yaml file.
 func (c *Provider) UpdateStorage() error {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
-	f, err := os.Create(c.contactsFilePath)
+	f, err := os.Create(c.idProviderPath)
 	if err != nil {
-		return errors.Wrap(err, "opening contacts file for writing")
+		return errors.Wrap(err, "opening idprovider file for writing")
 	}
 	defer func() {
 		if fCloseErr := f.Close(); fCloseErr != nil {

@@ -25,18 +25,18 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 )
 
-// contactsCache represents a cached list of contacts indexed by both alias and off-chain address.
+// idProviderCache represents a cached list of contacts indexed by both alias and off-chain address.
 // The methods defined over it are safe for concurrent access.
-type contactsCache struct {
+type idProviderCache struct {
 	mutex         sync.RWMutex
 	walletBackend perun.WalletBackend
 	peersByAlias  map[string]perun.Peer // Stores a list of peers indexed by Alias.
 	aliasByAddr   map[string]string     // Stores a list of alias, indexed by off-chain address string.
 }
 
-// newContactsCache returns a contacts cache created from the given map. It indexes the Peers by both alias and
+// newIdProviderCache returns a idProvider cache created from the given map. It indexes the Peers by both alias and
 // off-chain address. The off-chain address strings are decoded using the passed backend.
-func newContactsCache(peersByAlias map[string]perun.Peer, backend perun.WalletBackend) (*contactsCache, error) {
+func newIdProviderCache(peersByAlias map[string]perun.Peer, backend perun.WalletBackend) (*idProviderCache, error) {
 	var err error
 	aliasByAddr := make(map[string]string)
 	for alias, peer := range peersByAlias {
@@ -46,7 +46,7 @@ func newContactsCache(peersByAlias map[string]perun.Peer, backend perun.WalletBa
 		peersByAlias[alias] = peer
 		aliasByAddr[peer.OffChainAddrString] = peer.Alias
 	}
-	return &contactsCache{
+	return &idProviderCache{
 		peersByAlias:  peersByAlias,
 		aliasByAddr:   aliasByAddr,
 		walletBackend: backend,
@@ -54,20 +54,20 @@ func newContactsCache(peersByAlias map[string]perun.Peer, backend perun.WalletBa
 }
 
 // ReadByAlias returns the peer corresponding to given alias from the cache.
-func (c *contactsCache) ReadByAlias(alias string) (_ perun.Peer, isPresent bool) {
+func (c *idProviderCache) ReadByAlias(alias string) (_ perun.Peer, isPresent bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.readByAlias(alias)
 }
 
-func (c *contactsCache) readByAlias(alias string) (_ perun.Peer, isPresent bool) {
+func (c *idProviderCache) readByAlias(alias string) (_ perun.Peer, isPresent bool) {
 	var p perun.Peer
 	p, isPresent = c.peersByAlias[alias]
 	return p, isPresent
 }
 
 // ReadByOffChainAddr returns the peer corresponding to given off-chain address from the cache.
-func (c *contactsCache) ReadByOffChainAddr(offChainAddr pwire.Address) (_ perun.Peer, isPresent bool) {
+func (c *idProviderCache) ReadByOffChainAddr(offChainAddr pwire.Address) (_ perun.Peer, isPresent bool) {
 	if offChainAddr == nil {
 		return perun.Peer{}, false
 	}
@@ -81,17 +81,17 @@ func (c *contactsCache) ReadByOffChainAddr(offChainAddr pwire.Address) (_ perun.
 	return c.readByAlias(alias)
 }
 
-// Write adds the peer to contacts cache. Returns an error if the alias is already used by same or different peer or,
-// if the off-chain address string of the peer cannot be parsed using the wallet backend of this contacts provider.
-func (c *contactsCache) Write(alias string, p perun.Peer) error {
+// Write adds the peer to idProvider cache. Returns an error if the alias is already used by same or different peer or,
+// if the off-chain address string of the peer cannot be parsed using the wallet backend of this idProvider.
+func (c *idProviderCache) Write(alias string, p perun.Peer) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
 	if oldPeer, ok := c.peersByAlias[alias]; ok {
 		if PeerEqual(oldPeer, p) {
-			return errors.New("peer already present in contacts")
+			return errors.New("peer already present in idProvider")
 		}
-		return errors.New("alias already used by another peer in contacts")
+		return errors.New("alias already used by another peer in idProvider")
 	}
 
 	var err error
@@ -104,13 +104,13 @@ func (c *contactsCache) Write(alias string, p perun.Peer) error {
 	return nil
 }
 
-// Delete deletes the peer from contacts cache.
+// Delete deletes the peer from idProvider cache.
 // Returns an error if peer corresponding to given alias is not found.
-func (c *contactsCache) Delete(alias string) error {
+func (c *idProviderCache) Delete(alias string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if _, ok := c.peersByAlias[alias]; !ok {
-		return errors.New("peer not found in contacts")
+		return errors.New("peer not found in idProvider")
 	}
 	delete(c.peersByAlias, alias)
 	return nil

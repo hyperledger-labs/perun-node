@@ -114,29 +114,29 @@ func Test_Integ_New(t *testing.T) {
 		assert.Error(t, err)
 		t.Log(err)
 	})
-	t.Run("unsupported_contacts_backend", func(t *testing.T) {
+	t.Run("unsupported_idprovider_backend", func(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.ContactsType = "unsupported"
+		cfgCopy.IdProviderType = "unsupported"
 		_, err := session.New(cfgCopy)
 		assert.Error(t, err)
 		t.Log(err)
 	})
-	t.Run("invalid_contacts_file", func(t *testing.T) {
+	t.Run("invalid_idprovider_file", func(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.ContactsURL = newCorruptedYAMLFile(t)
+		cfgCopy.IdProviderURL = newCorruptedYAMLFile(t)
 		_, err := session.New(cfgCopy)
 		assert.Error(t, err)
 		t.Log(err)
 	})
-	t.Run("invalid_contacts_has_entry_for_self", func(t *testing.T) {
+	t.Run("invalid_idprovider_has_entry_for_self", func(t *testing.T) {
 		ownPeer := perun.Peer{
 			Alias: perun.OwnAlias,
 		}
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.ContactsURL = idprovidertest.NewYAMLFileT(t, ownPeer)
+		cfgCopy.IdProviderURL = idprovidertest.NewYAMLFileT(t, ownPeer)
 		_, err := session.New(cfgCopy)
 		t.Log(err)
 		assert.Error(t, err)
@@ -147,11 +147,9 @@ func Test_Integ_Persistence(t *testing.T) {
 	prng := rand.New(rand.NewSource(1729))
 
 	aliceCfg := sessiontest.NewConfigT(t, prng)
-	// Use contacts and database directory from a session that was persisted already.
-	// Copy database directory to tmp before using as it will be modifed when reading as well.
-	// Contacts file can be used as such.
-	aliceCfg.DatabaseDir = copyDirToTmp(t, "../testdata/session/persistence/alice-database")
-	aliceCfg.ContactsURL = "../testdata/session/persistence/alice-contacts.yaml"
+	// Use idprovider and databaseDir from a session that was persisted already.
+	aliceCfg.DatabaseDir = "../testdata/session/persistence/alice-database"
+	aliceCfg.IdProviderURL = "../testdata/session/persistence/alice-idprovider.yaml"
 
 	alice, err := session.New(aliceCfg)
 	require.NoErrorf(t, err, "initializing alice session")

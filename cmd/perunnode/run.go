@@ -75,7 +75,7 @@ var (
 	// It can be moved to config file or flags at the point when the user will
 	// be able to choose (when starting the node) which ones to load or support.
 	supportedCommTypes             = []string{"tcp"}
-	supportedContactTypes          = []string{"yaml"}
+	supportedIdProviderTypes       = []string{"yaml"}
 	supportedCurrencyInterpretters = []string{"ETH"}
 )
 
@@ -176,7 +176,7 @@ func parseNodeConfig(fs *pflag.FlagSet, v *viper.Viper) perun.NodeConfig {
 	}
 
 	nodeCfg.CommTypes = supportedCommTypes
-	nodeCfg.ContactTypes = supportedContactTypes
+	nodeCfg.IdProviderTypes = supportedIdProviderTypes
 	nodeCfg.CurrencyInterpreters = supportedCurrencyInterpretters
 	return nodeCfg
 }

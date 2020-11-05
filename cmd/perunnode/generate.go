@@ -38,7 +38,7 @@ const (
 	nodeConfigFile       = "node.yaml"
 	sessionConfigFile    = "session.yaml"
 	keystoreDir          = "keystore"
-	contactsFile         = "contacts.yaml"
+	idProviderFile       = "idprovider.yaml"
 	databaseDir          = "database"
 
 	onlyNodeF    = "only-node"
@@ -53,7 +53,7 @@ var (
 		LogLevel:             "debug",
 		ChainURL:             "ws://127.0.0.1:8545",
 		CommTypes:            []string{"tcp"},
-		ContactTypes:         []string{"yaml"},
+		IdProviderTypes:      []string{"yaml"},
 		CurrencyInterpreters: []string{"ETH"},
 
 		ChainConnTimeout: 30 * time.Second,
@@ -69,7 +69,7 @@ Generate demo artifacts for node and session configuration.
 
 - Node: node.yaml file.
 - Session: Two directories (alice and bob) each containing session.yaml file,
-  contacts.yaml file and keystore directory with keys corresponding to the
+idprovider.yaml file and keystore directory with keys corresponding to the
   on-chain and off-chain accounts.
 
 Note:
@@ -155,7 +155,7 @@ func generateNodeConfig() error {
 }
 
 // generateSessionConfig generates two sets of session configuration artifacts in two directories named alice and bob.
-// Each directory would have: session.yaml, contacts.yaml and keystore (containing 2 key files - on-chain & off-chain).
+// Each directory would have: session.yaml, idprovider.yaml and keystore (containing 2 key files - on-chain & off-chain).
 // To use this configuration, start the node from same directory containing the session config artifacts directory and
 // pass the path "alice/session.yaml" and "bob/session.yaml" for alice and bob respectively.
 func generateSessionConfig() error {
@@ -180,12 +180,12 @@ func generateSessionConfig() error {
 	}
 	bobCfg.User.Alias = bobAlias
 
-	// Create Contacts file.
-	aliceContactsFile, err := idprovidertest.NewYAMLFile(peer(bobCfg.User))
+	// Create IdProvider file.
+	aliceIdProviderFile, err := idprovidertest.NewYAMLFile(peer(bobCfg.User))
 	if err != nil {
 		return err
 	}
-	bobContactsFile, err := idprovidertest.NewYAMLFile(peer(aliceCfg.User))
+	bobIdProviderFile, err := idprovidertest.NewYAMLFile(peer(aliceCfg.User))
 	if err != nil {
 		return err
 	}
@@ -203,13 +203,13 @@ func generateSessionConfig() error {
 	// Move the artifacts to currenct directory.
 	filesToMove := map[string]string{
 		aliceCfgFile:                             filepath.Join(aliceAlias, sessionConfigFile),
-		aliceContactsFile:                        filepath.Join(aliceAlias, contactsFile),
+		aliceIdProviderFile:                      filepath.Join(aliceAlias, idProviderFile),
 		aliceCfg.DatabaseDir:                     filepath.Join(aliceAlias, databaseDir),
 		aliceCfg.User.OnChainWallet.KeystorePath: filepath.Join(aliceAlias, keystoreDir),
 
 		bobCfgFile:                             filepath.Join(bobAlias, sessionConfigFile),
 		bobCfg.DatabaseDir:                     filepath.Join(bobAlias, databaseDir),
-		bobContactsFile:                        filepath.Join(bobAlias, contactsFile),
+		bobIdProviderFile:                      filepath.Join(bobAlias, idProviderFile),
 		bobCfg.User.OnChainWallet.KeystorePath: filepath.Join(bobAlias, keystoreDir),
 	}
 	return moveFiles(filesToMove)
@@ -245,7 +245,7 @@ func peer(userCfg session.UserConfig) perun.Peer {
 
 func updatedConfigCopy(cfg session.Config) session.Config {
 	cfgCopy := cfg
-	cfgCopy.ContactsURL = filepath.Join(cfg.User.Alias, contactsFile)
+	cfgCopy.IdProviderURL = filepath.Join(cfg.User.Alias, idProviderFile)
 	cfgCopy.DatabaseDir = filepath.Join(cfg.User.Alias, databaseDir)
 	cfgCopy.User.OnChainWallet.KeystorePath = filepath.Join(cfg.User.Alias, keystoreDir)
 	cfgCopy.User.OffChainWallet.KeystorePath = filepath.Join(cfg.User.Alias, keystoreDir)

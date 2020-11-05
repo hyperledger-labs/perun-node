@@ -1,4 +1,4 @@
-# contacts.yaml - sample data
+# idprovider.yaml - sample data
 #
 # This file contacts a contacts file with entries for two peers: Alice and Bob.
 #
@@ -24,8 +24,8 @@ user:
   commType: tcp
 
 
-contactsType: yaml
-contactsURL: ./test-contacts.yaml
+idProviderType: yaml
+idProviderURL: ./test-idprovider.yaml
 chainURL: ws://127.0.0.1:8545
 asset: 0x5992089d61cE79B6CF90506F70DD42B8E42FB21d
 adjudicator: 0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63
@@ -41,10 +41,10 @@ databaseDir: ./test-db
   : !!int "511356837854933446704046452540296510558989955613",
   ? !!str "chainURL"
   : !!str "ws://127.0.0.1:8545",
-  ? !!str "contactsType"
+  ? !!str "idProviderType"
   : !!str "yaml",
-  ? !!str "contactsURL"
-  : !!str "./test-contacts.yaml",
+  ? !!str "idProviderURL"
+  : !!str "./test-idprovider.yaml",
   ? !!str "databaseDir"
   : !!str "./test-db",
   ? !!str "user"

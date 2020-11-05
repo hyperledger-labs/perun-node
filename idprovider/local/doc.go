@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package local implements contacts provider to access contacts stored
+// Package local implements idprovider to access contacts stored
 // in a yaml file.
 //
 // The complete list of contacts are loaded into an in-memory cache during

@@ -67,7 +67,7 @@ This will generate the following artifacts:
 
 - Node: node.yaml file.
 - Session: Two directories (alice and bob) each containing session.yaml file,
-  contacts.yaml file and keystore directory with keys corresponding to the
+  idprovider.yaml file and keystore directory with keys corresponding to the
   on-chain and off-chain accounts.
 
 
