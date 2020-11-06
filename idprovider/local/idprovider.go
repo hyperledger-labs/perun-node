@@ -76,7 +76,7 @@ func (c *Provider) UpdateStorage() error {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
-	f, err := os.Create(c.idProviderPath)
+	f, err := os.Create(c.idProviderFilePath)
 	if err != nil {
 		return errors.Wrap(err, "opening idprovider file for writing")
 	}

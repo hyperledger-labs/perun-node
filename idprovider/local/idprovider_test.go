@@ -273,7 +273,7 @@ func Test_YAML_UpdateStorage(t *testing.T) {
 		assert.NoError(t, c.Write(peer3.Alias, peer3))
 
 		// Change file permission
-		err = os.Chmod(idProvider, 0o444)
+		err = os.Chmod(idProviderFile, 0o444)
 		require.NoError(t, err)
 
 		// Test
