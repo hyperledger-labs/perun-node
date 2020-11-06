@@ -149,7 +149,8 @@ func New(cfg Config) (*session, error) {
 	return sess, nil
 }
 
-func initIDProvider(idProviderType, idProviderURL string, wb perun.WalletBackend, own perun.Peer) (perun.IDProvider, error) {
+func initIDProvider(idProviderType, idProviderURL string, wb perun.WalletBackend, own perun.Peer) (
+	perun.IDProvider, error) {
 	if idProviderType != "yaml" {
 		return nil, perun.ErrUnsupportedIDProviderType
 	}
