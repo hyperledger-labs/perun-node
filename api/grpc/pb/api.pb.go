@@ -399,7 +399,7 @@ type GetConfigResp struct {
 	AdjudicatorAddress string   `protobuf:"bytes,2,opt,name=adjudicatorAddress,proto3" json:"adjudicatorAddress,omitempty"`
 	AssetAddress       string   `protobuf:"bytes,3,opt,name=assetAddress,proto3" json:"assetAddress,omitempty"`
 	CommTypes          []string `protobuf:"bytes,4,rep,name=commTypes,proto3" json:"commTypes,omitempty"`
-	IdProviderTypes    []string `protobuf:"bytes,5,rep,name=idProviderTypes,proto3" json:"idProviderTypes,omitempty"`
+	IDProviderTypes    []string `protobuf:"bytes,5,rep,name=idProviderTypes,proto3" json:"idProviderTypes,omitempty"`
 }
 
 func (x *GetConfigResp) Reset() {
@@ -462,9 +462,9 @@ func (x *GetConfigResp) GetCommTypes() []string {
 	return nil
 }
 
-func (x *GetConfigResp) GetIdProviderTypes() []string {
+func (x *GetConfigResp) GetIDProviderTypes() []string {
 	if x != nil {
-		return x.IdProviderTypes
+		return x.IDProviderTypes
 	}
 	return nil
 }

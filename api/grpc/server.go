@@ -78,7 +78,7 @@ func (a *payChAPIServer) GetConfig(context.Context, *pb.GetConfigReq) (*pb.GetCo
 		AdjudicatorAddress: cfg.Adjudicator,
 		AssetAddress:       cfg.Asset,
 		CommTypes:          cfg.CommTypes,
-		IdProviderTypes:    cfg.IdProviderTypes,
+		IDProviderTypes:    cfg.IDProviderTypes,
 	}, nil
 }
 

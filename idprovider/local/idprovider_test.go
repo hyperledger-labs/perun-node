@@ -70,15 +70,15 @@ func init() {
 	}
 }
 
-func Test_IdProviderReader_Interface(t *testing.T) {
-	assert.Implements(t, (*perun.IdProviderReader)(nil), new(local.Provider))
+func Test_IDProviderReader_Interface(t *testing.T) {
+	assert.Implements(t, (*perun.IDProviderReader)(nil), new(local.Provider))
 }
 
-func Test_IdProvider_Interface(t *testing.T) {
-	assert.Implements(t, (*perun.IdProvider)(nil), new(local.Provider))
+func Test_IDProvider_Interface(t *testing.T) {
+	assert.Implements(t, (*perun.IDProvider)(nil), new(local.Provider))
 }
 
-func Test_NewIdProviderFromYaml_ReadByAlias(t *testing.T) {
+func Test_NewIDProviderFromYaml_ReadByAlias(t *testing.T) {
 	t.Run("happy", func(t *testing.T) {
 		idProviderFile := idprovidertest.NewYAMLFileT(t, peer1, peer2)
 

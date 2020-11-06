@@ -49,7 +49,7 @@ var (
 	ErrUnknownUpdateID   = APIError("No response was expected for the given channel update ID")
 
 	ErrUnsupportedCurrency       = APIError("Currency not supported by this node instance")
-	ErrUnsupportedIdProviderType = APIError("IdProvider type not supported by this node instance")
+	ErrUnsupportedIDProviderType = APIError("IDProvider type not supported by this node instance")
 	ErrUnsupportedCommType       = APIError("Communication protocol not supported by this node instance")
 
 	ErrInsufficientBal     = APIError("Insufficient balance in sender account")

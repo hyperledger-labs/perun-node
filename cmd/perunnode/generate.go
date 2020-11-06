@@ -53,7 +53,7 @@ var (
 		LogLevel:             "debug",
 		ChainURL:             "ws://127.0.0.1:8545",
 		CommTypes:            []string{"tcp"},
-		IdProviderTypes:      []string{"yaml"},
+		IDProviderTypes:      []string{"yaml"},
 		CurrencyInterpreters: []string{"ETH"},
 
 		ChainConnTimeout: 30 * time.Second,
@@ -155,9 +155,9 @@ func generateNodeConfig() error {
 }
 
 // generateSessionConfig generates two sets of session configuration artifacts in two directories named alice and bob.
-// Each directory would have: session.yaml, idprovider.yaml and keystore (containing 2 key files - on-chain & off-chain).
-// To use this configuration, start the node from same directory containing the session config artifacts directory and
-// pass the path "alice/session.yaml" and "bob/session.yaml" for alice and bob respectively.
+// Each directory would have: session.yaml, idprovider.yaml and keystore (containing 2 key files - on-chain
+// & off-chain). To use this configuration, start the node from same directory containing the session config artifacts
+// directory and pass the path "alice/session.yaml" and "bob/session.yaml" for alice and bob respectively.
 func generateSessionConfig() error {
 	if isPresent, dirName := isAnyDirPresent(aliceAlias, bobAlias); isPresent {
 		return errors.New("dir exists - " + dirName)
@@ -180,12 +180,12 @@ func generateSessionConfig() error {
 	}
 	bobCfg.User.Alias = bobAlias
 
-	// Create IdProvider file.
-	aliceIdProviderFile, err := idprovidertest.NewYAMLFile(peer(bobCfg.User))
+	// Create IDProvider file.
+	aliceIDProviderFile, err := idprovidertest.NewYAMLFile(peer(bobCfg.User))
 	if err != nil {
 		return err
 	}
-	bobIdProviderFile, err := idprovidertest.NewYAMLFile(peer(aliceCfg.User))
+	bobIDProviderFile, err := idprovidertest.NewYAMLFile(peer(aliceCfg.User))
 	if err != nil {
 		return err
 	}
@@ -203,13 +203,13 @@ func generateSessionConfig() error {
 	// Move the artifacts to currenct directory.
 	filesToMove := map[string]string{
 		aliceCfgFile:                             filepath.Join(aliceAlias, sessionConfigFile),
-		aliceIdProviderFile:                      filepath.Join(aliceAlias, idProviderFile),
+		aliceIDProviderFile:                      filepath.Join(aliceAlias, idProviderFile),
 		aliceCfg.DatabaseDir:                     filepath.Join(aliceAlias, databaseDir),
 		aliceCfg.User.OnChainWallet.KeystorePath: filepath.Join(aliceAlias, keystoreDir),
 
 		bobCfgFile:                             filepath.Join(bobAlias, sessionConfigFile),
 		bobCfg.DatabaseDir:                     filepath.Join(bobAlias, databaseDir),
-		bobIdProviderFile:                      filepath.Join(bobAlias, idProviderFile),
+		bobIDProviderFile:                      filepath.Join(bobAlias, idProviderFile),
 		bobCfg.User.OnChainWallet.KeystorePath: filepath.Join(bobAlias, keystoreDir),
 	}
 	return moveFiles(filesToMove)
@@ -245,7 +245,7 @@ func peer(userCfg session.UserConfig) perun.Peer {
 
 func updatedConfigCopy(cfg session.Config) session.Config {
 	cfgCopy := cfg
-	cfgCopy.IdProviderURL = filepath.Join(cfg.User.Alias, idProviderFile)
+	cfgCopy.IDProviderURL = filepath.Join(cfg.User.Alias, idProviderFile)
 	cfgCopy.DatabaseDir = filepath.Join(cfg.User.Alias, databaseDir)
 	cfgCopy.User.OnChainWallet.KeystorePath = filepath.Join(cfg.User.Alias, keystoreDir)
 	cfgCopy.User.OffChainWallet.KeystorePath = filepath.Join(cfg.User.Alias, keystoreDir)

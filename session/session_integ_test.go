@@ -117,7 +117,7 @@ func Test_Integ_New(t *testing.T) {
 	t.Run("unsupported_idprovider_backend", func(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.IdProviderType = "unsupported"
+		cfgCopy.IDProviderType = "unsupported"
 		_, err := session.New(cfgCopy)
 		assert.Error(t, err)
 		t.Log(err)
@@ -125,7 +125,7 @@ func Test_Integ_New(t *testing.T) {
 	t.Run("invalid_idprovider_file", func(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.IdProviderURL = newCorruptedYAMLFile(t)
+		cfgCopy.IDProviderURL = newCorruptedYAMLFile(t)
 		_, err := session.New(cfgCopy)
 		assert.Error(t, err)
 		t.Log(err)
@@ -136,7 +136,7 @@ func Test_Integ_New(t *testing.T) {
 		}
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.IdProviderURL = idprovidertest.NewYAMLFileT(t, ownPeer)
+		cfgCopy.IDProviderURL = idprovidertest.NewYAMLFileT(t, ownPeer)
 		_, err := session.New(cfgCopy)
 		t.Log(err)
 		assert.Error(t, err)
@@ -149,7 +149,7 @@ func Test_Integ_Persistence(t *testing.T) {
 	aliceCfg := sessiontest.NewConfigT(t, prng)
 	// Use idprovider and databaseDir from a session that was persisted already.
 	aliceCfg.DatabaseDir = "../testdata/session/persistence/alice-database"
-	aliceCfg.IdProviderURL = "../testdata/session/persistence/alice-idprovider.yaml"
+	aliceCfg.IDProviderURL = "../testdata/session/persistence/alice-idprovider.yaml"
 
 	alice, err := session.New(aliceCfg)
 	require.NoErrorf(t, err, "initializing alice session")

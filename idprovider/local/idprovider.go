@@ -61,7 +61,7 @@ func New(filePath string, backend perun.WalletBackend) (*Provider, error) {
 		return nil, err
 	}
 
-	idProviderCache, err := newIdProviderCache(cache, backend)
+	idProviderCache, err := newIDProviderCache(cache, backend)
 	if err != nil {
 		return nil, err
 	}

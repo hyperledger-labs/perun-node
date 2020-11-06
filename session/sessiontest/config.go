@@ -82,8 +82,8 @@ func NewConfigT(t *testing.T, rng *rand.Rand, idProvider ...perun.Peer) session.
 		if err = os.RemoveAll(sessionCfg.User.OnChainWallet.KeystorePath); err != nil {
 			t.Log("Error in test cleanup: removing directory - " + sessionCfg.User.OnChainWallet.KeystorePath)
 		}
-		if err = os.Remove(sessionCfg.IdProviderURL); err != nil {
-			t.Log("Error in test cleanup: removing file - " + sessionCfg.IdProviderURL)
+		if err = os.Remove(sessionCfg.IDProviderURL); err != nil {
+			t.Log("Error in test cleanup: removing file - " + sessionCfg.IDProviderURL)
 		}
 	})
 	return sessionCfg
@@ -122,8 +122,8 @@ func NewConfig(rng *rand.Rand, idProvider ...perun.Peer) (session.Config, error)
 		DatabaseDir:       databaseDir,
 		PeerReconnTimeout: 20 * time.Second,
 
-		IdProviderType: "yaml",
-		IdProviderURL:  localFile,
+		IDProviderType: "yaml",
+		IDProviderURL:  localFile,
 	}, nil
 }
 

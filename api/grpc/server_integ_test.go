@@ -53,7 +53,7 @@ var (
 		Adjudicator:          "0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63",
 		Asset:                "0x5992089d61cE79B6CF90506F70DD42B8E42FB21d",
 		CommTypes:            []string{"tcp"},
-		IdProviderTypes:      []string{"yaml"},
+		IDProviderTypes:      []string{"yaml"},
 		CurrencyInterpreters: []string{"ETH"},
 
 		ChainConnTimeout: 30 * time.Second,

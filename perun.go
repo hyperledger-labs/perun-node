@@ -51,16 +51,16 @@ type Peer struct {
 // It will be used when translating addresses in incoming messages / proposals to aliases.
 const OwnAlias = "self"
 
-// IdProviderReader represents a read only cached list of contacts.
-type IdProviderReader interface {
+// IDProviderReader represents a read only cached list of contacts.
+type IDProviderReader interface {
 	ReadByAlias(alias string) (p Peer, contains bool)
 	ReadByOffChainAddr(offChainAddr pwire.Address) (p Peer, contains bool)
 }
 
-// IdProvider represents a cached list of contacts backed by a storage. Read, Write and Delete methods act on the
+// IDProvider represents a cached list of contacts backed by a storage. Read, Write and Delete methods act on the
 // cache. The state of cached list can be written to the storage by using the UpdateStorage method.
-type IdProvider interface {
-	IdProviderReader
+type IDProvider interface {
+	IDProviderReader
 	Write(alias string, p Peer) error
 	Delete(alias string) error
 	UpdateStorage() error
@@ -204,7 +204,7 @@ type NodeConfig struct {
 
 	// Hard coded values. See cmd/perunnode/run.go.
 	CommTypes            []string // Communication protocols supported by the node for off-chain communication.
-	IdProviderTypes      []string // IdProvider backends supported by the node.
+	IDProviderTypes      []string // IDProvider backends supported by the node.
 	CurrencyInterpreters []string // Currencies Interpreters supported by the node.
 
 }

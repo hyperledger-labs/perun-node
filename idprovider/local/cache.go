@@ -34,9 +34,9 @@ type idProviderCache struct {
 	aliasByAddr   map[string]string     // Stores a list of alias, indexed by off-chain address string.
 }
 
-// newIdProviderCache returns a idProvider cache created from the given map. It indexes the Peers by both alias and
+// newIDProviderCache returns a idProvider cache created from the given map. It indexes the Peers by both alias and
 // off-chain address. The off-chain address strings are decoded using the passed backend.
-func newIdProviderCache(peersByAlias map[string]perun.Peer, backend perun.WalletBackend) (*idProviderCache, error) {
+func newIDProviderCache(peersByAlias map[string]perun.Peer, backend perun.WalletBackend) (*idProviderCache, error) {
 	var err error
 	aliasByAddr := make(map[string]string)
 	for alias, peer := range peersByAlias {

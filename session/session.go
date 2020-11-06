@@ -61,7 +61,7 @@ type (
 		user       perun.User
 		chAsset    pchannel.Asset
 		chClient   perun.ChClient
-		idProvider perun.IdProvider
+		idProvider perun.IDProvider
 
 		chs map[string]*channel
 
@@ -103,7 +103,7 @@ func New(cfg Config) (*session, error) {
 		return nil, err
 	}
 
-	idProvider, err := initIdProvider(cfg.IdProviderType, cfg.IdProviderURL, walletBackend, user.Peer)
+	idProvider, err := initIDProvider(cfg.IDProviderType, cfg.IDProviderURL, walletBackend, user.Peer)
 	if err != nil {
 		return nil, err
 	}
@@ -149,9 +149,9 @@ func New(cfg Config) (*session, error) {
 	return sess, nil
 }
 
-func initIdProvider(idProviderType, idProviderURL string, wb perun.WalletBackend, own perun.Peer) (perun.IdProvider, error) {
+func initIDProvider(idProviderType, idProviderURL string, wb perun.WalletBackend, own perun.Peer) (perun.IDProvider, error) {
 	if idProviderType != "yaml" {
-		return nil, perun.ErrUnsupportedIdProviderType
+		return nil, perun.ErrUnsupportedIDProviderType
 	}
 	idProvider, err := local.New(idProviderURL, wb)
 	if err != nil {
@@ -314,7 +314,7 @@ func sanitizeBalInfo(balInfo perun.BalInfo) {
 
 // retrieveParts retrieves the peers from corresponding to the aliases from the idprovider.
 // The order of entries for parts list will be same as that of aliases. i.e aliases[i] = parts[i].Alias.
-func retrieveParts(aliases []string, idProvider perun.IdProviderReader) ([]perun.Peer, error) {
+func retrieveParts(aliases []string, idProvider perun.IDProviderReader) ([]perun.Peer, error) {
 	knownParts := make(map[string]perun.Peer, len(aliases))
 	parts := make([]perun.Peer, len(aliases))
 	missingParts := make([]string, 0, len(aliases))
