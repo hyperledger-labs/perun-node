@@ -1,14 +1,14 @@
 version: 2.1
 
 executors:
-  dst-go-executor:
+  perun-node-executor:
     docker:
-      - image: cimg/go:1.14.1
+      - image: cimg/go:1.14.1-node
     environment:
       RESULTS: /tmp/results
       ARTIFACTS: /tmp/artifacts
       TERM: xterm
-    working_directory: ~/dst-go
+    working_directory: ~/perun-node
 
 commands:
   checkout-code:
@@ -30,6 +30,20 @@ commands:
       - store_artifacts:
           path: /tmp/artifacts
 
+  install-ganache-cli:
+      steps:
+        - run: sudo npm install -g ganache-cli
+
+  run-ganache-cli:
+      steps:
+        - run:
+            command: ganache-cli -b 1 --account="0x1fedd636dbc7e8d41a0622a2040b86fea8842cef9d4aa4c582aad00465b7acff,100000000000000000000" --account="0xb0309c60b4622d3071fad3e16c2ce4d0b1e7758316c187754f4dd0cfb44ceb33,100000000000000000000"
+            background: true
+
+  wait-until-ganache-cli-is-running:
+      steps:
+        - run: timeout 15 bash -c 'until nc -z 127.0.0.1 8545; do sleep 1; done'
+
   install-txt-to-html-coverter-aha:
     steps:
       - run: sudo apt-get update
@@ -38,7 +52,7 @@ commands:
 jobs:
 
   lint:
-    executor: dst-go-executor
+    executor: perun-node-executor
     steps:
       - checkout-code
       - make-results-artifacts-dir
@@ -56,23 +70,37 @@ jobs:
       - upload-results-artifacts
 
 
-  unit_test:
-    executor: dst-go-executor
+  test:
+    executor: perun-node-executor
     steps:
       - checkout-code
       - make-results-artifacts-dir
+      - install-ganache-cli
+      - run-ganache-cli
+      - wait-until-ganache-cli-is-running
+      - run: echo "ganache-cli-running"
       - run:
-          name: Run unit tests
-          command: gotestsum --junitfile ${RESULTS}/unit-tests.xml --format=short-verbose -- -coverprofile=c.out ./...
+          name: Run unit and integration tests
+          command: gotestsum --junitfile ${RESULTS}/unit_and_integration_tests.xml --format=short-verbose -- -tags=integration -coverprofile=unit_and_integration_tests.out -p 1 ./...
+      # Run unit tests alone when the combined run of unit and integration tests fail.
       - run:
-          name: Generate coverage report
-          command: go tool cover -html=c.out -o ${ARTIFACTS}/unit_test_coverage.html
+          name: Run only unit tests
+          command: gotestsum --junitfile ${RESULTS}/unit_tests.xml --format=short-verbose -- -coverprofile=unit_tests.out ./...
+          when: on_fail
+      - run:
+          name: Generate coverage report for unit and integration tests.
+          command: go tool cover -html=unit_and_integration_tests.out -o ${ARTIFACTS}/unit_and_integration_tests.html
           when: always
+      # Only unit tests are run when the combined run of unit and integration tests fail. Only then the required artifacts for these coverage files are generated.
+      # So use on_fail condition.
+      - run:
+          name: Generate coverage report for only unit tests
+          command: go tool cover -html=unit_tests.out -o ${ARTIFACTS}/unit_test_coverage.html
+          when: on_fail
       - upload-results-artifacts
 
-
 workflows:
-  build-lint-test:
+  lint-test:
     jobs:
       - lint
-      - unit_test
+      - test
