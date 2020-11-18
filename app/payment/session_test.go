@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	ppayment "perun.network/go-perun/apps/payment"
 	pchannel "perun.network/go-perun/channel"
 
 	"github.com/hyperledger-labs/perun-node"
@@ -40,7 +39,7 @@ var (
 
 	challengeDurSecs uint64 = 10
 	app                     = perun.App{
-		Def:  ppayment.NewApp(),
+		Def:  pchannel.NoApp(),
 		Data: pchannel.NoData(),
 	}
 
