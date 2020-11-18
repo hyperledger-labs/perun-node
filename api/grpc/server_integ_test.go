@@ -216,6 +216,24 @@ func Test_Integ_Role(t *testing.T) {
 		wg.Wait()
 	})
 
+	t.Run("Request_Payment", func(t *testing.T) {
+		// Alice requests a payment and bob accepts.
+		wg.Add(1)
+		go func() {
+			SendPayChUpdate(t, aliceSessionID, chID, perun.OwnAlias, "0.5", true)
+
+			wg.Done()
+		}()
+
+		sub := SubPayChUpdate(t, bobSessionID, chID)
+		notif := ReadPayChUpdateNotif(t, bobSessionID, chID, sub)
+		assert.EqualValues(t, perun.ChUpdateTypeOpen, notif.Notify.Type)
+		RespondPayChUpdate(t, bobSessionID, chID, notif.Notify.UpdateID, false)
+		UnsubPayChUpdate(t, bobSessionID, chID)
+
+		wg.Wait()
+	})
+
 	t.Run("SendPayChUpdate_Sub_Unsub_Respond_Reject", func(t *testing.T) {
 		// Alice sends a payment and bob accepts.
 		wg.Add(1)

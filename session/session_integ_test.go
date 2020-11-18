@@ -25,6 +25,7 @@ import (
 	"os"
 	"testing"
 
+	copyutil "github.com/otiai10/copy"
 	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -146,8 +147,10 @@ func Test_Integ_Persistence(t *testing.T) {
 	prng := rand.New(rand.NewSource(1729))
 
 	aliceCfg := sessiontest.NewConfigT(t, prng)
-	// Use contacts and databaseDir from a session that was persisted already.
-	aliceCfg.DatabaseDir = "../testdata/session/persistence/alice-database"
+	// Use contacts and database directory from a session that was persisted already.
+	// Copy database directory to tmp before using as it will be modifed when reading as well.
+	// Contacts file can be used as such.
+	aliceCfg.DatabaseDir = copyDirToTmp(t, "../testdata/session/persistence/alice-database")
 	aliceCfg.ContactsURL = "../testdata/session/persistence/alice-contacts.yaml"
 
 	alice, err := session.New(aliceCfg)
@@ -199,6 +202,19 @@ Bob:
 	require.NoErrorf(t, tempFile.Close(), "closing temporary file")
 	require.NoError(t, err)
 	return tempFile.Name()
+}
+
+func copyDirToTmp(t *testing.T, src string) (tempDirName string) {
+	var err error
+	tempDirName, err = ioutil.TempDir("", "")
+	require.NoError(t, err)
+	require.NoError(t, copyutil.Copy(src, tempDirName))
+	t.Cleanup(func() {
+		if err := os.RemoveAll(tempDirName); err != nil {
+			t.Logf("Error in removing the file in test cleanup - %v", err)
+		}
+	})
+	return tempDirName
 }
 
 func newDatabaseDir(t *testing.T) (dir string) {

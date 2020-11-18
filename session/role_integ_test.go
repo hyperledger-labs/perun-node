@@ -27,26 +27,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
-	ppayment "perun.network/go-perun/apps/payment"
+
 	pchannel "perun.network/go-perun/channel"
 
 	"github.com/hyperledger-labs/perun-node"
-	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
-
-// init() initializes the payment app in go-perun.
-func init() {
-	wb := ethereum.NewWalletBackend()
-	emptyAddr, err := wb.ParseAddr("0x0")
-	if err != nil {
-		panic("Error parsing zero address for app payment def: " + err.Error())
-	}
-	ppayment.SetAppDef(emptyAddr) // dummy app def.
-}
 
 // This test includes all methods on SessionAPI and ChAPI.
 func Test_Integ_Role(t *testing.T) {
@@ -121,7 +110,7 @@ func Test_Integ_Role(t *testing.T) {
 				Bal:      []string{"1", "2"},
 			}
 			app := perun.App{
-				Def:  ppayment.NewApp(),
+				Def:  pchannel.NoApp(),
 				Data: pchannel.NoData(),
 			}
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.
@@ -158,7 +147,7 @@ func Test_Integ_Role(t *testing.T) {
 				Bal:      []string{"1", "2"},
 			}
 			app := perun.App{
-				Def:  ppayment.NewApp(),
+				Def:  pchannel.NoApp(),
 				Data: pchannel.NoData(),
 			}
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.

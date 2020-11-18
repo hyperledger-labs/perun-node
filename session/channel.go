@@ -154,7 +154,7 @@ func (ch *channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 func (ch *channel) sendChUpdate(pctx context.Context, updater perun.StateUpdater) error {
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
 	defer cancel()
-	err := ch.pch.UpdateBy(ctx, ch.pch.Idx(), updater)
+	err := ch.pch.UpdateBy(ctx, updater)
 	if err != nil {
 		ch.Error("Sending channel update:", err)
 		// TODO: (mano) Use errors.Is here once a sentinel error value is defined in the SDK.
@@ -442,7 +442,7 @@ func (ch *channel) finalize(pctx context.Context) {
 	}
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
 	defer cancel()
-	err := ch.pch.UpdateBy(ctx, ch.pch.Idx(), chFinalizer)
+	err := ch.pch.UpdateBy(ctx, chFinalizer)
 	if err != nil {
 		ch.Info("Error when trying to finalize state", err)
 	} else {
