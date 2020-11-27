@@ -58,10 +58,11 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 
 	cfg := client.Config{
 		Chain: client.ChainConfig{
-			Adjudicator: adjudicator.String(),
-			Asset:       asset.String(),
-			URL:         ethereumtest.ChainURL,
-			ConnTimeout: 10 * time.Second,
+			Adjudicator:      adjudicator.String(),
+			Asset:            asset.String(),
+			URL:              ethereumtest.ChainURL,
+			OnChainTxTimeout: ethereumtest.OnChainTxTimeout,
+			ConnTimeout:      10 * time.Second,
 		},
 		PeerReconnTimeout: 20 * time.Second,
 	}
@@ -70,7 +71,7 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 	t.Run("happy", func(t *testing.T) {
 		cfg.DatabaseDir = newDatabaseDir(t) // start with empty persistence dir each time.
 		client, err := client.NewEthereumPaymentClient(cfg, user, tcp.NewTCPBackend(5*time.Second))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		err = client.RestoreChs(func(*pclient.Channel) {})
 		assert.NoError(t, err)
 		assert.NoError(t, client.Close())

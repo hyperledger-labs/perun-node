@@ -62,7 +62,7 @@ func NewChainBackend(url string, chainConnTimeout, onChainTxTimeout time.Duratio
 	}
 	tr := pkeystore.NewTransactor(*ksWallet)
 	cb := pethchannel.NewContractBackend(ethereumBackend, tr)
-	return &internal.ChainBackend{Cb: &cb, TxTimeout: chainConnTimeout}, nil
+	return &internal.ChainBackend{Cb: &cb, TxTimeout: onChainTxTimeout}, nil
 }
 
 // BalanceAt reads the on-chain balance of the given address.
