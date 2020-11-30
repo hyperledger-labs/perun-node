@@ -53,7 +53,7 @@ var (
 		LogLevel:             "debug",
 		ChainURL:             "ws://127.0.0.1:8545",
 		CommTypes:            []string{"tcp"},
-		IDProviderTypes:      []string{"yaml"},
+		IDProviderTypes:      []string{"local"},
 		CurrencyInterpreters: []string{"ETH"},
 
 		ChainConnTimeout: 30 * time.Second,
@@ -181,11 +181,11 @@ func generateSessionConfig() error {
 	bobCfg.User.Alias = bobAlias
 
 	// Create IDProvider file.
-	aliceIDProviderFile, err := idprovidertest.NewYAMLFile(peer(bobCfg.User))
+	aliceIDProviderFile, err := idprovidertest.NewIDProvider(peer(bobCfg.User))
 	if err != nil {
 		return err
 	}
-	bobIDProviderFile, err := idprovidertest.NewYAMLFile(peer(aliceCfg.User))
+	bobIDProviderFile, err := idprovidertest.NewIDProvider(peer(aliceCfg.User))
 	if err != nil {
 		return err
 	}

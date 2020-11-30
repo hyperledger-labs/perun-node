@@ -28,11 +28,11 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 )
 
-// Provider represents an idprovider that provides access to contacts stored in a yaml file.
+// Provider represents an ID provider that provides access to peer IDs stored locally in a file on the file system.
 //
-// It generates a cache of all contacts in the yaml file during initialization. Read, Write and Delete
-// operations act only on the cached list of contacts and do not update the yaml file.
-// The changes in cache can be updated to the yaml file by explicitly calling UpdateStorage method.
+// It generates a cache of all peer IDs in the ID provider file during initialization. Read, Write and Delete
+// operations act only on the cached list of peer IDs and do not update the ID provider file.
+// The changes in cache can be updated to the ID provider file by explicitly calling UpdateStorage method.
 //
 // It also stores an instance of wallet backend that will be used or decoding address strings.
 type Provider struct {
@@ -41,14 +41,14 @@ type Provider struct {
 	idProviderFilePath string
 }
 
-// New returns an instance of idprovider to access the contacts in the given yaml file.
+// NewIDprovider returns an instance of ID provider to access the peer IDs in the given ID provider file.
 //
-// All the contacts are cached in memory during initialization and Read, Write, Delete operations
-// affect only the cache. The changes are updated to the yaml file only when UpdateStorage method
-// is explicitly called. There is no mechanism to reload the cache if the yaml file is updated.
+// All the peer IDs are cached in memory during initialization and Read, Write, Delete operations
+// affect only the cache. The changes are updated to the ID provider file only when UpdateStorage method
+// is explicitly called. There is no mechanism to reload the cache if the ID provider file is updated.
 //
 // Backend is used for decoding the address strings during initialization.
-func New(filePath string, backend perun.WalletBackend) (*Provider, error) {
+func NewIDprovider(filePath string, backend perun.WalletBackend) (*Provider, error) {
 	f, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (c *Provider) UpdateStorage() error {
 
 	f, err := os.Create(c.idProviderFilePath)
 	if err != nil {
-		return errors.Wrap(err, "opening idprovider file for writing")
+		return errors.Wrap(err, "opening ID provider file for writing")
 	}
 	defer func() {
 		if fCloseErr := f.Close(); fCloseErr != nil {

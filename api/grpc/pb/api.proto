@@ -63,8 +63,8 @@ service Payment_API{
     rpc Time (TimeReq) returns (TimeResp) {}
     rpc Help (HelpReq) returns (HelpResp) {}
 
-    rpc AddContact (AddContactReq) returns (AddContactResp) {}
-    rpc GetContact (GetContactReq) returns (GetContactResp) {}
+    rpc AddPeerID (AddPeerIDReq) returns (AddPeerIDResp) {}
+    rpc GetPeerID (GetPeerIDReq) returns (GetPeerIDResp) {}
     rpc OpenPayCh (OpenPayChReq) returns (OpenPayChResp) {}
     rpc GetPayChsInfo (GetPayChsInfoReq) returns (GetPayChsInfoResp) {}
     rpc SubPayChProposals (SubPayChProposalsReq) returns (stream SubPayChProposalsResp) {}
@@ -120,12 +120,12 @@ message HelpResp {
     repeated string apis = 1;
 }
 
-message AddContactReq {
+message AddPeerIDReq {
     string sessionID=1;
     Peer peer=2;
 }
 
-message AddContactResp {
+message AddPeerIDResp {
     oneof response {
         MsgSuccess msgSuccess = 1;
         MsgError error = 2;
@@ -135,12 +135,12 @@ message AddContactResp {
     }
 }
 
-message GetContactReq {
+message GetPeerIDReq {
     string sessionID=1;
     string alias = 2;
 }
 
-message  GetContactResp {
+message  GetPeerIDResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
         MsgError error = 2;

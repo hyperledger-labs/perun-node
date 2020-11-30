@@ -43,7 +43,7 @@ payment channels.
 the off-chain network.
 3. Key management: For managing the cryptographic keys of the user.
 4. User session: For allowing multiple users to use a single node, each with
-a dedicated key manager and idprovider.
+a dedicated key manager and ID provider.
 5. User API interface: For the user to interact with the perun-node.
 
 The current version provides the following features:

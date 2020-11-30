@@ -40,7 +40,7 @@ import (
 )
 
 // walletBackend for initializing user wallets and parsing off-chain addresses
-// in incoming idProvider. A package level unexported variable is used so that a
+// in incoming peer IDs. A package level unexported variable is used so that a
 // test wallet backend can be set using a function defined in export_test.go.
 // Because real backend have large unlocking times and hence tests take very long.
 var walletBackend perun.WalletBackend
@@ -154,7 +154,7 @@ func initIDProvider(idProviderType, idProviderURL string, wb perun.WalletBackend
 	if idProviderType != "yaml" {
 		return nil, perun.ErrUnsupportedIDProviderType
 	}
-	idProvider, err := local.New(idProviderURL, wb)
+	idProvider, err := local.NewIDprovider(idProviderURL, wb)
 	if err != nil {
 		return nil, err
 	}
@@ -210,8 +210,8 @@ func (s *session) handleRestoredCh(pch *pclient.Channel) {
 	s.Debugf("restored channel from persistence: %v", ch.getChInfo())
 }
 
-func (s *session) AddContact(peer perun.Peer) error {
-	s.Debugf("Received request: session.AddContact. Params %+v", peer)
+func (s *session) AddPeerID(peer perun.Peer) error {
+	s.Debugf("Received request: session.AddPeerID. Params %+v", peer)
 	s.Lock()
 	defer s.Unlock()
 
@@ -226,8 +226,8 @@ func (s *session) AddContact(peer perun.Peer) error {
 	return perun.GetAPIError(err)
 }
 
-func (s *session) GetContact(alias string) (perun.Peer, error) {
-	s.Debugf("Received request: session.GetContact. Params %+v", alias)
+func (s *session) GetPeerID(alias string) (perun.Peer, error) {
+	s.Debugf("Received request: session.GetPeerID. Params %+v", alias)
 	s.Lock()
 	defer s.Unlock()
 
@@ -313,9 +313,9 @@ func sanitizeBalInfo(balInfo perun.BalInfo) {
 	}
 }
 
-// retrieveParts retrieves the peers from corresponding to the aliases from the idprovider.
+// retrieveParts retrieves the peers from corresponding to the aliases from the ID provider.
 // The order of entries for parts list will be same as that of aliases. i.e aliases[i] = parts[i].Alias.
-func retrieveParts(aliases []string, idProvider perun.IDProviderReader) ([]perun.Peer, error) {
+func retrieveParts(aliases []string, idProvider perun.PeerIDReader) ([]perun.Peer, error) {
 	knownParts := make(map[string]perun.Peer, len(aliases))
 	parts := make([]perun.Peer, len(aliases))
 	missingParts := make([]string, 0, len(aliases))
@@ -338,7 +338,7 @@ func retrieveParts(aliases []string, idProvider perun.IDProviderReader) ([]perun
 	}
 
 	if len(missingParts) != 0 {
-		return nil, errors.New(fmt.Sprintf("No peers found in idProvider for the following alias(es): %v", knownParts))
+		return nil, errors.New(fmt.Sprintf("No peer IDs found in ID Provider for the following alias(es): %v", knownParts))
 	}
 	if len(repeatedParts) != 0 {
 		return nil, errors.New(fmt.Sprintf("Repeated entries in aliases: %v", knownParts))
@@ -416,7 +416,7 @@ func (s *session) HandleProposal(chProposal pclient.ChannelProposal, responder *
 		if !ok {
 			s.Info("Received channel proposal from unknonwn peer", chProposal.Proposal().PeerAddrs[i].String())
 			// nolint: errcheck, gosec		// It is sufficient to just log this error.
-			s.rejectChProposal(context.Background(), responder, "peer not found in session idProvider")
+			s.rejectChProposal(context.Background(), responder, "peer not found in session ID Provider")
 			expiry = 0
 			break
 		}

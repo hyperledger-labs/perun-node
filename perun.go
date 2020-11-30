@@ -51,16 +51,16 @@ type Peer struct {
 // It will be used when translating addresses in incoming messages / proposals to aliases.
 const OwnAlias = "self"
 
-// IDProviderReader represents a read only cached list of contacts.
-type IDProviderReader interface {
+// PeerIDReader represents a read only cached list of peer IDs.
+type PeerIDReader interface {
 	ReadByAlias(alias string) (p Peer, contains bool)
 	ReadByOffChainAddr(offChainAddr pwire.Address) (p Peer, contains bool)
 }
 
-// IDProvider represents a cached list of contacts backed by a storage. Read, Write and Delete methods act on the
+// IDProvider represents a cached list of peer IDs backed by a storage. Read, Write and Delete methods act on the
 // cache. The state of cached list can be written to the storage by using the UpdateStorage method.
 type IDProvider interface {
-	IDProviderReader
+	PeerIDReader
 	Write(alias string, p Peer) error
 	Delete(alias string) error
 	UpdateStorage() error
@@ -114,7 +114,7 @@ type User struct {
 	PartAddrs []pwallet.Address
 }
 
-// Session provides a context for the user to interact with a node. It manages user data (such as IDs, contacts),
+// Session provides a context for the user to interact with a node. It manages user data (such as IDs, peer IDs),
 // and channel client.
 //
 // Once established, a user can establish and transact on state channels. All the channels within a session will use
@@ -204,14 +204,14 @@ type NodeConfig struct {
 
 	// Hard coded values. See cmd/perunnode/run.go.
 	CommTypes            []string // Communication protocols supported by the node for off-chain communication.
-	IDProviderTypes      []string // IDProvider backends supported by the node.
+	IDProviderTypes      []string // ID Provider types supported by the node.
 	CurrencyInterpreters []string // Currencies Interpreters supported by the node.
 
 }
 
 // NodeAPI represents the APIs that can be accessed in the context of a perun node.
 // Multiple sessions can be opened in a single node. Each instance will have a dedicated
-// keystore and idprovider.
+// keystore and ID provider.
 type NodeAPI interface {
 	Time() int64
 	GetConfig() NodeConfig
@@ -230,8 +230,8 @@ type NodeAPI interface {
 // open channels and accept channel proposals.
 type SessionAPI interface {
 	ID() string
-	AddContact(Peer) error
-	GetContact(alias string) (Peer, error)
+	AddPeerID(Peer) error
+	GetPeerID(alias string) (Peer, error)
 	OpenCh(context.Context, BalInfo, App, uint64) (ChInfo, error)
 	GetChsInfo() []ChInfo
 	SubChProposals(ChProposalNotifier) error

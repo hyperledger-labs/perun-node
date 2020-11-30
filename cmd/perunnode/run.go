@@ -75,7 +75,7 @@ var (
 	// It can be moved to config file or flags at the point when the user will
 	// be able to choose (when starting the node) which ones to load or support.
 	supportedCommTypes             = []string{"tcp"}
-	supportedIDProviderTypes       = []string{"yaml"}
+	supportedIDProviderTypes       = []string{"local"}
 	supportedCurrencyInterpretters = []string{"ETH"}
 )
 

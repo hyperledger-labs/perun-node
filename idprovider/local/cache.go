@@ -25,7 +25,7 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 )
 
-// idProviderCache represents a cached list of contacts indexed by both alias and off-chain address.
+// idProviderCache represents a cached list of peer IDs indexed by both alias and off-chain address.
 // The methods defined over it are safe for concurrent access.
 type idProviderCache struct {
 	mutex         sync.RWMutex

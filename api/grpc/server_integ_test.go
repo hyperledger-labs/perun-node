@@ -53,7 +53,7 @@ var (
 		Adjudicator:          "0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63",
 		Asset:                "0x5992089d61cE79B6CF90506F70DD42B8E42FB21d",
 		CommTypes:            []string{"tcp"},
-		IDProviderTypes:      []string{"yaml"},
+		IDProviderTypes:      []string{"local"},
 		CurrencyInterpreters: []string{"ETH"},
 
 		ChainConnTimeout: 30 * time.Second,
@@ -143,18 +143,18 @@ func Test_Integ_Role(t *testing.T) {
 	bobSessionID = OpenSession(t, bobCfgFile)
 	t.Logf("%s session id is %s", bobAlias, bobSessionID)
 
-	t.Run("GetContact", func(t *testing.T) {
-		// Get own contact of alice and bob.
-		alicePeer = GetContact(t, aliceSessionID, perun.OwnAlias)
+	t.Run("GetPeerID", func(t *testing.T) {
+		// Get own peer ID of alice and bob.
+		alicePeer = GetPeerID(t, aliceSessionID, perun.OwnAlias)
 		alicePeer.Alias = aliceAlias
-		bobPeer = GetContact(t, bobSessionID, perun.OwnAlias)
+		bobPeer = GetPeerID(t, bobSessionID, perun.OwnAlias)
 		bobPeer.Alias = bobAlias
 	})
 
-	t.Run("AddContact", func(t *testing.T) {
-		// Add bob contact to alice and vice versa.
-		AddContact(t, aliceSessionID, bobPeer)
-		AddContact(t, bobSessionID, alicePeer)
+	t.Run("AddPeerID", func(t *testing.T) {
+		// Add bob's peer ID to alice and vice versa.
+		AddPeerID(t, aliceSessionID, bobPeer)
+		AddPeerID(t, bobSessionID, alicePeer)
 	})
 
 	t.Run("OpenCh_Sub_Unsub_Respond_Accept", func(t *testing.T) {
@@ -330,27 +330,27 @@ func CloseSession(t *testing.T, sessionID string, force bool, wantErr bool) []*p
 	return msg.MsgSuccess.OpenPayChsInfo
 }
 
-func GetContact(t *testing.T, sessionID string, alias string) *pb.Peer {
-	req := pb.GetContactReq{
+func GetPeerID(t *testing.T, sessionID string, alias string) *pb.Peer {
+	req := pb.GetPeerIDReq{
 		SessionID: sessionID,
 		Alias:     alias,
 	}
-	resp, err := client.GetContact(ctx, &req)
-	require.NoErrorf(t, err, "GetContact")
-	msg, ok := resp.Response.(*pb.GetContactResp_MsgSuccess_)
-	require.True(t, ok, "GetContact returned error response")
+	resp, err := client.GetPeerID(ctx, &req)
+	require.NoErrorf(t, err, "GetPeerID")
+	msg, ok := resp.Response.(*pb.GetPeerIDResp_MsgSuccess_)
+	require.True(t, ok, "GetPeerID returned error response")
 	return msg.MsgSuccess.Peer
 }
 
-func AddContact(t *testing.T, sessionID string, peer *pb.Peer) {
-	req := pb.AddContactReq{
+func AddPeerID(t *testing.T, sessionID string, peer *pb.Peer) {
+	req := pb.AddPeerIDReq{
 		SessionID: sessionID,
 		Peer:      peer,
 	}
-	resp, err := client.AddContact(ctx, &req)
-	require.NoErrorf(t, err, "AddContact")
-	_, ok := resp.Response.(*pb.AddContactResp_MsgSuccess_)
-	require.True(t, ok, "AddContact returned error response")
+	resp, err := client.AddPeerID(ctx, &req)
+	require.NoErrorf(t, err, "AddPeerID")
+	_, ok := resp.Response.(*pb.AddPeerIDResp_MsgSuccess_)
+	require.True(t, ok, "AddPeerID returned error response")
 }
 
 func OpenPayCh(t *testing.T, sessionID string, parts, bal []string, wantErr bool) string {

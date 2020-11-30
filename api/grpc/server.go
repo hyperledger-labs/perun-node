@@ -78,7 +78,7 @@ func (a *payChAPIServer) GetConfig(context.Context, *pb.GetConfigReq) (*pb.GetCo
 		AdjudicatorAddress: cfg.Adjudicator,
 		AssetAddress:       cfg.Asset,
 		CommTypes:          cfg.CommTypes,
-		IDProviderTypes:    cfg.IDProviderTypes,
+		IdProviderTypes:    cfg.IDProviderTypes,
 	}, nil
 }
 
@@ -127,11 +127,11 @@ func (a *payChAPIServer) OpenSession(ctx context.Context, req *pb.OpenSessionReq
 	}, nil
 }
 
-// AddContact wraps session.AddContact.
-func (a *payChAPIServer) AddContact(ctx context.Context, req *pb.AddContactReq) (*pb.AddContactResp, error) {
-	errResponse := func(err error) *pb.AddContactResp {
-		return &pb.AddContactResp{
-			Response: &pb.AddContactResp_Error{
+// AddPeerID wraps session.AddPeerID.
+func (a *payChAPIServer) AddPeerID(ctx context.Context, req *pb.AddPeerIDReq) (*pb.AddPeerIDResp, error) {
+	errResponse := func(err error) *pb.AddPeerIDResp {
+		return &pb.AddPeerIDResp{
+			Response: &pb.AddPeerIDResp_Error{
 				Error: &pb.MsgError{
 					Error: err.Error(),
 				},
@@ -143,7 +143,7 @@ func (a *payChAPIServer) AddContact(ctx context.Context, req *pb.AddContactReq) 
 	if err != nil {
 		return errResponse(err), nil
 	}
-	err = sess.AddContact(perun.Peer{
+	err = sess.AddPeerID(perun.Peer{
 		Alias:              req.Peer.Alias,
 		OffChainAddrString: req.Peer.OffChainAddress,
 		CommAddr:           req.Peer.CommAddress,
@@ -153,20 +153,20 @@ func (a *payChAPIServer) AddContact(ctx context.Context, req *pb.AddContactReq) 
 		return errResponse(err), nil
 	}
 
-	return &pb.AddContactResp{
-		Response: &pb.AddContactResp_MsgSuccess_{
-			MsgSuccess: &pb.AddContactResp_MsgSuccess{
+	return &pb.AddPeerIDResp{
+		Response: &pb.AddPeerIDResp_MsgSuccess_{
+			MsgSuccess: &pb.AddPeerIDResp_MsgSuccess{
 				Success: true,
 			},
 		},
 	}, nil
 }
 
-// GetContact wraps session.GetContact.
-func (a *payChAPIServer) GetContact(ctx context.Context, req *pb.GetContactReq) (*pb.GetContactResp, error) {
-	errResponse := func(err error) *pb.GetContactResp {
-		return &pb.GetContactResp{
-			Response: &pb.GetContactResp_Error{
+// GetPeerID wraps session.GetPeerID.
+func (a *payChAPIServer) GetPeerID(ctx context.Context, req *pb.GetPeerIDReq) (*pb.GetPeerIDResp, error) {
+	errResponse := func(err error) *pb.GetPeerIDResp {
+		return &pb.GetPeerIDResp{
+			Response: &pb.GetPeerIDResp_Error{
 				Error: &pb.MsgError{
 					Error: err.Error(),
 				},
@@ -178,14 +178,14 @@ func (a *payChAPIServer) GetContact(ctx context.Context, req *pb.GetContactReq) 
 	if err != nil {
 		return errResponse(err), nil
 	}
-	peer, err := sess.GetContact(req.Alias)
+	peer, err := sess.GetPeerID(req.Alias)
 	if err != nil {
 		return errResponse(err), nil
 	}
 
-	return &pb.GetContactResp{
-		Response: &pb.GetContactResp_MsgSuccess_{
-			MsgSuccess: &pb.GetContactResp_MsgSuccess{
+	return &pb.GetPeerIDResp{
+		Response: &pb.GetPeerIDResp_MsgSuccess_{
+			MsgSuccess: &pb.GetPeerIDResp_MsgSuccess{
 				Peer: &pb.Peer{
 					Alias:           peer.Alias,
 					OffChainAddress: peer.OffChainAddrString,

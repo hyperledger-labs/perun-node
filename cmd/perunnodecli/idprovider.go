@@ -26,35 +26,35 @@ import (
 )
 
 var (
-	contactCmdUsage = "Usage: contact [sub-command]"
-	contactCmd      = &ishell.Cmd{
-		Name: "contact",
-		Help: "Use this command to add/get idProvider." + contactCmdUsage,
-		Func: contactFn,
+	peerIDCmdUsage = "Usage: peer-id [sub-command]"
+	peerIDCmd      = &ishell.Cmd{
+		Name: "peer-id",
+		Help: "Use this command to add/get peer ID." + peerIDCmdUsage,
+		Func: peerIDFn,
 	}
 
-	contactAddCmdUsage = "Usage: contact add [peer alias] [off-chain address] [comm address] [comm type]"
-	contactAddCmd      = &ishell.Cmd{
+	peerIDAddCmdUsage = "Usage: peer-id add [peer alias] [off-chain address] [comm address] [comm type]"
+	peerIDAddCmd      = &ishell.Cmd{
 		Name: "add",
-		Help: "Add a peer to idProvider." + contactAddCmdUsage,
-		Func: contactAddFn,
+		Help: "Add a peer ID to the ID provider." + peerIDAddCmdUsage,
+		Func: peerIDAddFn,
 	}
 
-	contactGetCmdUsage = "Usage: contact get [peer alias]"
-	contactGetCmd      = &ishell.Cmd{
+	peerIDGetCmdUsage = "Usage: peer-id get [peer alias]"
+	peerIDGetCmd      = &ishell.Cmd{
 		Name: "get",
-		Help: "Get peer info from idProvider." + contactGetCmdUsage,
-		Func: contactGetFn,
+		Help: "Get peer ID corresponding to the given Alias from the ID provider." + peerIDGetCmdUsage,
+		Func: peerIDGetFn,
 	}
 
 	// List of known aliases that will be used for autocompletion. Entries will be
-	// added when "contact get" or "contact add" commands return without error.
+	// added when "peer-id get" or "peer-id add" commands return without error.
 	knownAliasesList = []string{}
 )
 
 func init() {
-	contactCmd.AddCmd(contactAddCmd)
-	contactCmd.AddCmd(contactGetCmd)
+	peerIDCmd.AddCmd(peerIDAddCmd)
+	peerIDCmd.AddCmd(peerIDGetCmd)
 }
 
 // Add alias to known aliases list for autocompletion.
@@ -72,7 +72,7 @@ func addPeerAlias(alias string) {
 	}
 }
 
-func contactFn(c *ishell.Context) {
+func peerIDFn(c *ishell.Context) {
 	if client == nil {
 		printNodeNotConnectedError(c)
 		return
@@ -80,20 +80,20 @@ func contactFn(c *ishell.Context) {
 	c.Println(c.Cmd.HelpText())
 }
 
-func contactAddFn(c *ishell.Context) {
+func peerIDAddFn(c *ishell.Context) {
 	if client == nil {
 		printNodeNotConnectedError(c)
 		return
 	}
 
-	// Usage: contact add [peer alias] [off-chain address] [comm address] [comm type]",
+	// Usage: peer-id add [peer alias] [off-chain address] [comm address] [comm type]",
 	countReqArgs := 4
 	if len(c.Args) != countReqArgs {
 		printArgCountError(c, countReqArgs)
 		return
 	}
 
-	req := pb.AddContactReq{
+	req := pb.AddPeerIDReq{
 		SessionID: sessionID,
 		Peer: &pb.Peer{
 
@@ -103,48 +103,48 @@ func contactAddFn(c *ishell.Context) {
 			CommType:        c.Args[3],
 		},
 	}
-	resp, err := client.AddContact(context.Background(), &req)
+	resp, err := client.AddPeerID(context.Background(), &req)
 	if err != nil {
 		printCommandSendingError(c, err)
 		return
 	}
-	msgErr, ok := resp.Response.(*pb.AddContactResp_Error)
+	msgErr, ok := resp.Response.(*pb.AddPeerIDResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error adding contact : %v", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error adding peer ID : %v", msgErr.Error.Error))
 		return
 	}
 	addPeerAlias(c.Args[0])
-	c.Printf("%s\n\n", greenf("Contact added successfully."))
+	c.Printf("%s\n\n", greenf("Peer ID added successfully."))
 }
 
-func contactGetFn(c *ishell.Context) {
+func peerIDGetFn(c *ishell.Context) {
 	if client == nil {
 		printNodeNotConnectedError(c)
 		return
 	}
 
-	// Usage: contact get [peer alias]
+	// Usage: peer-id get [peer alias]
 	countReqArgs := 1
 	if len(c.Args) != countReqArgs {
 		printArgCountError(c, countReqArgs)
 		return
 	}
 
-	req := pb.GetContactReq{
+	req := pb.GetPeerIDReq{
 		SessionID: sessionID,
 		Alias:     c.Args[0],
 	}
-	resp, err := client.GetContact(context.Background(), &req)
+	resp, err := client.GetPeerID(context.Background(), &req)
 	if err != nil {
 		printCommandSendingError(c, err)
 		return
 	}
-	msgErr, ok := resp.Response.(*pb.GetContactResp_Error)
+	msgErr, ok := resp.Response.(*pb.GetPeerIDResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error adding contact : %v", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error adding peer ID : %v", msgErr.Error.Error))
 		return
 	}
-	msg := resp.Response.(*pb.GetContactResp_MsgSuccess_)
+	msg := resp.Response.(*pb.GetPeerIDResp_MsgSuccess_)
 	addPeerAlias(c.Args[0])
 	c.Printf("%s\n\n", greenf("%s", prettifyPeer(msg.MsgSuccess.Peer)))
 }

@@ -14,10 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package local implements idprovider to access contacts stored
-// in a yaml file.
+// Package local implements idprovider to access peer ID stored
+// in an ID provider file.
 //
-// The complete list of contacts are loaded into an in-memory cache during
+// The complete list of peer IDs are loaded into an in-memory cache during
 // initialization. The entries in the cache are indexed by both alias and
 // off-chain address of the peer and can be using either of these as reference.
 //

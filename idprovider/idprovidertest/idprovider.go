@@ -28,10 +28,10 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 )
 
-// NewYAMLFileT is the test friendly version of NewYAMLFile.
+// NewIDProviderT is the test friendly version of NewIDProvider.
 // It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
-func NewYAMLFileT(t *testing.T, peers ...perun.Peer) string {
-	idProviderFile, err := NewYAMLFile(peers...)
+func NewIDProviderT(t *testing.T, peers ...perun.Peer) string {
+	idProviderFile, err := NewIDProvider(peers...)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		if err = os.Remove(idProviderFile); err != nil {
@@ -41,12 +41,12 @@ func NewYAMLFileT(t *testing.T, peers ...perun.Peer) string {
 	return idProviderFile
 }
 
-// NewYAMLFile creates a temporary file containing the details of given peers and
+// NewIDProvider creates a temporary file containing the details of given peers and
 // returns the path to it. It also registers a cleanup function on the passed test handler.
-func NewYAMLFile(peers ...perun.Peer) (string, error) {
+func NewIDProvider(peers ...perun.Peer) (string, error) {
 	tempFile, err := ioutil.TempFile("", "")
 	if err != nil {
-		return "", errors.Wrap(err, "creating temp file for yaml idProvider")
+		return "", errors.Wrap(err, "creating temp file for local idProvider")
 	}
 	// if err = os.Remove(tempFile.Name()); err != nil {
 	idProvider := make(map[string]perun.Peer, len(peers))

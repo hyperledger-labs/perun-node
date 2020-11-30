@@ -64,7 +64,7 @@ func main() {
 	sh.AddCmd(chainCmd)
 	sh.AddCmd(nodeCmd)
 	sh.AddCmd(sessionCmd)
-	sh.AddCmd(contactCmd)
+	sh.AddCmd(peerIDCmd)
 	sh.AddCmd(channelCmd)
 	sh.AddCmd(paymentCmd)
 
