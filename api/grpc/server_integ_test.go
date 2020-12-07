@@ -132,7 +132,7 @@ func Test_Integ_Role(t *testing.T) {
 	wg := &sync.WaitGroup{}
 
 	// Run OpenSession for Alice, Bob in top level test, because cleaup functions
-	// for removing the keystore directory, idProvider files are registered to this
+	// for removing the keystore directory, ID Provider files are registered to this
 	// testing.T.
 
 	// Alice Open Session.

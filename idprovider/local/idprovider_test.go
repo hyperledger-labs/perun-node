@@ -240,7 +240,7 @@ func Test_YAML_UpdateStorage(t *testing.T) {
 	t.Run("happy_empty_file", func(t *testing.T) {
 		// Setup: NewYAML with zero entries
 		emptyFile := idprovidertest.NewIDProviderT(t)
-		fileWithTwoPeers := idprovidertest.NewIDProviderT(t, peer1, peer2)
+		fileWithTwoPeerIDs := idprovidertest.NewIDProviderT(t, peer1, peer2)
 		c, err := local.NewIDprovider(emptyFile, walletBackend)
 		assert.NoError(t, err)
 
@@ -250,19 +250,19 @@ func Test_YAML_UpdateStorage(t *testing.T) {
 
 		// Test
 		assert.NoError(t, c.UpdateStorage())
-		assert.True(t, compareFileContent(t, emptyFile, fileWithTwoPeers))
+		assert.True(t, compareFileContent(t, emptyFile, fileWithTwoPeerIDs))
 	})
 
 	t.Run("happy_non_empty_file", func(t *testing.T) {
-		fileWithTwoPeers := idprovidertest.NewIDProviderT(t, peer1, peer2)
-		fileWithThreePeers := idprovidertest.NewIDProviderT(t, peer1, peer2, peer3)
-		c, err := local.NewIDprovider(fileWithTwoPeers, walletBackend)
+		fileWithTwoPeerIDs := idprovidertest.NewIDProviderT(t, peer1, peer2)
+		fileWithThreePeerIDs := idprovidertest.NewIDProviderT(t, peer1, peer2, peer3)
+		c, err := local.NewIDprovider(fileWithTwoPeerIDs, walletBackend)
 		assert.NoError(t, err)
 		assert.NoError(t, c.Write(peer3.Alias, peer3))
 
 		// Test
 		assert.NoError(t, c.UpdateStorage())
-		assert.True(t, compareFileContent(t, fileWithTwoPeers, fileWithThreePeers))
+		assert.True(t, compareFileContent(t, fileWithTwoPeerIDs, fileWithThreePeerIDs))
 	})
 
 	t.Run("file_permission_error", func(t *testing.T) {
