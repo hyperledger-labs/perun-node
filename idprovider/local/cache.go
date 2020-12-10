@@ -28,66 +28,66 @@ import (
 // idProviderCache represents a cached list of peer IDs indexed by both alias and off-chain address.
 // The methods defined over it are safe for concurrent access.
 type idProviderCache struct {
-	mutex         sync.RWMutex
-	walletBackend perun.WalletBackend
-	peersByAlias  map[string]perun.Peer // Stores a list of peers indexed by Alias.
-	aliasByAddr   map[string]string     // Stores a list of alias, indexed by off-chain address string.
+	mutex          sync.RWMutex
+	walletBackend  perun.WalletBackend
+	peerIDsByAlias map[string]perun.PeerID // Stores a list of peer IDs indexed by Alias.
+	aliasByAddr    map[string]string       // Stores a list of alias, indexed by off-chain address string.
 }
 
-// newIDProviderCache returns a ID Provider cache created from the given map. It indexes the Peers by both alias and
+// newIDProviderCache returns a ID Provider cache created from the given map. It indexes the Peer IDs by both alias and
 // off-chain address. The off-chain address strings are decoded using the passed backend.
-func newIDProviderCache(peersByAlias map[string]perun.Peer, backend perun.WalletBackend) (*idProviderCache, error) {
+func newIDProviderCache(peerIDsByAlias map[string]perun.PeerID, backend perun.WalletBackend) (*idProviderCache, error) {
 	var err error
 	aliasByAddr := make(map[string]string)
-	for alias, peer := range peersByAlias {
+	for alias, peer := range peerIDsByAlias {
 		if peer.OffChainAddr, err = backend.ParseAddr(peer.OffChainAddrString); err != nil {
 			return nil, err
 		}
-		peersByAlias[alias] = peer
+		peerIDsByAlias[alias] = peer
 		aliasByAddr[peer.OffChainAddrString] = peer.Alias
 	}
 	return &idProviderCache{
-		peersByAlias:  peersByAlias,
-		aliasByAddr:   aliasByAddr,
-		walletBackend: backend,
+		peerIDsByAlias: peerIDsByAlias,
+		aliasByAddr:    aliasByAddr,
+		walletBackend:  backend,
 	}, nil
 }
 
-// ReadByAlias returns the peer corresponding to given alias from the cache.
-func (c *idProviderCache) ReadByAlias(alias string) (_ perun.Peer, isPresent bool) {
+// ReadByAlias returns the peer ID corresponding to given alias from the cache.
+func (c *idProviderCache) ReadByAlias(alias string) (_ perun.PeerID, isPresent bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.readByAlias(alias)
 }
 
-func (c *idProviderCache) readByAlias(alias string) (_ perun.Peer, isPresent bool) {
-	var p perun.Peer
-	p, isPresent = c.peersByAlias[alias]
+func (c *idProviderCache) readByAlias(alias string) (_ perun.PeerID, isPresent bool) {
+	var p perun.PeerID
+	p, isPresent = c.peerIDsByAlias[alias]
 	return p, isPresent
 }
 
-// ReadByOffChainAddr returns the peer corresponding to given off-chain address from the cache.
-func (c *idProviderCache) ReadByOffChainAddr(offChainAddr pwire.Address) (_ perun.Peer, isPresent bool) {
+// ReadByOffChainAddr returns the peer ID corresponding to given off-chain address from the cache.
+func (c *idProviderCache) ReadByOffChainAddr(offChainAddr pwire.Address) (_ perun.PeerID, isPresent bool) {
 	if offChainAddr == nil {
-		return perun.Peer{}, false
+		return perun.PeerID{}, false
 	}
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	var alias string
 	alias, isPresent = c.aliasByAddr[offChainAddr.String()]
 	if !isPresent {
-		return perun.Peer{}, false
+		return perun.PeerID{}, false
 	}
 	return c.readByAlias(alias)
 }
 
-// Write adds the peer to ID Provider cache. Returns an error if the alias is already used by same or different peer or,
-// if the off-chain address string of the peer cannot be parsed using the wallet backend of this ID Provider.
-func (c *idProviderCache) Write(alias string, p perun.Peer) error {
+// Write adds the peer ID to ID Provider cache. Returns an error if the alias is already used by same or different
+// peer ID or if the off-chain address of the peer ID cannot be parsed using the wallet backend of this ID Provider.
+func (c *idProviderCache) Write(alias string, p perun.PeerID) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	if oldPeer, ok := c.peersByAlias[alias]; ok {
+	if oldPeer, ok := c.peerIDsByAlias[alias]; ok {
 		if PeerEqual(oldPeer, p) {
 			return errors.New("peer already present in ID Provider")
 		}
@@ -99,7 +99,7 @@ func (c *idProviderCache) Write(alias string, p perun.Peer) error {
 	if err != nil {
 		return err
 	}
-	c.peersByAlias[alias] = p
+	c.peerIDsByAlias[alias] = p
 	c.aliasByAddr[p.OffChainAddrString] = alias
 	return nil
 }
@@ -109,9 +109,9 @@ func (c *idProviderCache) Write(alias string, p perun.Peer) error {
 func (c *idProviderCache) Delete(alias string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	if _, ok := c.peersByAlias[alias]; !ok {
+	if _, ok := c.peerIDsByAlias[alias]; !ok {
 		return errors.New("peer not found in ID Provider")
 	}
-	delete(c.peersByAlias, alias)
+	delete(c.peerIDsByAlias, alias)
 	return nil
 }

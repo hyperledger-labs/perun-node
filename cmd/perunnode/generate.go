@@ -234,8 +234,8 @@ func makeDirs(dirNames ...string) error {
 	return nil
 }
 
-func peer(userCfg session.UserConfig) perun.Peer {
-	return perun.Peer{
+func peer(userCfg session.UserConfig) perun.PeerID {
+	return perun.PeerID{
 		Alias:              userCfg.Alias,
 		OffChainAddrString: userCfg.OffChainAddr,
 		CommAddr:           userCfg.CommAddr,

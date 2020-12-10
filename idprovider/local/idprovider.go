@@ -28,17 +28,17 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 )
 
-// Provider represents an ID provider that provides access to peer IDs stored locally in a file on the file system.
+// IDProvider represents an ID provider that provides access to peer IDs stored locally in a file on the file system.
 //
 // It generates a cache of all peer IDs in the ID provider file during initialization. Read, Write and Delete
 // operations act only on the cached list of peer IDs and do not update the ID provider file.
 // The changes in cache can be updated to the ID provider file by explicitly calling UpdateStorage method.
 //
 // It also stores an instance of wallet backend that will be used or decoding address strings.
-type Provider struct {
+type IDProvider struct {
 	*idProviderCache
 
-	idProviderFilePath string
+	localFilePath string
 }
 
 // NewIDprovider returns an instance of ID provider to access the peer IDs in the given ID provider file.
@@ -48,14 +48,14 @@ type Provider struct {
 // is explicitly called. There is no mechanism to reload the cache if the ID provider file is updated.
 //
 // Backend is used for decoding the address strings during initialization.
-func NewIDprovider(filePath string, backend perun.WalletBackend) (*Provider, error) {
+func NewIDprovider(filePath string, backend perun.WalletBackend) (*IDProvider, error) {
 	f, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close() // nolint: errcheck, gosec  // safe to defer f.Close() for files opened in read mode.
 
-	cache := make(map[string]perun.Peer)
+	cache := make(map[string]perun.PeerID)
 	decoder := yaml.NewDecoder(f)
 	if err = decoder.Decode(&cache); err != nil && err != io.EOF {
 		return nil, err
@@ -65,18 +65,18 @@ func NewIDprovider(filePath string, backend perun.WalletBackend) (*Provider, err
 	if err != nil {
 		return nil, err
 	}
-	return &Provider{
-		idProviderCache:    idProviderCache,
-		idProviderFilePath: filePath,
+	return &IDProvider{
+		idProviderCache: idProviderCache,
+		localFilePath:   filePath,
 	}, nil
 }
 
 // UpdateStorage writes the latest state of idprovider cache to the yaml file.
-func (c *Provider) UpdateStorage() error {
+func (c *IDProvider) UpdateStorage() error {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
-	f, err := os.Create(c.idProviderFilePath)
+	f, err := os.Create(c.localFilePath)
 	if err != nil {
 		return errors.Wrap(err, "opening ID provider file for writing")
 	}
@@ -87,7 +87,7 @@ func (c *Provider) UpdateStorage() error {
 	}()
 
 	encoder := yaml.NewEncoder(f)
-	if err = encoder.Encode(c.peersByAlias); err != nil {
+	if err = encoder.Encode(c.peerIDsByAlias); err != nil {
 		return errors.Wrap(err, "encoding data as yaml")
 	}
 	err = errors.Wrap(encoder.Close(), "closing encoder")

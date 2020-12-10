@@ -95,7 +95,7 @@ func peerIDAddFn(c *ishell.Context) {
 
 	req := pb.AddPeerIDReq{
 		SessionID: sessionID,
-		Peer: &pb.Peer{
+		PeerID: &pb.PeerID{
 
 			Alias:           c.Args[0],
 			OffChainAddress: c.Args[1],
@@ -146,10 +146,10 @@ func peerIDGetFn(c *ishell.Context) {
 	}
 	msg := resp.Response.(*pb.GetPeerIDResp_MsgSuccess_)
 	addPeerAlias(c.Args[0])
-	c.Printf("%s\n\n", greenf("%s", prettifyPeer(msg.MsgSuccess.Peer)))
+	c.Printf("%s\n\n", greenf("%s", prettifyPeer(msg.MsgSuccess.PeerID)))
 }
 
-func prettifyPeer(p *pb.Peer) string {
+func prettifyPeer(p *pb.PeerID) string {
 	return fmt.Sprintf("Alias: %s, Off-chain Addr: %s, Comm Addr: %s, Comm Type: %s",
 		p.Alias, p.OffChainAddress, p.CommAddress, p.CommType)
 }

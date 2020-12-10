@@ -71,7 +71,7 @@ func NewConfigFile(config interface{}) (string, error) {
 
 // NewConfigT is the test friendly version of NewConfig.
 // It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
-func NewConfigT(t *testing.T, rng *rand.Rand, peerIDs ...perun.Peer) session.Config {
+func NewConfigT(t *testing.T, rng *rand.Rand, peerIDs ...perun.PeerID) session.Config {
 	sessionCfg, err := NewConfig(rng, peerIDs...)
 	require.NoError(t, err)
 	t.Cleanup(func() {
@@ -96,7 +96,7 @@ func NewConfigT(t *testing.T, rng *rand.Rand, peerIDs ...perun.Peer) session.Con
 // This function returns a session config with user on-chain addresses that are funded on blockchain when
 // using a particular seed for prng. The first two consecutive calls to this function will return
 // funded accounts when using prng := rand.New(rand.NewSource(1729)).
-func NewConfig(rng *rand.Rand, peerIDs ...perun.Peer) (session.Config, error) {
+func NewConfig(rng *rand.Rand, peerIDs ...perun.PeerID) (session.Config, error) {
 	_, userCfg, err := newUserConfig(rng, 0)
 	if err != nil {
 		return session.Config{}, errors.WithMessage(err, "new user config")
@@ -106,7 +106,7 @@ func NewConfig(rng *rand.Rand, peerIDs ...perun.Peer) (session.Config, error) {
 	if err != nil {
 		return session.Config{}, err
 	}
-	localFile, err := idprovidertest.NewIDProvider(peerIDs...)
+	idProviderURL, err := idprovidertest.NewIDProvider(peerIDs...)
 	if err != nil {
 		return session.Config{}, err
 	}
@@ -123,7 +123,7 @@ func NewConfig(rng *rand.Rand, peerIDs ...perun.Peer) (session.Config, error) {
 		PeerReconnTimeout: 20 * time.Second,
 
 		IDProviderType: "yaml",
-		IDProviderURL:  localFile,
+		IDProviderURL:  idProviderURL,
 	}, nil
 }
 

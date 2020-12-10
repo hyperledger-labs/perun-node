@@ -103,7 +103,7 @@ func New(cfg Config) (*session, error) {
 		return nil, err
 	}
 
-	idProvider, err := initIDProvider(cfg.IDProviderType, cfg.IDProviderURL, walletBackend, user.Peer)
+	idProvider, err := initIDProvider(cfg.IDProviderType, cfg.IDProviderURL, walletBackend, user.PeerID)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func New(cfg Config) (*session, error) {
 	return sess, nil
 }
 
-func initIDProvider(idProviderType, idProviderURL string, wb perun.WalletBackend, own perun.Peer) (
+func initIDProvider(idProviderType, idProviderURL string, wb perun.WalletBackend, own perun.PeerID) (
 	perun.IDProvider, error) {
 	if idProviderType != "yaml" {
 		return nil, perun.ErrUnsupportedIDProviderType
@@ -190,11 +190,11 @@ func (s *session) handleRestoredCh(pch *pclient.Channel) {
 	if pch.Phase() != pchannel.Acting {
 		return
 	}
-	peers := pch.Peers()
-	parts := make([]perun.Peer, len(peers))
-	aliases := make([]string, len(peers))
+	peerIDs := pch.Peers()
+	parts := make([]perun.PeerID, len(peerIDs))
+	aliases := make([]string, len(peerIDs))
 	for i := range pch.Peers() {
-		p, ok := s.idProvider.ReadByOffChainAddr(peers[i])
+		p, ok := s.idProvider.ReadByOffChainAddr(peerIDs[i])
 		if !ok {
 			s.Info("Unknown peer address in a persisted channel, will not be restored", pch.Peers()[i].String())
 			return
@@ -210,8 +210,8 @@ func (s *session) handleRestoredCh(pch *pclient.Channel) {
 	s.Debugf("restored channel from persistence: %v", ch.getChInfo())
 }
 
-func (s *session) AddPeerID(peer perun.Peer) error {
-	s.Debugf("Received request: session.AddPeerID. Params %+v", peer)
+func (s *session) AddPeerID(peerID perun.PeerID) error {
+	s.Debugf("Received request: session.AddPeerID. Params %+v", peerID)
 	s.Lock()
 	defer s.Unlock()
 
@@ -219,28 +219,28 @@ func (s *session) AddPeerID(peer perun.Peer) error {
 		return perun.ErrSessionClosed
 	}
 
-	err := s.idProvider.Write(peer.Alias, peer)
+	err := s.idProvider.Write(peerID.Alias, peerID)
 	if err != nil {
 		s.Error(err)
 	}
 	return perun.GetAPIError(err)
 }
 
-func (s *session) GetPeerID(alias string) (perun.Peer, error) {
+func (s *session) GetPeerID(alias string) (perun.PeerID, error) {
 	s.Debugf("Received request: session.GetPeerID. Params %+v", alias)
 	s.Lock()
 	defer s.Unlock()
 
 	if !s.isOpen {
-		return perun.Peer{}, perun.ErrSessionClosed
+		return perun.PeerID{}, perun.ErrSessionClosed
 	}
 
-	peer, isPresent := s.idProvider.ReadByAlias(alias)
+	peerID, isPresent := s.idProvider.ReadByAlias(alias)
 	if !isPresent {
 		s.Error(perun.ErrUnknownAlias)
-		return perun.Peer{}, perun.ErrUnknownAlias
+		return perun.PeerID{}, perun.ErrUnknownAlias
 	}
-	return peer, nil
+	return peerID, nil
 }
 
 func (s *session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app perun.App, challengeDurSecs uint64) (
@@ -313,11 +313,11 @@ func sanitizeBalInfo(balInfo perun.BalInfo) {
 	}
 }
 
-// retrieveParts retrieves the peers from corresponding to the aliases from the ID provider.
+// retrieveParts retrieves the peer IDs corresponding to the aliases from the ID provider.
 // The order of entries for parts list will be same as that of aliases. i.e aliases[i] = parts[i].Alias.
-func retrieveParts(aliases []string, idProvider perun.PeerIDReader) ([]perun.Peer, error) {
-	knownParts := make(map[string]perun.Peer, len(aliases))
-	parts := make([]perun.Peer, len(aliases))
+func retrieveParts(aliases []string, idProvider perun.IDReader) ([]perun.PeerID, error) {
+	knownParts := make(map[string]perun.PeerID, len(aliases))
+	parts := make([]perun.PeerID, len(aliases))
 	missingParts := make([]string, 0, len(aliases))
 	repeatedParts := make([]string, 0, len(aliases))
 	foundOwnAlias := false
@@ -325,7 +325,7 @@ func retrieveParts(aliases []string, idProvider perun.PeerIDReader) ([]perun.Pee
 		if alias == perun.OwnAlias {
 			foundOwnAlias = true
 		}
-		peer, isPresent := idProvider.ReadByAlias(alias)
+		peerID, isPresent := idProvider.ReadByAlias(alias)
 		if !isPresent {
 			missingParts = append(missingParts, alias)
 			continue
@@ -333,8 +333,8 @@ func retrieveParts(aliases []string, idProvider perun.PeerIDReader) ([]perun.Pee
 		if _, isPresent := knownParts[alias]; isPresent {
 			repeatedParts = append(repeatedParts, alias)
 		}
-		knownParts[alias] = peer
-		parts[idx] = peer
+		knownParts[alias] = peerID
+		parts[idx] = peerID
 	}
 
 	if len(missingParts) != 0 {
@@ -351,7 +351,7 @@ func retrieveParts(aliases []string, idProvider perun.PeerIDReader) ([]perun.Pee
 }
 
 // registerParts will register the given parts to the passed registry.
-func registerParts(parts []perun.Peer, r perun.Registerer) {
+func registerParts(parts []perun.PeerID, r perun.Registerer) {
 	for idx := range parts {
 		if parts[idx].Alias != perun.OwnAlias { // Skip own alias.
 			r.Register(parts[idx].OffChainAddr, parts[idx].CommAddr)
@@ -359,8 +359,8 @@ func registerParts(parts []perun.Peer, r perun.Registerer) {
 	}
 }
 
-// makeOffChainAddrs returns the list of off-chain addresses corresponding to the given list of peers.
-func makeOffChainAddrs(parts []perun.Peer) []pwallet.Address {
+// makeOffChainAddrs returns the list of off-chain addresses corresponding to the given list of peer IDs.
+func makeOffChainAddrs(parts []perun.PeerID) []pwallet.Address {
 	addrs := make([]pwallet.Address, len(parts))
 	for i := range parts {
 		addrs[i] = parts[i].OffChainAddr
@@ -414,9 +414,9 @@ func (s *session) HandleProposal(chProposal pclient.ChannelProposal, responder *
 	for i := range chProposal.Proposal().PeerAddrs {
 		p, ok := s.idProvider.ReadByOffChainAddr(chProposal.Proposal().PeerAddrs[i])
 		if !ok {
-			s.Info("Received channel proposal from unknonwn peer", chProposal.Proposal().PeerAddrs[i].String())
+			s.Info("Received channel proposal from unknonwn peer ID", chProposal.Proposal().PeerAddrs[i].String())
 			// nolint: errcheck, gosec		// It is sufficient to just log this error.
-			s.rejectChProposal(context.Background(), responder, "peer not found in session ID Provider")
+			s.rejectChProposal(context.Background(), responder, "peer ID not found in session ID Provider")
 			expiry = 0
 			break
 		}

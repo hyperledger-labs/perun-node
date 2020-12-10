@@ -30,13 +30,13 @@ import (
 	pnet "perun.network/go-perun/wire/net"
 )
 
-// Peer represents any participant in the off-chain network that the user wants to transact with.
-type Peer struct {
-	// Name assigned by user for referring to this peer in API requests to the node.
+// PeerID represents any participant in the off-chain network that the user wants to transact with.
+type PeerID struct {
+	// Name assigned by user for referring to this PeerID in API requests to the node.
 	// It is unique within a session on the node.
 	Alias string `yaml:"alias"`
 
-	// Permanent identity used for authenticating the peer in the off-chain network.
+	// Permanent identity used for authenticating the PeerID in the off-chain network.
 	OffChainAddr pwire.Address `yaml:"-"`
 	// This field holds the string value of address for easy marshaling / unmarshaling.
 	OffChainAddrString string `yaml:"offchain_address"`
@@ -47,21 +47,21 @@ type Peer struct {
 	CommType string `yaml:"comm_type"`
 }
 
-// OwnAlias is the alias for the entry of the user's own peer details.
+// OwnAlias is the alias for the entry of the user's own PeerID details.
 // It will be used when translating addresses in incoming messages / proposals to aliases.
 const OwnAlias = "self"
 
-// PeerIDReader represents a read only cached list of peer IDs.
-type PeerIDReader interface {
-	ReadByAlias(alias string) (p Peer, contains bool)
-	ReadByOffChainAddr(offChainAddr pwire.Address) (p Peer, contains bool)
+// IDReader represents a read only cached list of peer IDs.
+type IDReader interface {
+	ReadByAlias(alias string) (p PeerID, contains bool)
+	ReadByOffChainAddr(offChainAddr pwire.Address) (p PeerID, contains bool)
 }
 
-// IDProvider represents a cached list of peer IDs backed by a storage. Read, Write and Delete methods act on the
-// cache. The state of cached list can be written to the storage by using the UpdateStorage method.
+// IDProvider represents the functions to read, write peer IDs from and to the local cache connected to a
+// peer ID provider. It also includes a function to sync the changes in the cache with the ID provider backend.
 type IDProvider interface {
-	PeerIDReader
-	Write(alias string, p Peer) error
+	IDReader
+	Write(alias string, p PeerID) error
 	Delete(alias string) error
 	UpdateStorage() error
 }
@@ -104,7 +104,7 @@ type Credential struct {
 
 // User represents a participant in the off-chain network that uses a session on this node for sending transactions.
 type User struct {
-	Peer
+	PeerID
 
 	OnChain  Credential // Account for funding the channel and the on-chain transactions.
 	OffChain Credential // Account (corresponding to off-chain address) used for signing authentication messages.
@@ -114,7 +114,7 @@ type User struct {
 	PartAddrs []pwallet.Address
 }
 
-// Session provides a context for the user to interact with a node. It manages user data (such as IDs, peer IDs),
+// Session provides a context for the user to interact with a node. It manages user data (such as keys, peer IDs),
 // and channel client.
 //
 // Once established, a user can establish and transact on state channels. All the channels within a session will use
@@ -230,8 +230,8 @@ type NodeAPI interface {
 // open channels and accept channel proposals.
 type SessionAPI interface {
 	ID() string
-	AddPeerID(Peer) error
-	GetPeerID(alias string) (Peer, error)
+	AddPeerID(PeerID) error
+	GetPeerID(alias string) (PeerID, error)
 	OpenCh(context.Context, BalInfo, App, uint64) (ChInfo, error)
 	GetChsInfo() []ChInfo
 	SubChProposals(ChProposalNotifier) error

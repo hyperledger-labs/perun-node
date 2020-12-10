@@ -20,8 +20,8 @@ syntax = "proto3";
 // generated code for grpc server and client.
 package pb;
 
-// Peer represents a peer in the off-chain network.
-message Peer {
+// Peer ID represents a peer ID in the off-chain network.
+message PeerID {
     string alias=1;
     string offChainAddress=2;
     string commAddress=3;
@@ -122,7 +122,7 @@ message HelpResp {
 
 message AddPeerIDReq {
     string sessionID=1;
-    Peer peer=2;
+    PeerID peerID=2;
 }
 
 message AddPeerIDResp {
@@ -146,7 +146,7 @@ message  GetPeerIDResp {
         MsgError error = 2;
     }
     message MsgSuccess {
-        Peer peer = 1;
+        PeerID peerID = 1;
     }
 }
 

@@ -122,7 +122,7 @@ func Test_Integ_Role(t *testing.T) {
 
 	aliceAlias, bobAlias := "alice", "bob"
 	var aliceSessionID, bobSessionID string
-	var alicePeer, bobPeer *pb.Peer
+	var alicePeerID, bobPeerID *pb.PeerID
 	var chID string
 	prng := rand.New(rand.NewSource(1729))
 	aliceCfg := sessiontest.NewConfigT(t, prng)
@@ -145,16 +145,16 @@ func Test_Integ_Role(t *testing.T) {
 
 	t.Run("GetPeerID", func(t *testing.T) {
 		// Get own peer ID of alice and bob.
-		alicePeer = GetPeerID(t, aliceSessionID, perun.OwnAlias)
-		alicePeer.Alias = aliceAlias
-		bobPeer = GetPeerID(t, bobSessionID, perun.OwnAlias)
-		bobPeer.Alias = bobAlias
+		alicePeerID = GetPeerID(t, aliceSessionID, perun.OwnAlias)
+		alicePeerID.Alias = aliceAlias
+		bobPeerID = GetPeerID(t, bobSessionID, perun.OwnAlias)
+		bobPeerID.Alias = bobAlias
 	})
 
 	t.Run("AddPeerID", func(t *testing.T) {
 		// Add bob's peer ID to alice and vice versa.
-		AddPeerID(t, aliceSessionID, bobPeer)
-		AddPeerID(t, bobSessionID, alicePeer)
+		AddPeerID(t, aliceSessionID, bobPeerID)
+		AddPeerID(t, bobSessionID, alicePeerID)
 	})
 
 	t.Run("OpenCh_Sub_Unsub_Respond_Accept", func(t *testing.T) {
@@ -330,7 +330,7 @@ func CloseSession(t *testing.T, sessionID string, force bool, wantErr bool) []*p
 	return msg.MsgSuccess.OpenPayChsInfo
 }
 
-func GetPeerID(t *testing.T, sessionID string, alias string) *pb.Peer {
+func GetPeerID(t *testing.T, sessionID string, alias string) *pb.PeerID {
 	req := pb.GetPeerIDReq{
 		SessionID: sessionID,
 		Alias:     alias,
@@ -339,13 +339,13 @@ func GetPeerID(t *testing.T, sessionID string, alias string) *pb.Peer {
 	require.NoErrorf(t, err, "GetPeerID")
 	msg, ok := resp.Response.(*pb.GetPeerIDResp_MsgSuccess_)
 	require.True(t, ok, "GetPeerID returned error response")
-	return msg.MsgSuccess.Peer
+	return msg.MsgSuccess.PeerID
 }
 
-func AddPeerID(t *testing.T, sessionID string, peer *pb.Peer) {
+func AddPeerID(t *testing.T, sessionID string, peerID *pb.PeerID) {
 	req := pb.AddPeerIDReq{
 		SessionID: sessionID,
-		Peer:      peer,
+		PeerID:    peerID,
 	}
 	resp, err := client.AddPeerID(ctx, &req)
 	require.NoErrorf(t, err, "AddPeerID")

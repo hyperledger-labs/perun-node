@@ -32,19 +32,19 @@ import (
 )
 
 var (
-	peer1 = perun.Peer{
+	peer1 = perun.PeerID{
 		Alias:              "Alice",
 		OffChainAddrString: "0x9282681723920798983380581376586951466585",
 		CommType:           "tcpip",
 		CommAddr:           "127.0.0.1:5751",
 	}
-	peer2 = perun.Peer{
+	peer2 = perun.PeerID{
 		Alias:              "Bob",
 		OffChainAddrString: "0x3369783337071807248093730889602727505701",
 		CommType:           "tcpip",
 		CommAddr:           "127.0.0.1:5750",
 	}
-	peer3 = perun.Peer{
+	peer3 = perun.PeerID{
 		Alias:              "Tom",
 		OffChainAddrString: "0x7187308896023072480933697833370727318468",
 		CommType:           "tcpip",
@@ -70,12 +70,12 @@ func init() {
 	}
 }
 
-func Test_PeerIDReader_Interface(t *testing.T) {
-	assert.Implements(t, (*perun.PeerIDReader)(nil), new(local.Provider))
+func Test_IDReader_Interface(t *testing.T) {
+	assert.Implements(t, (*perun.IDReader)(nil), new(local.IDProvider))
 }
 
 func Test_IDProvider_Interface(t *testing.T) {
-	assert.Implements(t, (*perun.IDProvider)(nil), new(local.Provider))
+	assert.Implements(t, (*perun.IDProvider)(nil), new(local.IDProvider))
 }
 
 func Test_NewIDProviderFromYaml_ReadByAlias(t *testing.T) {

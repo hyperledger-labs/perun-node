@@ -14,6 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package idprovidertest provides a helper functions to create ID provider file from
-// a list of peers for use in tests.
+// Package idprovidertest provides a test helper functions to initialize a local ID provider instance
+// with a given list of peer IDs.
 package idprovidertest

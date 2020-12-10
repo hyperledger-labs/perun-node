@@ -143,11 +143,11 @@ func (a *payChAPIServer) AddPeerID(ctx context.Context, req *pb.AddPeerIDReq) (*
 	if err != nil {
 		return errResponse(err), nil
 	}
-	err = sess.AddPeerID(perun.Peer{
-		Alias:              req.Peer.Alias,
-		OffChainAddrString: req.Peer.OffChainAddress,
-		CommAddr:           req.Peer.CommAddress,
-		CommType:           req.Peer.CommType,
+	err = sess.AddPeerID(perun.PeerID{
+		Alias:              req.PeerID.Alias,
+		OffChainAddrString: req.PeerID.OffChainAddress,
+		CommAddr:           req.PeerID.CommAddress,
+		CommType:           req.PeerID.CommType,
 	})
 	if err != nil {
 		return errResponse(err), nil
@@ -178,7 +178,7 @@ func (a *payChAPIServer) GetPeerID(ctx context.Context, req *pb.GetPeerIDReq) (*
 	if err != nil {
 		return errResponse(err), nil
 	}
-	peer, err := sess.GetPeerID(req.Alias)
+	peerID, err := sess.GetPeerID(req.Alias)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -186,11 +186,11 @@ func (a *payChAPIServer) GetPeerID(ctx context.Context, req *pb.GetPeerIDReq) (*
 	return &pb.GetPeerIDResp{
 		Response: &pb.GetPeerIDResp_MsgSuccess_{
 			MsgSuccess: &pb.GetPeerIDResp_MsgSuccess{
-				Peer: &pb.Peer{
-					Alias:           peer.Alias,
-					OffChainAddress: peer.OffChainAddrString,
-					CommAddress:     peer.CommAddr,
-					CommType:        peer.CommType,
+				PeerID: &pb.PeerID{
+					Alias:           peerID.Alias,
+					OffChainAddress: peerID.OffChainAddrString,
+					CommAddress:     peerID.CommAddr,
+					CommType:        peerID.CommType,
 				},
 			},
 		},

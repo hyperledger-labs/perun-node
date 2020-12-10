@@ -30,8 +30,8 @@ import (
 
 // NewIDProviderT is the test friendly version of NewIDProvider.
 // It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
-func NewIDProviderT(t *testing.T, peers ...perun.Peer) string {
-	idProviderFile, err := NewIDProvider(peers...)
+func NewIDProviderT(t *testing.T, peerIDs ...perun.PeerID) string {
+	idProviderFile, err := NewIDProvider(peerIDs...)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		if err = os.Remove(idProviderFile); err != nil {
@@ -41,16 +41,16 @@ func NewIDProviderT(t *testing.T, peers ...perun.Peer) string {
 	return idProviderFile
 }
 
-// NewIDProvider creates a temporary file containing the details of given peers and
-// returns the path to it. It also registers a cleanup function on the passed test handler.
-func NewIDProvider(peers ...perun.Peer) (string, error) {
+// NewIDProvider sets up a local ID provider instance as a file in the system's temp directory with
+// the given list of peers IDs and returns the ID provider URL, which is path of the file. .
+func NewIDProvider(peerIDs ...perun.PeerID) (string, error) {
 	tempFile, err := ioutil.TempFile("", "")
 	if err != nil {
 		return "", errors.Wrap(err, "creating temp file for local idProvider")
 	}
 	// if err = os.Remove(tempFile.Name()); err != nil {
-	idProvider := make(map[string]perun.Peer, len(peers))
-	for _, peer := range peers {
+	idProvider := make(map[string]perun.PeerID, len(peerIDs))
+	for _, peer := range peerIDs {
 		idProvider[peer.Alias] = peer
 	}
 

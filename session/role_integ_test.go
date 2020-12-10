@@ -58,7 +58,7 @@ func Test_Integ_Role(t *testing.T) {
 	t.Logf("bob session id: %s\n", bob.ID())
 	t.Logf("alice database dir is: %s\n", aliceCfg.DatabaseDir)
 
-	var alicePeerID, bobPeerID perun.Peer
+	var alicePeerID, bobPeerID perun.PeerID
 	t.Run("GetPeerID", func(t *testing.T) {
 		t.Run("happy", func(t *testing.T) {
 			alicePeerID, err = alice.GetPeerID(perun.OwnAlias)

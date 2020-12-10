@@ -43,10 +43,10 @@ func init() {
 
 func Test_Integ_New(t *testing.T) {
 	prng := rand.New(rand.NewSource(1729))
-	peers := newPeers(t, prng, uint(2))
+	peerIDs := newPeerIDs(t, prng, uint(2))
 
 	prng = rand.New(rand.NewSource(1729))
-	cfg := sessiontest.NewConfigT(t, prng, peers...)
+	cfg := sessiontest.NewConfigT(t, prng, peerIDs...)
 
 	t.Run("happy", func(t *testing.T) {
 		sess, err := session.New(cfg)
@@ -131,7 +131,7 @@ func Test_Integ_New(t *testing.T) {
 		t.Log(err)
 	})
 	t.Run("invalid_idprovider_has_entry_for_self", func(t *testing.T) {
-		ownPeer := perun.Peer{
+		ownPeer := perun.PeerID{
 			Alias: perun.OwnAlias,
 		}
 		cfgCopy := cfg
@@ -163,17 +163,17 @@ func Test_Integ_Persistence(t *testing.T) {
 	})
 }
 
-func newPeers(t *testing.T, prng *rand.Rand, n uint) []perun.Peer {
-	peers := make([]perun.Peer, n)
-	for i := range peers {
+func newPeerIDs(t *testing.T, prng *rand.Rand, n uint) []perun.PeerID {
+	peerIDs := make([]perun.PeerID, n)
+	for i := range peerIDs {
 		port, err := freeport.GetFreePort()
 		require.NoError(t, err)
-		peers[i].Alias = fmt.Sprintf("%d", i)
-		peers[i].OffChainAddrString = ethereumtest.NewRandomAddress(prng).String()
-		peers[i].CommType = "tcp"
-		peers[i].CommAddr = fmt.Sprintf("127.0.0.1:%d", port)
+		peerIDs[i].Alias = fmt.Sprintf("%d", i)
+		peerIDs[i].OffChainAddrString = ethereumtest.NewRandomAddress(prng).String()
+		peerIDs[i].CommType = "tcp"
+		peerIDs[i].CommAddr = fmt.Sprintf("127.0.0.1:%d", port)
 	}
-	return peers
+	return peerIDs
 }
 
 func newCorruptedYAMLFile(t *testing.T) string {
