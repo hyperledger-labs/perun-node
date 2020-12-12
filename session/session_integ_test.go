@@ -19,14 +19,12 @@
 package session_test
 
 import (
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"testing"
 
 	copyutil "github.com/otiai10/copy"
-	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -37,15 +35,9 @@ import (
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
-func init() {
-	session.SetWalletBackend(ethereumtest.NewTestWalletBackend())
-}
-
 func Test_Integ_New(t *testing.T) {
+	peerIDs := newPeerIDs(t, uint(2))
 	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-	peerIDs := newPeerIDs(t, prng, uint(2))
-
-	prng = rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	cfg := sessiontest.NewConfigT(t, prng, peerIDs...)
 
 	t.Run("happy", func(t *testing.T) {
@@ -144,38 +136,44 @@ func Test_Integ_New(t *testing.T) {
 }
 
 func Test_Integ_Persistence(t *testing.T) {
-	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+	t.Run("happy", func(t *testing.T) {
+		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+		aliceCfg := sessiontest.NewConfigT(t, prng)
+		// Use idprovider and databaseDir from a session that was persisted already.
+		// Copy database directory to tmp before using as it will be modifed when reading as well.
+		// ID provider file can be used as such.
+		aliceCfg.DatabaseDir = copyDirToTmp(t, "../testdata/session/persistence/alice-database")
+		aliceCfg.IDProviderURL = "../testdata/session/persistence/alice-idprovider.yaml"
 
-	aliceCfg := sessiontest.NewConfigT(t, prng)
-	// Use idprovider and databaseDir from a session that was persisted already.
-	// Copy database directory to tmp before using as it will be modifed when reading as well.
-	// Contacts file can be used as such.
-	aliceCfg.DatabaseDir = copyDirToTmp(t, "../testdata/session/persistence/alice-database")
-	aliceCfg.IDProviderURL = "../testdata/session/persistence/alice-idprovider.yaml"
+		alice, err := session.New(aliceCfg)
+		require.NoErrorf(t, err, "initializing alice session")
+		t.Logf("alice session id: %s\n", alice.ID())
+		t.Logf("alice database dir is: %s\n", aliceCfg.DatabaseDir)
 
-	alice, err := session.New(aliceCfg)
-	require.NoErrorf(t, err, "initializing alice session")
-	t.Logf("alice session id: %s\n", alice.ID())
-	t.Logf("alice database dir is: %s\n", aliceCfg.DatabaseDir)
-
-	t.Run("GetChannelInfos", func(t *testing.T) {
-		t.Run("happy", func(t *testing.T) {
-			require.Equal(t, 3, len(alice.GetChsInfo()))
-		})
+		require.Equal(t, 2, len(alice.GetChsInfo()))
 	})
-}
 
-func newPeerIDs(t *testing.T, prng *rand.Rand, n uint) []perun.PeerID {
-	peerIDs := make([]perun.PeerID, n)
-	for i := range peerIDs {
-		port, err := freeport.GetFreePort()
+	t.Run("happy_drop_unknownPeers", func(t *testing.T) {
+		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+		aliceCfg := sessiontest.NewConfigT(t, prng) // Get a session config with no peerIDs in the ID provider.
+		aliceCfg.DatabaseDir = copyDirToTmp(t, "../testdata/session/persistence/alice-database")
+
+		_, err := session.New(aliceCfg)
+		require.NoErrorf(t, err, "initializing alice session")
+	})
+
+	t.Run("err_database_init", func(t *testing.T) {
+		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+		aliceCfg := sessiontest.NewConfigT(t, prng) // Get a session config with no peerIDs in the ID provider.
+		tempFile, err := ioutil.TempFile("", "")
 		require.NoError(t, err)
-		peerIDs[i].Alias = fmt.Sprintf("%d", i)
-		peerIDs[i].OffChainAddrString = ethereumtest.NewRandomAddress(prng).String()
-		peerIDs[i].CommType = "tcp"
-		peerIDs[i].CommAddr = fmt.Sprintf("127.0.0.1:%d", port)
-	}
-	return peerIDs
+		tempFile.Close() // nolint:errcheck
+		aliceCfg.DatabaseDir = tempFile.Name()
+
+		_, err = session.New(aliceCfg)
+		require.Errorf(t, err, "initializing alice session")
+		t.Log(err)
+	})
 }
 
 func newCorruptedYAMLFile(t *testing.T) string {

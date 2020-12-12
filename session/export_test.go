@@ -16,9 +16,68 @@
 
 package session
 
-import "github.com/hyperledger-labs/perun-node"
+import (
+	"time"
+
+	pchannel "perun.network/go-perun/channel"
+
+	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/log"
+)
 
 // SetWalletBackend is used to set a test wallet backend during tests.
 func SetWalletBackend(wb perun.WalletBackend) {
 	walletBackend = wb
+}
+
+func NewSessionForTest(cfg Config, isOpen bool, chClient perun.ChClient) (*Session, error) {
+	user, err := NewUnlockedUser(walletBackend, cfg.User)
+	if err != nil {
+		return nil, err
+	}
+
+	chAsset, err := walletBackend.ParseAddr(cfg.Asset)
+	if err != nil {
+		return nil, err
+	}
+
+	idProvider, err := initIDProvider(cfg.IDProviderType, cfg.IDProviderURL, walletBackend, user.PeerID)
+	if err != nil {
+		return nil, err
+	}
+
+	sessionID := calcSessionID(user.OffChainAddr.Bytes())
+	timeoutCfg := timeoutConfig{
+		onChainTx: cfg.OnChainTxTimeout,
+		response:  cfg.ResponseTimeout,
+	}
+
+	return &Session{
+		Logger:               log.NewLoggerWithField("session-id", sessionID),
+		id:                   sessionID,
+		isOpen:               isOpen,
+		timeoutCfg:           timeoutCfg,
+		user:                 user,
+		chAsset:              chAsset,
+		chClient:             chClient,
+		idProvider:           idProvider,
+		chs:                  make(map[string]*Channel),
+		chProposalResponders: make(map[string]chProposalResponderEntry),
+	}, nil
+}
+
+func NewChForTest(pch perun.Channel, currency string, parts []string, challengeDurSecs uint64, isOpen bool) *Channel {
+	timeoutCfg := timeoutConfig{response: 1 * time.Second}
+	ch := newCh(pch, currency, parts, timeoutCfg, challengeDurSecs)
+	if isOpen {
+		ch.status = open
+	} else {
+		ch.status = closed
+	}
+	ch.Logger = log.NewLoggerWithField("channel-id", ch.id)
+	return ch
+}
+
+func MakeAllocation(openingBalInfo perun.BalInfo, chAsset pchannel.Asset) (*pchannel.Allocation, error) {
+	return makeAllocation(openingBalInfo, chAsset)
 }
