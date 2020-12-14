@@ -59,7 +59,7 @@ func New(cfg perun.NodeConfig) (*node, error) {
 		return nil, errors.WithMessage(err, "initializing logger for node")
 	}
 	return &node{
-		Logger:   log.NewLoggerWithField("node", 1), // ID of the node is always 1.
+		Logger:   log.NewLoggerWithField(log.Fields{"node": 1, " ": " "}), // ID of the node is always 1.
 		cfg:      cfg,
 		sessions: make(map[string]perun.SessionAPI),
 	}, nil

@@ -31,6 +31,9 @@ var logger *logrus.Logger = nil
 // Logger is a for now, a type alias of Logrus.FieldLogger that defines a broad interface for logging.
 type Logger = logrus.FieldLogger
 
+// Fields type, used to pass to NewLoggerWithField.
+type Fields = logrus.Fields
+
 // InitLogger sets the internal logger instance to the given level and log file.
 // This function should be called exactly once and subsequent calls return an error.
 // Logs to stdout if logFile is an empty string.
@@ -72,12 +75,12 @@ func InitLogger(levelStr, logFile string) error {
 //
 // If the internal logger instance is not initialized before this call, it is initialized to "debug" level
 // and logs to the standard output (stdout).
-func NewLoggerWithField(key string, value interface{}) Logger {
+func NewLoggerWithField(fields Fields) *logrus.Entry {
 	if logger == nil {
 		InitLogger("debug", "") // nolint: errcheck, gosec	// err will always be nil in this case.
 	}
-	l := logger.WithField(key, value)
-	return l
+	return logger.WithFields(fields)
+
 }
 
 // customTextFormatter is defined to override default formating options for log entry.
