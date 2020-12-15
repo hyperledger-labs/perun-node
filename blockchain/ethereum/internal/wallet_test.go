@@ -34,7 +34,7 @@ func Test_WalletBackend_Interface(t *testing.T) {
 }
 
 func Test_WalletBackend_NewWallet(t *testing.T) {
-	rng := rand.New(rand.NewSource(1729))
+	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	wb := ethereumtest.NewTestWalletBackend()
 	setup := ethereumtest.NewWalletSetupT(t, rng, 1)
 
@@ -56,7 +56,7 @@ func Test_WalletBackend_NewWallet(t *testing.T) {
 }
 
 func Test_WalletBackend_NewAccount(t *testing.T) {
-	rng := rand.New(rand.NewSource(1729))
+	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	wb := ethereumtest.NewTestWalletBackend()
 	setup := ethereumtest.NewWalletSetupT(t, rng, 1)
 
@@ -81,7 +81,7 @@ func Test_WalletBackend_NewAccount(t *testing.T) {
 }
 
 func Test_WalletBackend_ParseAddr(t *testing.T) {
-	rng := rand.New(rand.NewSource(1729))
+	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	wb := ethereumtest.NewTestWalletBackend()
 
 	t.Run("happy_non_zero_value", func(t *testing.T) {

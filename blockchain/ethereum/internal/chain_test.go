@@ -33,7 +33,7 @@ func Test_ChainBackend_Interface(t *testing.T) {
 }
 
 func Test_ChainBackend_Deploy(t *testing.T) {
-	rng := rand.New(rand.NewSource(1729))
+	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	setup := ethereumtest.NewChainBackendSetup(t, rng, 1)
 
 	onChainAddr := setup.Accs[0].Address()
@@ -45,7 +45,7 @@ func Test_ChainBackend_Deploy(t *testing.T) {
 }
 
 func Test_ChainBackend_ValidateContracts(t *testing.T) {
-	rng := rand.New(rand.NewSource(1729))
+	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	setup := ethereumtest.NewChainBackendSetup(t, rng, 1)
 
 	t.Run("happy", func(t *testing.T) {
@@ -59,7 +59,7 @@ func Test_ChainBackend_ValidateContracts(t *testing.T) {
 }
 
 func Test_ChainBackend_NewFunder(t *testing.T) {
-	rng := rand.New(rand.NewSource(1729))
+	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	setup := ethereumtest.NewChainBackendSetup(t, rng, 1)
 	randomAddr1 := ethereumtest.NewRandomAddress(rng)
 	randomAddr2 := ethereumtest.NewRandomAddress(rng)
@@ -68,7 +68,7 @@ func Test_ChainBackend_NewFunder(t *testing.T) {
 }
 
 func Test_ChainBackend_NewAdjudicator(t *testing.T) {
-	rng := rand.New(rand.NewSource(1729))
+	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	setup := ethereumtest.NewChainBackendSetup(t, rng, 1)
 	randomAddr1 := ethereumtest.NewRandomAddress(rng)
 	randomAddr2 := ethereumtest.NewRandomAddress(rng)

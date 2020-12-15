@@ -34,6 +34,7 @@ import (
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/client"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
+	"github.com/hyperledger-labs/perun-node/comm/tcp/tcptest"
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/idprovider/local"
 	"github.com/hyperledger-labs/perun-node/log"
@@ -96,7 +97,7 @@ func New(cfg Config) (*session, error) {
 	if cfg.User.CommType != "tcp" {
 		return nil, perun.ErrUnsupportedCommType
 	}
-	commBackend := tcp.NewTCPBackend(30 * time.Second)
+	commBackend := tcp.NewTCPBackend(tcptest.DialerTimeout)
 
 	chAsset, err := walletBackend.ParseAddr(cfg.Asset)
 	if err != nil {

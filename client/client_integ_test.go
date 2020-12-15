@@ -24,7 +24,6 @@ import (
 	"math/rand"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -33,7 +32,9 @@ import (
 
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/client"
+	"github.com/hyperledger-labs/perun-node/client/clienttest"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
+	"github.com/hyperledger-labs/perun-node/comm/tcp/tcptest"
 	"github.com/hyperledger-labs/perun-node/internal/mocks"
 	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
@@ -43,14 +44,14 @@ import (
 //
 // ganache-cli --account="0x1fedd636dbc7e8d41a0622a2040b86fea8842cef9d4aa4c582aad00465b7acff,10000000000000000000"
 //
-// The account in the command corresponds to on-chain account of user when seeding the rand source with 1729.
-// Hence DO NOT CHANGE THE RAND SEED for integration tests in this package.
+// The account in the command corresponds to on-chain account of user when seeding the rand source with
+// ethereumtest.RandSeedForTestAccs. Hence DO NOT CHANGE THE RAND SEED for integration tests in this package.
 //
 // The contracts will be deployed only during the first run of tests and will be resused in subsequent runs. This
 // saves ~0.3s of setup time in each run. Hence when running tests on development machine, START THE NODE ONLY ONCE.
 
 func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
-	prng := rand.New(rand.NewSource(1729))
+	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	wb, userCfg := sessiontest.NewUserConfigT(t, prng, 0)
 	user, err := session.NewUnlockedUser(wb, userCfg)
 	require.NoError(t, err, "initializing user")
@@ -62,15 +63,15 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 			Asset:            asset.String(),
 			URL:              ethereumtest.ChainURL,
 			OnChainTxTimeout: ethereumtest.OnChainTxTimeout,
-			ConnTimeout:      10 * time.Second,
+			ConnTimeout:      ethereumtest.ChainConnTimeout,
 		},
-		PeerReconnTimeout: 20 * time.Second,
+		PeerReconnTimeout: clienttest.PeerReconnTimeout,
 	}
 	// TODO: (mano) Test if handle and lister are running as expected.
 
 	t.Run("happy", func(t *testing.T) {
 		cfg.DatabaseDir = newDatabaseDir(t) // start with empty persistence dir each time.
-		client, err := client.NewEthereumPaymentClient(cfg, user, tcp.NewTCPBackend(5*time.Second))
+		client, err := client.NewEthereumPaymentClient(cfg, user, tcp.NewTCPBackend(tcptest.DialerTimeout))
 		require.NoError(t, err)
 		err = client.RestoreChs(func(*pclient.Channel) {})
 		assert.NoError(t, err)
@@ -94,7 +95,7 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 		invalidCfg.DatabaseDir = newDatabaseDir(t) // start with empty persistence dir each time.
 		invalidCfg.Chain.URL = "invalid-url"
 
-		_, err := client.NewEthereumPaymentClient(invalidCfg, user, tcp.NewTCPBackend(5*time.Second))
+		_, err := client.NewEthereumPaymentClient(invalidCfg, user, tcp.NewTCPBackend(tcptest.DialerTimeout))
 		t.Log(err)
 		assert.Error(t, err)
 	})
@@ -104,7 +105,7 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 		invalidCfg.DatabaseDir = newDatabaseDir(t) // start with empty persistence dir each time.
 		invalidCfg.Chain.Asset = "invalid-addr"
 
-		_, err := client.NewEthereumPaymentClient(invalidCfg, user, tcp.NewTCPBackend(5*time.Second))
+		_, err := client.NewEthereumPaymentClient(invalidCfg, user, tcp.NewTCPBackend(tcptest.DialerTimeout))
 		t.Log(err)
 		assert.Error(t, err)
 	})
@@ -114,7 +115,7 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 		invalidCfg.DatabaseDir = newDatabaseDir(t) // start with empty persistence dir each time.
 		invalidCfg.Chain.Adjudicator = "invalid-addr"
 
-		_, err := client.NewEthereumPaymentClient(invalidCfg, user, tcp.NewTCPBackend(5*time.Second))
+		_, err := client.NewEthereumPaymentClient(invalidCfg, user, tcp.NewTCPBackend(tcptest.DialerTimeout))
 		t.Log(err)
 		assert.Error(t, err)
 	})
@@ -125,7 +126,7 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 		randomAddr := ethereumtest.NewRandomAddress(prng)
 		invalidCfg.Chain.Adjudicator = randomAddr.String()
 
-		_, err := client.NewEthereumPaymentClient(invalidCfg, user, tcp.NewTCPBackend(5*time.Second))
+		_, err := client.NewEthereumPaymentClient(invalidCfg, user, tcp.NewTCPBackend(tcptest.DialerTimeout))
 		t.Log(err)
 		assert.Error(t, err)
 	})
@@ -136,7 +137,7 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 		randomAddr := ethereumtest.NewRandomAddress(prng)
 		invalidCfg.Chain.Asset = randomAddr.String()
 
-		_, err := client.NewEthereumPaymentClient(invalidCfg, user, tcp.NewTCPBackend(5*time.Second))
+		_, err := client.NewEthereumPaymentClient(invalidCfg, user, tcp.NewTCPBackend(tcptest.DialerTimeout))
 		t.Log(err)
 		assert.Error(t, err)
 	})
@@ -148,7 +149,7 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 		invalidUser.OnChain.Wallet = ws.Wallet
 		invalidUser.OnChain.Keystore = ws.KeystorePath
 		invalidUser.OnChain.Password = "invalid-password"
-		_, err := client.NewEthereumPaymentClient(cfg, invalidUser, tcp.NewTCPBackend(5*time.Second))
+		_, err := client.NewEthereumPaymentClient(cfg, invalidUser, tcp.NewTCPBackend(tcptest.DialerTimeout))
 		t.Log(err)
 		assert.Error(t, err)
 	})
@@ -160,7 +161,7 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 		invalidUser.OffChain.Wallet = ws.Wallet
 		invalidUser.OffChain.Keystore = ws.KeystorePath
 		invalidUser.OffChain.Password = "invalid-password"
-		_, err := client.NewEthereumPaymentClient(cfg, invalidUser, tcp.NewTCPBackend(5*time.Second))
+		_, err := client.NewEthereumPaymentClient(cfg, invalidUser, tcp.NewTCPBackend(tcptest.DialerTimeout))
 		t.Log(err)
 		assert.Error(t, err)
 	})
@@ -169,7 +170,7 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 		cfg.DatabaseDir = newDatabaseDir(t) // start with empty persistence dir each time.
 		invalidUser := user
 		invalidUser.CommAddr = "invalid-addr"
-		_, err := client.NewEthereumPaymentClient(cfg, invalidUser, tcp.NewTCPBackend(5*time.Second))
+		_, err := client.NewEthereumPaymentClient(cfg, invalidUser, tcp.NewTCPBackend(tcptest.DialerTimeout))
 		assert.Error(t, err)
 	})
 }

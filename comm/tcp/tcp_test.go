@@ -19,7 +19,6 @@ package tcp_test
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/assert"
@@ -27,6 +26,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
+	"github.com/hyperledger-labs/perun-node/comm/tcp/tcptest"
 )
 
 func Test_CommBackend_Interface(t *testing.T) {
@@ -34,7 +34,7 @@ func Test_CommBackend_Interface(t *testing.T) {
 }
 
 func Test_Backend(t *testing.T) {
-	backend := tcp.NewTCPBackend(1 * time.Second)
+	backend := tcp.NewTCPBackend(tcptest.DialerTimeout)
 	require.NotNil(t, backend)
 
 	// Find a free port to start the listener.

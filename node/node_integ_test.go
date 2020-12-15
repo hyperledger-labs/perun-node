@@ -27,23 +27,16 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/node"
+	"github.com/hyperledger-labs/perun-node/node/nodetest"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
-var validConfig = perun.NodeConfig{
-	LogFile:              "",
-	LogLevel:             "debug",
-	ChainURL:             "ws://127.0.0.1:8545",
-	Adjudicator:          "0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63",
-	Asset:                "0x5992089d61cE79B6CF90506F70DD42B8E42FB21d",
-	CommTypes:            []string{"tcp"},
-	IDProviderTypes:      []string{"local"},
-	CurrencyInterpreters: []string{"ETH"},
+var validConfig perun.NodeConfig
 
-	ChainConnTimeout: 30 * time.Second,
-	OnChainTxTimeout: 10 * time.Second,
-	ResponseTimeout:  10 * time.Second,
+func init() {
+	validConfig = nodetest.NewConfig()
 }
 
 // This NodeAPI instance will be set upon first happy test.
@@ -96,7 +89,7 @@ func Test_Integ_New(t *testing.T) {
 		assert.Equal(t, []string{"payment"}, apis)
 	})
 	var sessionID string
-	prng := rand.New(rand.NewSource(1729))
+	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	t.Run("happy_OpenSession", func(t *testing.T) {
 		var err error
 		sessionCfg := sessiontest.NewConfigT(t, prng)
