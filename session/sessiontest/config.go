@@ -122,7 +122,7 @@ func NewConfig(rng *rand.Rand, peerIDs ...perun.PeerID) (session.Config, error) 
 		DatabaseDir:       databaseDir,
 		PeerReconnTimeout: 20 * time.Second,
 
-		IDProviderType: "yaml",
+		IDProviderType: "local",
 		IDProviderURL:  idProviderURL,
 	}, nil
 }

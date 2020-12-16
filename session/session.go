@@ -151,7 +151,7 @@ func New(cfg Config) (*session, error) {
 
 func initIDProvider(idProviderType, idProviderURL string, wb perun.WalletBackend, own perun.PeerID) (
 	perun.IDProvider, error) {
-	if idProviderType != "yaml" {
+	if idProviderType != "local" {
 		return nil, perun.ErrUnsupportedIDProviderType
 	}
 	idProvider, err := local.NewIDprovider(idProviderURL, wb)
@@ -253,7 +253,7 @@ func (s *session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	}
 
 	sanitizeBalInfo(openingBalInfo)
-	parts, err := retrieveParts(openingBalInfo.Parts, s.idProvider)
+	parts, err := retrievePartIDs(openingBalInfo.Parts, s.idProvider)
 	if err != nil {
 		s.Error(err, "retrieving channel participant IDs using session idProvider")
 		return perun.ChInfo{}, perun.GetAPIError(err)
@@ -313,11 +313,11 @@ func sanitizeBalInfo(balInfo perun.BalInfo) {
 	}
 }
 
-// retrieveParts retrieves the peer IDs corresponding to the aliases from the ID provider.
+// retrievePartIDs retrieves the peer IDs corresponding to the aliases from the ID provider.
 // The order of entries for parts list will be same as that of aliases. i.e aliases[i] = parts[i].Alias.
-func retrieveParts(aliases []string, idProvider perun.IDReader) ([]perun.PeerID, error) {
+func retrievePartIDs(aliases []string, idProvider perun.IDReader) ([]perun.PeerID, error) {
 	knownParts := make(map[string]perun.PeerID, len(aliases))
-	parts := make([]perun.PeerID, len(aliases))
+	partIDs := make([]perun.PeerID, len(aliases))
 	missingParts := make([]string, 0, len(aliases))
 	repeatedParts := make([]string, 0, len(aliases))
 	foundOwnAlias := false
@@ -334,7 +334,7 @@ func retrieveParts(aliases []string, idProvider perun.IDReader) ([]perun.PeerID,
 			repeatedParts = append(repeatedParts, alias)
 		}
 		knownParts[alias] = peerID
-		parts[idx] = peerID
+		partIDs[idx] = peerID
 	}
 
 	if len(missingParts) != 0 {
@@ -347,7 +347,7 @@ func retrieveParts(aliases []string, idProvider perun.IDReader) ([]perun.PeerID,
 		return nil, errors.New("No entry for self found in aliases")
 	}
 
-	return parts, nil
+	return partIDs, nil
 }
 
 // registerParts will register the given parts to the passed registry.
@@ -360,10 +360,10 @@ func registerParts(parts []perun.PeerID, r perun.Registerer) {
 }
 
 // makeOffChainAddrs returns the list of off-chain addresses corresponding to the given list of peer IDs.
-func makeOffChainAddrs(parts []perun.PeerID) []pwallet.Address {
-	addrs := make([]pwallet.Address, len(parts))
-	for i := range parts {
-		addrs[i] = parts[i].OffChainAddr
+func makeOffChainAddrs(partIDs []perun.PeerID) []pwallet.Address {
+	addrs := make([]pwallet.Address, len(partIDs))
+	for i := range partIDs {
+		addrs[i] = partIDs[i].OffChainAddr
 	}
 	return addrs
 }

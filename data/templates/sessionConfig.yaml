@@ -24,7 +24,7 @@ user:
   commType: tcp
 
 
-idProviderType: yaml
+idProviderType: local
 idProviderURL: ./test-idprovider.yaml
 chainURL: ws://127.0.0.1:8545
 asset: 0x5992089d61cE79B6CF90506F70DD42B8E42FB21d
@@ -42,7 +42,7 @@ databaseDir: ./test-db
   ? !!str "chainURL"
   : !!str "ws://127.0.0.1:8545",
   ? !!str "idProviderType"
-  : !!str "yaml",
+  : !!str "local",
   ? !!str "idProviderURL"
   : !!str "./test-idprovider.yaml",
   ? !!str "databaseDir"

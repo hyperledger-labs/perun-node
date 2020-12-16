@@ -49,7 +49,7 @@ var (
 			CommAddr: "127.0.0.1:5751",
 			CommType: "tcp",
 		},
-		IDProviderType: "yaml",
+		IDProviderType: "local",
 		IDProviderURL:  "./test-idprovider.yaml",
 		ChainURL:       "ws://127.0.0.1:8545",
 		Asset:          "0x5992089d61cE79B6CF90506F70DD42B8E42FB21d",
