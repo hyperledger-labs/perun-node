@@ -71,7 +71,7 @@ func NewIDprovider(filePath string, backend perun.WalletBackend) (*IDProvider, e
 	}, nil
 }
 
-// UpdateStorage writes the latest state of idprovider cache to the yaml file.
+// UpdateStorage writes the latest state of idprovider cache to the file on the disk.
 func (c *IDProvider) UpdateStorage() error {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()

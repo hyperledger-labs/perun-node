@@ -69,7 +69,7 @@ Generate demo artifacts for node and session configuration.
 
 - Node: node.yaml file.
 - Session: Two directories (alice and bob) each containing session.yaml file,
-idprovider.yaml file and keystore directory with keys corresponding to the
+  idprovider.yaml file and keystore directory with keys corresponding to the
   on-chain and off-chain accounts.
 
 Note:
@@ -181,11 +181,11 @@ func generateSessionConfig() error {
 	bobCfg.User.Alias = bobAlias
 
 	// Create IDProvider file.
-	aliceIDProviderFile, err := idprovidertest.NewIDProvider(peer(bobCfg.User))
+	aliceIDProviderFile, err := idprovidertest.NewIDProvider(peerID(bobCfg.User))
 	if err != nil {
 		return err
 	}
-	bobIDProviderFile, err := idprovidertest.NewIDProvider(peer(aliceCfg.User))
+	bobIDProviderFile, err := idprovidertest.NewIDProvider(peerID(aliceCfg.User))
 	if err != nil {
 		return err
 	}
@@ -234,7 +234,7 @@ func makeDirs(dirNames ...string) error {
 	return nil
 }
 
-func peer(userCfg session.UserConfig) perun.PeerID {
+func peerID(userCfg session.UserConfig) perun.PeerID {
 	return perun.PeerID{
 		Alias:              userCfg.Alias,
 		OffChainAddrString: userCfg.OffChainAddr,

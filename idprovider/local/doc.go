@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package local implements an implementation of ID provider, where
+// Package local contains an implementation of ID provider, where
 // the peer IDs are stored in a YAML file stored locally on the disk.
 //
 // The complete list of peer IDs are loaded into an in-memory cache during

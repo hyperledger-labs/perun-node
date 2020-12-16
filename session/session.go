@@ -162,7 +162,7 @@ func initIDProvider(idProviderType, idProviderURL string, wb perun.WalletBackend
 	own.Alias = perun.OwnAlias
 	err = idProvider.Write(perun.OwnAlias, own)
 	if err != nil && !errors.Is(err, perun.ErrPeerExists) {
-		return nil, errors.Wrap(err, "registering own user in idProvider")
+		return nil, errors.Wrap(err, "registering own user in ID Provider")
 	}
 	return idProvider, nil
 }
@@ -190,11 +190,11 @@ func (s *session) handleRestoredCh(pch *pclient.Channel) {
 	if pch.Phase() != pchannel.Acting {
 		return
 	}
-	peerIDs := pch.Peers()
-	parts := make([]perun.PeerID, len(peerIDs))
-	aliases := make([]string, len(peerIDs))
+	partOffChainAddrs := pch.Peers()
+	parts := make([]perun.PeerID, len(partOffChainAddrs))
+	aliases := make([]string, len(partOffChainAddrs))
 	for i := range pch.Peers() {
-		p, ok := s.idProvider.ReadByOffChainAddr(peerIDs[i])
+		p, ok := s.idProvider.ReadByOffChainAddr(partOffChainAddrs[i])
 		if !ok {
 			s.Info("Unknown peer address in a persisted channel, will not be restored", pch.Peers()[i].String())
 			return
@@ -255,7 +255,7 @@ func (s *session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	sanitizeBalInfo(openingBalInfo)
 	parts, err := retrieveParts(openingBalInfo.Parts, s.idProvider)
 	if err != nil {
-		s.Error(err, "retrieving channel participants using session idProvider")
+		s.Error(err, "retrieving channel participant IDs using session idProvider")
 		return perun.ChInfo{}, perun.GetAPIError(err)
 	}
 	registerParts(parts, s.chClient)
@@ -338,10 +338,10 @@ func retrieveParts(aliases []string, idProvider perun.IDReader) ([]perun.PeerID,
 	}
 
 	if len(missingParts) != 0 {
-		return nil, errors.New(fmt.Sprintf("No peer IDs found in ID Provider for the following alias(es): %v", knownParts))
+		return nil, errors.New(fmt.Sprintf("No peer IDs found in ID Provider for the following alias(es): %v", missingParts))
 	}
 	if len(repeatedParts) != 0 {
-		return nil, errors.New(fmt.Sprintf("Repeated entries in aliases: %v", knownParts))
+		return nil, errors.New(fmt.Sprintf("Repeated entries in aliases: %v", repeatedParts))
 	}
 	if !foundOwnAlias {
 		return nil, errors.New("No entry for self found in aliases")

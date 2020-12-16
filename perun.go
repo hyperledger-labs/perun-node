@@ -51,7 +51,7 @@ type PeerID struct {
 // It will be used when translating addresses in incoming messages / proposals to aliases.
 const OwnAlias = "self"
 
-// IDReader represents a read only cached list of peer IDs.
+// IDReader represents the functions to read peer IDs from a cache connected to a peer ID provider.
 type IDReader interface {
 	ReadByAlias(alias string) (p PeerID, contains bool)
 	ReadByOffChainAddr(offChainAddr pwire.Address) (p PeerID, contains bool)

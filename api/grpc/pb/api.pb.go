@@ -97,7 +97,7 @@ func (SubPayChUpdatesResp_Notify_ChUpdateType) EnumDescriptor() ([]byte, []int) 
 	return file_api_proto_rawDescGZIP(), []int{31, 0, 0}
 }
 
-// Peer ID represents a peer ID in the off-chain network.
+// Peer ID represents the data required to identify and communicate.
 type PeerID struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

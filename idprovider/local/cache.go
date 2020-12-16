@@ -87,8 +87,8 @@ func (c *idProviderCache) Write(alias string, p perun.PeerID) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	if oldPeer, ok := c.peerIDsByAlias[alias]; ok {
-		if PeerEqual(oldPeer, p) {
+	if oldPeerID, ok := c.peerIDsByAlias[alias]; ok {
+		if PeerIDEqual(oldPeerID, p) {
 			return errors.New("peer already present in ID Provider")
 		}
 		return errors.New("alias already used by another peer in ID Provider")

@@ -18,8 +18,8 @@ package local
 
 import "github.com/hyperledger-labs/perun-node"
 
-// PeerEqual returns true if all fields in the Peer ID except OffChainAddr are equal.
-func PeerEqual(p1, p2 perun.PeerID) bool {
+// PeerIDEqual returns true if all fields in the Peer ID except OffChainAddr are equal.
+func PeerIDEqual(p1, p2 perun.PeerID) bool {
 	return p1.Alias == p2.Alias && p1.OffChainAddrString == p2.OffChainAddrString &&
 		p1.CommType == p2.CommType && p1.CommAddr == p2.CommAddr
 }
