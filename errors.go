@@ -45,12 +45,12 @@ var (
 	ErrUnknownSessionID  = APIError("No session corresponding to the specified ID")
 	ErrUnknownProposalID = APIError("No channel proposal corresponding to the specified ID")
 	ErrUnknownChID       = APIError("No channel corresponding to the specified ID")
-	ErrUnknownAlias      = APIError("No peer corresponding to the specified ID was found in contacts")
+	ErrUnknownAlias      = APIError("No peer corresponding to the specified ID was found in ID Provider")
 	ErrUnknownUpdateID   = APIError("No response was expected for the given channel update ID")
 
-	ErrUnsupportedCurrency     = APIError("Currency not supported by this node instance")
-	ErrUnsupportedContactsType = APIError("Contacts type not supported by this node instance")
-	ErrUnsupportedCommType     = APIError("Communication protocol not supported by this node instance")
+	ErrUnsupportedCurrency       = APIError("Currency not supported by this node instance")
+	ErrUnsupportedIDProviderType = APIError("ID Provider type not supported by this node instance")
+	ErrUnsupportedCommType       = APIError("Communication protocol not supported by this node instance")
 
 	ErrInsufficientBal     = APIError("Insufficient balance in sender account")
 	ErrInvalidAmount       = APIError("Invalid amount string")
@@ -65,8 +65,8 @@ var (
 	ErrSessionClosed      = APIError("Session is closed")
 	ErrChFinalized        = APIError("Channel is finalized")
 	ErrChClosed           = APIError("Channel is closed")
-	ErrPeerAliasInUse     = APIError("Alias already used by another peer in the contacts")
-	ErrPeerExists         = APIError("Peer already available in the contacts provider")
+	ErrPeerAliasInUse     = APIError("Alias already used by another peer in the ID Provider")
+	ErrPeerExists         = APIError("Peer ID already available in the ID provider")
 	ErrRespTimeoutExpired = APIError("Response to the notification was sent after the timeout has expired")
 	ErrPeerRejected       = APIError("The request was rejected by peer")
 

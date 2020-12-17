@@ -31,7 +31,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
-	"github.com/hyperledger-labs/perun-node/contacts/contactstest"
+	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
 	"github.com/hyperledger-labs/perun-node/session"
 )
 
@@ -71,8 +71,8 @@ func NewConfigFile(config interface{}) (string, error) {
 
 // NewConfigT is the test friendly version of NewConfig.
 // It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
-func NewConfigT(t *testing.T, rng *rand.Rand, contacts ...perun.Peer) session.Config {
-	sessionCfg, err := NewConfig(rng, contacts...)
+func NewConfigT(t *testing.T, rng *rand.Rand, peerIDs ...perun.PeerID) session.Config {
+	sessionCfg, err := NewConfig(rng, peerIDs...)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		if err = os.RemoveAll(sessionCfg.DatabaseDir); err != nil {
@@ -82,21 +82,21 @@ func NewConfigT(t *testing.T, rng *rand.Rand, contacts ...perun.Peer) session.Co
 		if err = os.RemoveAll(sessionCfg.User.OnChainWallet.KeystorePath); err != nil {
 			t.Log("Error in test cleanup: removing directory - " + sessionCfg.User.OnChainWallet.KeystorePath)
 		}
-		if err = os.Remove(sessionCfg.ContactsURL); err != nil {
-			t.Log("Error in test cleanup: removing file - " + sessionCfg.ContactsURL)
+		if err = os.Remove(sessionCfg.IDProviderURL); err != nil {
+			t.Log("Error in test cleanup: removing file - " + sessionCfg.IDProviderURL)
 		}
 	})
 	return sessionCfg
 }
 
-// NewConfig generates random configuration data for the session using the given prng and contacts.
-// A contacts file is created with the given set of peers and path to it is added in the config.
+// NewConfig generates random configuration data for the session using the given prng . It creates a local ID provider
+// instance, populates it with the list of peer IDs passed to this function and updates the URL in the session config.
 // This function also registers cleanup functions for removing all the temp files and dirs after the test.
 //
 // This function returns a session config with user on-chain addresses that are funded on blockchain when
 // using a particular seed for prng. The first two consecutive calls to this function will return
 // funded accounts when using prng := rand.New(rand.NewSource(1729)).
-func NewConfig(rng *rand.Rand, contacts ...perun.Peer) (session.Config, error) {
+func NewConfig(rng *rand.Rand, peerIDs ...perun.PeerID) (session.Config, error) {
 	_, userCfg, err := newUserConfig(rng, 0)
 	if err != nil {
 		return session.Config{}, errors.WithMessage(err, "new user config")
@@ -106,7 +106,7 @@ func NewConfig(rng *rand.Rand, contacts ...perun.Peer) (session.Config, error) {
 	if err != nil {
 		return session.Config{}, err
 	}
-	contactsYAMLFile, err := contactstest.NewYAMLFile(contacts...)
+	idProviderURL, err := idprovidertest.NewIDProvider(peerIDs...)
 	if err != nil {
 		return session.Config{}, err
 	}
@@ -122,8 +122,8 @@ func NewConfig(rng *rand.Rand, contacts ...perun.Peer) (session.Config, error) {
 		DatabaseDir:       databaseDir,
 		PeerReconnTimeout: 20 * time.Second,
 
-		ContactsType: "yaml",
-		ContactsURL:  contactsYAMLFile,
+		IDProviderType: "local",
+		IDProviderURL:  idProviderURL,
 	}, nil
 }
 

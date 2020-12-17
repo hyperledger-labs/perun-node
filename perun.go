@@ -30,13 +30,13 @@ import (
 	pnet "perun.network/go-perun/wire/net"
 )
 
-// Peer represents any participant in the off-chain network that the user wants to transact with.
-type Peer struct {
-	// Name assigned by user for referring to this peer in API requests to the node.
+// PeerID represents any participant in the off-chain network that the user wants to transact with.
+type PeerID struct {
+	// Name assigned by user for referring to this PeerID in API requests to the node.
 	// It is unique within a session on the node.
 	Alias string `yaml:"alias"`
 
-	// Permanent identity used for authenticating the peer in the off-chain network.
+	// Permanent identity used for authenticating the PeerID in the off-chain network.
 	OffChainAddr pwire.Address `yaml:"-"`
 	// This field holds the string value of address for easy marshaling / unmarshaling.
 	OffChainAddrString string `yaml:"offchain_address"`
@@ -47,21 +47,21 @@ type Peer struct {
 	CommType string `yaml:"comm_type"`
 }
 
-// OwnAlias is the alias for the entry of the user's own peer details.
+// OwnAlias is the alias for the entry of the user's own PeerID details.
 // It will be used when translating addresses in incoming messages / proposals to aliases.
 const OwnAlias = "self"
 
-// ContactsReader represents a read only cached list of contacts.
-type ContactsReader interface {
-	ReadByAlias(alias string) (p Peer, contains bool)
-	ReadByOffChainAddr(offChainAddr pwire.Address) (p Peer, contains bool)
+// IDReader represents the functions to read peer IDs from a cache connected to a peer ID provider.
+type IDReader interface {
+	ReadByAlias(alias string) (p PeerID, contains bool)
+	ReadByOffChainAddr(offChainAddr pwire.Address) (p PeerID, contains bool)
 }
 
-// Contacts represents a cached list of contacts backed by a storage. Read, Write and Delete methods act on the
-// cache. The state of cached list can be written to the storage by using the UpdateStorage method.
-type Contacts interface {
-	ContactsReader
-	Write(alias string, p Peer) error
+// IDProvider represents the functions to read, write peer IDs from and to the local cache connected to a
+// peer ID provider. It also includes a function to sync the changes in the cache with the ID provider backend.
+type IDProvider interface {
+	IDReader
+	Write(alias string, p PeerID) error
 	Delete(alias string) error
 	UpdateStorage() error
 }
@@ -104,7 +104,7 @@ type Credential struct {
 
 // User represents a participant in the off-chain network that uses a session on this node for sending transactions.
 type User struct {
-	Peer
+	PeerID
 
 	OnChain  Credential // Account for funding the channel and the on-chain transactions.
 	OffChain Credential // Account (corresponding to off-chain address) used for signing authentication messages.
@@ -114,7 +114,7 @@ type User struct {
 	PartAddrs []pwallet.Address
 }
 
-// Session provides a context for the user to interact with a node. It manages user data (such as IDs, contacts),
+// Session provides a context for the user to interact with a node. It manages user data (such as keys, peer IDs),
 // and channel client.
 //
 // Once established, a user can establish and transact on state channels. All the channels within a session will use
@@ -204,14 +204,14 @@ type NodeConfig struct {
 
 	// Hard coded values. See cmd/perunnode/run.go.
 	CommTypes            []string // Communication protocols supported by the node for off-chain communication.
-	ContactTypes         []string // Contacts Provider backends supported by the node.
+	IDProviderTypes      []string // ID Provider types supported by the node.
 	CurrencyInterpreters []string // Currencies Interpreters supported by the node.
 
 }
 
 // NodeAPI represents the APIs that can be accessed in the context of a perun node.
 // Multiple sessions can be opened in a single node. Each instance will have a dedicated
-// keystore and contacts provider.
+// keystore and ID provider.
 type NodeAPI interface {
 	Time() int64
 	GetConfig() NodeConfig
@@ -230,8 +230,8 @@ type NodeAPI interface {
 // open channels and accept channel proposals.
 type SessionAPI interface {
 	ID() string
-	AddContact(Peer) error
-	GetContact(alias string) (Peer, error)
+	AddPeerID(PeerID) error
+	GetPeerID(alias string) (PeerID, error)
 	OpenCh(context.Context, BalInfo, App, uint64) (ChInfo, error)
 	GetChsInfo() []ChInfo
 	SubChProposals(ChProposalNotifier) error

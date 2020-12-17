@@ -14,6 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package contactstest provides a helper functions to create contacts file from
-// a list of peers for use in tests.
-package contactstest
+// Package idprovidertest provides a test helper functions to initialize a local ID provider instance
+// with a given list of peer IDs.
+package idprovidertest

@@ -49,8 +49,8 @@ type UserConfig struct {
 type Config struct {
 	User UserConfig
 
-	ContactsType       string        // Type of contacts provider.
-	ContactsURL        string        // URL for accessing the contacts provider.
+	IDProviderType     string        // Type of ID provider.
+	IDProviderURL      string        // URL for accessing the ID provider.
 	ChainURL           string        // URL of the blockchain node.
 	Asset, Adjudicator string        // Address of the Asset and Adjudicator contracts.
 	ChainConnTimeout   time.Duration // Timeout for connecting to blockchain node.

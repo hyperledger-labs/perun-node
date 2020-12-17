@@ -39,11 +39,11 @@ following functionalities:
 
 1. Payment App: For using perun protocol to establish and use bi-directional
 payment channels.
-2. Contacts Provider: For the user to define a list of known participants in
+2. ID Provider: For the user to define a list of known participants in
 the off-chain network.
 3. Key management: For managing the cryptographic keys of the user.
 4. User session: For allowing multiple users to use a single node, each with
-a dedicated key manager and contacts provider.
+a dedicated key manager and ID provider.
 5. User API interface: For the user to interact with the perun-node.
 
 The current version provides the following features:
@@ -52,7 +52,7 @@ The current version provides the following features:
 |:--|:--|
 |Blockchain Backend|Ethereum|
 |Key management|Ethereum keystore |
-|Contacts Provider|YAML file |
+|ID Provider|Local |
 |User API|Two Party Payment API |
 |User API Adapter|gRPC |
 |Persistence|LevelDB|

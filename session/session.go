@@ -34,13 +34,13 @@ import (
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/client"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
-	"github.com/hyperledger-labs/perun-node/contacts/contactsyaml"
 	"github.com/hyperledger-labs/perun-node/currency"
+	"github.com/hyperledger-labs/perun-node/idprovider/local"
 	"github.com/hyperledger-labs/perun-node/log"
 )
 
 // walletBackend for initializing user wallets and parsing off-chain addresses
-// in incoming contacts. A package level unexported variable is used so that a
+// in incoming peer IDs. A package level unexported variable is used so that a
 // test wallet backend can be set using a function defined in export_test.go.
 // Because real backend have large unlocking times and hence tests take very long.
 var walletBackend perun.WalletBackend
@@ -61,7 +61,7 @@ type (
 		user       perun.User
 		chAsset    pchannel.Asset
 		chClient   perun.ChClient
-		contacts   perun.Contacts
+		idProvider perun.IDProvider
 
 		chs map[string]*channel
 
@@ -103,7 +103,7 @@ func New(cfg Config) (*session, error) {
 		return nil, err
 	}
 
-	contacts, err := initContacts(cfg.ContactsType, cfg.ContactsURL, walletBackend, user.Peer)
+	idProvider, err := initIDProvider(cfg.IDProviderType, cfg.IDProviderURL, walletBackend, user.PeerID)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func New(cfg Config) (*session, error) {
 		user:                 user,
 		chAsset:              chAsset,
 		chClient:             chClient,
-		contacts:             contacts,
+		idProvider:           idProvider,
 		chs:                  make(map[string]*channel),
 		chProposalResponders: make(map[string]chProposalResponderEntry),
 	}
@@ -149,21 +149,22 @@ func New(cfg Config) (*session, error) {
 	return sess, nil
 }
 
-func initContacts(contactsType, contactsURL string, wb perun.WalletBackend, own perun.Peer) (perun.Contacts, error) {
-	if contactsType != "yaml" {
-		return nil, perun.ErrUnsupportedContactsType
+func initIDProvider(idProviderType, idProviderURL string, wb perun.WalletBackend, own perun.PeerID) (
+	perun.IDProvider, error) {
+	if idProviderType != "local" {
+		return nil, perun.ErrUnsupportedIDProviderType
 	}
-	contacts, err := contactsyaml.New(contactsURL, wb)
+	idProvider, err := local.NewIDprovider(idProviderURL, wb)
 	if err != nil {
 		return nil, err
 	}
 
 	own.Alias = perun.OwnAlias
-	err = contacts.Write(perun.OwnAlias, own)
+	err = idProvider.Write(perun.OwnAlias, own)
 	if err != nil && !errors.Is(err, perun.ErrPeerExists) {
-		return nil, errors.Wrap(err, "registering own user in contacts")
+		return nil, errors.Wrap(err, "registering own user in ID Provider")
 	}
-	return contacts, nil
+	return idProvider, nil
 }
 
 // calcSessionID calculates the sessionID as sha256 hash over the off-chain address of the user and
@@ -189,28 +190,28 @@ func (s *session) handleRestoredCh(pch *pclient.Channel) {
 	if pch.Phase() != pchannel.Acting {
 		return
 	}
-	peers := pch.Peers()
-	parts := make([]perun.Peer, len(peers))
-	aliases := make([]string, len(peers))
+	partOffChainAddrs := pch.Peers()
+	partIDs := make([]perun.PeerID, len(partOffChainAddrs))
+	aliases := make([]string, len(partOffChainAddrs))
 	for i := range pch.Peers() {
-		p, ok := s.contacts.ReadByOffChainAddr(peers[i])
+		p, ok := s.idProvider.ReadByOffChainAddr(partOffChainAddrs[i])
 		if !ok {
 			s.Info("Unknown peer address in a persisted channel, will not be restored", pch.Peers()[i].String())
 			return
 		}
-		parts[i] = p
+		partIDs[i] = p
 		aliases[i] = p.Alias
 	}
 
-	registerParts(parts, s.chClient)
+	registerParts(partIDs, s.chClient)
 
 	ch := newCh(pch, currency.ETH, aliases, s.timeoutCfg, pch.Params().ChallengeDuration)
 	s.addCh(ch)
 	s.Debugf("restored channel from persistence: %v", ch.getChInfo())
 }
 
-func (s *session) AddContact(peer perun.Peer) error {
-	s.Debugf("Received request: session.AddContact. Params %+v", peer)
+func (s *session) AddPeerID(peerID perun.PeerID) error {
+	s.Debugf("Received request: session.AddPeerID. Params %+v", peerID)
 	s.Lock()
 	defer s.Unlock()
 
@@ -218,28 +219,28 @@ func (s *session) AddContact(peer perun.Peer) error {
 		return perun.ErrSessionClosed
 	}
 
-	err := s.contacts.Write(peer.Alias, peer)
+	err := s.idProvider.Write(peerID.Alias, peerID)
 	if err != nil {
 		s.Error(err)
 	}
 	return perun.GetAPIError(err)
 }
 
-func (s *session) GetContact(alias string) (perun.Peer, error) {
-	s.Debugf("Received request: session.GetContact. Params %+v", alias)
+func (s *session) GetPeerID(alias string) (perun.PeerID, error) {
+	s.Debugf("Received request: session.GetPeerID. Params %+v", alias)
 	s.Lock()
 	defer s.Unlock()
 
 	if !s.isOpen {
-		return perun.Peer{}, perun.ErrSessionClosed
+		return perun.PeerID{}, perun.ErrSessionClosed
 	}
 
-	peer, isPresent := s.contacts.ReadByAlias(alias)
+	peerID, isPresent := s.idProvider.ReadByAlias(alias)
 	if !isPresent {
 		s.Error(perun.ErrUnknownAlias)
-		return perun.Peer{}, perun.ErrUnknownAlias
+		return perun.PeerID{}, perun.ErrUnknownAlias
 	}
-	return peer, nil
+	return peerID, nil
 }
 
 func (s *session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app perun.App, challengeDurSecs uint64) (
@@ -252,9 +253,9 @@ func (s *session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	}
 
 	sanitizeBalInfo(openingBalInfo)
-	parts, err := retrieveParts(openingBalInfo.Parts, s.contacts)
+	parts, err := retrievePartIDs(openingBalInfo.Parts, s.idProvider)
 	if err != nil {
-		s.Error(err, "retrieving channel participants using session contacts")
+		s.Error(err, "retrieving channel participant IDs using session idProvider")
 		return perun.ChInfo{}, perun.GetAPIError(err)
 	}
 	registerParts(parts, s.chClient)
@@ -312,11 +313,11 @@ func sanitizeBalInfo(balInfo perun.BalInfo) {
 	}
 }
 
-// retrieveParts retrieves the peers from corresponding to the aliases from the contacts provider.
+// retrievePartIDs retrieves the peer IDs corresponding to the aliases from the ID provider.
 // The order of entries for parts list will be same as that of aliases. i.e aliases[i] = parts[i].Alias.
-func retrieveParts(aliases []string, contacts perun.ContactsReader) ([]perun.Peer, error) {
-	knownParts := make(map[string]perun.Peer, len(aliases))
-	parts := make([]perun.Peer, len(aliases))
+func retrievePartIDs(aliases []string, idProvider perun.IDReader) ([]perun.PeerID, error) {
+	knownParts := make(map[string]perun.PeerID, len(aliases))
+	partIDs := make([]perun.PeerID, len(aliases))
 	missingParts := make([]string, 0, len(aliases))
 	repeatedParts := make([]string, 0, len(aliases))
 	foundOwnAlias := false
@@ -324,7 +325,7 @@ func retrieveParts(aliases []string, contacts perun.ContactsReader) ([]perun.Pee
 		if alias == perun.OwnAlias {
 			foundOwnAlias = true
 		}
-		peer, isPresent := contacts.ReadByAlias(alias)
+		peerID, isPresent := idProvider.ReadByAlias(alias)
 		if !isPresent {
 			missingParts = append(missingParts, alias)
 			continue
@@ -332,25 +333,25 @@ func retrieveParts(aliases []string, contacts perun.ContactsReader) ([]perun.Pee
 		if _, isPresent := knownParts[alias]; isPresent {
 			repeatedParts = append(repeatedParts, alias)
 		}
-		knownParts[alias] = peer
-		parts[idx] = peer
+		knownParts[alias] = peerID
+		partIDs[idx] = peerID
 	}
 
 	if len(missingParts) != 0 {
-		return nil, errors.New(fmt.Sprintf("No peers found in contacts for the following alias(es): %v", knownParts))
+		return nil, errors.New(fmt.Sprintf("No peer IDs found in ID Provider for the following alias(es): %v", missingParts))
 	}
 	if len(repeatedParts) != 0 {
-		return nil, errors.New(fmt.Sprintf("Repeated entries in aliases: %v", knownParts))
+		return nil, errors.New(fmt.Sprintf("Repeated entries in aliases: %v", repeatedParts))
 	}
 	if !foundOwnAlias {
 		return nil, errors.New("No entry for self found in aliases")
 	}
 
-	return parts, nil
+	return partIDs, nil
 }
 
 // registerParts will register the given parts to the passed registry.
-func registerParts(parts []perun.Peer, r perun.Registerer) {
+func registerParts(parts []perun.PeerID, r perun.Registerer) {
 	for idx := range parts {
 		if parts[idx].Alias != perun.OwnAlias { // Skip own alias.
 			r.Register(parts[idx].OffChainAddr, parts[idx].CommAddr)
@@ -358,11 +359,11 @@ func registerParts(parts []perun.Peer, r perun.Registerer) {
 	}
 }
 
-// makeOffChainAddrs returns the list of off-chain addresses corresponding to the given list of peers.
-func makeOffChainAddrs(parts []perun.Peer) []pwallet.Address {
-	addrs := make([]pwallet.Address, len(parts))
-	for i := range parts {
-		addrs[i] = parts[i].OffChainAddr
+// makeOffChainAddrs returns the list of off-chain addresses corresponding to the given list of peer IDs.
+func makeOffChainAddrs(partIDs []perun.PeerID) []pwallet.Address {
+	addrs := make([]pwallet.Address, len(partIDs))
+	for i := range partIDs {
+		addrs[i] = partIDs[i].OffChainAddr
 	}
 	return addrs
 }
@@ -411,11 +412,11 @@ func (s *session) HandleProposal(chProposal pclient.ChannelProposal, responder *
 
 	parts := make([]string, len(chProposal.Proposal().PeerAddrs))
 	for i := range chProposal.Proposal().PeerAddrs {
-		p, ok := s.contacts.ReadByOffChainAddr(chProposal.Proposal().PeerAddrs[i])
+		p, ok := s.idProvider.ReadByOffChainAddr(chProposal.Proposal().PeerAddrs[i])
 		if !ok {
-			s.Info("Received channel proposal from unknonwn peer", chProposal.Proposal().PeerAddrs[i].String())
+			s.Info("Received channel proposal from unknonwn peer ID", chProposal.Proposal().PeerAddrs[i].String())
 			// nolint: errcheck, gosec		// It is sufficient to just log this error.
-			s.rejectChProposal(context.Background(), responder, "peer not found in session contacts")
+			s.rejectChProposal(context.Background(), responder, "peer ID not found in session ID Provider")
 			expiry = 0
 			break
 		}
