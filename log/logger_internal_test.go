@@ -34,7 +34,7 @@ func Test_NewLoggerWithField(t *testing.T) {
 
 		var l Logger
 		assert.NotPanics(t, func() {
-			l = NewLoggerWithField(logrus.Fields{"testkey1": "testval", "testkey2": "testval"})
+			l = NewLoggerWithField("testkey", "testval")
 		})
 		require.NotNil(t, l)
 		assert.Equal(t, logrus.DebugLevel, logger.Level)

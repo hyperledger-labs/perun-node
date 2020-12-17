@@ -131,7 +131,7 @@ func New(cfg Config) (*session, error) {
 		response:  cfg.ResponseTimeout,
 	}
 	sess := &session{
-		Logger:               log.NewLoggerWithField(log.Fields{"session-id": sessionID, "channel-id": sessionID}),
+		Logger:               log.NewLoggerWithField("session-id", sessionID),
 		id:                   sessionID,
 		isOpen:               true,
 		timeoutCfg:           timeoutCfg,
@@ -394,7 +394,7 @@ func makeAllocation(balInfo perun.BalInfo, chAsset pchannel.Asset) (*pchannel.Al
 
 // addCh adds the channel to session. It locks the session mutex during the operation.
 func (s *session) addCh(ch *channel) {
-	ch.Logger = log.NewLoggerWithField(log.Fields{
+	ch.Logger = log.NewDerivedLoggerWithField(log.Fields{
 		"channel-id": ch.id,
 		"session-id": s.id,
 	})

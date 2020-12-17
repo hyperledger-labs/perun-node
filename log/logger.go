@@ -75,12 +75,19 @@ func InitLogger(levelStr, logFile string) error {
 //
 // If the internal logger instance is not initialized before this call, it is initialized to "debug" level
 // and logs to the standard output (stdout).
-func NewLoggerWithField(fields Fields) *logrus.Entry {
+func NewLoggerWithField(key string, value interface{}) Logger {
+	if logger == nil {
+		InitLogger("debug", "") // nolint: errcheck, gosec	// err will always be nil in this case.
+	}
+	return logger.WithField(key, value)
+}
+
+// NewDerivedLoggerWithField returns an entry with all the fields logged.
+func NewDerivedLoggerWithField(fields Fields) *logrus.Entry {
 	if logger == nil {
 		InitLogger("debug", "") // nolint: errcheck, gosec	// err will always be nil in this case.
 	}
 	return logger.WithFields(fields)
-
 }
 
 // customTextFormatter is defined to override default formating options for log entry.
