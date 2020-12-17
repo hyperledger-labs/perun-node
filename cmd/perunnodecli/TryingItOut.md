@@ -15,7 +15,7 @@ An application with interactive CLI interface that uses generated grpc client
 stubs to interact with a running instance of perun node. Besides this, it does
 not share any code with rest of the project.
 
-It provides different sets of commands: chain, node, session, contact, channel,
+It provides different sets of commands: chain, node, session, peer-id, channel,
 payment. Each of these commands have sub-commands to do specific operations.
 In the app, type `help` to get information on each of these commands.
 
@@ -67,7 +67,7 @@ This will generate the following artifacts:
 
 - Node: node.yaml file.
 - Session: Two directories (alice and bob) each containing session.yaml file,
-  contacts.yaml file and keystore directory with keys corresponding to the
+  idprovider.yaml file and keystore directory with keys corresponding to the
   on-chain and off-chain accounts.
 
 
@@ -144,20 +144,20 @@ chain deploy-perun-contracts ws://127.0.0.1:8545
 From here on, choose one terminal for alice role and one for bob role. In each
 step, the role will be the enclosed in square brackets before description.
 
-3. Opening a session and reading contact.
+3. Opening a session and reading peer ID.
 
-- (a) [Alice] Start the session and get the contact of bob to check if it is
-   present. Getting the contact will also add the peer alias to auto-completion
+- (a) [Alice] Start the session and get the peer ID of bob to check if it is
+   present. Getting the peer ID will also add the peer alias to auto-completion
    list. The alias will then suggested, wherever a peer alias is expected. Two
-   exceptions where peer alias is not auto-completed are `contact add` and
-   `contact get` commands, because these commands are designed to add/get
-    contacts for unknown aliases.
+   exceptions where peer alias is not auto-completed are `peer-id add` and
+   `peer-id get` commands, because these commands are designed to add/get
+    peer IDs for unknown aliases.
 
 ```
 # [Alice]
 node connect :50001
 session open alice/session.yaml
-contact get bob
+peer-id get bob
 ```
 
 - (b) [Bob] Repeat step 3 for bob using below commands:
@@ -167,7 +167,7 @@ contact get bob
 # [Bob]
 node connect :50001
 session open bob/session.yaml
-contact get alice
+peer-id get alice
 ```
 
 4. Sending a request to open a payment channel and accepting it.

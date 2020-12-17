@@ -27,7 +27,7 @@ var (
 	// File that stores history of commands used in the interactive shell.
 	// This will be preserved across the multiple runs of perunnode cli.
 	// It will be located in the home directory.
-	historyFile = ".perunnode_history"
+	historyFile = ".perunnodecli_history"
 
 	// Singleton instance of ishell that is used throughout this program.
 	// this will be initialized in main() and be accessed by subscription
@@ -64,7 +64,7 @@ func main() {
 	sh.AddCmd(chainCmd)
 	sh.AddCmd(nodeCmd)
 	sh.AddCmd(sessionCmd)
-	sh.AddCmd(contactCmd)
+	sh.AddCmd(peerIDCmd)
 	sh.AddCmd(channelCmd)
 	sh.AddCmd(paymentCmd)
 

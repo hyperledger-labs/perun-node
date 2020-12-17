@@ -14,10 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package contactsyaml implements contacts provider to access contacts stored
-// in a yaml file.
+// Package local contains an implementation of ID provider, where
+// the peer IDs are stored in a YAML file stored locally on the disk.
 //
-// The complete list of contacts are loaded into an in-memory cache during
+// The complete list of peer IDs are loaded into an in-memory cache during
 // initialization. The entries in the cache are indexed by both alias and
 // off-chain address of the peer and can be using either of these as reference.
 //
@@ -27,4 +27,4 @@
 // Latest state of cache can be updated to the file by explicitly calling
 // UpdateStorage method. Normally this should be called before shutting down
 // the node.
-package contactsyaml
+package local

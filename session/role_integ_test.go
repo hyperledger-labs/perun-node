@@ -58,36 +58,36 @@ func Test_Integ_Role(t *testing.T) {
 	t.Logf("bob session id: %s\n", bob.ID())
 	t.Logf("alice database dir is: %s\n", aliceCfg.DatabaseDir)
 
-	var aliceContact, bobContact perun.Peer
-	t.Run("GetContact", func(t *testing.T) {
+	var alicePeerID, bobPeerID perun.PeerID
+	t.Run("GetPeerID", func(t *testing.T) {
 		t.Run("happy", func(t *testing.T) {
-			aliceContact, err = alice.GetContact(perun.OwnAlias)
-			require.NoErrorf(t, err, "Alice: GetContact")
-			aliceContact.Alias = aliceAlias
+			alicePeerID, err = alice.GetPeerID(perun.OwnAlias)
+			require.NoErrorf(t, err, "Alice: GetPeerID")
+			alicePeerID.Alias = aliceAlias
 
-			bobContact, err = bob.GetContact(perun.OwnAlias)
-			require.NoErrorf(t, err, "Bob: GetContact")
-			bobContact.Alias = bobAlias
+			bobPeerID, err = bob.GetPeerID(perun.OwnAlias)
+			require.NoErrorf(t, err, "Bob: GetPeerID")
+			bobPeerID.Alias = bobAlias
 		})
 		t.Run("missing", func(t *testing.T) {
-			_, err = alice.GetContact("random alias")
-			assert.Errorf(t, err, "Alice: GetContact")
+			_, err = alice.GetPeerID("random alias")
+			assert.Errorf(t, err, "Alice: GetPeerID")
 			t.Log(err)
 		})
 	})
 
-	t.Run("AddContact", func(t *testing.T) {
+	t.Run("AddPeerID", func(t *testing.T) {
 		t.Run("happy", func(t *testing.T) {
-			err = alice.AddContact(bobContact)
-			require.NoErrorf(t, err, "Alice: AddContact")
+			err = alice.AddPeerID(bobPeerID)
+			require.NoErrorf(t, err, "Alice: AddPeerID")
 
-			err = bob.AddContact(aliceContact)
-			require.NoErrorf(t, err, "Bob: GetContact")
+			err = bob.AddPeerID(alicePeerID)
+			require.NoErrorf(t, err, "Bob: GetPeerID")
 		})
 		t.Run("already_exists", func(t *testing.T) {
-			// Try to add bob contact again
-			err = alice.AddContact(bobContact)
-			assert.Errorf(t, err, "Alice: AddContact")
+			// Try to add bob peer ID again
+			err = alice.AddPeerID(bobPeerID)
+			assert.Errorf(t, err, "Alice: AddPeerID")
 			t.Log(err)
 		})
 	})

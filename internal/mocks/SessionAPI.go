@@ -14,12 +14,12 @@ type SessionAPI struct {
 	mock.Mock
 }
 
-// AddContact provides a mock function with given fields: _a0
-func (_m *SessionAPI) AddContact(_a0 perun.Peer) error {
+// AddPeerID provides a mock function with given fields: _a0
+func (_m *SessionAPI) AddPeerID(_a0 perun.PeerID) error {
 	ret := _m.Called(_a0)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(perun.Peer) error); ok {
+	if rf, ok := ret.Get(0).(func(perun.PeerID) error); ok {
 		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)
@@ -90,15 +90,15 @@ func (_m *SessionAPI) GetChsInfo() []perun.ChInfo {
 	return r0
 }
 
-// GetContact provides a mock function with given fields: alias
-func (_m *SessionAPI) GetContact(alias string) (perun.Peer, error) {
+// GetPeerID provides a mock function with given fields: alias
+func (_m *SessionAPI) GetPeerID(alias string) (perun.PeerID, error) {
 	ret := _m.Called(alias)
 
-	var r0 perun.Peer
-	if rf, ok := ret.Get(0).(func(string) perun.Peer); ok {
+	var r0 perun.PeerID
+	if rf, ok := ret.Get(0).(func(string) perun.PeerID); ok {
 		r0 = rf(alias)
 	} else {
-		r0 = ret.Get(0).(perun.Peer)
+		r0 = ret.Get(0).(perun.PeerID)
 	}
 
 	var r1 error

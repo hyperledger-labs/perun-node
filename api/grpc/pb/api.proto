@@ -20,8 +20,9 @@ syntax = "proto3";
 // generated code for grpc server and client.
 package pb;
 
-// Peer represents a peer in the off-chain network.
-message Peer {
+// Peer ID represents the data required to identify and communicate
+// with a participant in the the off-chain network.
+message PeerID {
     string alias=1;
     string offChainAddress=2;
     string commAddress=3;
@@ -63,8 +64,8 @@ service Payment_API{
     rpc Time (TimeReq) returns (TimeResp) {}
     rpc Help (HelpReq) returns (HelpResp) {}
 
-    rpc AddContact (AddContactReq) returns (AddContactResp) {}
-    rpc GetContact (GetContactReq) returns (GetContactResp) {}
+    rpc AddPeerID (AddPeerIDReq) returns (AddPeerIDResp) {}
+    rpc GetPeerID (GetPeerIDReq) returns (GetPeerIDResp) {}
     rpc OpenPayCh (OpenPayChReq) returns (OpenPayChResp) {}
     rpc GetPayChsInfo (GetPayChsInfoReq) returns (GetPayChsInfoResp) {}
     rpc SubPayChProposals (SubPayChProposalsReq) returns (stream SubPayChProposalsResp) {}
@@ -88,7 +89,7 @@ message GetConfigResp{
     string adjudicatorAddress = 2;
     string assetAddress = 3;
     repeated string commTypes = 4;
-    repeated string contactTypes = 5;
+    repeated string idProviderTypes = 5;
 }
 
 message OpenSessionReq {
@@ -120,12 +121,12 @@ message HelpResp {
     repeated string apis = 1;
 }
 
-message AddContactReq {
+message AddPeerIDReq {
     string sessionID=1;
-    Peer peer=2;
+    PeerID peerID=2;
 }
 
-message AddContactResp {
+message AddPeerIDResp {
     oneof response {
         MsgSuccess msgSuccess = 1;
         MsgError error = 2;
@@ -135,18 +136,18 @@ message AddContactResp {
     }
 }
 
-message GetContactReq {
+message GetPeerIDReq {
     string sessionID=1;
     string alias = 2;
 }
 
-message  GetContactResp {
+message  GetPeerIDResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
         MsgError error = 2;
     }
     message MsgSuccess {
-        Peer peer = 1;
+        PeerID peerID = 1;
     }
 }
 

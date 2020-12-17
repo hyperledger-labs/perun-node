@@ -39,11 +39,11 @@ func NewUnlockedUser(wb perun.WalletBackend, cfg UserConfig) (perun.User, error)
 		return perun.User{}, errors.WithMessage(err, "participant addresses")
 	}
 
-	u.Peer.Alias = perun.OwnAlias
-	u.Peer.CommAddr = cfg.CommAddr
-	u.Peer.CommType = cfg.CommType
-	u.Peer.OffChainAddr = u.OffChain.Addr
-	u.Peer.OffChainAddrString = u.OffChain.Addr.String()
+	u.PeerID.Alias = perun.OwnAlias
+	u.PeerID.CommAddr = cfg.CommAddr
+	u.PeerID.CommType = cfg.CommType
+	u.PeerID.OffChainAddr = u.OffChain.Addr
+	u.PeerID.OffChainAddrString = u.OffChain.Addr.String()
 
 	return u, nil
 }

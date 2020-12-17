@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package contactstest
+package idprovidertest
 
 import (
 	"io/ioutil"
@@ -28,37 +28,37 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 )
 
-// NewYAMLFileT is the test friendly version of NewYAMLFile.
+// NewIDProviderT is the test friendly version of NewIDProvider.
 // It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
-func NewYAMLFileT(t *testing.T, peers ...perun.Peer) string {
-	contactsFile, err := NewYAMLFile(peers...)
+func NewIDProviderT(t *testing.T, peerIDs ...perun.PeerID) string {
+	idProviderFile, err := NewIDProvider(peerIDs...)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		if err = os.Remove(contactsFile); err != nil {
-			t.Log("Error in test cleanup: removing file - " + contactsFile)
+		if err = os.Remove(idProviderFile); err != nil {
+			t.Log("Error in test cleanup: removing file - " + idProviderFile)
 		}
 	})
-	return contactsFile
+	return idProviderFile
 }
 
-// NewYAMLFile creates a temporary file containing the details of given peers and
-// returns the path to it. It also registers a cleanup function on the passed test handler.
-func NewYAMLFile(peers ...perun.Peer) (string, error) {
+// NewIDProvider sets up a local ID provider instance as a file in the system's temp directory with
+// the given list of peers IDs and returns the ID provider URL, which is path of the file. .
+func NewIDProvider(peerIDs ...perun.PeerID) (string, error) {
 	tempFile, err := ioutil.TempFile("", "")
 	if err != nil {
-		return "", errors.Wrap(err, "creating temp file for yaml contacts")
+		return "", errors.Wrap(err, "creating temp file for local idProvider")
 	}
 	// if err = os.Remove(tempFile.Name()); err != nil {
-	contacts := make(map[string]perun.Peer, len(peers))
-	for _, peer := range peers {
-		contacts[peer.Alias] = peer
+	idProvider := make(map[string]perun.PeerID, len(peerIDs))
+	for _, peer := range peerIDs {
+		idProvider[peer.Alias] = peer
 	}
 
 	encoder := yaml.NewEncoder(tempFile)
-	if err := encoder.Encode(contacts); err != nil {
+	if err := encoder.Encode(idProvider); err != nil {
 		tempFile.Close()           // nolint: errcheck
 		os.Remove(tempFile.Name()) // nolint: errcheck
-		return "", errors.Wrap(err, "encoding contacts")
+		return "", errors.Wrap(err, "encoding idProvider")
 	}
 	if err := encoder.Close(); err != nil {
 		tempFile.Close()           // nolint: errcheck

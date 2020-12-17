@@ -28,7 +28,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
-	"github.com/hyperledger-labs/perun-node/contacts/contactstest"
+	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
 	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
@@ -38,7 +38,7 @@ const (
 	nodeConfigFile       = "node.yaml"
 	sessionConfigFile    = "session.yaml"
 	keystoreDir          = "keystore"
-	contactsFile         = "contacts.yaml"
+	idProviderFile       = "idprovider.yaml"
 	databaseDir          = "database"
 
 	onlyNodeF    = "only-node"
@@ -53,7 +53,7 @@ var (
 		LogLevel:             "debug",
 		ChainURL:             "ws://127.0.0.1:8545",
 		CommTypes:            []string{"tcp"},
-		ContactTypes:         []string{"yaml"},
+		IDProviderTypes:      []string{"local"},
 		CurrencyInterpreters: []string{"ETH"},
 
 		ChainConnTimeout: 30 * time.Second,
@@ -69,7 +69,7 @@ Generate demo artifacts for node and session configuration.
 
 - Node: node.yaml file.
 - Session: Two directories (alice and bob) each containing session.yaml file,
-  contacts.yaml file and keystore directory with keys corresponding to the
+  idprovider.yaml file and keystore directory with keys corresponding to the
   on-chain and off-chain accounts.
 
 Note:
@@ -155,9 +155,9 @@ func generateNodeConfig() error {
 }
 
 // generateSessionConfig generates two sets of session configuration artifacts in two directories named alice and bob.
-// Each directory would have: session.yaml, contacts.yaml and keystore (containing 2 key files - on-chain & off-chain).
-// To use this configuration, start the node from same directory containing the session config artifacts directory and
-// pass the path "alice/session.yaml" and "bob/session.yaml" for alice and bob respectively.
+// Each directory would have: session.yaml, idprovider.yaml and keystore (containing 2 key files - on-chain
+// & off-chain). To use this configuration, start the node from same directory containing the session config artifacts
+// directory and pass the path "alice/session.yaml" and "bob/session.yaml" for alice and bob respectively.
 func generateSessionConfig() error {
 	if isPresent, dirName := isAnyDirPresent(aliceAlias, bobAlias); isPresent {
 		return errors.New("dir exists - " + dirName)
@@ -180,12 +180,12 @@ func generateSessionConfig() error {
 	}
 	bobCfg.User.Alias = bobAlias
 
-	// Create Contacts file.
-	aliceContactsFile, err := contactstest.NewYAMLFile(peer(bobCfg.User))
+	// Create IDProvider file.
+	aliceIDProviderFile, err := idprovidertest.NewIDProvider(peerID(bobCfg.User))
 	if err != nil {
 		return err
 	}
-	bobContactsFile, err := contactstest.NewYAMLFile(peer(aliceCfg.User))
+	bobIDProviderFile, err := idprovidertest.NewIDProvider(peerID(aliceCfg.User))
 	if err != nil {
 		return err
 	}
@@ -203,13 +203,13 @@ func generateSessionConfig() error {
 	// Move the artifacts to currenct directory.
 	filesToMove := map[string]string{
 		aliceCfgFile:                             filepath.Join(aliceAlias, sessionConfigFile),
-		aliceContactsFile:                        filepath.Join(aliceAlias, contactsFile),
+		aliceIDProviderFile:                      filepath.Join(aliceAlias, idProviderFile),
 		aliceCfg.DatabaseDir:                     filepath.Join(aliceAlias, databaseDir),
 		aliceCfg.User.OnChainWallet.KeystorePath: filepath.Join(aliceAlias, keystoreDir),
 
 		bobCfgFile:                             filepath.Join(bobAlias, sessionConfigFile),
 		bobCfg.DatabaseDir:                     filepath.Join(bobAlias, databaseDir),
-		bobContactsFile:                        filepath.Join(bobAlias, contactsFile),
+		bobIDProviderFile:                      filepath.Join(bobAlias, idProviderFile),
 		bobCfg.User.OnChainWallet.KeystorePath: filepath.Join(bobAlias, keystoreDir),
 	}
 	return moveFiles(filesToMove)
@@ -234,8 +234,8 @@ func makeDirs(dirNames ...string) error {
 	return nil
 }
 
-func peer(userCfg session.UserConfig) perun.Peer {
-	return perun.Peer{
+func peerID(userCfg session.UserConfig) perun.PeerID {
+	return perun.PeerID{
 		Alias:              userCfg.Alias,
 		OffChainAddrString: userCfg.OffChainAddr,
 		CommAddr:           userCfg.CommAddr,
@@ -245,7 +245,7 @@ func peer(userCfg session.UserConfig) perun.Peer {
 
 func updatedConfigCopy(cfg session.Config) session.Config {
 	cfgCopy := cfg
-	cfgCopy.ContactsURL = filepath.Join(cfg.User.Alias, contactsFile)
+	cfgCopy.IDProviderURL = filepath.Join(cfg.User.Alias, idProviderFile)
 	cfgCopy.DatabaseDir = filepath.Join(cfg.User.Alias, databaseDir)
 	cfgCopy.User.OnChainWallet.KeystorePath = filepath.Join(cfg.User.Alias, keystoreDir)
 	cfgCopy.User.OffChainWallet.KeystorePath = filepath.Join(cfg.User.Alias, keystoreDir)
