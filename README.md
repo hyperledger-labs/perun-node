@@ -52,7 +52,7 @@ The current version provides the following features:
 |:--|:--|
 |Blockchain Backend|Ethereum|
 |Key management|Ethereum keystore |
-|ID Provider|YAML file |
+|ID Provider|Local |
 |User API|Two Party Payment API |
 |User API Adapter|gRPC |
 |Persistence|LevelDB|

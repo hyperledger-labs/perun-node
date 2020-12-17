@@ -191,7 +191,7 @@ func (s *session) handleRestoredCh(pch *pclient.Channel) {
 		return
 	}
 	partOffChainAddrs := pch.Peers()
-	parts := make([]perun.PeerID, len(partOffChainAddrs))
+	partIDs := make([]perun.PeerID, len(partOffChainAddrs))
 	aliases := make([]string, len(partOffChainAddrs))
 	for i := range pch.Peers() {
 		p, ok := s.idProvider.ReadByOffChainAddr(partOffChainAddrs[i])
@@ -199,11 +199,11 @@ func (s *session) handleRestoredCh(pch *pclient.Channel) {
 			s.Info("Unknown peer address in a persisted channel, will not be restored", pch.Peers()[i].String())
 			return
 		}
-		parts[i] = p
+		partIDs[i] = p
 		aliases[i] = p.Alias
 	}
 
-	registerParts(parts, s.chClient)
+	registerParts(partIDs, s.chClient)
 
 	ch := newCh(pch, currency.ETH, aliases, s.timeoutCfg, pch.Params().ChallengeDuration)
 	s.addCh(ch)

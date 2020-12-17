@@ -20,7 +20,8 @@ syntax = "proto3";
 // generated code for grpc server and client.
 package pb;
 
-// Peer ID represents the data required to identify and communicate.
+// Peer ID represents the data required to identify and communicate
+// with a participant in the the off-chain network.
 message PeerID {
     string alias=1;
     string offChainAddress=2;
