@@ -21,7 +21,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -29,6 +28,7 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
+	"github.com/hyperledger-labs/perun-node/node/nodetest"
 	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
@@ -47,24 +47,10 @@ const (
 	dirFileMode = os.FileMode(0o750) // file mode for creating the directories for alice and bob.
 )
 
-var (
-	nodeCfg = perun.NodeConfig{
-		LogFile:              "",
-		LogLevel:             "debug",
-		ChainURL:             "ws://127.0.0.1:8545",
-		CommTypes:            []string{"tcp"},
-		IDProviderTypes:      []string{"local"},
-		CurrencyInterpreters: []string{"ETH"},
-
-		ChainConnTimeout: 30 * time.Second,
-		OnChainTxTimeout: 10 * time.Second,
-		ResponseTimeout:  20 * time.Second,
-	}
-
-	generateCmd = &cobra.Command{
-		Use:   "generate",
-		Short: "Generate demo artifacts",
-		Long: `
+var generateCmd = &cobra.Command{
+	Use:   "generate",
+	Short: "Generate demo artifacts",
+	Long: `
 Generate demo artifacts for node and session configuration.
 
 - Node: node.yaml file.
@@ -84,9 +70,8 @@ ganache-cli -b 1 \
 100000000000000000000"
 `,
 
-		Run: generate,
-	}
-)
+	Run: generate,
+}
 
 func init() {
 	rootCmd.AddCommand(generateCmd)
@@ -141,6 +126,7 @@ func generateNodeConfig() error {
 	if _, err := os.Stat(nodeConfigFile); !os.IsNotExist(err) {
 		return errors.New("file exists - " + nodeConfigFile)
 	}
+	nodeCfg := nodetest.NewConfig()
 	adjudicator, asset := ethereumtest.ContractAddrs()
 	nodeCfg.Adjudicator = adjudicator.String()
 	nodeCfg.Asset = asset.String()
@@ -166,9 +152,9 @@ func generateSessionConfig() error {
 		return err
 	}
 
-	// Generate session config, the seed 1729 generates two accounts which were funded when starting
-	// the ganache cli node with the command documented in help message.
-	prng := rand.New(rand.NewSource(1729))
+	// Generate session config, the seed ethereumtest.RandSeedForTestAccs generates two accounts which were funded
+	// when starting the ganache cli node with the command documented in help message.
+	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	aliceCfg, err := sessiontest.NewConfig(prng)
 	if err != nil {
 		return err

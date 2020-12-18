@@ -30,7 +30,7 @@ import (
 )
 
 func Test_New_Happy(t *testing.T) {
-	rng := rand.New(rand.NewSource(1729))
+	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	cntParts := uint(4)
 	wb, userCfg := sessiontest.NewUserConfigT(t, rng, cntParts)
 
@@ -67,7 +67,7 @@ func compareUserWithCfg(t *testing.T, gotUser perun.User, userCfg session.UserCo
 }
 
 func Test_New_Unhappy(t *testing.T) {
-	rng := rand.New(rand.NewSource(1729))
+	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	cntParts := uint(1)
 	wb, userCfg := sessiontest.NewUserConfigT(t, rng, cntParts)
 

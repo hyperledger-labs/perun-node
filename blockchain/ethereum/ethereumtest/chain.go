@@ -34,10 +34,13 @@ import (
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/internal"
 )
 
-// ChainTxTimeout is the timeout for on-chain transactions.
-// Since test setups are expected to run with a simulated backend or ganache node,
-// a small timeout value is used.
-const ChainTxTimeout = 1 * time.Minute
+// Chain related parameters for connecting to ganache-cli node in integration test environment.
+const (
+	RandSeedForTestAccs = 1729 // Seed required for generating accounts used in integration tests.
+	OnChainTxTimeout    = 1 * time.Minute
+	ChainURL            = "ws://127.0.0.1:8545"
+	ChainConnTimeout    = 10 * time.Second
+)
 
 // ChainBackendSetup is a test setup that uses a simulated blockchain backend (for details on this backend,
 // see go-ethereum) with required contracts deployed on it and a UserSetup.
@@ -54,7 +57,7 @@ func NewChainBackendSetup(t *testing.T, rng *rand.Rand, numAccs uint) *ChainBack
 	walletSetup := NewWalletSetupT(t, rng, numAccs)
 
 	cbEth := newSimContractBackend(t, walletSetup.Accs, walletSetup.Keystore)
-	cb := &internal.ChainBackend{Cb: &cbEth, TxTimeout: ChainTxTimeout}
+	cb := &internal.ChainBackend{Cb: &cbEth, TxTimeout: OnChainTxTimeout}
 
 	onChainAddr := walletSetup.Accs[0].Address()
 	adjudicator, err := cb.DeployAdjudicator(onChainAddr)
@@ -75,7 +78,7 @@ func NewChainBackendSetup(t *testing.T, rng *rand.Rand, numAccs uint) *ChainBack
 // as the user account. All accounts are funded with 10 ethers.
 func newSimContractBackend(t *testing.T, accs []pwallet.Account, ks *keystore.KeyStore) pethchannel.ContractBackend {
 	simBackend := pethchanneltest.NewSimulatedBackend()
-	ctx, cancel := context.WithTimeout(context.Background(), ChainTxTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), OnChainTxTimeout)
 	defer cancel()
 	for _, acc := range accs {
 		simBackend.FundAddress(ctx, pethwallet.AsEthAddr(acc.Address()))

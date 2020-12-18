@@ -31,9 +31,13 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
+	"github.com/hyperledger-labs/perun-node/client/clienttest"
 	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
 	"github.com/hyperledger-labs/perun-node/session"
 )
+
+// ResponseTimeout is the suggested value for peer response timeout for use in tests.
+const ResponseTimeout = 10 * time.Second
 
 // NewConfigFileT is the test friendly version of NewConfigFile.
 // It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
@@ -95,7 +99,7 @@ func NewConfigT(t *testing.T, rng *rand.Rand, peerIDs ...perun.PeerID) session.C
 //
 // This function returns a session config with user on-chain addresses that are funded on blockchain when
 // using a particular seed for prng. The first two consecutive calls to this function will return
-// funded accounts when using prng := rand.New(rand.NewSource(1729)).
+// funded accounts when using prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs)).
 func NewConfig(rng *rand.Rand, peerIDs ...perun.PeerID) (session.Config, error) {
 	_, userCfg, err := newUserConfig(rng, 0)
 	if err != nil {
@@ -116,11 +120,11 @@ func NewConfig(rng *rand.Rand, peerIDs ...perun.PeerID) (session.Config, error) 
 		ChainURL:          ethereumtest.ChainURL,
 		Adjudicator:       adjudicator.String(),
 		Asset:             asset.String(),
-		ChainConnTimeout:  30 * time.Second,
-		ResponseTimeout:   10 * time.Second,
-		OnChainTxTimeout:  5 * time.Second,
+		ChainConnTimeout:  ethereumtest.ChainConnTimeout,
+		ResponseTimeout:   ResponseTimeout,
+		OnChainTxTimeout:  ethereumtest.OnChainTxTimeout,
 		DatabaseDir:       databaseDir,
-		PeerReconnTimeout: 20 * time.Second,
+		PeerReconnTimeout: clienttest.PeerReconnTimeout,
 
 		IDProviderType: "local",
 		IDProviderURL:  idProviderURL,

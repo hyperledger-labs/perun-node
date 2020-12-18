@@ -35,6 +35,7 @@ import (
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/node"
+	"github.com/hyperledger-labs/perun-node/node/nodetest"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
@@ -46,21 +47,6 @@ import (
 // --account="0xb0309c60b4622d3071fad3e16c2ce4d0b1e7758316c187754f4dd0cfb44ceb33,100000000000000000000"
 
 var (
-	nodeCfg = perun.NodeConfig{
-		LogFile:              "",
-		LogLevel:             "debug",
-		ChainURL:             "ws://127.0.0.1:8545",
-		Adjudicator:          "0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63",
-		Asset:                "0x5992089d61cE79B6CF90506F70DD42B8E42FB21d",
-		CommTypes:            []string{"tcp"},
-		IDProviderTypes:      []string{"local"},
-		CurrencyInterpreters: []string{"ETH"},
-
-		ChainConnTimeout: 30 * time.Second,
-		OnChainTxTimeout: 10 * time.Second,
-		ResponseTimeout:  10 * time.Second,
-	}
-
 	grpcPort = ":50001"
 
 	// singleton instance of client and context that will be used for all tests.
@@ -69,7 +55,7 @@ var (
 )
 
 func StartServer(t *testing.T, nodeCfg perun.NodeConfig, grpcPort string) {
-	nodeAPI, err := node.New(nodeCfg)
+	nodeAPI, err := node.New(nodetest.NewConfig())
 	require.NoErrorf(t, err, "initializing nodeAPI")
 
 	t.Log("Started ListenAndServePayChAPI")
@@ -83,10 +69,10 @@ func StartServer(t *testing.T, nodeCfg perun.NodeConfig, grpcPort string) {
 
 func Test_Integ_Role(t *testing.T) {
 	// Deploy contracts on blockchain.
-	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainTxTimeout)
+	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.OnChainTxTimeout)
 
 	// Run server in a go routine.
-	StartServer(t, nodeCfg, grpcPort)
+	StartServer(t, nodetest.NewConfig(), grpcPort)
 
 	// Inititalize client.
 	conn, err := grpclib.Dial(grpcPort, grpclib.WithInsecure())
@@ -124,7 +110,7 @@ func Test_Integ_Role(t *testing.T) {
 	var aliceSessionID, bobSessionID string
 	var alicePeerID, bobPeerID *pb.PeerID
 	var chID string
-	prng := rand.New(rand.NewSource(1729))
+	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	aliceCfg := sessiontest.NewConfigT(t, prng)
 	bobCfg := sessiontest.NewConfigT(t, prng)
 	aliceCfgFile := sessiontest.NewConfigFileT(t, aliceCfg)
