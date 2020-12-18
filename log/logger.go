@@ -79,10 +79,13 @@ func NewLoggerWithField(key string, value interface{}) Logger {
 	return logger.WithField(key, value)
 }
 
-// NewDerivedLoggerWithField returns a logger with the fields logged along with the parentlogger.
+// NewDerivedLoggerWithField returns a logger that inherits all properties of the parent logger,
+// and add the given fields for each log entry.
+//
+// Panics if parent logger is nil.
 func NewDerivedLoggerWithField(parentLogger Logger, key string, value interface{}) Logger {
 	if parentLogger == nil {
-		InitLogger("debug", "") // nolint: errcheck, gosec	// err will always be nil in this case.
+		panic("parent logger should not be nil")
 	}
 	return parentLogger.WithField(key, value)
 }
