@@ -56,10 +56,10 @@ func Test_Client_Register(t *testing.T) {
 	// happy path test is covered in integration test, as internal components of
 	// the client should be initialized.
 	t.Run("happy", func(t *testing.T) {
-		registere := &mocks.Registerer{}
+		registerer := &mocks.Registerer{}
 		dbConnCloser := &mocks.Closer{}
-		Client := client.NewClientForTest(nil, nil, registere, dbConnCloser)
-		registere.On("Register", nil, "").Return()
+		Client := client.NewClientForTest(nil, nil, registerer, dbConnCloser)
+		registerer.On("Register", nil, "").Return()
 		Client.Register(nil, "")
 	})
 }

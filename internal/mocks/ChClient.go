@@ -13,6 +13,8 @@ import (
 
 	persistence "perun.network/go-perun/channel/persistence"
 
+	perun "github.com/hyperledger-labs/perun-node"
+
 	wallet "perun.network/go-perun/wallet"
 )
 
@@ -22,15 +24,15 @@ type ChClient struct {
 }
 
 // Channel provides a mock function with given fields: _a0
-func (_m *ChClient) Channel(_a0 [32]byte) (*client.Channel, error) {
+func (_m *ChClient) Channel(_a0 [32]byte) (perun.Channel, error) {
 	ret := _m.Called(_a0)
 
-	var r0 *client.Channel
-	if rf, ok := ret.Get(0).(func([32]byte) *client.Channel); ok {
+	var r0 perun.Channel
+	if rf, ok := ret.Get(0).(func([32]byte) perun.Channel); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*client.Channel)
+			r0 = ret.Get(0).(perun.Channel)
 		}
 	}
 
@@ -85,20 +87,20 @@ func (_m *ChClient) Log() log.Logger {
 }
 
 // OnNewChannel provides a mock function with given fields: handler
-func (_m *ChClient) OnNewChannel(handler func(*client.Channel)) {
+func (_m *ChClient) OnNewChannel(handler func(perun.Channel)) {
 	_m.Called(handler)
 }
 
 // ProposeChannel provides a mock function with given fields: _a0, _a1
-func (_m *ChClient) ProposeChannel(_a0 context.Context, _a1 client.ChannelProposal) (*client.Channel, error) {
+func (_m *ChClient) ProposeChannel(_a0 context.Context, _a1 client.ChannelProposal) (perun.Channel, error) {
 	ret := _m.Called(_a0, _a1)
 
-	var r0 *client.Channel
-	if rf, ok := ret.Get(0).(func(context.Context, client.ChannelProposal) *client.Channel); ok {
+	var r0 perun.Channel
+	if rf, ok := ret.Get(0).(func(context.Context, client.ChannelProposal) perun.Channel); ok {
 		r0 = rf(_a0, _a1)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*client.Channel)
+			r0 = ret.Get(0).(perun.Channel)
 		}
 	}
 
@@ -132,11 +134,11 @@ func (_m *ChClient) Restore(_a0 context.Context) error {
 }
 
 // RestoreChs provides a mock function with given fields: _a0
-func (_m *ChClient) RestoreChs(_a0 func(*client.Channel)) error {
+func (_m *ChClient) RestoreChs(_a0 func(perun.Channel)) error {
 	ret := _m.Called(_a0)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(func(*client.Channel)) error); ok {
+	if rf, ok := ret.Get(0).(func(func(perun.Channel)) error); ok {
 		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)

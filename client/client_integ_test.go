@@ -28,8 +28,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	pclient "perun.network/go-perun/client"
 
+	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/client"
 	"github.com/hyperledger-labs/perun-node/client/clienttest"
@@ -73,7 +73,7 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 		cfg.DatabaseDir = newDatabaseDir(t) // start with empty persistence dir each time.
 		client, err := client.NewEthereumPaymentClient(cfg, user, tcp.NewTCPBackend(tcptest.DialerTimeout))
 		require.NoError(t, err)
-		err = client.RestoreChs(func(*pclient.Channel) {})
+		err = client.RestoreChs(func(perun.Channel) {})
 		assert.NoError(t, err)
 		assert.NoError(t, client.Close())
 	})

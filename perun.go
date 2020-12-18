@@ -127,6 +127,25 @@ type Session struct {
 	ChClient ChClient
 }
 
+//go:generate mockery --name Channel --output ./internal/mocks
+
+// Channel represents  state channel established among the participants of the off-chain network.
+type Channel interface {
+	Close() error
+	ID() pchannel.ID
+	Idx() pchannel.Index
+	IsClosed() bool
+	Params() *pchannel.Params
+	Peers() []pwire.Address
+	Phase() pchannel.Phase
+	State() *pchannel.State
+	OnUpdate(cb func(from, to *pchannel.State))
+	UpdateBy(ctx context.Context, update func(*pchannel.State)) error
+	Settle(ctx context.Context) error
+	SettleSecondary(ctx context.Context) error
+	Watch() error
+}
+
 //go:generate mockery --name ChClient --output ./internal/mocks
 
 // ChClient allows the user to establish off-chain channels and transact on these channels.
@@ -139,15 +158,15 @@ type Session struct {
 // Hence it is highly recommended not to stop the channel client if there are open channels.
 type ChClient interface {
 	Registerer
-	ProposeChannel(context.Context, pclient.ChannelProposal) (*pclient.Channel, error)
+	ProposeChannel(context.Context, pclient.ChannelProposal) (Channel, error)
 	Handle(pclient.ProposalHandler, pclient.UpdateHandler)
-	Channel(pchannel.ID) (*pclient.Channel, error)
+	Channel(pchannel.ID) (Channel, error)
 	Close() error
 
 	EnablePersistence(ppersistence.PersistRestorer)
-	OnNewChannel(handler func(*pclient.Channel))
+	OnNewChannel(handler func(Channel))
 	Restore(context.Context) error
-	RestoreChs(func(*pclient.Channel)) error
+	RestoreChs(func(Channel)) error
 
 	Log() pLog.Logger
 }
@@ -255,15 +274,6 @@ type (
 		App              App
 		ChallengeDurSecs uint64
 		Expiry           int64
-	}
-
-	// ChCloseNotifier is the notifier function that is used for sending channel close notifications.
-	ChCloseNotifier func(ChCloseNotif)
-
-	// ChCloseNotif represents the parameters sent in a channel close notifications.
-	ChCloseNotif struct {
-		ClosedChInfo ChInfo
-		Error        string
 	}
 )
 
