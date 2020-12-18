@@ -76,8 +76,18 @@ func NewLoggerWithField(key string, value interface{}) Logger {
 	if logger == nil {
 		InitLogger("debug", "") // nolint: errcheck, gosec	// err will always be nil in this case.
 	}
-	l := logger.WithField(key, value)
-	return l
+	return logger.WithField(key, value)
+}
+
+// NewDerivedLoggerWithField returns a logger that inherits all properties of the parent logger,
+// and add the given fields for each log entry.
+//
+// Panics if parent logger is nil.
+func NewDerivedLoggerWithField(parentLogger Logger, key string, value interface{}) Logger {
+	if parentLogger == nil {
+		panic("parent logger should not be nil")
+	}
+	return parentLogger.WithField(key, value)
 }
 
 // customTextFormatter is defined to override default formating options for log entry.
