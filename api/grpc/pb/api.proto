@@ -20,6 +20,9 @@ syntax = "proto3";
 // generated code for grpc server and client.
 package pb;
 
+// Option go_package is to specify the exact path where the generated go code should reside.
+option go_package = ".;pb";
+
 // Peer ID represents the data required to identify and communicate
 // with a participant in the the off-chain network.
 message PeerID {
