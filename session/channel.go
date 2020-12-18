@@ -41,11 +41,12 @@ const (
 )
 
 type (
-	channel struct {
+	// Channel implements perun.ChAPI.
+	Channel struct {
 		log.Logger
 
 		id               string
-		pch              *pclient.Channel
+		pch              perun.Channel
 		status           chStatus
 		currency         string
 		parts            []string
@@ -65,23 +66,23 @@ type (
 
 	chUpdateResponderEntry struct {
 		notif       perun.ChUpdateNotif
-		responder   chUpdateResponder
+		responder   ChUpdateResponder
 		notifExpiry int64
 	}
 
-	//go:generate mockery --name ProposalResponder --output ../internal/mocks
-
-	// ChUpdaterResponder represents the methods on channel update responder that will be used the perun node.
-	chUpdateResponder interface {
+	// ChUpdateResponder represents the methods on channel update responder that will be used the perun node.
+	ChUpdateResponder interface {
 		Accept(ctx context.Context) error
 		Reject(ctx context.Context, reason string) error
 	}
 )
 
+//go:generate mockery --name ChUpdateResponder --output ../internal/mocks
+
 // newCh sets up a channel object from the passed pchannel.
-func newCh(pch *pclient.Channel, currency string, parts []string, timeoutCfg timeoutConfig,
-	challengeDurSecs uint64) *channel {
-	ch := &channel{
+func newCh(pch perun.Channel, currency string, parts []string, timeoutCfg timeoutConfig,
+	challengeDurSecs uint64) *Channel {
+	ch := &Channel{
 		id:                 fmt.Sprintf("%x", pch.ID()),
 		pch:                pch,
 		status:             open,
@@ -94,7 +95,7 @@ func newCh(pch *pclient.Channel, currency string, parts []string, timeoutCfg tim
 		watcherWg:          &sync.WaitGroup{},
 	}
 	ch.watcherWg.Add(1)
-	go func(ch *channel) {
+	go func(ch *Channel) {
 		err := ch.pch.Watch()
 		ch.watcherWg.Done()
 
@@ -103,24 +104,24 @@ func newCh(pch *pclient.Channel, currency string, parts []string, timeoutCfg tim
 	return ch
 }
 
-// ID() returns the ID of the channel.
+// ID returns the ID of the channel.
 //
 // Does not require a mutex lock, as the data will remain unchanged throughout the lifecycle of the channel.
-func (ch *channel) ID() string {
+func (ch *Channel) ID() string {
 	return ch.id
 }
 
 // Currency returns the currency interpreter used in the channel.
 //
 // Does not require a mutex lock, as the data will remain unchanged throughout the lifecycle of the channel.
-func (ch *channel) Currency() string {
+func (ch *Channel) Currency() string {
 	return ch.currency
 }
 
 // Parts returns the list of aliases of the channel participants.
 //
 // Does not require a mutex lock, as the data will remain unchanged throughout the lifecycle of the channel.
-func (ch *channel) Parts() []string {
+func (ch *Channel) Parts() []string {
 	return ch.parts
 }
 
@@ -128,11 +129,12 @@ func (ch *channel) Parts() []string {
 // an invalid/older state is registered on the blockchain closing the channel.
 //
 // Does not require a mutex lock, as the data will remain unchanged throughout the lifecycle of the channel.
-func (ch *channel) ChallengeDurSecs() uint64 {
+func (ch *Channel) ChallengeDurSecs() uint64 {
 	return ch.challengeDurSecs
 }
 
-func (ch *channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater) (perun.ChInfo, error) {
+// SendChUpdate implements chAPI.SendChUpdate.
+func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater) (perun.ChInfo, error) {
 	ch.Debug("Received request: channel.SendChUpdate")
 	ch.Lock()
 	defer ch.Unlock()
@@ -151,7 +153,7 @@ func (ch *channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 	return ch.getChInfo(), nil
 }
 
-func (ch *channel) sendChUpdate(pctx context.Context, updater perun.StateUpdater) error {
+func (ch *Channel) sendChUpdate(pctx context.Context, updater perun.StateUpdater) error {
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
 	defer cancel()
 	err := ch.pch.UpdateBy(ctx, updater)
@@ -165,7 +167,10 @@ func (ch *channel) sendChUpdate(pctx context.Context, updater perun.StateUpdater
 	return perun.GetAPIError(err)
 }
 
-func (ch *channel) HandleUpdate(chUpdate pclient.ChannelUpdate, responder *pclient.UpdateResponder) {
+// HandleUpdate handles the incoming updates on an open channel. All updates are sent to a centralized
+// update handler defined on the session. The centrazlied handler identifies the channel and then
+// invokes this function to process the update.
+func (ch *Channel) HandleUpdate(chUpdate pclient.ChannelUpdate, responder ChUpdateResponder) {
 	ch.Lock()
 	defer ch.Unlock()
 
@@ -190,7 +195,7 @@ func (ch *channel) HandleUpdate(chUpdate pclient.ChannelUpdate, responder *pclie
 	ch.sendChUpdateNotif(notif)
 }
 
-func (ch *channel) sendChUpdateNotif(notif perun.ChUpdateNotif) {
+func (ch *Channel) sendChUpdateNotif(notif perun.ChUpdateNotif) {
 	if ch.chUpdateNotifier == nil {
 		ch.chUpdateNotifCache = append(ch.chUpdateNotifCache, notif)
 		ch.Debug("HandleUpdate: Notification cached")
@@ -220,7 +225,8 @@ func makeChUpdateNotif(currChInfo perun.ChInfo, proposedState *pchannel.State, e
 	}
 }
 
-func (ch *channel) SubChUpdates(notifier perun.ChUpdateNotifier) error {
+// SubChUpdates implements chAPI.SubChUpdates.
+func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) error {
 	ch.Debug("Received request: channel.SubChUpdates")
 	ch.Lock()
 	defer ch.Unlock()
@@ -243,7 +249,8 @@ func (ch *channel) SubChUpdates(notifier perun.ChUpdateNotifier) error {
 	return nil
 }
 
-func (ch *channel) UnsubChUpdates() error {
+// UnsubChUpdates implements chAPI.UnsubChUpdates.
+func (ch *Channel) UnsubChUpdates() error {
 	ch.Debug("Received request: channel.UnsubChUpdates")
 	ch.Lock()
 	defer ch.Unlock()
@@ -260,11 +267,12 @@ func (ch *channel) UnsubChUpdates() error {
 	return nil
 }
 
-func (ch *channel) unsubChUpdates() {
+func (ch *Channel) unsubChUpdates() {
 	ch.chUpdateNotifier = nil
 }
 
-func (ch *channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) (perun.ChInfo, error) {
+// RespondChUpdate implements chAPI.RespondChUpdate.
+func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) (perun.ChInfo, error) {
 	ch.Debug("Received request channel.RespondChUpdate")
 	ch.Lock()
 	defer ch.Unlock()
@@ -300,7 +308,7 @@ func (ch *channel) RespondChUpdate(pctx context.Context, updateID string, accept
 	return ch.getChInfo(), err
 }
 
-func (ch *channel) acceptChUpdate(pctx context.Context, entry chUpdateResponderEntry) error {
+func (ch *Channel) acceptChUpdate(pctx context.Context, entry chUpdateResponderEntry) error {
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdate())
 	defer cancel()
 	err := entry.responder.Accept(ctx)
@@ -312,7 +320,7 @@ func (ch *channel) acceptChUpdate(pctx context.Context, entry chUpdateResponderE
 	return perun.GetAPIError(errors.Wrap(err, "accepting update"))
 }
 
-func (ch *channel) rejectChUpdate(pctx context.Context, entry chUpdateResponderEntry, reason string) error {
+func (ch *Channel) rejectChUpdate(pctx context.Context, entry chUpdateResponderEntry, reason string) error {
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdate())
 	defer cancel()
 	err := entry.responder.Reject(ctx, reason)
@@ -322,7 +330,8 @@ func (ch *channel) rejectChUpdate(pctx context.Context, entry chUpdateResponderE
 	return perun.GetAPIError(errors.Wrap(err, "rejecting update"))
 }
 
-func (ch *channel) GetChInfo() perun.ChInfo {
+// GetChInfo implements chAPI.GetChInfo.
+func (ch *Channel) GetChInfo() perun.ChInfo {
 	ch.Debug("Received request: channel.GetChInfo")
 	ch.Lock()
 	chInfo := ch.getChInfo()
@@ -331,11 +340,14 @@ func (ch *channel) GetChInfo() perun.ChInfo {
 }
 
 // This function assumes that caller has already locked the channel.
-func (ch *channel) getChInfo() perun.ChInfo {
+func (ch *Channel) getChInfo() perun.ChInfo {
 	return makeChInfo(ch.ID(), ch.parts, ch.currency, ch.currState)
 }
 
 func makeChInfo(chID string, parts []string, curr string, state *pchannel.State) perun.ChInfo {
+	if state == nil {
+		return perun.ChInfo{}
+	}
 	return perun.ChInfo{
 		ChID:    chID,
 		BalInfo: makeBalInfoFromState(parts, curr, state),
@@ -354,9 +366,6 @@ func makeApp(def pchannel.App, data pchannel.Data) perun.App {
 
 // makeBalInfoFromState retrieves balance information from the channel state.
 func makeBalInfoFromState(parts []string, curr string, state *pchannel.State) perun.BalInfo {
-	if state == nil {
-		return perun.BalInfo{}
-	}
 	return makeBalInfoFromRawBal(parts, curr, state.Balances[0])
 }
 
@@ -381,7 +390,7 @@ func makeBalInfoFromRawBal(parts []string, curr string, rawBal []*big.Int) perun
 // Then it sends a channel close notification if the channel is already subscribed.
 // If the channel is not subscribed, notification will not be cached as it not possible for the user
 // to subscribe to channel after it is closed.
-func (ch *channel) HandleWatcherReturned(err error) {
+func (ch *Channel) HandleWatcherReturned(err error) {
 	ch.Lock()
 	defer ch.Unlock()
 	ch.Debug("Watch returned")
@@ -415,7 +424,8 @@ func makeChCloseNotif(currChInfo perun.ChInfo, err error) perun.ChUpdateNotif {
 	}
 }
 
-func (ch *channel) Close(pctx context.Context) (perun.ChInfo, error) {
+// Close implements chAPI.Close.
+func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, error) {
 	ch.Debug("Received request channel.Close")
 	ch.Lock()
 	defer ch.Unlock()
@@ -436,7 +446,7 @@ func (ch *channel) Close(pctx context.Context) (perun.ChInfo, error) {
 // the channel on the blockchain without registering or waiting for challenge duration to expire.
 // If this fails, calling Settle consequently will close the channel non-collaboratively, by registering
 // the state on-chain and waiting for challenge duration to expire.
-func (ch *channel) finalize(pctx context.Context) {
+func (ch *Channel) finalize(pctx context.Context) {
 	chFinalizer := func(state *pchannel.State) {
 		state.IsFinal = true
 	}
@@ -451,7 +461,7 @@ func (ch *channel) finalize(pctx context.Context) {
 }
 
 // settlePrimary is used when the channel close initiated by the user.
-func (ch *channel) settlePrimary(pctx context.Context) error {
+func (ch *Channel) settlePrimary(pctx context.Context) error {
 	// TODO (mano): Document what happens when a Settle fails, should channel close be called again ?
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.settleChPrimary(ch.challengeDurSecs))
 	defer cancel()
@@ -465,7 +475,7 @@ func (ch *channel) settlePrimary(pctx context.Context) error {
 }
 
 // settleSecondary is used when the channel close is initiated after accepting a final update.
-func (ch *channel) settleSecondary(pctx context.Context) error {
+func (ch *Channel) settleSecondary(pctx context.Context) error {
 	// TODO (mano): Document what happens when a Settle fails, should channel close be called again ?
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.settleChSecondary(ch.challengeDurSecs))
 	defer cancel()
@@ -481,7 +491,7 @@ func (ch *channel) settleSecondary(pctx context.Context) error {
 // Close the computing resources (listeners, subscriptions etc.,) of the channel.
 // If it fails, this error can be ignored.
 // It also removes the channel from the session.
-func (ch *channel) close() {
+func (ch *Channel) close() {
 	ch.watcherWg.Wait()
 
 	if err := ch.pch.Close(); err != nil {

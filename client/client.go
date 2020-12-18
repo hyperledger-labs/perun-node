@@ -60,16 +60,41 @@ type client struct {
 
 // pClient represents the methods on client.Client that are used by client.
 type pClient interface {
-	ProposeChannel(context.Context, pclient.ChannelProposal) (*pclient.Channel, error)
+	ProposeChannel(context.Context, pclient.ChannelProposal) (perun.Channel, error)
 	Handle(pclient.ProposalHandler, pclient.UpdateHandler)
-	Channel(pchannel.ID) (*pclient.Channel, error)
+	Channel(pchannel.ID) (perun.Channel, error)
 	Close() error
 
 	EnablePersistence(ppersistence.PersistRestorer)
-	OnNewChannel(handler func(*pclient.Channel))
+	OnNewChannel(handler func(perun.Channel))
 	Restore(context.Context) error
 
 	Log() plog.Logger
+}
+
+// pclientWrapped is a wrapper around pclient.Client that returns a channel of interface type
+// instead of struct type. This enables easier mocking of the returned value in tests.
+type pclientWrapped struct {
+	*pclient.Client
+}
+
+// ProposeChannel is a wrapper around the original function, that returns a channel of interface type instead of
+// struct type.
+func (c *pclientWrapped) ProposeChannel(ctx context.Context, proposal pclient.ChannelProposal) (perun.Channel, error) {
+	return c.Client.ProposeChannel(ctx, proposal)
+}
+
+// Channel is a wrapper around the original function, that returns a channel of interface type instead of struct type.
+func (c *pclientWrapped) Channel(id pchannel.ID) (perun.Channel, error) {
+	return c.Client.Channel(id)
+}
+
+// OnNewChannel is a wrapper around the original function, that takes a handler that takes channel of interface type as
+// argument instead of the handler in original function that takes channel of struct type as argument.
+func (c *pclientWrapped) OnNewChannel(handler func(perun.Channel)) {
+	c.Client.OnNewChannel(func(ch *pclient.Channel) {
+		handler(ch)
+	})
 }
 
 // NewEthereumPaymentClient initializes a two party, ethereum payment channel client for the given user.
@@ -93,7 +118,7 @@ func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBacken
 	}
 
 	c := &client{
-		pClient:        pcClient,
+		pClient:        &pclientWrapped{pcClient},
 		msgBus:         msgBus,
 		msgBusRegistry: dialer,
 		dbPath:         cfg.DatabaseDir,
@@ -123,7 +148,7 @@ func (c *client) Handle(ph pclient.ProposalHandler, ch pclient.UpdateHandler) {
 
 // RestoreChs will restore the persisted channels. Register OnNewChannel Callback
 // before calling this function.
-func (c *client) RestoreChs(handler func(*pclient.Channel)) error {
+func (c *client) RestoreChs(handler func(perun.Channel)) error {
 	c.OnNewChannel(handler)
 	db, err := pleveldb.LoadDatabase(c.dbPath)
 	if err != nil {
