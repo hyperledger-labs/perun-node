@@ -394,9 +394,8 @@ func makeAllocation(balInfo perun.BalInfo, chAsset pchannel.Asset) (*pchannel.Al
 
 // addCh adds the channel to session. It locks the session mutex during the operation.
 func (s *session) addCh(ch *channel) {
-	ch.Logger = log.NewLoggerWithField("channel-id", ch.id)
+	ch.Logger = log.NewDerivedLoggerWithField(s.Logger, "channel-id", ch.id)
 	s.Lock()
-	// TODO: (mano) use logger with multiple fields and use session-id, channel-id.
 	s.chs[ch.id] = ch
 	s.Unlock()
 }
