@@ -42,10 +42,10 @@ func init() {
 }
 
 func Test_Integ_New(t *testing.T) {
-	prng := rand.New(rand.NewSource(1729))
+	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	peerIDs := newPeerIDs(t, prng, uint(2))
 
-	prng = rand.New(rand.NewSource(1729))
+	prng = rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	cfg := sessiontest.NewConfigT(t, prng, peerIDs...)
 
 	t.Run("happy", func(t *testing.T) {
@@ -144,10 +144,12 @@ func Test_Integ_New(t *testing.T) {
 }
 
 func Test_Integ_Persistence(t *testing.T) {
-	prng := rand.New(rand.NewSource(1729))
+	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 
 	aliceCfg := sessiontest.NewConfigT(t, prng)
 	// Use idprovider and databaseDir from a session that was persisted already.
+	// Copy database directory to tmp before using as it will be modifed when reading as well.
+	// Contacts file can be used as such.
 	aliceCfg.DatabaseDir = copyDirToTmp(t, "../testdata/session/persistence/alice-database")
 	aliceCfg.IDProviderURL = "../testdata/session/persistence/alice-idprovider.yaml"
 

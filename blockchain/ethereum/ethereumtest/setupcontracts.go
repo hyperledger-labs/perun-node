@@ -41,16 +41,11 @@ import (
 // 0xc4bA4815c82727554e4c12A07a139b74c6742322.
 //
 // The account in the command corresponds to the on-chain account of first two users when seeding the rand source
-// with 1729 and passing numParts as 0. If numParts is not zero, then the on-chain account is funded only for
-// the first user. Hence DO NOT CHANGE THE RAND SEED for integration tests in this package.
+// with "RandSeedForTestAccs" and passing numParts as 0. If numParts is not zero, then the on-chain account is funded
+// only for the first user. Hence DO NOT CHANGE THE RAND SEED for integration tests in this package.
 //
 // The contracts will be deployed only during the first run of tests and will be resused in subsequent runs. This
 // saves ~0.3s of setup time in each run. Hence when running tests on development machine, START THE NODE ONLY ONCE.
-const (
-	OnChainTxTimeout = 10 * time.Second
-	ChainURL         = "ws://127.0.0.1:8545"
-	chainConnTimeout = 10 * time.Second
-)
 
 var adjudicatorAddr, assetAddr pwallet.Address
 
@@ -69,7 +64,7 @@ func SetupContractsT(t *testing.T, chainURL string, onChainTxTimeout time.Durati
 //
 // On a fresh ganache-cli node run the setup contracts helper function to deploy these contracts.
 func ContractAddrs() (adjudicator, asset pwallet.Address) {
-	prng := rand.New(rand.NewSource(1729))
+	prng := rand.New(rand.NewSource(RandSeedForTestAccs))
 	ws, err := NewWalletSetup(prng, 2)
 	if err != nil {
 		panic("Cannot setup test wallet")
@@ -83,7 +78,7 @@ func ContractAddrs() (adjudicator, asset pwallet.Address) {
 // Address generation mechanism in ethereum is used to pre-compute the contract address.
 func SetupContracts(chainURL string, onChainTxTimeout time.Duration) (
 	adjudicator, asset pwallet.Address, _ error) {
-	prng := rand.New(rand.NewSource(1729))
+	prng := rand.New(rand.NewSource(RandSeedForTestAccs))
 	ws, err := NewWalletSetup(prng, 2)
 	if err != nil {
 		return nil, nil, err
@@ -108,7 +103,7 @@ func SetupContracts(chainURL string, onChainTxTimeout time.Duration) (
 		asset = assetAddr
 	}
 
-	chain, err := ethereum.NewChainBackend(chainURL, chainConnTimeout, onChainTxTimeout, onChainCred)
+	chain, err := ethereum.NewChainBackend(chainURL, ChainConnTimeout, onChainTxTimeout, onChainCred)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "initializaing chain backend")
 	}

@@ -140,7 +140,7 @@ func getOnChainBalanceFn(c *ishell.Context) {
 		return
 	}
 
-	bal, err := ethereum.BalanceAt(chainAddr, ethereumtest.ChainTxTimeout, ethereumtest.OnChainTxTimeout, addr)
+	bal, err := ethereum.BalanceAt(chainAddr, ethereumtest.ChainConnTimeout, ethereumtest.OnChainTxTimeout, addr)
 	if err != nil {
 		c.Printf("%s\n\n", redf("Error connecting to blockchain node: %v", err))
 		return
