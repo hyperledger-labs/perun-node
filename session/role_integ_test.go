@@ -202,11 +202,12 @@ func Test_Integ_Role(t *testing.T) {
 			peerIdx = ownIdx ^ 1
 			amountToSend := decimal.NewFromFloat(0.5e18).BigInt()
 
-			updater := func(state *pchannel.State) {
+			updater := func(state *pchannel.State) error {
 				bals := state.Allocation.Clone().Balances[0]
 				bals[ownIdx].Sub(bals[ownIdx], amountToSend)
 				bals[peerIdx].Add(bals[peerIdx], amountToSend)
 				state.Allocation.Balances[0] = bals
+				return nil
 			}
 
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.
@@ -246,11 +247,12 @@ func Test_Integ_Role(t *testing.T) {
 			peerIdx = ownIdx ^ 1
 			amountToSend := decimal.NewFromFloat(0.5e18).BigInt()
 
-			updater := func(state *pchannel.State) {
+			updater := func(state *pchannel.State) error {
 				bals := state.Allocation.Clone().Balances[0]
 				bals[ownIdx].Sub(bals[ownIdx], amountToSend)
 				bals[peerIdx].Add(bals[peerIdx], amountToSend)
 				state.Allocation.Balances[0] = bals
+				return nil
 			}
 
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.
