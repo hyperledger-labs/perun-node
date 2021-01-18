@@ -19,11 +19,9 @@ package payment
 import (
 	"context"
 
-	ppayment "perun.network/go-perun/apps/payment"
 	pchannel "perun.network/go-perun/channel"
 
 	"github.com/hyperledger-labs/perun-node"
-	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 )
 
 type (
@@ -38,16 +36,6 @@ type (
 	// PayChProposalNotifier represents the channel update notification function for payment app.
 	PayChProposalNotifier func(PayChProposalNotif)
 )
-
-// init() initializes the payment app in go-perun.
-func init() {
-	wb := ethereum.NewWalletBackend()
-	emptyAddr, err := wb.ParseAddr("0x0")
-	if err != nil {
-		panic("Error parsing zero address for app payment def: " + err.Error())
-	}
-	ppayment.SetAppDef(emptyAddr) // dummy app def.
-}
 
 // OpenSession opens a session and interprets the restored channels as payment channels.
 func OpenSession(n perun.NodeAPI, configFile string) (string, []PayChInfo, error) {

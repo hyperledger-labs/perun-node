@@ -28,7 +28,7 @@ import (
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
 	psync "perun.network/go-perun/pkg/sync"
-	pwallet "perun.network/go-perun/wallet"
+	pwire "perun.network/go-perun/wire"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
@@ -378,8 +378,8 @@ func registerParts(parts []perun.PeerID, r perun.Registerer) {
 }
 
 // makeOffChainAddrs returns the list of off-chain addresses corresponding to the given list of peer IDs.
-func makeOffChainAddrs(partIDs []perun.PeerID) []pwallet.Address {
-	addrs := make([]pwallet.Address, len(partIDs))
+func makeOffChainAddrs(partIDs []perun.PeerID) []pwire.Address {
+	addrs := make([]pwire.Address, len(partIDs))
 	for i := range partIDs {
 		addrs[i] = partIDs[i].OffChainAddr
 	}
@@ -434,11 +434,11 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 		return
 	}
 
-	parts := make([]string, len(chProposal.Proposal().PeerAddrs))
-	for i := range chProposal.Proposal().PeerAddrs {
-		p, ok := s.idProvider.ReadByOffChainAddr(chProposal.Proposal().PeerAddrs[i])
+	parts := make([]string, len(chProposal.Base().PeerAddrs))
+	for i := range chProposal.Base().PeerAddrs {
+		p, ok := s.idProvider.ReadByOffChainAddr(chProposal.Base().PeerAddrs[i])
 		if !ok {
-			s.Info("Received channel proposal from unknonwn peer ID", chProposal.Proposal().PeerAddrs[i].String())
+			s.Info("Received channel proposal from unknonwn peer ID", chProposal.Base().PeerAddrs[i].String())
 			// nolint: errcheck, gosec		// It is sufficient to just log this error.
 			s.rejectChProposal(context.Background(), responder, "peer ID not found in session ID Provider")
 			expiry = 0
@@ -447,7 +447,7 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 		parts[i] = p.Alias
 	}
 
-	notif := chProposalNotif(parts, currency.ETH, chProposal.Proposal(), expiry)
+	notif := chProposalNotif(parts, currency.ETH, chProposal.Base(), expiry)
 	entry := chProposalResponderEntry{
 		proposal:  chProposal,
 		notif:     notif,
@@ -478,7 +478,7 @@ func chProposalNotif(parts []string, curr string, chProposal *pclient.BaseChanne
 	return perun.ChProposalNotif{
 		ProposalID:       fmt.Sprintf("%x", chProposal.ProposalID()),
 		OpeningBalInfo:   makeBalInfoFromRawBal(parts, curr, chProposal.InitBals.Balances[0]),
-		App:              makeApp(chProposal.Proposal().App, chProposal.InitData),
+		App:              makeApp(chProposal.Base().App, chProposal.InitData),
 		ChallengeDurSecs: chProposal.ChallengeDuration,
 		Expiry:           expiry,
 	}
@@ -565,7 +565,7 @@ func (s *Session) acceptChProposal(pctx context.Context, entry chProposalRespond
 	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.respChProposalAccept(entry.notif.ChallengeDurSecs))
 	defer cancel()
 
-	proposal := entry.proposal.Proposal()
+	proposal := entry.proposal.Base()
 	resp := proposal.NewChannelProposalAcc(s.user.OffChainAddr, pclient.WithRandomNonce())
 	pch, err := entry.responder.Accept(ctx, resp)
 	if err != nil {

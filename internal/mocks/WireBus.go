@@ -7,8 +7,6 @@ import (
 
 	mock "github.com/stretchr/testify/mock"
 
-	wallet "perun.network/go-perun/wallet"
-
 	wire "perun.network/go-perun/wire"
 )
 
@@ -46,11 +44,11 @@ func (_m *WireBus) Publish(_a0 context.Context, _a1 *wire.Envelope) error {
 }
 
 // SubscribeClient provides a mock function with given fields: c, clientAddr
-func (_m *WireBus) SubscribeClient(c wire.Consumer, clientAddr wallet.Address) error {
+func (_m *WireBus) SubscribeClient(c wire.Consumer, clientAddr wire.Address) error {
 	ret := _m.Called(c, clientAddr)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(wire.Consumer, wallet.Address) error); ok {
+	if rf, ok := ret.Get(0).(func(wire.Consumer, wire.Address) error); ok {
 		r0 = rf(c, clientAddr)
 	} else {
 		r0 = ret.Error(0)
