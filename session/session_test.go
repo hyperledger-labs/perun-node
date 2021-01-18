@@ -287,7 +287,7 @@ func newSessionWChProposal(t *testing.T, peerIDs []perun.PeerID) (
 	ownPeerID, err := session.GetPeerID(perun.OwnAlias)
 	require.NoError(t, err)
 	chProposal := newChProposal(t, ownPeerID, peerIDs[0])
-	chProposalID := fmt.Sprintf("%x", chProposal.Proposal().ProposalID())
+	chProposalID := fmt.Sprintf("%x", chProposal.Base().ProposalID())
 	return session, chProposal, chProposalID
 }
 
@@ -475,7 +475,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		ownPeerID, err := session.GetPeerID(perun.OwnAlias)
 		require.NoError(t, err)
 		chProposal := newChProposal(t, ownPeerID, peerIDs[0])
-		chProposalID := fmt.Sprintf("%x", chProposal.Proposal().ProposalID())
+		chProposalID := fmt.Sprintf("%x", chProposal.Base().ProposalID())
 
 		responder := &mocks.ChProposalResponder{} // Dummy responder is sufficient as no methods on it will be invoked.
 		session.HandleProposalWInterface(chProposal, responder)

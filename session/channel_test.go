@@ -93,13 +93,16 @@ func Test_SendChUpdate(t *testing.T) {
 		Parts:    []string{perun.OwnAlias, peers[0].Alias},
 		Bal:      []string{"1", "2"},
 	}
+	nilUpdater := func(s *pchannel.State) error {
+		return nil
+	}
 
 	t.Run("happy", func(t *testing.T) {
 		pch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)
 
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
-		gotChInfo, err := ch.SendChUpdate(context.Background(), func(s *pchannel.State) {})
+		gotChInfo, err := ch.SendChUpdate(context.Background(), nilUpdater)
 		require.NoError(t, err)
 		assert.NotZero(t, gotChInfo)
 	})
@@ -109,7 +112,7 @@ func Test_SendChUpdate(t *testing.T) {
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)
 
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(errors.New("rejected by user"))
-		_, err := ch.SendChUpdate(context.Background(), func(s *pchannel.State) {})
+		_, err := ch.SendChUpdate(context.Background(), nilUpdater)
 		require.Error(t, err)
 	})
 
@@ -117,7 +120,7 @@ func Test_SendChUpdate(t *testing.T) {
 		pch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, false)
 
-		_, err := ch.SendChUpdate(context.Background(), func(s *pchannel.State) {})
+		_, err := ch.SendChUpdate(context.Background(), nilUpdater)
 		require.Error(t, err)
 	})
 }
@@ -433,7 +436,7 @@ func Test_Close(t *testing.T) {
 		assert.NotZero(t, gotChInfo)
 
 		emptyState := pchannel.State{}
-		finalizer(&emptyState)
+		assert.NoError(t, finalizer(&emptyState))
 		assert.True(t, emptyState.IsFinal)
 	})
 

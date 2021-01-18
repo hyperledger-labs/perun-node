@@ -17,6 +17,22 @@ type ChannelProposal struct {
 	mock.Mock
 }
 
+// Base provides a mock function with given fields:
+func (_m *ChannelProposal) Base() *client.BaseChannelProposal {
+	ret := _m.Called()
+
+	var r0 *client.BaseChannelProposal
+	if rf, ok := ret.Get(0).(func() *client.BaseChannelProposal); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*client.BaseChannelProposal)
+		}
+	}
+
+	return r0
+}
+
 // Decode provides a mock function with given fields: _a0
 func (_m *ChannelProposal) Decode(_a0 io.Reader) error {
 	ret := _m.Called(_a0)
@@ -40,22 +56,6 @@ func (_m *ChannelProposal) Encode(_a0 io.Writer) error {
 		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// Proposal provides a mock function with given fields:
-func (_m *ChannelProposal) Proposal() *client.BaseChannelProposal {
-	ret := _m.Called()
-
-	var r0 *client.BaseChannelProposal
-	if rf, ok := ret.Get(0).(func() *client.BaseChannelProposal); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*client.BaseChannelProposal)
-		}
 	}
 
 	return r0

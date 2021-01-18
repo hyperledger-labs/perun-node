@@ -140,7 +140,7 @@ type Channel interface {
 	Phase() pchannel.Phase
 	State() *pchannel.State
 	OnUpdate(cb func(from, to *pchannel.State))
-	UpdateBy(ctx context.Context, update func(*pchannel.State)) error
+	UpdateBy(ctx context.Context, update func(*pchannel.State) error) error
 	Settle(ctx context.Context) error
 	SettleSecondary(ctx context.Context) error
 	Watch() error
@@ -378,5 +378,5 @@ type (
 	}
 
 	// StateUpdater function is the function that will be used for applying state updates.
-	StateUpdater func(*pchannel.State)
+	StateUpdater func(*pchannel.State) error
 ) // nolint:gofumpt // unknown error, maybe a false positive

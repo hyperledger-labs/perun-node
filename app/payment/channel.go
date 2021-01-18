@@ -84,10 +84,11 @@ func getPayerPayeeIdx(parts []string, payee string) (payerIdx, payeeIdx int, _ e
 }
 
 func newUpdate(payerIdx, payeeIdx int, parsedAmount *big.Int) perun.StateUpdater {
-	return func(state *pchannel.State) {
+	return func(state *pchannel.State) error {
 		bal := state.Allocation.Balances[0]
 		bal[payerIdx].Sub(bal[payerIdx], parsedAmount)
 		bal[payeeIdx].Add(bal[payeeIdx], parsedAmount)
+		return nil
 	}
 }
 

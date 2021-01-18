@@ -447,8 +447,9 @@ func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, error) {
 // If this fails, calling Settle consequently will close the channel non-collaboratively, by registering
 // the state on-chain and waiting for challenge duration to expire.
 func (ch *Channel) finalize(pctx context.Context) {
-	chFinalizer := func(state *pchannel.State) {
+	chFinalizer := func(state *pchannel.State) error {
 		state.IsFinal = true
+		return nil
 	}
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
 	defer cancel()
