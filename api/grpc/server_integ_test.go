@@ -240,14 +240,14 @@ func Test_Integ_Role(t *testing.T) {
 
 	isClosePayChSuccessful := make(chan bool, 1)
 	t.Run("Close_Sub_Unsub", func(t *testing.T) {
-		// Bob closes payment channel, Alice receives notification for rejects and final update,
-		// both receive channel closed notifications.
+		// Bob initiates channel close, alice receives an update request for "finalized state" that he acknowledges.
+		// The channel is then closed on-chain by bob and the funds are withdrawn immediately.
 		wg.Add(2)
 		go func() {
 			sub := SubPayChUpdate(t, aliceSessionID, chID)
 			notif := ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
 			assert.EqualValues(t, perun.ChUpdateTypeFinal, notif.Notify.Type)
-			RespondPayChUpdate(t, aliceSessionID, chID, notif.Notify.UpdateID, false)
+			RespondPayChUpdate(t, aliceSessionID, chID, notif.Notify.UpdateID, true)
 			notif = ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
 			assert.EqualValues(t, perun.ChUpdateTypeClosed, notif.Notify.Type)
 			UnsubPayChUpdate(t, aliceSessionID, chID)
