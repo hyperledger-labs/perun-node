@@ -287,11 +287,7 @@ func Test_Integ_Role(t *testing.T) {
 		assert.Equal(t, aliceCh.ID(), openChsInfo[0].ChID)
 	})
 
-	// Note: Watcher does not return on collaborative close for the
-	// the peer session. This can be simulated in this test by
-	// setting accept=true in RespondChUpdate in this test.
-	// It will cause the test to never end.
-	t.Run("Non collaborative channel close", func(t *testing.T) {
+	t.Run("Collaborative channel close", func(t *testing.T) {
 		// Sub channel close notifs.
 		aliceChUpdateNotif := make(chan perun.ChUpdateNotif)
 		aliceChUpdateNotifier := func(notif perun.ChUpdateNotif) {
@@ -320,7 +316,7 @@ func Test_Integ_Role(t *testing.T) {
 		require.NoError(t, err, "bob subscribing channel updates")
 
 		notif := <-bobChUpdateNotif
-		_, err = bobCh.RespondChUpdate(ctx, notif.UpdateID, false)
+		_, err = bobCh.RespondChUpdate(ctx, notif.UpdateID, true)
 		require.NoError(t, err, "bob accepting channel update")
 
 		// closing update for bob.
