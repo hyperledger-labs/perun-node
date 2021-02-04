@@ -35,6 +35,19 @@ type node struct {
 	psync.Mutex
 }
 
+// Error type is used to define error constants for this package.
+type Error string
+
+// Error implements error interface.
+func (e Error) Error() string {
+	return string(e)
+}
+
+// Definition of error constants for this package.
+const (
+	ErrUnknownSessionID Error = "unknown session id"
+)
+
 // New returns a perun NodeAPI instance initialized using the given config.
 // This should be called only once, subsequent calls after the first non error
 // response will return an error.
@@ -104,6 +117,26 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, error) {
 	return sess.ID(), sess.GetChsInfo(), nil
 }
 
+// GetSessionV2 is a wrapper over GetSession that returns the error in the
+// newly defined APIErrorV2 format introduced for the purposing of refactoring.
+//
+// See doc comments on the NodeAPI interface for more details.
+// TODO: (mano) merge this with GetSession api once GetSessionV2 is removed from nodeAPI.
+func (n *node) GetSessionV2(sessionID string) (perun.SessionAPI, perun.APIErrorV2) {
+	sess, err := n.GetSession(sessionID)
+	var apiErr perun.APIErrorV2
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrUnknownSessionID):
+			apiErr = perun.NewAPIErrV2ResourceNotFound("session id", sessionID, err.Error())
+		default:
+			apiErr = perun.NewAPIErrV2UnknownInternal(errors.WithMessage(err, "Unexpected error from GetSession"))
+		}
+		n.WithFields(perun.APIErrV2AsMap(apiErr)).Error(apiErr.Message())
+	}
+	return sess, apiErr
+}
+
 // GetSession is a special call that should be used internally to retrieve a SessionAPI
 // instance to access its methods. This should not be exposed to the user.
 func (n *node) GetSession(sessionID string) (perun.SessionAPI, error) {
@@ -113,7 +146,7 @@ func (n *node) GetSession(sessionID string) (perun.SessionAPI, error) {
 
 	sess, ok := n.sessions[sessionID]
 	if !ok {
-		return nil, perun.ErrUnknownSessionID
+		return nil, ErrUnknownSessionID
 	}
 	return sess, nil
 }

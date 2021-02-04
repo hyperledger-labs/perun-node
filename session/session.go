@@ -36,6 +36,7 @@ import (
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
 	"github.com/hyperledger-labs/perun-node/comm/tcp/tcptest"
 	"github.com/hyperledger-labs/perun-node/currency"
+	"github.com/hyperledger-labs/perun-node/idprovider"
 	"github.com/hyperledger-labs/perun-node/idprovider/local"
 	"github.com/hyperledger-labs/perun-node/log"
 )
@@ -50,6 +51,19 @@ func init() {
 	// This can be overridden (only) in tests by calling the SetWalletBackend function.
 	walletBackend = ethereum.NewWalletBackend()
 }
+
+// Error type is used to define error constants for this package.
+type Error string
+
+// Error implements error interface.
+func (e Error) Error() string {
+	return string(e)
+}
+
+// Definition of error constants for this package.
+const (
+	ErrSessionClosed Error = "operation not allowed on a closed session"
+)
 
 type (
 	// Session implements perun.SessionAPI.
@@ -226,20 +240,36 @@ func (s *Session) handleRestoredCh(pch perun.Channel) {
 }
 
 // AddPeerID implements sessionAPI.AddPeerID.
-func (s *Session) AddPeerID(peerID perun.PeerID) error {
-	s.Debugf("Received request: session.AddPeerID. Params %+v", peerID)
+func (s *Session) AddPeerID(peerID perun.PeerID) perun.APIErrorV2 {
+	s.WithFields(log.Fields{"method": "AddPeerID"}).Info("Received request with params:", peerID)
 	s.Lock()
 	defer s.Unlock()
 
 	if !s.isOpen {
-		return perun.ErrSessionClosed
+		err := ErrSessionClosed
+		s.WithFields(log.Fields{"method": "AddPeerID"}).Error(err)
+		return perun.NewAPIErrV2FailedPreCondition(err.Error())
 	}
 
 	err := s.idProvider.Write(peerID.Alias, peerID)
 	if err != nil {
-		s.Error(err)
+		var apiErr perun.APIErrorV2
+		switch {
+		case errors.Is(err, idprovider.ErrPeerAliasAlreadyUsed):
+			requirement := "peer alias should be unique for each peer ID"
+			apiErr = perun.NewAPIErrV2InvalidArgument("peer alias", peerID.Alias, requirement, err.Error())
+		case errors.Is(err, idprovider.ErrPeerIDAlreadyRegistered):
+			apiErr = perun.NewAPIErrV2ResourceExists("peer alias", peerID.Alias, err.Error())
+		case errors.Is(err, idprovider.ErrParsingOffChainAddress):
+			apiErr = perun.NewAPIErrV2InvalidArgument("off-chain address string", peerID.OffChainAddrString, "", err.Error())
+		default:
+			apiErr = perun.NewAPIErrV2UnknownInternal(err)
+		}
+		s.WithFields(perun.APIErrV2AsMap(apiErr)).Error(apiErr.Message())
+		return apiErr
 	}
-	return perun.GetAPIError(err)
+	s.Info("Peer ID successfully added")
+	return nil
 }
 
 // GetPeerID implements sessionAPI.GetPeerID.

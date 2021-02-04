@@ -17,6 +17,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/abiosoft/ishell"
 	"github.com/fatih/color"
 
@@ -105,4 +107,10 @@ func printUnknownChNotifError(c ishell.Actions, channelNotifAlias string) {
 // printNoPaymentNotifError is a helper function to print error message that is used across mutiple commands.
 func printNoPaymentNotifError(c ishell.Actions, chAlias string) {
 	c.Printf("%s\n\n", redf("No payment notifications pending a response on this channel.%s", chAlias))
+}
+
+// apiErrorString formats the error message returned by the API into pretty strings.
+func apiErrorString(e *pb.MsgErrorV2) string {
+	return fmt.Sprintf("category: %s, code: %d, message: %s, additional info: %+v",
+		e.Category, e.Code, e.Message, e.AddInfo)
 }

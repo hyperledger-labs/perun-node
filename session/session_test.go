@@ -35,6 +35,7 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/currency"
+	"github.com/hyperledger-labs/perun-node/idprovider"
 	"github.com/hyperledger-labs/perun-node/idprovider/local"
 	"github.com/hyperledger-labs/perun-node/internal/mocks"
 	"github.com/hyperledger-labs/perun-node/session"
@@ -62,14 +63,15 @@ func newSessionWMockChClient(t *testing.T, isOpen bool, peerIDs ...perun.PeerID)
 }
 
 func Test_Session_AddPeerID(t *testing.T) {
-	peerIDs := newPeerIDs(t, uint(2))
+	peerIDs := newPeerIDs(t, uint(3))
 	// In openSession, peer0 is already present, peer1 can be added.
 	openSession, _ := newSessionWMockChClient(t, true, peerIDs[0])
 	closedSession, _ := newSessionWMockChClient(t, false, peerIDs[0])
 
 	t.Run("happy_add_peerID", func(t *testing.T) {
 		err := openSession.AddPeerID(peerIDs[1])
-		require.NoError(t, err)
+		assert.NoError(t, err)
+		assert.Nil(t, err)
 	})
 
 	t.Run("alias_used_for_diff_peerID", func(t *testing.T) {
@@ -77,19 +79,58 @@ func Test_Session_AddPeerID(t *testing.T) {
 		peer1WithAlias0.Alias = peerIDs[0].Alias
 		err := openSession.AddPeerID(peer1WithAlias0)
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := idprovider.ErrPeerAliasAlreadyUsed.Error()
+		wantRequirement := "peer alias should be unique for each peer ID"
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2InvalidArgument, err.Code())
+		assert.Equal(t, wantMessage, err.Message())
+		addInfo, ok := err.AddInfo().(perun.ErrV2InfoInvalidArgument)
+		require.True(t, ok)
+		assert.Equal(t, "peer alias", addInfo.Name)
+		assert.Equal(t, peer1WithAlias0.Alias, addInfo.Value)
+		assert.Equal(t, wantRequirement, addInfo.Requirement)
 	})
 
 	t.Run("peerID_already_registered", func(t *testing.T) {
 		err := openSession.AddPeerID(peerIDs[0])
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := idprovider.ErrPeerIDAlreadyRegistered.Error()
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2ResourceExists, err.Code())
+		assert.Equal(t, wantMessage, err.Message())
+		addInfo, ok := err.AddInfo().(perun.ErrV2InfoResourceExists)
+		require.True(t, ok)
+		assert.Equal(t, "peer alias", addInfo.Type)
+		assert.Equal(t, peerIDs[0].Alias, addInfo.ID)
+	})
+
+	t.Run("peerID_address_string_too_long", func(t *testing.T) {
+		peer1WithInvalidAddrString := peerIDs[2]
+		peer1WithInvalidAddrString.OffChainAddrString = "0x931d387731BBbc988B31221D387706c74f77d004d6b84b"
+		err := openSession.AddPeerID(peer1WithInvalidAddrString)
+		require.Error(t, err)
+
+		wantMessage := idprovider.ErrParsingOffChainAddress.Error()
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2InvalidArgument, err.Code())
+		assert.Contains(t, err.Message(), wantMessage)
+		addInfo, ok := err.AddInfo().(perun.ErrV2InfoInvalidArgument)
+		require.True(t, ok)
+		assert.Equal(t, "off-chain address string", addInfo.Name)
+		assert.Equal(t, peer1WithInvalidAddrString.OffChainAddrString, addInfo.Value)
 	})
 
 	t.Run("session_closed", func(t *testing.T) {
 		err := closedSession.AddPeerID(peerIDs[0])
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := session.ErrSessionClosed.Error()
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2FailedPreCondition, err.Code())
+		assert.Equal(t, wantMessage, err.Message())
+		assert.Nil(t, err.AddInfo())
 	})
 }
 
