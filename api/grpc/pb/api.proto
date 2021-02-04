@@ -59,6 +59,52 @@ message MsgError {
     string error = 1;
 }
 
+message MsgErrorV2 {
+    ErrorCategory category = 1;
+    ErrorCode code = 2;
+    string message = 3;
+    oneof addInfo {
+        ErrV2InfoResourceNotFound ErrV2InfoResourceNotFound = 4;
+    }
+}
+
+enum ErrorCategory {
+    ParticipantError = 0;
+    ClientError = 1;
+    ProtocolError = 2;
+    InternalError = 3;
+}
+
+enum ErrorCode {
+    /* Though "0" is an invalid error code, we still define it, because
+       proto3 requires that every enum definition should have 0 mapped to
+       atleast one constant. */
+    DefaultInvalidCode             = 0;
+
+    ErrV2PeerResponseTimedout      = 101;
+    ErrV2RejectedByPeer            = 102;
+    ErrV2PeerNotFunded             = 103;
+    ErrV2UserResponseTimedOut      = 104;
+    ErrV2ResourceNotFound          = 201;
+    ErrV2ResourceExists            = 202;
+    ErrV2InvalidArgument           = 203;
+    ErrV2FailedPreCondition        = 204;
+    ErrV2InvalidConfig             = 205;
+    ErrV2ChainNodeNotReachable     = 206;
+    ErrV2InvalidContracts          = 207;
+    ErrV2TxTimedOut                = 301;
+    ErrV2InsufficientBalForTx      = 302;
+    ErrV2ChainNodeDisconnected     = 303;
+    ErrV2InsufficientBalForDeposit = 304;
+    ErrV2UnknownInternal           = 401;
+    ErrV2OffChainComm              = 402;
+}
+
+message ErrV2InfoResourceNotFound {
+    string type = 1;
+    string id = 2;
+}
+
 // Payment_API provides APIs for a user to open payment channels, send/receive payments
 // and finalize the channels on the blockchain 
 service Payment_API{
