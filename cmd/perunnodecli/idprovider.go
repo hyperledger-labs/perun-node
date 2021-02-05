@@ -141,7 +141,7 @@ func peerIDGetFn(c *ishell.Context) {
 	}
 	msgErr, ok := resp.Response.(*pb.GetPeerIDResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error adding peer ID : %v", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error adding peer ID : %v", apiErrorString(msgErr.Error)))
 		return
 	}
 	msg := resp.Response.(*pb.GetPeerIDResp_MsgSuccess_)

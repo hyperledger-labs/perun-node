@@ -146,16 +146,30 @@ func Test_Session_GetPeerID(t *testing.T) {
 		assert.True(t, local.PeerIDEqual(peerID, peerIDs[0]))
 	})
 
-	t.Run("contact_not_found", func(t *testing.T) {
-		_, err := openSession.GetPeerID("unknown-alias")
+	t.Run("peerID_not_found", func(t *testing.T) {
+		unknownAlias := "unknown-alias"
+		_, err := openSession.GetPeerID(unknownAlias)
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := session.ErrUnknownPeerAlias
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2ResourceNotFound, err.Code())
+		assert.Contains(t, err.Message(), wantMessage)
+		addInfo, ok := err.AddInfo().(perun.ErrV2InfoResourceNotFound)
+		require.True(t, ok)
+		assert.Equal(t, "peer alias", addInfo.Type)
+		assert.Equal(t, unknownAlias, addInfo.ID)
 	})
 
 	t.Run("session_closed", func(t *testing.T) {
 		_, err := closedSession.GetPeerID(peerIDs[0].Alias)
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := session.ErrSessionClosed.Error()
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2FailedPreCondition, err.Code())
+		assert.Equal(t, wantMessage, err.Message())
+		assert.Nil(t, err.AddInfo())
 	})
 }
 

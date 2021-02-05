@@ -93,7 +93,7 @@ func (_m *SessionAPI) GetChsInfo() []perun.ChInfo {
 }
 
 // GetPeerID provides a mock function with given fields: alias
-func (_m *SessionAPI) GetPeerID(alias string) (perun.PeerID, error) {
+func (_m *SessionAPI) GetPeerID(alias string) (perun.PeerID, perun.APIErrorV2) {
 	ret := _m.Called(alias)
 
 	var r0 perun.PeerID
@@ -103,11 +103,13 @@ func (_m *SessionAPI) GetPeerID(alias string) (perun.PeerID, error) {
 		r0 = ret.Get(0).(perun.PeerID)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
+	var r1 perun.APIErrorV2
+	if rf, ok := ret.Get(1).(func(string) perun.APIErrorV2); ok {
 		r1 = rf(alias)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(perun.APIErrorV2)
+		}
 	}
 
 	return r0, r1

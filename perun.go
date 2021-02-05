@@ -380,7 +380,7 @@ type NodeAPI interface {
 type SessionAPI interface {
 	ID() string
 	AddPeerID(PeerID) APIErrorV2
-	GetPeerID(alias string) (PeerID, error)
+	GetPeerID(alias string) (PeerID, APIErrorV2)
 	OpenCh(context.Context, BalInfo, App, uint64) (ChInfo, error)
 	GetChsInfo() []ChInfo
 	SubChProposals(ChProposalNotifier) error
