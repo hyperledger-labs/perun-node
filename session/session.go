@@ -241,19 +241,19 @@ func (s *Session) handleRestoredCh(pch perun.Channel) {
 
 // AddPeerID implements sessionAPI.AddPeerID.
 func (s *Session) AddPeerID(peerID perun.PeerID) perun.APIErrorV2 {
-	s.WithFields(log.Fields{"method": "AddPeerID"}).Info("Received request with params:", peerID)
+	s.WithField("method", "AddPeerID").Info("Received request with params:", peerID)
 	s.Lock()
 	defer s.Unlock()
 
+	var apiErr perun.APIErrorV2
 	if !s.isOpen {
-		err := ErrSessionClosed
-		s.WithFields(log.Fields{"method": "AddPeerID"}).Error(err)
-		return perun.NewAPIErrV2FailedPreCondition(err.Error())
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
+		s.WithFields(perun.APIErrV2AsMap("AddPeerID", apiErr)).Error(apiErr.Message())
+		return apiErr
 	}
 
 	err := s.idProvider.Write(peerID.Alias, peerID)
 	if err != nil {
-		var apiErr perun.APIErrorV2
 		switch {
 		case errors.Is(err, idprovider.ErrPeerAliasAlreadyUsed):
 			requirement := "peer alias should be unique for each peer ID"
@@ -265,10 +265,10 @@ func (s *Session) AddPeerID(peerID perun.PeerID) perun.APIErrorV2 {
 		default:
 			apiErr = perun.NewAPIErrV2UnknownInternal(err)
 		}
-		s.WithFields(perun.APIErrV2AsMap(apiErr)).Error(apiErr.Message())
+		s.WithFields(perun.APIErrV2AsMap("AddPeerID", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
-	s.Info("Peer ID successfully added")
+	s.WithField("method", "AddPeerID").Info("Peer ID added successfully")
 	return nil
 }
 

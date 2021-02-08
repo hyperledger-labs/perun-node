@@ -117,10 +117,12 @@ func NewAPIErrV2UnknownInternal(err error) APIErrorV2 {
 	}
 }
 
-// APIErrV2AsMap returns the api error (except message) in a map format with the struct fields as keys.
-// The map can be directly passed to the logger for logging the data in a structured format.
-func APIErrV2AsMap(err APIErrorV2) map[string]interface{} {
+// APIErrV2AsMap returns a map containing entries for the method and each of
+// the fields in the api error (except message). The map can be directly passed
+// to the logger for logging the data in a structured format.
+func APIErrV2AsMap(method string, err APIErrorV2) map[string]interface{} {
 	return map[string]interface{}{
+		"method":   method,
 		"category": err.Category().String(),
 		"code":     err.Code(),
 		"add info": fmt.Sprintf("%+v", err.AddInfo()),

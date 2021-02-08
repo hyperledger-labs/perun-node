@@ -132,7 +132,7 @@ func (n *node) GetSessionV2(sessionID string) (perun.SessionAPI, perun.APIErrorV
 		default:
 			apiErr = perun.NewAPIErrV2UnknownInternal(errors.WithMessage(err, "Unexpected error from GetSession"))
 		}
-		n.WithFields(perun.APIErrV2AsMap(apiErr)).Error(apiErr.Message())
+		n.WithFields(perun.APIErrV2AsMap("GetSessionV2 (internal)", apiErr)).Error(apiErr.Message())
 	}
 	return sess, apiErr
 }
