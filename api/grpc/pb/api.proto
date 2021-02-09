@@ -81,7 +81,7 @@ enum ErrorCode {
        atleast one constant. */
     DefaultInvalidCode             = 0;
 
-    ErrV2PeerResponseTimedout      = 101;
+    ErrV2PeerResponseTimedOut      = 101;
     ErrV2RejectedByPeer            = 102;
     ErrV2PeerNotFunded             = 103;
     ErrV2UserResponseTimedOut      = 104;

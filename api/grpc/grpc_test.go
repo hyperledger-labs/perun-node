@@ -39,7 +39,7 @@ func Test_ErrorCategory(t *testing.T) {
 }
 
 func Test_ErrorCode(t *testing.T) {
-	assert.Equal(t, pb.ErrorCode_ErrV2PeerResponseTimedout, pb.ErrorCode(perun.ErrV2PeerResponseTimedout))
+	assert.Equal(t, pb.ErrorCode_ErrV2PeerResponseTimedOut, pb.ErrorCode(perun.ErrV2PeerResponseTimedOut))
 	assert.Equal(t, pb.ErrorCode_ErrV2RejectedByPeer, pb.ErrorCode(perun.ErrV2RejectedByPeer))
 	assert.Equal(t, pb.ErrorCode_ErrV2PeerNotFunded, pb.ErrorCode(perun.ErrV2PeerNotFunded))
 	assert.Equal(t, pb.ErrorCode_ErrV2UserResponseTimedOut, pb.ErrorCode(perun.ErrV2UserResponseTimedOut))
