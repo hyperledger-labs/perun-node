@@ -228,6 +228,98 @@ type NodeConfig struct {
 
 }
 
+// APIErrorV2 represents the newer version of error returned by node, session
+// and channel APIs.
+//
+// Along with the error message, this error type assigns to each error an
+// error category (that describes how the error should be handled by the
+// client), error code (that identifies specific types of error), additional
+// info (that contains additional data related to the error as key value
+// pairs).
+//
+// TODO: (mano) Once all usage of APIError is replaced with APIErrorV2, the
+// older type needs to be removed and this one to be renamed as APIError.
+// Also, the usage of the string "V2" in the variables and types related to the
+// new error type should be removed.
+type APIErrorV2 interface {
+	Category() ErrorCategory
+	Code() ErrorCode
+	Message() string
+	AddInfo() interface{}
+	Error() string
+}
+
+// ErrorCategory represents the category of the error, which describes how the
+// error should be handled by the client.
+type ErrorCategory int
+
+const (
+	// ParticipantError is caused by one of the channel participants not acting
+	// as per the perun protocol.
+	//
+	// To resolve this, the client should negotiate with the peer outside of
+	// this system to act in accordance with the perun protocol.
+	ParticipantError ErrorCategory = iota
+
+	// ClientError is caused by the errors in the request from the client. It
+	// could be errors in arguments or errors in configuration provided by the
+	// client to access the external systems or errors in the state of external
+	// systems not managed by the node.
+	//
+	// To resolve this, the client should provide valid arguments, provide
+	// correct configuration to access the external systems or fix the external
+	// systems; and then retry.
+	ClientError
+
+	// ProtocolFatalError is caused when the protocol aborts due to unexpected
+	// failure in external system during execution. It could also result in loss
+	// of funds.
+	//
+	// To resolve this, user should manually inspect the error message and
+	// handle it.
+	ProtocolFatalError
+	// InternalError is caused due to unintended behavior in the node software.
+	//
+	// To resolve this, user should manually inspect the error message and
+	// handle it.
+	InternalError
+)
+
+// String implements the stringer interface for ErrorCategory.
+func (c ErrorCategory) String() string {
+	return [...]string{
+		"Client",
+		"Participant",
+		"Protocol Fatal",
+		"Internal",
+	}[c]
+}
+
+// ErrorCode is a numeric code assigned to identify the specific type of error.
+// The keys in the additional field is fixed for each error code.
+type ErrorCode int
+
+// Error code definitions.
+const (
+	ErrV2PeerResponseTimedOut      ErrorCode = 101
+	ErrV2RejectedByPeer            ErrorCode = 102
+	ErrV2PeerNotFunded             ErrorCode = 103
+	ErrV2UserResponseTimedOut      ErrorCode = 104
+	ErrV2ResourceNotFound          ErrorCode = 201
+	ErrV2ResourceExists            ErrorCode = 202
+	ErrV2InvalidArgument           ErrorCode = 203
+	ErrV2FailedPreCondition        ErrorCode = 204
+	ErrV2InvalidConfig             ErrorCode = 205
+	ErrV2ChainNodeNotReachable     ErrorCode = 206
+	ErrV2InvalidContracts          ErrorCode = 207
+	ErrV2TxTimedOut                ErrorCode = 301
+	ErrV2InsufficientBalForTx      ErrorCode = 302
+	ErrV2ChainNodeDisconnected     ErrorCode = 303
+	ErrV2InsufficientBalForDeposit ErrorCode = 304
+	ErrV2UnknownInternal           ErrorCode = 401
+	ErrV2OffChainComm              ErrorCode = 402
+)
+
 // NodeAPI represents the APIs that can be accessed in the context of a perun node.
 // Multiple sessions can be opened in a single node. Each instance will have a dedicated
 // keystore and ID provider.
@@ -290,7 +382,7 @@ type ChAPI interface {
 	Parts() []string
 	ChallengeDurSecs() uint64
 
-	// Methods to trasact on, close the channel and read its state.
+	// Methods to transact on, close the channel and read its state.
 	// These APIs use a mutex lock.
 	SendChUpdate(context.Context, StateUpdater) (ChInfo, error)
 	SubChUpdates(ChUpdateNotifier) error
@@ -319,7 +411,7 @@ type (
 
 	// ChUpdateNotif represents the parameters sent in a channel update notification.
 	// The update can be of two types
-	// 1. Regular update proposed by the peer to progress the offchain state of the channel.
+	// 1. Regular update proposed by the peer to progress the off-chain state of the channel.
 	// 2. Closing update when a channel is closed, balance is settled on the blockchain and
 	// the amount corresponding to this user is withdrawn.
 	//
