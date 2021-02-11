@@ -88,14 +88,14 @@ type (
 	}
 
 	chProposalResponderEntry struct {
-		proposal  pclient.ChannelProposal
+		proposal  pclient.LedgerChannelProposal
 		notif     perun.ChProposalNotif
 		responder ChProposalResponder
 	}
 
 	// ChProposalResponder defines the methods on proposal responder that will be used by the perun node.
 	ChProposalResponder interface {
-		Accept(context.Context, *pclient.ChannelProposalAcc) (perun.Channel, error)
+		Accept(context.Context, *pclient.LedgerChannelProposalAcc) (perun.Channel, error)
 		Reject(ctx context.Context, reason string) error
 	}
 )
@@ -109,7 +109,7 @@ type chProposalResponderWrapped struct {
 }
 
 // Accept is a wrapper around the original function, that returns a channel of interface type instead of struct type.
-func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pclient.ChannelProposalAcc) (
+func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pclient.LedgerChannelProposalAcc) (
 	perun.Channel, error) {
 	return r.ProposalResponder.Accept(ctx, proposalAcc)
 }
@@ -319,13 +319,17 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 		return perun.ChInfo{}, perun.GetAPIError(err)
 	}
 
-	proposal := pclient.NewLedgerChannelProposal(
+	proposal, err := pclient.NewLedgerChannelProposal(
 		challengeDurSecs,
 		s.user.OffChainAddr,
 		allocations,
 		makeOffChainAddrs(parts),
 		pclient.WithApp(app.Def, app.Data),
 		pclient.WithRandomNonce())
+	if err != nil {
+		err = errors.WithMessage(err, "constructing channel proposal")
+		return perun.ChInfo{}, perun.GetAPIError(err)
+	}
 	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.proposeCh(challengeDurSecs))
 	defer cancel()
 	pch, err := s.chClient.ProposeChannel(ctx, proposal)
@@ -460,7 +464,14 @@ func (s *Session) HandleProposal(chProposal pclient.ChannelProposal, responder *
 // HandleProposalWInterface is the actual implemention of HandleProposal that takes arguments as interface types.
 // It is implemented this way to enable easier testing.
 func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, responder ChProposalResponder) {
-	s.Debugf("SDK Callback: HandleProposal. Params: %+v", chProposal)
+	ledgerChProposal, ok := chProposal.(*pclient.LedgerChannelProposal)
+	if !ok {
+		// Our handler is expected to handle only ledger channel proposals,
+		// if it is anything else (sub-channel proposals), simply drop it.
+		return
+	}
+
+	s.Debugf("SDK Callback: HandleProposal. Params: %+v", ledgerChProposal)
 	expiry := time.Now().UTC().Add(s.timeoutCfg.response).Unix()
 
 	if !s.isOpen {
@@ -469,11 +480,11 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 		return
 	}
 
-	parts := make([]string, len(chProposal.Base().PeerAddrs))
-	for i := range chProposal.Base().PeerAddrs {
-		p, ok := s.idProvider.ReadByOffChainAddr(chProposal.Base().PeerAddrs[i])
+	parts := make([]string, len(ledgerChProposal.Peers))
+	for i := range ledgerChProposal.Peers {
+		p, ok := s.idProvider.ReadByOffChainAddr(ledgerChProposal.Peers[i])
 		if !ok {
-			s.Info("Received channel proposal from unknonwn peer ID", chProposal.Base().PeerAddrs[i].String())
+			s.Info("Received channel proposal from unknonwn peer ID", ledgerChProposal.Peers[i].String())
 			// nolint: errcheck, gosec		// It is sufficient to just log this error.
 			s.rejectChProposal(context.Background(), responder, "peer ID not found in session ID Provider")
 			expiry = 0
@@ -482,9 +493,9 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 		parts[i] = p.Alias
 	}
 
-	notif := chProposalNotif(parts, currency.ETH, chProposal.Base(), expiry)
+	notif := chProposalNotif(parts, currency.ETH, ledgerChProposal, expiry)
 	entry := chProposalResponderEntry{
-		proposal:  chProposal,
+		proposal:  *ledgerChProposal,
 		notif:     notif,
 		responder: responder,
 	}
@@ -508,12 +519,12 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 	}
 }
 
-func chProposalNotif(parts []string, curr string, chProposal *pclient.BaseChannelProposal,
+func chProposalNotif(parts []string, curr string, chProposal *pclient.LedgerChannelProposal,
 	expiry int64) perun.ChProposalNotif {
 	return perun.ChProposalNotif{
 		ProposalID:       fmt.Sprintf("%x", chProposal.ProposalID()),
 		OpeningBalInfo:   makeBalInfoFromRawBal(parts, curr, chProposal.InitBals.Balances[0]),
-		App:              makeApp(chProposal.Base().App, chProposal.InitData),
+		App:              makeApp(chProposal.App, chProposal.InitData),
 		ChallengeDurSecs: chProposal.ChallengeDuration,
 		Expiry:           expiry,
 	}
@@ -600,11 +611,13 @@ func (s *Session) acceptChProposal(pctx context.Context, entry chProposalRespond
 	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.respChProposalAccept(entry.notif.ChallengeDurSecs))
 	defer cancel()
 
-	proposal := entry.proposal.Base()
-	resp := proposal.NewChannelProposalAcc(s.user.OffChainAddr, pclient.WithRandomNonce())
+	proposal := entry.proposal
+	resp := proposal.Accept(s.user.OffChainAddr, pclient.WithRandomNonce())
+
 	pch, err := entry.responder.Accept(ctx, resp)
 	if err != nil {
-		s.Error("Accepting channel proposal", err)
+		err = errors.WithMessage(err, "accepting channel proposal")
+		s.Error(err)
 		return perun.ChInfo{}, err
 	}
 
