@@ -18,6 +18,7 @@ package local_test
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -27,6 +28,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
+	"github.com/hyperledger-labs/perun-node/idprovider"
 	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
 	"github.com/hyperledger-labs/perun-node/idprovider/local"
 )
@@ -195,14 +197,12 @@ func Test_YAML_Write_Read(t *testing.T) {
 
 	t.Run("peer_already_present", func(t *testing.T) {
 		err := c.Write(peer1.Alias, peer1)
-		assert.Error(t, err)
-		t.Log(err)
+		assert.True(t, errors.Is(err, idprovider.ErrPeerIDAlreadyRegistered))
 	})
 
 	t.Run("alias_used_by_diff_peer", func(t *testing.T) {
 		err := c.Write(peer1.Alias, peer2)
-		assert.Error(t, err)
-		t.Log(err)
+		assert.True(t, errors.Is(err, idprovider.ErrPeerAliasAlreadyUsed))
 	})
 
 	t.Run("invalid_offchain_addr", func(t *testing.T) {
@@ -213,8 +213,8 @@ func Test_YAML_Write_Read(t *testing.T) {
 		peer3Copy := peer3
 		peer3Copy.OffChainAddrString = "invalid-addr"
 		err = c.Write(peer3Copy.Alias, peer3Copy)
-		assert.Error(t, err)
-		t.Log(err)
+
+		assert.True(t, errors.Is(err, idprovider.ErrParsingOffChainAddress))
 	})
 }
 
