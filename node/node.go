@@ -118,7 +118,7 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, error) {
 }
 
 // GetSessionV2 is a wrapper over GetSession that returns the error in the
-// newly defined APIErrorV2 format introduced for the purposing of refactoring.
+// newly defined APIErrorV2 format introduced for the purpose of refactoring.
 //
 // See doc comments on the NodeAPI interface for more details.
 // TODO: (mano) merge this with GetSession api once GetSessionV2 is removed from nodeAPI.

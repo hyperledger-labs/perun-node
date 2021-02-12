@@ -20,7 +20,7 @@ import (
 	"fmt"
 )
 
-// APIError represents the error that will returned by the API of perun node.
+// APIError represents the error that will be returned by the API of perun node.
 type apiErrorV2 struct {
 	category ErrorCategory
 	code     ErrorCode
