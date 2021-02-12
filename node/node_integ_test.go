@@ -104,9 +104,19 @@ func Test_Integ_New(t *testing.T) {
 		assert.NotNil(t, sess)
 	})
 	t.Run("err_GetSession_not_found", func(t *testing.T) {
-		_, err := n.GetSession("unknown session id")
+		unknownSessID := "unknown session id"
+		_, err := n.GetSessionV2(unknownSessID)
 		require.Error(t, err)
 		t.Log(err)
+
+		wantMessage := node.ErrUnknownSessionID.Error()
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2ResourceNotFound, err.Code())
+		assert.Equal(t, wantMessage, err.Message())
+		addInfo, ok := err.AddInfo().(perun.ErrV2InfoResourceNotFound)
+		require.True(t, ok)
+		assert.Equal(t, addInfo.Type, "session id")
+		assert.Equal(t, addInfo.ID, unknownSessID)
 	})
 	t.Run("err_OpenSession_config_file_error", func(t *testing.T) {
 		_, _, err := n.OpenSession("random-config-file")

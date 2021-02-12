@@ -110,7 +110,7 @@ func peerIDAddFn(c *ishell.Context) {
 	}
 	msgErr, ok := resp.Response.(*pb.AddPeerIDResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error adding peer ID : %v", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error adding peer ID : %v", apiErrorString(msgErr.Error)))
 		return
 	}
 	addPeerAlias(c.Args[0])

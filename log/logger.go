@@ -28,8 +28,11 @@ import (
 
 var logger *logrus.Logger = nil
 
-// Logger is a for now, a type alias of Logrus.FieldLogger that defines a broad interface for logging.
+// Logger is for now, a type alias of Logrus.FieldLogger that defines a broad interface for logging.
 type Logger = logrus.FieldLogger
+
+// Fields is a collection of field to be passed to the Logger.
+type Fields = logrus.Fields
 
 // InitLogger sets the internal logger instance to the given level and log file.
 // This function should be called exactly once and subsequent calls return an error.

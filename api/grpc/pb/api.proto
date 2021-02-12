@@ -65,6 +65,8 @@ message MsgErrorV2 {
     string message = 3;
     oneof addInfo {
         ErrV2InfoResourceNotFound ErrV2InfoResourceNotFound = 4;
+        ErrV2InfoResourceExists ErrV2InfoResourceExists = 5;
+        ErrV2InfoInvalidArgument ErrV2InfoInvalidArgument = 6;
     }
 }
 
@@ -103,6 +105,17 @@ enum ErrorCode {
 message ErrV2InfoResourceNotFound {
     string type = 1;
     string id = 2;
+}
+
+message ErrV2InfoResourceExists {
+    string type = 1;
+    string id = 2;
+}
+
+message ErrV2InfoInvalidArgument {
+    string name = 1;
+    string value = 2;
+    string requirement = 3;
 }
 
 // Payment_API provides APIs for a user to open payment channels, send/receive payments
@@ -178,7 +191,7 @@ message AddPeerIDReq {
 message AddPeerIDResp {
     oneof response {
         MsgSuccess msgSuccess = 1;
-        MsgError error = 2;
+        MsgErrorV2 error = 2;
     }
     message MsgSuccess {
         bool success=1;

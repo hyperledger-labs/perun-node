@@ -129,17 +129,15 @@ func (a *payChAPIServer) OpenSession(ctx context.Context, req *pb.OpenSessionReq
 
 // AddPeerID wraps session.AddPeerID.
 func (a *payChAPIServer) AddPeerID(ctx context.Context, req *pb.AddPeerIDReq) (*pb.AddPeerIDResp, error) {
-	errResponse := func(err error) *pb.AddPeerIDResp {
+	errResponse := func(err perun.APIErrorV2) *pb.AddPeerIDResp {
 		return &pb.AddPeerIDResp{
 			Response: &pb.AddPeerIDResp_Error{
-				Error: &pb.MsgError{
-					Error: err.Error(),
-				},
+				Error: toGrpcError(err),
 			},
 		}
 	}
 
-	sess, err := a.n.GetSession(req.SessionID)
+	sess, err := a.n.GetSessionV2(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -676,4 +674,39 @@ func toGrpcBalInfo(src perun.BalInfo) *pb.BalInfo {
 		Parts:    src.Parts,
 		Bal:      src.Bal,
 	}
+}
+
+// toGrpcError is a helper function to convert APIErrorV2 struct defined in perun-node
+// to APIErrorV2 struct defined in grpc package.
+func toGrpcError(err perun.APIErrorV2) *pb.MsgErrorV2 {
+	grpcErr := pb.MsgErrorV2{
+		Category: pb.ErrorCategory(err.Category()),
+		Code:     pb.ErrorCode(err.Code()),
+		Message:  err.Message(),
+	}
+	switch info := err.AddInfo().(type) {
+	case perun.ErrV2InfoResourceNotFound:
+		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoResourceNotFound{
+			ErrV2InfoResourceNotFound: &pb.ErrV2InfoResourceNotFound{
+				Type: info.Type,
+				Id:   info.ID,
+			},
+		}
+	case perun.ErrV2InfoResourceExists:
+		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoResourceExists{
+			ErrV2InfoResourceExists: &pb.ErrV2InfoResourceExists{
+				Type: info.Type,
+				Id:   info.ID,
+			},
+		}
+	case perun.ErrV2InfoInvalidArgument:
+		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoInvalidArgument{
+			ErrV2InfoInvalidArgument: &pb.ErrV2InfoInvalidArgument{
+				Name:        info.Name,
+				Value:       info.Value,
+				Requirement: info.Requirement,
+			},
+		}
+	}
+	return &grpcErr
 }

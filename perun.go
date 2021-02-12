@@ -320,6 +320,30 @@ const (
 	ErrV2OffChainComm              ErrorCode = 402
 )
 
+type (
+	// ErrV2InfoResourceNotFound represents the fields in the additional info for
+	// ErrResourceNotFound.
+	ErrV2InfoResourceNotFound struct {
+		Type string
+		ID   string
+	}
+
+	// ErrV2InfoResourceExists represents the fields in the additional info for
+	// ErrResourceExists.
+	ErrV2InfoResourceExists struct {
+		Type string
+		ID   string
+	}
+
+	// ErrV2InfoInvalidArgument represents the fields in the additional info for
+	// ErrInvalidArgument.
+	ErrV2InfoInvalidArgument struct {
+		Name        string
+		Value       string
+		Requirement string
+	}
+)
+
 // NodeAPI represents the APIs that can be accessed in the context of a perun node.
 // Multiple sessions can be opened in a single node. Each instance will have a dedicated
 // keystore and ID provider.
@@ -332,6 +356,20 @@ type NodeAPI interface {
 	// This function is used internally to get a SessionAPI instance.
 	// Should not be exposed via user API.
 	GetSession(string) (SessionAPI, error)
+
+	// GetSessionV2 is a wrapper over GetSession that returns the error in the
+	// newly defined APIErrorV2 format instead of the standard error.
+	//
+	// This is introduced temporarily to facilitate refactoring all the APIs to
+	// return a newly defined API Error type instead of the standard error.
+	// Since this API is used across all the api calls, two versions are
+	// simulataneously required until all the APIs are updated to use the newly
+	// defined API Error (APIErrorV2).
+	//
+	// TODO (mano): Once all the APIs are updated to use the new newly defined API
+	// Error, remove the other version of GetSession API that returns standard
+	// error type and rename this to GetSession.
+	GetSessionV2(string) (SessionAPI, APIErrorV2)
 }
 
 //go:generate mockery --name SessionAPI --output ./internal/mocks
@@ -341,7 +379,7 @@ type NodeAPI interface {
 // open channels and accept channel proposals.
 type SessionAPI interface {
 	ID() string
-	AddPeerID(PeerID) error
+	AddPeerID(PeerID) APIErrorV2
 	GetPeerID(alias string) (PeerID, error)
 	OpenCh(context.Context, BalInfo, App, uint64) (ChInfo, error)
 	GetChsInfo() []ChInfo

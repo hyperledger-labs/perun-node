@@ -15,14 +15,16 @@ type SessionAPI struct {
 }
 
 // AddPeerID provides a mock function with given fields: _a0
-func (_m *SessionAPI) AddPeerID(_a0 perun.PeerID) error {
+func (_m *SessionAPI) AddPeerID(_a0 perun.PeerID) perun.APIErrorV2 {
 	ret := _m.Called(_a0)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(perun.PeerID) error); ok {
+	var r0 perun.APIErrorV2
+	if rf, ok := ret.Get(0).(func(perun.PeerID) perun.APIErrorV2); ok {
 		r0 = rf(_a0)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(perun.APIErrorV2)
+		}
 	}
 
 	return r0
