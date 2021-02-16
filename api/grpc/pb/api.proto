@@ -206,7 +206,7 @@ message GetPeerIDReq {
 message  GetPeerIDResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgError error = 2;
+        MsgErrorV2 error = 2;
     }
     message MsgSuccess {
         PeerID peerID = 1;
