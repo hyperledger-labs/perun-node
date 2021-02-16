@@ -62,7 +62,8 @@ func (e Error) Error() string {
 
 // Definition of error constants for this package.
 const (
-	ErrSessionClosed Error = "operation not allowed on a closed session"
+	ErrSessionClosed    Error = "operation not allowed on a closed session"
+	ErrUnknownPeerAlias Error = "unknown peer alias"
 )
 
 type (
@@ -273,20 +274,24 @@ func (s *Session) AddPeerID(peerID perun.PeerID) perun.APIErrorV2 {
 }
 
 // GetPeerID implements sessionAPI.GetPeerID.
-func (s *Session) GetPeerID(alias string) (perun.PeerID, error) {
-	s.Debugf("Received request: session.GetPeerID. Params %+v", alias)
+func (s *Session) GetPeerID(alias string) (perun.PeerID, perun.APIErrorV2) {
+	s.WithField("method", "GetPeerID").Info("Received request with params:", alias)
 	s.Lock()
 	defer s.Unlock()
 
 	if !s.isOpen {
-		return perun.PeerID{}, perun.ErrSessionClosed
+		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
+		s.WithFields(perun.APIErrV2AsMap("GetPeerID", apiErr)).Error(apiErr.Message())
+		return perun.PeerID{}, apiErr
 	}
 
 	peerID, isPresent := s.idProvider.ReadByAlias(alias)
 	if !isPresent {
-		s.Error(perun.ErrUnknownAlias)
-		return perun.PeerID{}, perun.ErrUnknownAlias
+		apiErr := perun.NewAPIErrV2ResourceNotFound("peer alias", alias, ErrUnknownPeerAlias.Error())
+		s.WithFields(perun.APIErrV2AsMap("GetPeerID", apiErr)).Error(apiErr.Message())
+		return perun.PeerID{}, apiErr
 	}
+	s.WithField("method", "GetPeerID").Info("Peer ID retreived successfully")
 	return peerID, nil
 }
 
