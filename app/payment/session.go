@@ -67,7 +67,7 @@ func GetPayChsInfo(s perun.SessionAPI) []PayChInfo {
 }
 
 // SubPayChProposals sets up a subscription for payment channel proposals.
-func SubPayChProposals(s perun.SessionAPI, notifier PayChProposalNotifier) error {
+func SubPayChProposals(s perun.SessionAPI, notifier PayChProposalNotifier) perun.APIErrorV2 {
 	return s.SubChProposals(func(notif perun.ChProposalNotif) {
 		notifier(PayChProposalNotif{
 			ProposalID:       notif.ProposalID,
@@ -79,7 +79,7 @@ func SubPayChProposals(s perun.SessionAPI, notifier PayChProposalNotifier) error
 }
 
 // UnsubPayChProposals deletes the existing subscription for payment channel proposals.
-func UnsubPayChProposals(s perun.SessionAPI) error {
+func UnsubPayChProposals(s perun.SessionAPI) perun.APIErrorV2 {
 	return s.UnsubChProposals()
 }
 

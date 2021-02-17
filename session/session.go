@@ -64,6 +64,8 @@ func (e Error) Error() string {
 const (
 	ErrSessionClosed    Error = "operation not allowed on a closed session"
 	ErrUnknownPeerAlias Error = "unknown peer alias"
+	ErrSubAlreadyExists Error = "subscription already exists"
+	ErrNoActiveSub      Error = "no active subscription"
 )
 
 type (
@@ -531,17 +533,22 @@ func chProposalNotif(parts []string, curr string, chProposal *pclient.LedgerChan
 }
 
 // SubChProposals implements sessionAPI.SubChProposals.
-func (s *Session) SubChProposals(notifier perun.ChProposalNotifier) error {
-	s.Debug("Received request: session.SubChProposals")
+func (s *Session) SubChProposals(notifier perun.ChProposalNotifier) perun.APIErrorV2 {
+	s.WithField("method", "SubChProposals").Info("Received request: session.SubChProposals")
 	s.Lock()
 	defer s.Unlock()
 
+	var apiErr perun.APIErrorV2
 	if !s.isOpen {
-		return perun.ErrSessionClosed
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
+		s.WithFields(perun.APIErrV2AsMap("SubChProposals", apiErr)).Error(apiErr.Message())
+		return apiErr
 	}
 
 	if s.chProposalNotifier != nil {
-		return perun.ErrSubAlreadyExists
+		apiErr = perun.NewAPIErrV2ResourceExists("SubChProposals", s.ID(), ErrSubAlreadyExists.Error())
+		s.WithFields(perun.APIErrV2AsMap("SubChProposals", apiErr)).Error(apiErr.Message())
+		return apiErr
 	}
 	s.chProposalNotifier = notifier
 
@@ -550,23 +557,30 @@ func (s *Session) SubChProposals(notifier perun.ChProposalNotifier) error {
 		go s.chProposalNotifier(s.chProposalNotifsCache[0])
 		s.chProposalNotifsCache = s.chProposalNotifsCache[1:i]
 	}
+	s.WithField("method", "SubChProposals").Info("Subscription done successfully")
 	return nil
 }
 
 // UnsubChProposals implements sessionAPI.UnsubChProposals.
-func (s *Session) UnsubChProposals() error {
-	s.Debug("Received request: session.UnsubChProposals")
+func (s *Session) UnsubChProposals() perun.APIErrorV2 {
+	s.WithField("method", "UnsubChProposals").Info("Received request: session.UnsubChProposals")
 	s.Lock()
 	defer s.Unlock()
 
+	var apiErr perun.APIErrorV2
 	if !s.isOpen {
-		return perun.ErrSessionClosed
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
+		s.WithFields(perun.APIErrV2AsMap("UnsubChProposals", apiErr)).Error(apiErr.Message())
+		return apiErr
 	}
 
 	if s.chProposalNotifier == nil {
-		return perun.ErrNoActiveSub
+		apiErr = perun.NewAPIErrV2ResourceNotFound("proposal id", s.ID(), ErrNoActiveSub.Error())
+		s.WithFields(perun.APIErrV2AsMap("UnsubChProposals", apiErr)).Error(apiErr.Message())
+		return apiErr
 	}
 	s.chProposalNotifier = nil
+	s.WithField("method", "UnsubChProposals").Info("Unsubscribed successfully")
 	return nil
 }
 

@@ -406,11 +406,21 @@ func Test_SubUnsubChProposal(t *testing.T) {
 	t.Run("Sub_sessionClosed", func(t *testing.T) {
 		err = closedSession.SubChProposals(dummyNotifier)
 		require.Error(t, err)
+		wantMessage := session.ErrSessionClosed.Error()
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2FailedPreCondition, err.Code())
+		assert.Equal(t, wantMessage, err.Message())
+		assert.Nil(t, err.AddInfo())
 	})
 
 	t.Run("Unsub_sessionClosed", func(t *testing.T) {
 		err = closedSession.UnsubChProposals()
 		require.Error(t, err)
+		wantMessage := session.ErrSessionClosed.Error()
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2FailedPreCondition, err.Code())
+		assert.Equal(t, wantMessage, err.Message())
+		assert.Nil(t, err.AddInfo())
 	})
 }
 

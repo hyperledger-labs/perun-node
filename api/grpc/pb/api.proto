@@ -250,7 +250,7 @@ message SubPayChProposalsReq {
 message SubPayChProposalsResp {
     oneof response{
         Notify notify = 1;
-        MsgError error = 2;
+        MsgErrorV2 error = 2;
     }
     message Notify {
         string proposalID = 2;
@@ -267,7 +267,7 @@ message UnsubPayChProposalsReq {
 message UnsubPayChProposalsResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgError error = 2;
+        MsgErrorV2 error = 2;
     }
     message MsgSuccess {
         bool success=1;
