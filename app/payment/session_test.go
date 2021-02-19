@@ -161,8 +161,8 @@ func Test_SubPayChProposals(t *testing.T) {
 		})).Return(nil)
 
 		gotErr := payment.SubPayChProposals(sessionAPI, dummyNotifier)
-		assert.NoError(t, gotErr)
-		assert.Nil(t, gotErr)
+		require.NoError(t, gotErr)
+		require.NotNil(t, notifier)
 
 		notifier(chProposalNotif)
 		require.NotZero(t, notif)

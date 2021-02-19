@@ -534,7 +534,7 @@ func chProposalNotif(parts []string, curr string, chProposal *pclient.LedgerChan
 
 // SubChProposals implements sessionAPI.SubChProposals.
 func (s *Session) SubChProposals(notifier perun.ChProposalNotifier) perun.APIErrorV2 {
-	s.WithField("method", "SubChProposals").Info("Received request: session.SubChProposals")
+	s.WithField("method", "SubChProposals").Info("Received request: notifier")
 	s.Lock()
 	defer s.Unlock()
 
@@ -546,7 +546,7 @@ func (s *Session) SubChProposals(notifier perun.ChProposalNotifier) perun.APIErr
 	}
 
 	if s.chProposalNotifier != nil {
-		apiErr = perun.NewAPIErrV2ResourceExists("SubChProposals", s.ID(), ErrSubAlreadyExists.Error())
+		apiErr = perun.NewAPIErrV2ResourceExists("subscription to channel proposals", s.ID(), ErrSubAlreadyExists.Error())
 		s.WithFields(perun.APIErrV2AsMap("SubChProposals", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
@@ -557,13 +557,13 @@ func (s *Session) SubChProposals(notifier perun.ChProposalNotifier) perun.APIErr
 		go s.chProposalNotifier(s.chProposalNotifsCache[0])
 		s.chProposalNotifsCache = s.chProposalNotifsCache[1:i]
 	}
-	s.WithField("method", "SubChProposals").Info("Subscription done successfully")
+	s.WithField("method", "SubChProposals").Info("Subscribed successfully")
 	return nil
 }
 
 // UnsubChProposals implements sessionAPI.UnsubChProposals.
 func (s *Session) UnsubChProposals() perun.APIErrorV2 {
-	s.WithField("method", "UnsubChProposals").Info("Received request: session.UnsubChProposals")
+	s.WithField("method", "UnsubChProposals")
 	s.Lock()
 	defer s.Unlock()
 
@@ -575,7 +575,7 @@ func (s *Session) UnsubChProposals() perun.APIErrorV2 {
 	}
 
 	if s.chProposalNotifier == nil {
-		apiErr = perun.NewAPIErrV2ResourceNotFound("proposal id", s.ID(), ErrNoActiveSub.Error())
+		apiErr = perun.NewAPIErrV2ResourceNotFound("subscription to channel proposals", s.ID(), ErrNoActiveSub.Error())
 		s.WithFields(perun.APIErrV2AsMap("UnsubChProposals", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
