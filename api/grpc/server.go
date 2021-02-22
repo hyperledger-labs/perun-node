@@ -257,14 +257,13 @@ func (a *payChAPIServer) GetPayChsInfo(ctx context.Context, req *pb.GetPayChsInf
 // SubPayChProposals wraps session.SubPayChProposals.
 func (a *payChAPIServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
 	srv pb.Payment_API_SubPayChProposalsServer) error {
-	sess, err := a.n.GetSession(req.SessionID)
+	sess, err := a.n.GetSessionV2(req.SessionID)
 	if err != nil {
 		// TODO: (mano) Return a error response and not a protocol error
 		return errors.WithMessage(err, "cannot register subscription")
 	}
 
 	notifier := func(notif payment.PayChProposalNotif) {
-		// nolint: govet	// err does not shadow prev declarations as this runs in a different context.
 		err := srv.Send(&pb.SubPayChProposalsResp{Response: &pb.SubPayChProposalsResp_Notify_{
 			Notify: &pb.SubPayChProposalsResp_Notify{
 				ProposalID:       notif.ProposalID,
@@ -296,17 +295,15 @@ func (a *payChAPIServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
 // UnsubPayChProposals wraps session.UnsubPayChProposals.
 func (a *payChAPIServer) UnsubPayChProposals(ctx context.Context, req *pb.UnsubPayChProposalsReq) (
 	*pb.UnsubPayChProposalsResp, error) {
-	errResponse := func(err error) *pb.UnsubPayChProposalsResp {
+	errResponse := func(err perun.APIErrorV2) *pb.UnsubPayChProposalsResp {
 		return &pb.UnsubPayChProposalsResp{
 			Response: &pb.UnsubPayChProposalsResp_Error{
-				Error: &pb.MsgError{
-					Error: err.Error(),
-				},
+				Error: toGrpcError(err),
 			},
 		}
 	}
 
-	sess, err := a.n.GetSession(req.SessionID)
+	sess, err := a.n.GetSessionV2(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}

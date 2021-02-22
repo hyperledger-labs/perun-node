@@ -170,7 +170,7 @@ func Test_SubPayChProposals(t *testing.T) {
 	})
 	t.Run("error", func(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("SubChProposals", mock.Anything).Return(assert.AnError)
+		sessionAPI.On("SubChProposals", mock.Anything).Return(perun.NewAPIErrV2UnknownInternal(assert.AnError))
 
 		dummyNotifier := func(notif payment.PayChProposalNotif) {}
 		gotErr := payment.SubPayChProposals(sessionAPI, dummyNotifier)
@@ -189,7 +189,7 @@ func Test_UnsubPayChProposals(t *testing.T) {
 	})
 	t.Run("error", func(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("UnsubChProposals", mock.Anything).Return(assert.AnError)
+		sessionAPI.On("UnsubChProposals", mock.Anything).Return(perun.NewAPIErrV2UnknownInternal(assert.AnError))
 
 		gotErr := payment.UnsubPayChProposals(sessionAPI)
 		assert.Error(t, gotErr)
