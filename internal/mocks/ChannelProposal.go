@@ -61,6 +61,36 @@ func (_m *ChannelProposal) Encode(_a0 io.Writer) error {
 	return r0
 }
 
+// Matches provides a mock function with given fields: _a0
+func (_m *ChannelProposal) Matches(_a0 client.ChannelProposalAccept) bool {
+	ret := _m.Called(_a0)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(client.ChannelProposalAccept) bool); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
+// ProposalID provides a mock function with given fields:
+func (_m *ChannelProposal) ProposalID() [32]byte {
+	ret := _m.Called()
+
+	var r0 [32]byte
+	if rf, ok := ret.Get(0).(func() [32]byte); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([32]byte)
+		}
+	}
+
+	return r0
+}
+
 // Type provides a mock function with given fields:
 func (_m *ChannelProposal) Type() wire.Type {
 	ret := _m.Called()
@@ -70,6 +100,20 @@ func (_m *ChannelProposal) Type() wire.Type {
 		r0 = rf()
 	} else {
 		r0 = ret.Get(0).(wire.Type)
+	}
+
+	return r0
+}
+
+// Valid provides a mock function with given fields:
+func (_m *ChannelProposal) Valid() error {
+	ret := _m.Called()
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
 	}
 
 	return r0
