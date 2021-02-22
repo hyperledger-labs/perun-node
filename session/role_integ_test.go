@@ -56,22 +56,22 @@ func Test_Integ_Role(t *testing.T) {
 	bob, err := session.New(bobCfg)
 	require.NoErrorf(t, err, "initializing bob session")
 	t.Logf("bob session id: %s\n", bob.ID())
-	t.Logf("alice database dir is: %s\n", aliceCfg.DatabaseDir)
+	t.Logf("bob database dir is: %s\n", bobCfg.DatabaseDir)
 
 	var alicePeerID, bobPeerID perun.PeerID
 	t.Run("GetPeerID", func(t *testing.T) {
 		t.Run("happy", func(t *testing.T) {
 			alicePeerID, err = alice.GetPeerID(perun.OwnAlias)
-			require.NoErrorf(t, err, "Alice: GetPeerID")
+			require.NoErrorf(t, err, "alice reading own peer ID")
 			alicePeerID.Alias = aliceAlias
 
 			bobPeerID, err = bob.GetPeerID(perun.OwnAlias)
-			require.NoErrorf(t, err, "Bob: GetPeerID")
+			require.NoErrorf(t, err, "bob reading own peer IDetPeerID")
 			bobPeerID.Alias = bobAlias
 		})
 		t.Run("missing", func(t *testing.T) {
 			_, err = alice.GetPeerID("random alias")
-			assert.Errorf(t, err, "Alice: GetPeerID")
+			assert.Errorf(t, err, "alice reading random peer ID should error")
 			t.Log(err)
 		})
 	})
@@ -79,15 +79,15 @@ func Test_Integ_Role(t *testing.T) {
 	t.Run("AddPeerID", func(t *testing.T) {
 		t.Run("happy", func(t *testing.T) {
 			err = alice.AddPeerID(bobPeerID)
-			require.NoErrorf(t, err, "Alice: AddPeerID")
+			require.NoErrorf(t, err, "alice adding bob's peer ID")
 
 			err = bob.AddPeerID(alicePeerID)
-			require.NoErrorf(t, err, "Bob: GetPeerID")
+			require.NoErrorf(t, err, "bob adding alice's peer ID")
 		})
 		t.Run("already_exists", func(t *testing.T) {
 			// Try to add bob peer ID again
 			err = alice.AddPeerID(bobPeerID)
-			assert.Errorf(t, err, "Alice: AddPeerID")
+			assert.Errorf(t, err, "alice adding bob's peer ID when it is already added should error")
 			t.Log(err)
 		})
 	})
@@ -100,10 +100,8 @@ func Test_Integ_Role(t *testing.T) {
 		// Propose Channel by alice.
 		wg.Add(1)
 		go func() {
-			defer func() {
-				wg.Done()
-				t.Logf("\ncompleted")
-			}()
+			defer wg.Done()
+
 			openingBalInfo := perun.BalInfo{
 				Currency: currency.ETH,
 				Parts:    []string{perun.OwnAlias, bobAlias},
@@ -125,15 +123,14 @@ func Test_Integ_Role(t *testing.T) {
 			bobChProposalNotif <- notif
 		}
 		err = bob.SubChProposals(bobChProposalNotifier)
-		require.NoError(t, err, "bob subscribing channel proposals")
+		require.NoError(t, err, "bob subscribing to channel proposals")
 
 		notif := <-bobChProposalNotif
 		_, err = bob.RespondChProposal(ctx, notif.ProposalID, true)
 		require.NoError(t, err, "bob accepting channel proposal")
 
 		err = bob.UnsubChProposals()
-		require.NoError(t, err, "bob unsubscribing channel proposals")
-		t.Logf("\nwait completed")
+		require.NoError(t, err, "bob unsubscribing from channel proposals")
 	})
 
 	t.Run("OpenCh_Sub_Unsub_ChProposal_Respond_Reject", func(t *testing.T) {
@@ -141,6 +138,7 @@ func Test_Integ_Role(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+
 			openingBalInfo := perun.BalInfo{
 				Currency: currency.ETH,
 				Parts:    []string{aliceAlias, perun.OwnAlias},
@@ -152,7 +150,7 @@ func Test_Integ_Role(t *testing.T) {
 			}
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.
 			_, err := bob.OpenCh(ctx, openingBalInfo, app, challengeDurSecs)
-			require.Error(t, err, "bob channel rejected by alice")
+			require.Error(t, err, "bob sending channel proposal should be rejected by alice")
 			t.Log(err)
 		}()
 		defer wg.Wait()
@@ -163,14 +161,14 @@ func Test_Integ_Role(t *testing.T) {
 			aliceChProposalNotif <- notif
 		}
 		err = alice.SubChProposals(aliceChProposalNotifier)
-		require.NoError(t, err, "alice subscribing channel proposals")
+		require.NoError(t, err, "alice subscribing to channel proposals")
 
 		notif := <-aliceChProposalNotif
 		_, err = alice.RespondChProposal(ctx, notif.ProposalID, false)
 		require.NoError(t, err, "alice rejecting channel proposal")
 
 		err = alice.UnsubChProposals()
-		require.NoError(t, err, "alice unsubscribing channel proposals")
+		require.NoError(t, err, "alice unsubscribing from channel proposals")
 	})
 
 	var aliceCh, bobCh perun.ChAPI
@@ -183,12 +181,12 @@ func Test_Integ_Role(t *testing.T) {
 		aliceCh, err = alice.GetCh(aliceChInfos[0].ChID)
 		require.NoError(t, err, "getting alice ChAPI instance")
 
-		bobCh, err = bob.GetCh(aliceChInfos[0].ChID)
+		bobCh, err = bob.GetCh(bobChInfos[0].ChID)
 		require.NoError(t, err, "getting bob ChAPI instance")
 	})
 
 	t.Run("SendUpdate_Sub_Unsub_ChUpdate_Respond_Accept", func(t *testing.T) {
-		// Send update by bob.
+		// Send channel update by bob.
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -212,28 +210,28 @@ func Test_Integ_Role(t *testing.T) {
 
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.
 			_, err := bobCh.SendChUpdate(ctx, updater)
-			require.NoError(t, err)
+			require.NoError(t, err, "bob sending channel update")
 		}()
 		defer wg.Wait()
 
-		// Accept channel by alice.
+		// Accept channel update by alice.
 		aliceChUpdateNotif := make(chan perun.ChUpdateNotif)
 		aliceChUpdateNotifier := func(notif perun.ChUpdateNotif) {
 			aliceChUpdateNotif <- notif
 		}
 		err = aliceCh.SubChUpdates(aliceChUpdateNotifier)
-		require.NoError(t, err, "alice subscribing channel proposals")
+		require.NoError(t, err, "alice subscribing to channel updates")
 
 		notif := <-aliceChUpdateNotif
 		_, err = aliceCh.RespondChUpdate(ctx, notif.UpdateID, true)
 		require.NoError(t, err, "alice accepting channel update")
 
 		err = aliceCh.UnsubChUpdates()
-		require.NoError(t, err, "alice unsubscribing channel updates")
+		require.NoError(t, err, "alice unsubscribing from channel updates")
 	})
 
 	t.Run("SendUpdate_Sub_Unsub_ChUpdate_Respond_Reject", func(t *testing.T) {
-		// Send update by alice.
+		// Send channel update by alice.
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -257,25 +255,25 @@ func Test_Integ_Role(t *testing.T) {
 
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.
 			_, err := aliceCh.SendChUpdate(ctx, updater)
-			require.Error(t, err, "alice update rejected by bob")
+			require.Error(t, err, "alice sending channel update should be rejected by bob")
 			t.Log(err)
 		}()
 		defer wg.Wait()
 
-		// Reject channel by bob.
+		// Reject channel update by bob.
 		bobChUpdateNotif := make(chan perun.ChUpdateNotif)
 		bobChUpdateNotifier := func(notif perun.ChUpdateNotif) {
 			bobChUpdateNotif <- notif
 		}
 		err = bobCh.SubChUpdates(bobChUpdateNotifier)
-		require.NoError(t, err, "bob subscribing channel proposals")
+		require.NoError(t, err, "bob subscribing to channel updates")
 
 		notif := <-bobChUpdateNotif
 		_, err = bobCh.RespondChUpdate(ctx, notif.UpdateID, false)
 		require.NoError(t, err, "bob accepting channel update")
 
 		err = bobCh.UnsubChUpdates()
-		require.NoError(t, err, "bob unsubscribing channel updates")
+		require.NoError(t, err, "bob unsubscribing from channel updates")
 	})
 
 	t.Run("Session_Close_NoForce_Error", func(t *testing.T) {
@@ -288,70 +286,70 @@ func Test_Integ_Role(t *testing.T) {
 	})
 
 	t.Run("Collaborative channel close", func(t *testing.T) {
-		// Sub channel close notifs.
+		// Subscribe to channel update notifications by Alice.
 		aliceChUpdateNotif := make(chan perun.ChUpdateNotif)
 		aliceChUpdateNotifier := func(notif perun.ChUpdateNotif) {
 			aliceChUpdateNotif <- notif
 		}
 		err = aliceCh.SubChUpdates(aliceChUpdateNotifier)
-		require.NoError(t, err, "alice subscribing channel updates")
+		require.NoError(t, err, "alice subscribing to channel updates")
 
-		// Send close by bob.
+		// Send channel close by alice.
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			// nolint: govet	// err does not shadow, using a new var to prevent data race.
 			closedChInfo, err := aliceCh.Close(ctx)
-			require.NoError(t, err)
+			require.NoError(t, err, "alice closing channel")
 			t.Log("alice", closedChInfo)
 		}()
 		defer wg.Wait()
 
-		// Reject final channel by bob.
+		// Accept final channel update by bob (to enable collaborative close).
 		bobChUpdateNotif := make(chan perun.ChUpdateNotif)
 		bobChUpdateNotifier := func(notif perun.ChUpdateNotif) {
 			bobChUpdateNotif <- notif
 		}
 		err = bobCh.SubChUpdates(bobChUpdateNotifier)
-		require.NoError(t, err, "bob subscribing channel updates")
+		require.NoError(t, err, "bob subscribing to channel updates")
 
 		notif := <-bobChUpdateNotif
 		_, err = bobCh.RespondChUpdate(ctx, notif.UpdateID, true)
 		require.NoError(t, err, "bob accepting channel update")
 
-		// closing update for bob.
+		// Read channel (closing) update for bob.
 		notif = <-bobChUpdateNotif
 		t.Log("bob", notif)
 		assert.Equal(t, perun.ChUpdateTypeClosed, notif.Type)
 
-		// error on responding to channel update closed.
+		// Responding to channel (closing) update.
 		_, err = bobCh.RespondChUpdate(ctx, notif.UpdateID, false)
-		require.Error(t, err, "bob responding to channel update closed")
+		require.Error(t, err, "bob responding to (closing) channel update should error")
 
 		err = bobCh.UnsubChUpdates()
-		assert.Error(t, err)
-		t.Log(err, "UnsubChUpdates for alice")
-
+		assert.Error(t, err, "bob unsubscribing from channel updates after closing notification should error")
+		t.Log(err)
 		require.EqualError(t, err, perun.ErrChClosed.Error())
-		// Receive, unsub channel close notifs.
+
+		// Read channel (closing) update for alice.
 		notif = <-aliceChUpdateNotif
 		t.Log("alice", notif)
 		assert.Equal(t, perun.ChUpdateTypeClosed, notif.Type)
 		err = aliceCh.UnsubChUpdates()
-		assert.Error(t, err)
-		t.Log(err, "UnsubChUpdates for alice")
+		assert.Error(t, err, "alice unsubscribing from channel updates after closing notification should error")
+		t.Log(err)
 
-		t.Run("Session_Close_NoForce_Sucesss", func(t *testing.T) {
+		t.Run("Session_Close_NoForce_Success", func(t *testing.T) {
 			var openChsInfo []perun.ChInfo
 			openChsInfo, err = alice.Close(false)
-			require.NoError(t, err)
+			require.NoError(t, err, "alice closing session with no force option")
 			require.Len(t, openChsInfo, 0)
 		})
 
-		t.Run("Session_Close_Force_Sucesss", func(t *testing.T) {
+		t.Run("Session_Close_Force_Success", func(t *testing.T) {
 			var openChsInfo []perun.ChInfo
 			openChsInfo, err = bob.Close(true)
-			require.NoError(t, err)
+			require.NoError(t, err, " bob closing session with force option")
 			require.Len(t, openChsInfo, 0)
 		})
 	})
