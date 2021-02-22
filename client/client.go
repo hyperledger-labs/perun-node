@@ -160,7 +160,12 @@ func (c *client) RestoreChs(handler func(perun.Channel)) error {
 	c.EnablePersistence(pr)
 	ctx, cancel := context.WithTimeout(context.Background(), c.reconnTimeout)
 	defer cancel()
-	return c.Restore(ctx)
+	err = c.Restore(ctx)
+	// Set the OnNewChannel call back to a dummy function, so it does not
+	// process the channels that are created as a result of `ProposeChannel` or
+	// `Accept` on a channel proposal.
+	c.OnNewChannel(func(perun.Channel) {})
+	return err
 }
 
 // Close closes the client and waits until the listener and handler go routines return. It then closes the
