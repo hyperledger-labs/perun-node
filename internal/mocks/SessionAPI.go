@@ -53,6 +53,31 @@ func (_m *SessionAPI) Close(force bool) ([]perun.ChInfo, error) {
 	return r0, r1
 }
 
+// GetChV2 provides a mock function with given fields: _a0
+func (_m *SessionAPI) GetChV2(_a0 string) (perun.ChAPI, perun.APIErrorV2) {
+	ret := _m.Called(_a0)
+
+	var r0 perun.ChAPI
+	if rf, ok := ret.Get(0).(func(string) perun.ChAPI); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(perun.ChAPI)
+		}
+	}
+
+	var r1 perun.APIErrorV2
+	if rf, ok := ret.Get(1).(func(string) perun.APIErrorV2); ok {
+		r1 = rf(_a0)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(perun.APIErrorV2)
+		}
+	}
+
+	return r0, r1
+}
+
 // GetCh provides a mock function with given fields: _a0
 func (_m *SessionAPI) GetCh(_a0 string) (perun.ChAPI, error) {
 	ret := _m.Called(_a0)

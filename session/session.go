@@ -66,6 +66,8 @@ const (
 	ErrUnknownPeerAlias Error = "unknown peer alias"
 	ErrSubAlreadyExists Error = "subscription already exists"
 	ErrNoActiveSub      Error = "no active subscription"
+	ErrChClosed         Error = "Channel is closed"
+	ErrUnknownChID      Error = "No channel corresponding to the specified ID"
 )
 
 type (
@@ -665,6 +667,28 @@ func (s *Session) GetChsInfo() []perun.ChInfo {
 		i++
 	}
 	return openChsInfo
+}
+
+// GetChV2 is a wrapper over GetCh that returns error in the
+// newly defined APIErrorV2 format introduced for the purpose of refactoring.
+//
+// See doc comments on SessionAPI interface for more details.
+// TODO: merge this with GetCh api once GetChV2 is removed from SessionAPI.
+func (s *Session) GetChV2(chID string) (perun.ChAPI, perun.APIErrorV2) {
+	s.WithField("method", "GetChV2").Info("Received request with params:", chID)
+	ch, err := s.GetCh(chID)
+	var apiErr perun.APIErrorV2
+
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrUnknownChID):
+			apiErr = perun.NewAPIErrV2ResourceNotFound("channel id", chID, err.Error())
+		default:
+			apiErr = perun.NewAPIErrV2UnknownInternal(errors.WithMessage(err, "Unexpected error from GetCh"))
+		}
+		s.WithFields(perun.APIErrV2AsMap("GetSessionV2 (internal)", apiErr)).Error(apiErr.Message())
+	}
+	return ch, apiErr
 }
 
 // GetCh implements sessionAPI.GetCh.
