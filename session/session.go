@@ -534,7 +534,7 @@ func chProposalNotif(parts []string, curr string, chProposal *pclient.LedgerChan
 
 // SubChProposals implements sessionAPI.SubChProposals.
 func (s *Session) SubChProposals(notifier perun.ChProposalNotifier) perun.APIErrorV2 {
-	s.WithField("method", "SubChProposals").Info("Received request: notifier")
+	s.WithField("method", "SubChProposals").Info("Received request with params:", notifier)
 	s.Lock()
 	defer s.Unlock()
 
@@ -563,7 +563,7 @@ func (s *Session) SubChProposals(notifier perun.ChProposalNotifier) perun.APIErr
 
 // UnsubChProposals implements sessionAPI.UnsubChProposals.
 func (s *Session) UnsubChProposals() perun.APIErrorV2 {
-	s.WithField("method", "UnsubChProposals")
+	s.WithField("method", "UnsubChProposals").Info("Received request")
 	s.Lock()
 	defer s.Unlock()
 
