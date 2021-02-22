@@ -172,28 +172,32 @@ func (_m *SessionAPI) RespondChProposal(_a0 context.Context, _a1 string, _a2 boo
 }
 
 // SubChProposals provides a mock function with given fields: _a0
-func (_m *SessionAPI) SubChProposals(_a0 perun.ChProposalNotifier) error {
+func (_m *SessionAPI) SubChProposals(_a0 perun.ChProposalNotifier) perun.APIErrorV2 {
 	ret := _m.Called(_a0)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(perun.ChProposalNotifier) error); ok {
+	var r0 perun.APIErrorV2
+	if rf, ok := ret.Get(0).(func(perun.ChProposalNotifier) perun.APIErrorV2); ok {
 		r0 = rf(_a0)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(perun.APIErrorV2)
+		}
 	}
 
 	return r0
 }
 
 // UnsubChProposals provides a mock function with given fields:
-func (_m *SessionAPI) UnsubChProposals() error {
+func (_m *SessionAPI) UnsubChProposals() perun.APIErrorV2 {
 	ret := _m.Called()
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
+	var r0 perun.APIErrorV2
+	if rf, ok := ret.Get(0).(func() perun.APIErrorV2); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(perun.APIErrorV2)
+		}
 	}
 
 	return r0

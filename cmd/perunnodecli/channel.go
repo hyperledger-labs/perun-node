@@ -301,7 +301,8 @@ func channelNotifHandler(sub pb.Payment_API_SubPayChProposalsClient) {
 		}
 		msgErr, ok := notifMsg.Response.(*pb.SubPayChProposalsResp_Error)
 		if ok {
-			sh.Printf("%s\n\n", redf("Error received in channel opening request notification: %v.", msgErr.Error.Error))
+			sh.Printf("%s\n\n", redf("Error received in channel opening request notification: %v.",
+				apiErrorString(msgErr.Error)))
 			return
 		}
 		notif := notifMsg.Response.(*pb.SubPayChProposalsResp_Notify_)
@@ -343,7 +344,7 @@ func channelUnsub(c *ishell.Context) {
 	}
 	msgErr, ok := resp.Response.(*pb.UnsubPayChProposalsResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error unsubscribing from channel proposals : %v.", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error unsubscribing from channel proposals : %v.", apiErrorString(msgErr.Error)))
 		return
 	}
 }

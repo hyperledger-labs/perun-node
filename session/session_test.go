@@ -394,6 +394,14 @@ func Test_SubUnsubChProposal(t *testing.T) {
 	// == SubTest 2: Sub again, should error ==
 	err = openSession.SubChProposals(dummyNotifier)
 	require.Error(t, err)
+	wantMessage := session.ErrSubAlreadyExists.Error()
+	assert.Equal(t, perun.ClientError, err.Category())
+	assert.Equal(t, perun.ErrV2ResourceExists, err.Code())
+	assert.Contains(t, err.Message(), wantMessage)
+	addInfo, ok := err.AddInfo().(perun.ErrV2InfoResourceExists)
+	require.True(t, ok)
+	assert.Equal(t, "subscription to channel proposals", addInfo.Type)
+	assert.Equal(t, openSession.ID(), addInfo.ID)
 
 	// == SubTest 3: Unsub successfully ==
 	err = openSession.UnsubChProposals()
@@ -402,15 +410,33 @@ func Test_SubUnsubChProposal(t *testing.T) {
 	// == SubTest 4: Unsub again, should error ==
 	err = openSession.UnsubChProposals()
 	require.Error(t, err)
+	wantMessage = session.ErrNoActiveSub.Error()
+	assert.Equal(t, perun.ClientError, err.Category())
+	assert.Equal(t, perun.ErrV2ResourceNotFound, err.Code())
+	assert.Contains(t, err.Message(), wantMessage)
+	addInfo1, ok := err.AddInfo().(perun.ErrV2InfoResourceNotFound)
+	require.True(t, ok)
+	assert.Equal(t, "subscription to channel proposals", addInfo1.Type)
+	assert.Equal(t, openSession.ID(), addInfo1.ID)
 
 	t.Run("Sub_sessionClosed", func(t *testing.T) {
 		err = closedSession.SubChProposals(dummyNotifier)
 		require.Error(t, err)
+		wantMessage := session.ErrSessionClosed.Error()
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2FailedPreCondition, err.Code())
+		assert.Equal(t, wantMessage, err.Message())
+		assert.Nil(t, err.AddInfo())
 	})
 
 	t.Run("Unsub_sessionClosed", func(t *testing.T) {
 		err = closedSession.UnsubChProposals()
 		require.Error(t, err)
+		wantMessage := session.ErrSessionClosed.Error()
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2FailedPreCondition, err.Code())
+		assert.Equal(t, wantMessage, err.Message())
+		assert.Nil(t, err.AddInfo())
 	})
 }
 
