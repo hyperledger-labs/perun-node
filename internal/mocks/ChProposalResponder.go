@@ -18,11 +18,11 @@ type ChProposalResponder struct {
 }
 
 // Accept provides a mock function with given fields: _a0, _a1
-func (_m *ChProposalResponder) Accept(_a0 context.Context, _a1 *client.ChannelProposalAcc) (perun.Channel, error) {
+func (_m *ChProposalResponder) Accept(_a0 context.Context, _a1 *client.LedgerChannelProposalAcc) (perun.Channel, error) {
 	ret := _m.Called(_a0, _a1)
 
 	var r0 perun.Channel
-	if rf, ok := ret.Get(0).(func(context.Context, *client.ChannelProposalAcc) perun.Channel); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *client.LedgerChannelProposalAcc) perun.Channel); ok {
 		r0 = rf(_a0, _a1)
 	} else {
 		if ret.Get(0) != nil {
@@ -31,7 +31,7 @@ func (_m *ChProposalResponder) Accept(_a0 context.Context, _a1 *client.ChannelPr
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *client.ChannelProposalAcc) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *client.LedgerChannelProposalAcc) error); ok {
 		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)
