@@ -66,7 +66,7 @@ func Test_Integ_Role(t *testing.T) {
 			alicePeerID.Alias = aliceAlias
 
 			bobPeerID, err = bob.GetPeerID(perun.OwnAlias)
-			require.NoErrorf(t, err, "bob reading own peer IDetPeerID")
+			require.NoErrorf(t, err, "bob reading own peer ID")
 			bobPeerID.Alias = bobAlias
 		})
 		t.Run("missing", func(t *testing.T) {
@@ -87,7 +87,7 @@ func Test_Integ_Role(t *testing.T) {
 		t.Run("already_exists", func(t *testing.T) {
 			// Try to add bob peer ID again
 			err = alice.AddPeerID(bobPeerID)
-			assert.Errorf(t, err, "alice adding bob's peer ID when it is already added should error")
+			assert.Errorf(t, err, "alice adding bob's peer ID when it is already present should error")
 			t.Log(err)
 		})
 	})
