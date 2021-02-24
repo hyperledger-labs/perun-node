@@ -669,10 +669,10 @@ func (s *Session) GetChsInfo() []perun.ChInfo {
 	return openChsInfo
 }
 
-// GetChV2 is a wrapper over GetCh that returns error in the
+// GetChV2 is a wrapper over GetCh that returns the error in the
 // newly defined APIErrorV2 format introduced for the purpose of refactoring.
 //
-// See doc comments on SessionAPI interface for more details.
+// See doc comments on the SessionAPI interface for more details.
 // TODO: merge this with GetCh api once GetChV2 is removed from SessionAPI.
 func (s *Session) GetChV2(chID string) (perun.ChAPI, perun.APIErrorV2) {
 	s.WithField("method", "GetChV2").Info("Received request with params:", chID)

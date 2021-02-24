@@ -2963,7 +2963,7 @@ func (x *GetPayChInfoResp) GetMsgSuccess() *GetPayChInfoResp_MsgSuccess {
 	return nil
 }
 
-func (x *GetPayChInfoResp) GetError() *MsgError {
+func (x *GetPayChInfoResp) GetError() *MsgErrorV2 {
 	if x, ok := x.GetResponse().(*GetPayChInfoResp_Error); ok {
 		return x.Error
 	}
@@ -2979,7 +2979,7 @@ type GetPayChInfoResp_MsgSuccess_ struct {
 }
 
 type GetPayChInfoResp_Error struct {
-	Error *MsgError `protobuf:"bytes,2,opt,name=error,proto3,oneof"`
+	Error *MsgErrorV2 `protobuf:"bytes,2,opt,name=error,proto3,oneof"`
 }
 
 func (*GetPayChInfoResp_MsgSuccess_) isGetPayChInfoResp_Response() {}
@@ -4550,7 +4550,7 @@ var file_api_proto_depIdxs = []int32{
 	60, // 32: pb.RespondPayChUpdateResp.msgSuccess:type_name -> pb.RespondPayChUpdateResp.MsgSuccess
 	6,  // 33: pb.RespondPayChUpdateResp.error:type_name -> pb.MsgError
 	61, // 34: pb.GetPayChInfoResp.msgSuccess:type_name -> pb.GetPayChInfoResp.MsgSuccess
-	6,  // 35: pb.GetPayChInfoResp.error:type_name -> pb.MsgError
+	7,  // 35: pb.GetPayChInfoResp.error:type_name -> pb.MsgErrorV2
 	62, // 36: pb.ClosePayChResp.msgSuccess:type_name -> pb.ClosePayChResp.MsgSuccess
 	6,  // 37: pb.ClosePayChResp.error:type_name -> pb.MsgError
 	5,  // 38: pb.OpenSessionResp.MsgSuccess.restoredChs:type_name -> pb.PayChInfo

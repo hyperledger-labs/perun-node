@@ -338,7 +338,7 @@ func (ch *Channel) rejectChUpdate(pctx context.Context, entry chUpdateResponderE
 
 // GetChInfo implements chAPI.GetChInfo.
 func (ch *Channel) GetChInfo() perun.ChInfo {
-	ch.Debug("Received request: channel.GetChInfo")
+	ch.WithField("method", "GetChInfo").Info("Received request")
 	ch.Lock()
 	chInfo := ch.getChInfo()
 	ch.Unlock()

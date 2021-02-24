@@ -562,21 +562,19 @@ func (a *payChAPIServer) RespondPayChUpdate(ctx context.Context, req *pb.Respond
 // GetPayChInfo wraps ch.GetBalInfo.
 func (a *payChAPIServer) GetPayChInfo(ctx context.Context, req *pb.GetPayChInfoReq) (
 	*pb.GetPayChInfoResp, error) {
-	errResponse := func(err error) *pb.GetPayChInfoResp {
+	errResponse := func(err perun.APIErrorV2) *pb.GetPayChInfoResp {
 		return &pb.GetPayChInfoResp{
 			Response: &pb.GetPayChInfoResp_Error{
-				Error: &pb.MsgError{
-					Error: err.Error(),
-				},
+				Error: toGrpcError(err),
 			},
 		}
 	}
 
-	sess, err := a.n.GetSession(req.SessionID)
+	sess, err := a.n.GetSessionV2(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	ch, err := sess.GetCh(req.ChID)
+	ch, err := sess.GetChV2(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}
