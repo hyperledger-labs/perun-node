@@ -227,7 +227,7 @@ func makeChUpdateNotif(currChInfo perun.ChInfo, proposedState *pchannel.State, e
 
 // SubChUpdates implements chAPI.SubChUpdates.
 func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) perun.APIErrorV2 {
-	ch.Debug("Received request: channel.SubChUpdates")
+	ch.WithField("method", "SubChUpdates").Info("Received request with params:", notifier)
 	ch.Lock()
 	defer ch.Unlock()
 
@@ -240,7 +240,6 @@ func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) perun.APIErrorV
 	if ch.chUpdateNotifier != nil {
 		apiErr := perun.NewAPIErrV2ResourceExists("subscription to channel updates", ch.ID(), ErrSubAlreadyExists.Error())
 		ch.WithFields(perun.APIErrV2AsMap("SubChUpdates", apiErr)).Error(apiErr.Message())
-		ch.Error(apiErr)
 		return apiErr
 	}
 	ch.chUpdateNotifier = notifier
@@ -255,7 +254,7 @@ func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) perun.APIErrorV
 
 // UnsubChUpdates implements chAPI.UnsubChUpdates.
 func (ch *Channel) UnsubChUpdates() perun.APIErrorV2 {
-	ch.Debug("Received request: channel.UnsubChUpdates")
+	ch.WithField("method", "UnsubChUpdates").Info("Received request")
 	ch.Lock()
 	defer ch.Unlock()
 
@@ -266,7 +265,7 @@ func (ch *Channel) UnsubChUpdates() perun.APIErrorV2 {
 	}
 
 	if ch.chUpdateNotifier == nil {
-		apiErr := perun.NewAPIErrV2ResourceNotFound("unsubscription to channel updates", ch.ID(), ErrNoActiveSub.Error())
+		apiErr := perun.NewAPIErrV2ResourceNotFound("subscription to channel updates", ch.ID(), ErrNoActiveSub.Error())
 		ch.WithFields(perun.APIErrV2AsMap("UnsubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}

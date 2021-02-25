@@ -678,7 +678,6 @@ func (s *Session) GetChV2(chID string) (perun.ChAPI, perun.APIErrorV2) {
 	s.WithField("method", "GetChV2").Info("Received request with params:", chID)
 	ch, err := s.GetCh(chID)
 	var apiErr perun.APIErrorV2
-
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrUnknownChID):

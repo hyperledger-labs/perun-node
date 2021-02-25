@@ -332,6 +332,11 @@ func Test_Integ_Role(t *testing.T) {
 
 		apiError := perun.NewAPIErrV2FailedPreCondition(session.ErrChClosed.Error())
 		require.Equal(t, err, apiError)
+		wantMessage := session.ErrChClosed.Error()
+		assert.Equal(t, perun.ClientError, apiError.Category())
+		assert.Equal(t, perun.ErrV2FailedPreCondition, apiError.Code())
+		assert.Equal(t, wantMessage, apiError.Message())
+		assert.Nil(t, apiError.AddInfo())
 
 		// Read channel (closing) update for alice.
 		notif = <-aliceChUpdateNotif
