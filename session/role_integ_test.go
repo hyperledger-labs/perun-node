@@ -329,7 +329,14 @@ func Test_Integ_Role(t *testing.T) {
 		err = bobCh.UnsubChUpdates()
 		assert.Error(t, err, "bob unsubscribing from channel updates after closing notification should error")
 		t.Log(err)
-		require.EqualError(t, err, perun.ErrChClosed.Error())
+
+		apiError := perun.NewAPIErrV2FailedPreCondition(session.ErrChClosed.Error())
+		require.Equal(t, err, apiError)
+		wantMessage := session.ErrChClosed.Error()
+		assert.Equal(t, perun.ClientError, apiError.Category())
+		assert.Equal(t, perun.ErrV2FailedPreCondition, apiError.Code())
+		assert.Equal(t, wantMessage, apiError.Message())
+		assert.Nil(t, apiError.AddInfo())
 
 		// Read channel (closing) update for alice.
 		notif = <-aliceChUpdateNotif

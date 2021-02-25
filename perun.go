@@ -391,6 +391,20 @@ type SessionAPI interface {
 	// This function is used internally to get a ChAPI instance.
 	// Should not be exposed via user API.
 	GetCh(string) (ChAPI, error)
+
+	// GetChV2 is a wrapper over GetCh that returns the error in the
+	// newly defined APIErrorV2 format instead of the standard error.
+	//
+	// This is introduced temporarily to facilitate refactoring all the APIs to
+	// return a newly defined API Error type instead of the standard error.
+	// Since this API is used across all the api calls, two versions are
+	// simulataneously required until all the APIs are updated to use the newly
+	// defined API Error (APIErrorV2).
+	//
+	// TODO: Once all the APIs are updated to use the new newly defined API
+	// Error, remove the other version of GetCh API that returns standard
+	// error type and rename this to GetCh.
+	GetChV2(string) (ChAPI, APIErrorV2)
 }
 
 type (
@@ -423,8 +437,8 @@ type ChAPI interface {
 	// Methods to transact on, close the channel and read its state.
 	// These APIs use a mutex lock.
 	SendChUpdate(context.Context, StateUpdater) (ChInfo, error)
-	SubChUpdates(ChUpdateNotifier) error
-	UnsubChUpdates() error
+	SubChUpdates(ChUpdateNotifier) APIErrorV2
+	UnsubChUpdates() APIErrorV2
 	RespondChUpdate(context.Context, string, bool) (ChInfo, error)
 	GetChInfo() ChInfo
 	Close(context.Context) (ChInfo, error)

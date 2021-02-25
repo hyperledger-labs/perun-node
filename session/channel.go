@@ -226,18 +226,21 @@ func makeChUpdateNotif(currChInfo perun.ChInfo, proposedState *pchannel.State, e
 }
 
 // SubChUpdates implements chAPI.SubChUpdates.
-func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) error {
-	ch.Debug("Received request: channel.SubChUpdates")
+func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) perun.APIErrorV2 {
+	ch.WithField("method", "SubChUpdates").Info("Received request with params:", notifier)
 	ch.Lock()
 	defer ch.Unlock()
 
 	if ch.status == closed {
-		return perun.ErrChClosed
+		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error())
+		ch.WithFields(perun.APIErrV2AsMap("SubChUpdates", apiErr)).Error(apiErr.Message())
+		return apiErr
 	}
 
 	if ch.chUpdateNotifier != nil {
-		ch.Error(perun.ErrSubAlreadyExists)
-		return perun.ErrSubAlreadyExists
+		apiErr := perun.NewAPIErrV2ResourceExists("subscription to channel updates", ch.ID(), ErrSubAlreadyExists.Error())
+		ch.WithFields(perun.APIErrV2AsMap("SubChUpdates", apiErr)).Error(apiErr.Message())
+		return apiErr
 	}
 	ch.chUpdateNotifier = notifier
 
@@ -250,18 +253,21 @@ func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) error {
 }
 
 // UnsubChUpdates implements chAPI.UnsubChUpdates.
-func (ch *Channel) UnsubChUpdates() error {
-	ch.Debug("Received request: channel.UnsubChUpdates")
+func (ch *Channel) UnsubChUpdates() perun.APIErrorV2 {
+	ch.WithField("method", "UnsubChUpdates").Info("Received request")
 	ch.Lock()
 	defer ch.Unlock()
 
 	if ch.status == closed {
-		return perun.ErrChClosed
+		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error())
+		ch.WithFields(perun.APIErrV2AsMap("UnsubChUpdates", apiErr)).Error(apiErr.Message())
+		return apiErr
 	}
 
 	if ch.chUpdateNotifier == nil {
-		ch.Error(perun.ErrNoActiveSub)
-		return perun.ErrNoActiveSub
+		apiErr := perun.NewAPIErrV2ResourceNotFound("subscription to channel updates", ch.ID(), ErrNoActiveSub.Error())
+		ch.WithFields(perun.APIErrV2AsMap("UnsubChUpdates", apiErr)).Error(apiErr.Message())
+		return apiErr
 	}
 	ch.unsubChUpdates()
 	return nil
