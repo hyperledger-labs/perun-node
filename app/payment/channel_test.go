@@ -169,7 +169,7 @@ func Test_SubPayChUpdates(t *testing.T) {
 	})
 	t.Run("error", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("SubChUpdates", mock.Anything).Return(assert.AnError)
+		chAPI.On("SubChUpdates", mock.Anything).Return(perun.NewAPIErrV2UnknownInternal(assert.AnError))
 
 		dummyNotifier := func(notif payment.PayChUpdateNotif) {}
 		gotErr := payment.SubPayChUpdates(chAPI, dummyNotifier)
@@ -188,7 +188,7 @@ func Test_UnsubPayChUpdates(t *testing.T) {
 	})
 	t.Run("error", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("UnsubChUpdates").Return(assert.AnError)
+		chAPI.On("UnsubChUpdates").Return(perun.NewAPIErrV2UnknownInternal(assert.AnError))
 
 		gotErr := payment.UnsubPayChUpdates(chAPI)
 		assert.Error(t, gotErr)

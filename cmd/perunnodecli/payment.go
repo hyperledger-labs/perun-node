@@ -239,7 +239,7 @@ func paymentNotifHandler(sub pb.Payment_API_SubPayChUpdatesClient, chAlias, chID
 		}
 		msgErr, ok := notifMsg.Response.(*pb.SubPayChUpdatesResp_Error)
 		if ok {
-			sh.Printf("%s\n\n", redf("Error message received in update notification : %v", msgErr.Error.Error))
+			sh.Printf("%s\n\n", redf("Error message received in update notification : %v", apiErrorString(msgErr.Error)))
 			return
 		}
 		notif := notifMsg.Response.(*pb.SubPayChUpdatesResp_Notify_)
@@ -337,7 +337,7 @@ func paymentUnsub(c *ishell.Context, chAlias string) {
 	}
 	msgErr, ok := resp.Response.(*pb.UnsubPayChUpdatesResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error unsubscribing from payment notifications: %v", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error unsubscribing from payment notifications: %v", apiErrorString(msgErr.Error)))
 		return
 	}
 

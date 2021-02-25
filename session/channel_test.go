@@ -184,6 +184,15 @@ func Test_SubUnsubChUpdate(t *testing.T) {
 	err = ch.SubChUpdates(dummyNotifier)
 	require.Error(t, err)
 
+	wantMessage := session.ErrSubAlreadyExists.Error()
+	assert.Equal(t, perun.ClientError, err.Category())
+	assert.Equal(t, perun.ErrV2ResourceExists, err.Code())
+	assert.Contains(t, err.Message(), wantMessage)
+	addInfo, ok := err.AddInfo().(perun.ErrV2InfoResourceExists)
+	require.True(t, ok)
+	assert.Equal(t, "subscription to channel updates", addInfo.Type)
+	assert.Equal(t, ch.ID(), addInfo.ID)
+
 	// SubTest 3: UnSub successfully ==
 	err = ch.UnsubChUpdates()
 	require.NoError(t, err)
@@ -192,15 +201,34 @@ func Test_SubUnsubChUpdate(t *testing.T) {
 	err = ch.UnsubChUpdates()
 	require.Error(t, err)
 
+	wantMessage = session.ErrNoActiveSub.Error()
+	assert.Equal(t, perun.ClientError, err.Category())
+	assert.Equal(t, perun.ErrV2ResourceNotFound, err.Code())
+	assert.Contains(t, err.Message(), wantMessage)
+	addInfo1, ok := err.AddInfo().(perun.ErrV2InfoResourceNotFound)
+	require.True(t, ok)
+	assert.Equal(t, "subscription to channel updates", addInfo1.Type)
+	assert.Equal(t, ch.ID(), addInfo1.ID)
+
 	t.Run("Sub_channelClosed", func(t *testing.T) {
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, false)
 		err = ch.SubChUpdates(dummyNotifier)
 		require.Error(t, err)
+		wantMessage := session.ErrChClosed.Error()
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2FailedPreCondition, err.Code())
+		assert.Equal(t, wantMessage, err.Message())
+		assert.Nil(t, err.AddInfo())
 	})
 	t.Run("Unsub_channelClosed", func(t *testing.T) {
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, false)
 		err = ch.UnsubChUpdates()
 		require.Error(t, err)
+		wantMessage := session.ErrChClosed.Error()
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2FailedPreCondition, err.Code())
+		assert.Equal(t, wantMessage, err.Message())
+		assert.Nil(t, err.AddInfo())
 	})
 }
 

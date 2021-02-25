@@ -98,7 +98,7 @@ func GetPayChInfo(ch perun.ChAPI) PayChInfo {
 }
 
 // SubPayChUpdates sets up a subscription for updates on this channel.
-func SubPayChUpdates(ch perun.ChAPI, notifier PayChUpdateNotifier) error {
+func SubPayChUpdates(ch perun.ChAPI, notifier PayChUpdateNotifier) perun.APIErrorV2 {
 	return ch.SubChUpdates(func(notif perun.ChUpdateNotif) {
 		var ProposedPayChInfo PayChInfo
 		if notif.Type == perun.ChUpdateTypeClosed {
@@ -117,7 +117,7 @@ func SubPayChUpdates(ch perun.ChAPI, notifier PayChUpdateNotifier) error {
 }
 
 // UnsubPayChUpdates deletes the existing subscription for updates on this channel.
-func UnsubPayChUpdates(ch perun.ChAPI) error {
+func UnsubPayChUpdates(ch perun.ChAPI) perun.APIErrorV2 {
 	return ch.UnsubChUpdates()
 }
 

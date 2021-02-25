@@ -150,28 +150,33 @@ func (_m *ChAPI) SendChUpdate(_a0 context.Context, _a1 perun.StateUpdater) (peru
 }
 
 // SubChUpdates provides a mock function with given fields: _a0
-func (_m *ChAPI) SubChUpdates(_a0 perun.ChUpdateNotifier) error {
+func (_m *ChAPI) SubChUpdates(_a0 perun.ChUpdateNotifier) perun.APIErrorV2 {
 	ret := _m.Called(_a0)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(perun.ChUpdateNotifier) error); ok {
+	var r0 perun.APIErrorV2
+	if rf, ok := ret.Get(0).(func(perun.ChUpdateNotifier) perun.APIErrorV2); ok {
 		r0 = rf(_a0)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(perun.APIErrorV2)
+		}
+
 	}
 
 	return r0
 }
 
 // UnsubChUpdates provides a mock function with given fields:
-func (_m *ChAPI) UnsubChUpdates() error {
+func (_m *ChAPI) UnsubChUpdates() perun.APIErrorV2 {
 	ret := _m.Called()
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
+	var r0 perun.APIErrorV2
+	if rf, ok := ret.Get(0).(func() perun.APIErrorV2); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(perun.APIErrorV2)
+		}
 	}
 
 	return r0
