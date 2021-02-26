@@ -656,7 +656,7 @@ func (s *Session) rejectChProposal(pctx context.Context, responder ChProposalRes
 
 // GetChsInfo implements sessionAPI.GetChsInfo.
 func (s *Session) GetChsInfo() []perun.ChInfo {
-	s.Debug("Received request: session.GetChInfos")
+	s.WithField("method", "GetChsInfo").Info("Received request")
 	s.Lock()
 	defer s.Unlock()
 
