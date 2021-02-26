@@ -559,7 +559,7 @@ func getChannelInfo(c ishell.Actions, chAlias string) *pb.PayChInfo {
 	}
 	msgErr, ok := resp.Response.(*pb.GetPayChInfoResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error getting channel info: %v.", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error getting channel info: %v.", apiErrorString(msgErr.Error)))
 		return nil
 	}
 
