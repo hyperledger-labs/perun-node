@@ -228,15 +228,15 @@ func (a *payChAPIServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*
 
 // GetPayChsInfo wraps session.GetPayChs.
 func (a *payChAPIServer) GetPayChsInfo(ctx context.Context, req *pb.GetPayChsInfoReq) (*pb.GetPayChsInfoResp, error) {
-	errResponse := func(err error) *pb.GetPayChsInfoResp {
+	errResponse := func(err perun.APIErrorV2) *pb.GetPayChsInfoResp {
 		return &pb.GetPayChsInfoResp{
 			Response: &pb.GetPayChsInfoResp_Error{
-				Error: &pb.MsgError{Error: err.Error()},
+				Error: toGrpcError(err),
 			},
 		}
 	}
 
-	sess, err := a.n.GetSession(req.SessionID)
+	sess, err := a.n.GetSessionV2(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
