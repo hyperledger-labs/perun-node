@@ -61,7 +61,7 @@ func (cb *ChainBackend) ValidateContracts(adjAddr, assetAddr pwallet.Address) er
 
 	// Integrity of Adjudicator is implicitly done during validation of asset holder contract.
 	err := pethchannel.ValidateAssetHolderETH(ctx, *cb.Cb, pethwallet.AsEthAddr(assetAddr), pethwallet.AsEthAddr(adjAddr))
-	if pethchannel.IsContractBytecodeError(err) {
+	if pethchannel.IsErrInvalidContractCode(err) {
 		return errors.Wrap(err, "invalid contracts at given addresses")
 	}
 	return errors.Wrap(err, "validating contracts")

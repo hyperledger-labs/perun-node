@@ -78,7 +78,7 @@ func Test_GetChInfo(t *testing.T) {
 		pch.On("ID").Return([32]byte{0, 1, 2})
 		pch.On("State").Return(nil)
 		watcherSignal := make(chan time.Time)
-		pch.On("Watch").WaitUntil(watcherSignal).Return(nil)
+		pch.On("Watch", mock.Anything).WaitUntil(watcherSignal).Return(nil)
 
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)
 		chInfo := ch.GetChInfo()
@@ -401,14 +401,11 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: finalState,
 		}
-		pch, watcherSignal := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Accept", mock.Anything).Return(nil)
-		pch.On("SettleSecondary", mock.Anything).Return(nil).Run(func(_ mock.Arguments) {
-			watcherSignal <- time.Now() // Return the watcher once channel is settled.
-		})
-		pch.On("Close").Return(nil)
+		pch.On("Register", mock.Anything).Return(nil)
 
 		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
 		ch.HandleUpdate(*chUpdate, responder)
@@ -418,7 +415,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		assert.NotZero(t, chInfo)
 	})
 
-	t.Run("Handle_Respond_Accept_SettleSecondaryError", func(t *testing.T) {
+	t.Run("Handle_Respond_Accept_RegisterError", func(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: finalState,
 		}
@@ -426,7 +423,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Accept", mock.Anything).Return(nil)
-		pch.On("SettleSecondary", mock.Anything).Return(assert.AnError)
+		pch.On("Register", mock.Anything).Return(assert.AnError)
 
 		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
 		ch.HandleUpdate(*chUpdate, responder)
@@ -446,7 +443,7 @@ func Test_Close(t *testing.T) {
 	}
 
 	t.Run("happy_finalizeNoError_settle", func(t *testing.T) {
-		pch, watcherSignal := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)
 
 		var finalizer perun.StateUpdater
@@ -454,10 +451,7 @@ func Test_Close(t *testing.T) {
 			finalizer = gotFinalizer
 			return true
 		})).Return(nil)
-		pch.On("Settle", mock.Anything).Return(nil).Run(func(_ mock.Arguments) {
-			watcherSignal <- time.Now() // Return the watcher once channel is settled.
-		})
-		pch.On("Close").Return(nil)
+		pch.On("Register", mock.Anything).Return(nil)
 
 		gotChInfo, err := ch.Close(context.Background())
 		require.NoError(t, err)
@@ -469,14 +463,11 @@ func Test_Close(t *testing.T) {
 	})
 
 	t.Run("happy_finalizeError_settle", func(t *testing.T) {
-		pch, watcherSignal := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)
 
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(assert.AnError)
-		pch.On("Settle", mock.Anything).Return(nil).Run(func(_ mock.Arguments) {
-			watcherSignal <- time.Now() // Return the watcher once channel is settled.
-		})
-		pch.On("Close").Return(nil)
+		pch.On("Register", mock.Anything).Return(nil)
 
 		gotChInfo, err := ch.Close(context.Background())
 		require.NoError(t, err)
@@ -484,14 +475,11 @@ func Test_Close(t *testing.T) {
 	})
 
 	t.Run("happy_closeError", func(t *testing.T) {
-		pch, watcherSignal := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)
 
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
-		pch.On("Settle", mock.Anything).Return(nil).Run(func(_ mock.Arguments) {
-			watcherSignal <- time.Now() // Return the watcher once channel is settled.
-		})
-		pch.On("Close").Return(assert.AnError)
+		pch.On("Register", mock.Anything).Return(nil)
 
 		gotChInfo, err := ch.Close(context.Background())
 		require.NoError(t, err)
@@ -503,7 +491,7 @@ func Test_Close(t *testing.T) {
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)
 
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
-		pch.On("Settle", mock.Anything).Return(assert.AnError)
+		pch.On("Register", mock.Anything).Return(assert.AnError)
 
 		_, err := ch.Close(context.Background())
 		require.Error(t, err)
@@ -558,7 +546,7 @@ func Test_HandleWatcherReturned(t *testing.T) {
 		pch.On("ID").Return([32]byte{0, 1, 2})
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		watcherSignal := make(chan time.Time)
-		pch.On("Watch").WaitUntil(watcherSignal).Return(assert.AnError)
+		pch.On("Watch", mock.Anything).WaitUntil(watcherSignal).Return(assert.AnError)
 
 		pch.On("Close").Return(nil)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)

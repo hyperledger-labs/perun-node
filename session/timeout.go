@@ -58,16 +58,19 @@ func (t timeoutConfig) respChUpdate() time.Duration {
 	return t.response + processingTime
 }
 
-func (t timeoutConfig) settleChPrimary(challegeDurSecs uint64) time.Duration {
+func (t timeoutConfig) register(challegeDurSecs uint64) time.Duration {
 	// The worst case path considered is
-	// 2. Register state on blockchain and wait for challenge duration to expire.
-	// 3. Conclude the final state on blockchain.
-	// 4. Withdraw amount.
+	// 1. Register state on blockchain
+	// 2. and wait for challenge duration to expire.
 	challegeDur := time.Duration(challegeDurSecs) * time.Second
-	return 3*t.onChainTx + 1*challegeDur + processingTime
+	return 1*t.onChainTx + 1*challegeDur + processingTime
 }
 
-func (t timeoutConfig) settleChSecondary(challegeDurSecs uint64) time.Duration {
-	// Time taken for settleChPrimary + a waiting period of 2 on chain transaction timeouts.
-	return t.settleChPrimary(challegeDurSecs) + 2*t.onChainTx
+func (t timeoutConfig) settle(challegeDurSecs uint64) time.Duration {
+	// The worst case path considered is
+	// 3. Conclude the final state on blockchain.
+	// 2. Wait for challenge duration to expire.
+	// 4. Withdraw amount.
+	challegeDur := time.Duration(challegeDurSecs) * time.Second
+	return 2*t.onChainTx + 1*challegeDur + processingTime
 }

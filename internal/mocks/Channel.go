@@ -3,9 +3,10 @@
 package mocks
 
 import (
-	context "context"
-
 	channel "perun.network/go-perun/channel"
+	client "perun.network/go-perun/client"
+
+	context "context"
 
 	mock "github.com/stretchr/testify/mock"
 
@@ -126,8 +127,8 @@ func (_m *Channel) Phase() channel.Phase {
 	return r0
 }
 
-// Settle provides a mock function with given fields: ctx
-func (_m *Channel) Settle(ctx context.Context) error {
+// Register provides a mock function with given fields: ctx
+func (_m *Channel) Register(ctx context.Context) error {
 	ret := _m.Called(ctx)
 
 	var r0 error
@@ -140,13 +141,13 @@ func (_m *Channel) Settle(ctx context.Context) error {
 	return r0
 }
 
-// SettleSecondary provides a mock function with given fields: ctx
-func (_m *Channel) SettleSecondary(ctx context.Context) error {
-	ret := _m.Called(ctx)
+// Settle provides a mock function with given fields: ctx, isSecondary
+func (_m *Channel) Settle(ctx context.Context, isSecondary bool) error {
+	ret := _m.Called(ctx, isSecondary)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
-		r0 = rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, bool) error); ok {
+		r0 = rf(ctx, isSecondary)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -184,13 +185,13 @@ func (_m *Channel) UpdateBy(ctx context.Context, update func(*channel.State) err
 	return r0
 }
 
-// Watch provides a mock function with given fields:
-func (_m *Channel) Watch() error {
-	ret := _m.Called()
+// Watch provides a mock function with given fields: _a0
+func (_m *Channel) Watch(_a0 client.AdjudicatorEventHandler) error {
+	ret := _m.Called(_a0)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(client.AdjudicatorEventHandler) error); ok {
+		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -51,10 +51,10 @@ var adjudicatorAddr, assetAddr pwallet.Address
 
 // SetupContractsT is the test friendly version of SetupContracts.
 // It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
-func SetupContractsT(t *testing.T, chainURL string, onChainTxTimeout time.Duration) (
+func SetupContractsT(t *testing.T, chainURL string, chainID int, onChainTxTimeout time.Duration) (
 	adjudicator, asset pwallet.Address) {
 	var err error
-	adjudicator, asset, err = SetupContracts(chainURL, onChainTxTimeout)
+	adjudicator, asset, err = SetupContracts(chainURL, chainID, onChainTxTimeout)
 	require.NoError(t, err)
 	return adjudicator, asset
 }
@@ -76,7 +76,7 @@ func ContractAddrs() (adjudicator, asset pwallet.Address) {
 
 // SetupContracts checks if valid contracts are deployed in pre-computed addresses, if not it deployes them.
 // Address generation mechanism in ethereum is used to pre-compute the contract address.
-func SetupContracts(chainURL string, onChainTxTimeout time.Duration) (
+func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration) (
 	adjudicator, asset pwallet.Address, _ error) {
 	prng := rand.New(rand.NewSource(RandSeedForTestAccs))
 	ws, err := NewWalletSetup(prng, 2)
@@ -103,7 +103,7 @@ func SetupContracts(chainURL string, onChainTxTimeout time.Duration) (
 		asset = assetAddr
 	}
 
-	chain, err := ethereum.NewChainBackend(chainURL, ChainConnTimeout, onChainTxTimeout, onChainCred)
+	chain, err := ethereum.NewChainBackend(chainURL, chainID, ChainConnTimeout, onChainTxTimeout, onChainCred)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "initializaing chain backend")
 	}

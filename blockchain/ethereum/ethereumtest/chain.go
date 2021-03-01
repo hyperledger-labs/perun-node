@@ -18,11 +18,13 @@ package ethereumtest
 
 import (
 	"context"
+	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 	pethchannel "perun.network/go-perun/backend/ethereum/channel"
 	pethchanneltest "perun.network/go-perun/backend/ethereum/channel/test"
@@ -40,6 +42,7 @@ const (
 	OnChainTxTimeout    = 1 * time.Minute
 	ChainURL            = "ws://127.0.0.1:8545"
 	ChainConnTimeout    = 10 * time.Second
+	ChainID             = 1337 // Default chain id for ganache-cli private network.
 )
 
 // ChainBackendSetup is a test setup that uses a simulated blockchain backend (for details on this backend,
@@ -87,6 +90,6 @@ func newSimContractBackend(t *testing.T, accs []pwallet.Account, ks *keystore.Ke
 	ksWallet, err := pkeystore.NewWallet(ks, "") // Password for test accounts is always empty string.
 	require.NoError(t, err)
 
-	tr := pkeystore.NewTransactor(*ksWallet)
+	tr := pkeystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(int64(ChainID))))
 	return pethchannel.NewContractBackend(simBackend, tr)
 }
