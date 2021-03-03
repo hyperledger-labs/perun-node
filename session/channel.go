@@ -38,6 +38,14 @@ import (
 const (
 	open   chStatus = iota // Open for off-chain tx.
 	closed                 // Closed for off-chain tx, settled on-chain and amount withdrawn.
+
+	// blocktime is the time taken to mine one block in ganache-cli node when
+	// using the command specified in the documentation to start ganache-cli.
+	// this is added as a temporary fix to wait before calling register/settle
+	// as a secondary user.
+	//
+	// TODO: (mano) remove the usage of this variable by adding a waitForNBlocks function in go-perun and using it.
+	blocktime = 2 * time.Second
 )
 
 type (
@@ -45,9 +53,11 @@ type (
 	Channel struct {
 		log.Logger
 
-		id               string
-		pch              perun.Channel
-		status           chStatus
+		id                string
+		pch               perun.Channel
+		status            chStatus
+		wasCloseInitiated bool
+
 		currency         string
 		parts            []string
 		timeoutCfg       timeoutConfig
@@ -91,17 +101,127 @@ func newCh(pch perun.Channel, currency string, parts []string, timeoutCfg timeou
 		challengeDurSecs:   challengeDurSecs,
 		currency:           currency,
 		parts:              parts,
+		wasCloseInitiated:  false,
 		chUpdateResponders: make(map[string]chUpdateResponderEntry),
 		watcherWg:          &sync.WaitGroup{},
 	}
 	ch.watcherWg.Add(1)
 	go func(ch *Channel) {
-		err := ch.pch.Watch()
+		err := ch.pch.Watch(ch)
 		ch.watcherWg.Done()
-
-		ch.HandleWatcherReturned(err)
+		ch.Errorf("Watcher returned with error: %+v", err)
 	}(ch)
 	return ch
+}
+
+// HandleAdjudicatorEvent is invoked when an on-chain event is received from
+// the adjudicator contract.
+// It process the event depending upon its type and whether the channel is
+// finalized (collaborative close) or not (non-collaborative close).
+func (ch *Channel) HandleAdjudicatorEvent(e pchannel.AdjudicatorEvent) {
+	ch.Debugf("Received HandleAdjudicatorEvent of type %T: %+v", e, e)
+	ch.Lock()
+	defer ch.Unlock()
+
+	switch e.(type) {
+	// For collaborative close, this type of event will not be received.
+	//
+	// For non-collaborative close, both the parties receive a registered
+	// event. The channel is settled on this event.
+	case *pchannel.RegisteredEvent:
+		ch.Infof("Waiting for timeout to pass")
+		err := e.Timeout().Wait(context.Background())
+		if err != nil {
+			ch.Errorf("Wait for timeout returned error:%v. Trying to settle anyways", err)
+		} else {
+			ch.Info("Timeout passed, initiating settle")
+		}
+
+		err = ch.settle()
+		ch.closeAndNotify(err)
+		return
+
+	// For collaborative close, this type of event will be received after one
+	// of the parties registered the final state on the chain.  Call Settle for
+	// both the parties.
+	//
+	// For non-collaborative close, both parties receive this event after the
+	// channel is closed. The channel will be marked as closed.
+	case *pchannel.ConcludedEvent:
+		if ch.pch.State().IsFinal {
+			err := ch.settle()
+			ch.closeAndNotify(err)
+			return
+		}
+
+		err := ch.checkIfWithdrawn()
+		ch.closeAndNotify(err)
+		return
+
+	default:
+		ch.Infof("Ignoring adjudicator event that is not of type RegisteredEvent or ConcludedEvent")
+	}
+}
+
+// settle concludes the channel on-chain and ensures the funds are withdrawn.
+func (ch *Channel) settle() error {
+	ctx, cancel := context.WithTimeout(context.Background(), ch.timeoutCfg.settle(ch.challengeDurSecs))
+	defer cancel()
+	// Settle with secondary = true doesn't seem to work in go-perun. So wait
+	// for 2 block time until calling settle.
+	if !ch.wasCloseInitiated {
+		time.Sleep(2 * blocktime) // Wait for 2 blocks before calling register when close was not initated.
+	}
+
+	err := errors.WithMessage(ch.pch.Settle(ctx, !ch.wasCloseInitiated), "settling channel")
+	// TODO (mano): Document what happens when a Settle fails, should channel close be called again ?
+	if err == nil {
+		err = ch.checkIfWithdrawn()
+	}
+	return err
+}
+
+func (ch *Channel) checkIfWithdrawn() error {
+	var err error
+	phase := ch.pch.Phase()
+	// TODO (mano): Explore the possibilities for the channel to not be in Withdrawn?
+	if phase != pchannel.Withdrawn {
+		err = errors.New("Expected channel phase withdraw, got " + phase.String())
+	}
+	return err
+}
+
+// closeAndNotify marks the channel as closed and sends a channel close
+// notification if an active subscription for channel update already exists.
+// The notification is dropped otherwise. Because the user will not able to
+// subscribe to update notifications for a channel after it is closed.
+func (ch *Channel) closeAndNotify(err error) {
+	ch.close()
+	ch.Info("Channel closed")
+
+	if ch.chUpdateNotifier == nil {
+		ch.Debug("Channel close notification dropped as there is no active subscription")
+		return
+	}
+	notif := makeChCloseNotif(ch.getChInfo(), err)
+	ch.chUpdateNotifier(notif)
+	ch.unsubChUpdates()
+	ch.Debug("Channel close notification sent")
+}
+
+func makeChCloseNotif(currChInfo perun.ChInfo, err error) perun.ChUpdateNotif {
+	var errMsg string
+	if err != nil {
+		errMsg = err.Error()
+	}
+	return perun.ChUpdateNotif{
+		UpdateID:       fmt.Sprintf("%s_%s_%s", currChInfo.ChID, currChInfo.Version, "closed"),
+		CurrChInfo:     currChInfo,
+		ProposedChInfo: perun.ChInfo{},
+		Type:           perun.ChUpdateTypeClosed,
+		Expiry:         0,
+		Error:          errMsg,
+	}
 }
 
 // ID returns the ID of the channel.
@@ -305,8 +425,9 @@ func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept
 	case true:
 		err = ch.acceptChUpdate(pctx, entry)
 		if err == nil && entry.notif.Type == perun.ChUpdateTypeFinal {
-			ch.Info("Responded to update successfully, settling the state as it was final update.")
-			err = ch.settleSecondary(pctx)
+			ch.Info("Responded to update successfully, registering the state as it was final update.")
+			time.Sleep(2 * blocktime) // Wait for 2 blocks before calling register when close was not initated.
+			err = ch.register(pctx)
 		}
 	case false:
 		err = ch.rejectChUpdate(pctx, entry, "rejected by user")
@@ -390,46 +511,6 @@ func makeBalInfoFromRawBal(parts []string, curr string, rawBal []*big.Int) perun
 	return balInfo
 }
 
-// HandleWatcherReturned is invoked when the watcher for this channel has returned.
-// If the channel is open (happens when watcher refuted to a wrong state that was registered on-chain),
-//		it will be marked closed.
-// Then it sends a channel close notification if the channel is already subscribed.
-// If the channel is not subscribed, notification will not be cached as it not possible for the user
-// to subscribe to channel after it is closed.
-func (ch *Channel) HandleWatcherReturned(err error) {
-	ch.Lock()
-	defer ch.Unlock()
-	ch.Debug("Watch returned")
-
-	if ch.status == open {
-		ch.close()
-	}
-
-	if ch.chUpdateNotifier == nil {
-		ch.Debug("HandleWatcherReturned: Notification dropped as there is no active subscription")
-		return
-	}
-	notif := makeChCloseNotif(ch.getChInfo(), err)
-	ch.chUpdateNotifier(notif)
-	ch.unsubChUpdates()
-	ch.Debug("HandleWatcherReturned: Notification sent")
-}
-
-func makeChCloseNotif(currChInfo perun.ChInfo, err error) perun.ChUpdateNotif {
-	var errMsg string
-	if err != nil {
-		errMsg = err.Error()
-	}
-	return perun.ChUpdateNotif{
-		UpdateID:       fmt.Sprintf("%s_%s_%s", currChInfo.ChID, currChInfo.Version, "closed"),
-		CurrChInfo:     currChInfo,
-		ProposedChInfo: perun.ChInfo{},
-		Type:           perun.ChUpdateTypeClosed,
-		Expiry:         0,
-		Error:          errMsg,
-	}
-}
-
 // Close implements chAPI.Close.
 func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, error) {
 	ch.Debug("Received request channel.Close")
@@ -441,7 +522,8 @@ func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, error) {
 	}
 
 	ch.finalize(pctx)
-	err := ch.settlePrimary(pctx)
+	err := ch.register(pctx)
+	ch.wasCloseInitiated = true
 	return ch.getChInfo(), err
 }
 
@@ -467,42 +549,24 @@ func (ch *Channel) finalize(pctx context.Context) {
 	}
 }
 
-// settlePrimary is used when the channel close initiated by the user.
-func (ch *Channel) settlePrimary(pctx context.Context) error {
-	// TODO (mano): Document what happens when a Settle fails, should channel close be called again ?
-	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.settleChPrimary(ch.challengeDurSecs))
+// register registers the latest state of the channel on-chain.
+func (ch *Channel) register(pctx context.Context) error {
+	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.register(ch.challengeDurSecs))
 	defer cancel()
-	err := ch.pch.Settle(ctx)
+	err := ch.pch.Register(ctx)
 	if err != nil {
-		ch.Error("Settling channel", err)
-		return perun.GetAPIError(err)
+		ch.Error("Registering channel", err)
 	}
-	ch.close()
-	return nil
-}
-
-// settleSecondary is used when the channel close is initiated after accepting a final update.
-func (ch *Channel) settleSecondary(pctx context.Context) error {
-	// TODO (mano): Document what happens when a Settle fails, should channel close be called again ?
-	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.settleChSecondary(ch.challengeDurSecs))
-	defer cancel()
-	err := ch.pch.SettleSecondary(ctx)
-	if err != nil {
-		ch.Error("Settling channel", err)
-		return perun.GetAPIError(err)
-	}
-	ch.close()
-	return nil
+	return perun.GetAPIError(err)
 }
 
 // Close the computing resources (listeners, subscriptions etc.,) of the channel.
 // If it fails, this error can be ignored.
 // It also removes the channel from the session.
 func (ch *Channel) close() {
-	ch.watcherWg.Wait()
-
 	if err := ch.pch.Close(); err != nil {
 		ch.Error("Closing channel", err)
 	}
+	ch.watcherWg.Wait()
 	ch.status = closed
 }

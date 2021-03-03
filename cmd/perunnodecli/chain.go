@@ -114,7 +114,8 @@ func deployPerunContractsFn(c *ishell.Context) {
 		return
 	}
 
-	adjudicator, asset, err := ethereumtest.SetupContracts(chainAddr, ethereumtest.OnChainTxTimeout)
+	chainID := ethereumtest.ChainID
+	adjudicator, asset, err := ethereumtest.SetupContracts(chainAddr, chainID, ethereumtest.OnChainTxTimeout)
 	if err != nil {
 		c.Printf("%s\n\n", redf("Error deploying contracts: %v", err))
 		return

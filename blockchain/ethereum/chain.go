@@ -23,6 +23,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
 	pethchannel "perun.network/go-perun/backend/ethereum/channel"
@@ -41,7 +42,11 @@ import (
 //
 // The function signature uses only types defined in the root package of this project and types from std lib.
 // This enables the function to be loaded as symbol without importing this package when it is compiled as plugin.
-func NewChainBackend(url string, chainConnTimeout, onChainTxTimeout time.Duration, cred perun.Credential) (
+func NewChainBackend(url string,
+	chainID int,
+	chainConnTimeout,
+	onChainTxTimeout time.Duration,
+	cred perun.Credential) (
 	perun.ChainBackend, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), chainConnTimeout)
 	defer cancel()
@@ -60,7 +65,7 @@ func NewChainBackend(url string, chainConnTimeout, onChainTxTimeout time.Duratio
 	if err != nil {
 		return nil, err
 	}
-	tr := pkeystore.NewTransactor(*ksWallet)
+	tr := pkeystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(int64(chainID))))
 	cb := pethchannel.NewContractBackend(ethereumBackend, tr)
 	return &internal.ChainBackend{Cb: &cb, TxTimeout: onChainTxTimeout}, nil
 }

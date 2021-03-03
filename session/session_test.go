@@ -192,7 +192,7 @@ func newMockPCh(t *testing.T, openingBalInfo perun.BalInfo) (
 	ch.On("ID").Return([32]byte{0, 1, 2})
 	ch.On("State").Return(makeState(t, openingBalInfo, false))
 	watcherSignal := make(chan time.Time)
-	ch.On("Watch").WaitUntil(watcherSignal).Return(nil)
+	ch.On("Watch", mock.Anything).WaitUntil(watcherSignal).Return(nil)
 	return ch, watcherSignal
 }
 

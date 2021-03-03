@@ -52,6 +52,7 @@ type Config struct {
 	IDProviderType     string        // Type of ID provider.
 	IDProviderURL      string        // URL for accessing the ID provider.
 	ChainURL           string        // URL of the blockchain node.
+	ChainID            int           // See client/config.go.
 	Asset, Adjudicator string        // Address of the Asset and Adjudicator contracts.
 	ChainConnTimeout   time.Duration // Timeout for connecting to blockchain node.
 	OnChainTxTimeout   time.Duration // Timeout to wait for confirmation of on-chain tx.

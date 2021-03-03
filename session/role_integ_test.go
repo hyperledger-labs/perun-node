@@ -40,7 +40,7 @@ import (
 // This test includes all methods on SessionAPI and ChAPI.
 func Test_Integ_Role(t *testing.T) {
 	// Deploy contracts.
-	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.OnChainTxTimeout)
+	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
 
 	aliceAlias, bobAlias := "alice", "bob"
 
@@ -323,7 +323,7 @@ func Test_Integ_Role(t *testing.T) {
 		assert.Equal(t, perun.ChUpdateTypeClosed, notif.Type)
 
 		// Responding to channel (closing) update.
-		_, err = bobCh.RespondChUpdate(ctx, notif.UpdateID, false)
+		_, err = bobCh.RespondChUpdate(ctx, notif.UpdateID, true)
 		require.Error(t, err, "bob responding to (closing) channel update should error")
 
 		err = bobCh.UnsubChUpdates()

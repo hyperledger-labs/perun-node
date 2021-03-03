@@ -160,7 +160,6 @@ func (_m *ChAPI) SubChUpdates(_a0 perun.ChUpdateNotifier) perun.APIErrorV2 {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(perun.APIErrorV2)
 		}
-
 	}
 
 	return r0
