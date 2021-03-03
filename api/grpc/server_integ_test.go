@@ -69,7 +69,7 @@ func StartServer(t *testing.T, nodeCfg perun.NodeConfig, grpcPort string) {
 
 func Test_Integ_Role(t *testing.T) {
 	// Deploy contracts on blockchain.
-	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.OnChainTxTimeout)
+	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
 
 	// Run server in a go routine.
 	StartServer(t, nodetest.NewConfig(), grpcPort)

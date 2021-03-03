@@ -55,7 +55,8 @@ func Test_Integ_NewEthereumPaymentClient(t *testing.T) {
 	wb, userCfg := sessiontest.NewUserConfigT(t, prng, 0)
 	user, err := session.NewUnlockedUser(wb, userCfg)
 	require.NoError(t, err, "initializing user")
-	adjudicator, asset := ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.OnChainTxTimeout)
+	adjudicator, asset := ethereumtest.SetupContractsT(t,
+		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
 
 	cfg := client.Config{
 		Chain: client.ChainConfig{

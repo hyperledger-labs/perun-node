@@ -141,9 +141,9 @@ type Channel interface {
 	State() *pchannel.State
 	OnUpdate(cb func(from, to *pchannel.State))
 	UpdateBy(ctx context.Context, update func(*pchannel.State) error) error
-	Settle(ctx context.Context) error
-	SettleSecondary(ctx context.Context) error
-	Watch() error
+	Register(ctx context.Context) error
+	Settle(ctx context.Context, isSecondary bool) error
+	Watch(pclient.AdjudicatorEventHandler) error
 }
 
 //go:generate mockery --name ChClient --output ./internal/mocks

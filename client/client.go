@@ -197,7 +197,7 @@ func connectToChain(cfg ChainConfig, cred perun.Credential) (pchannel.Funder,
 		return nil, nil, errors.WithMessage(err, "adjudicator address")
 	}
 
-	chain, err := ethereum.NewChainBackend(cfg.URL, cfg.ConnTimeout, cfg.OnChainTxTimeout, cred)
+	chain, err := ethereum.NewChainBackend(cfg.URL, cfg.ChainID, cfg.ConnTimeout, cfg.OnChainTxTimeout, cred)
 	if err != nil {
 		return nil, nil, err
 	}

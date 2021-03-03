@@ -146,6 +146,7 @@ func New(cfg Config) (*Session, error) {
 			Adjudicator:      cfg.Adjudicator,
 			Asset:            cfg.Asset,
 			URL:              cfg.ChainURL,
+			ChainID:          cfg.ChainID,
 			ConnTimeout:      cfg.ChainConnTimeout,
 			OnChainTxTimeout: cfg.OnChainTxTimeout,
 		},
