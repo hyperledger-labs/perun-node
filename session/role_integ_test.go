@@ -99,7 +99,7 @@ func Test_Integ_Role(t *testing.T) {
 	// Alice will propose two channels that will be accepted by bob.
 	// 1. One of the channel will be used for send/accept channel update,
 	//    send/reject channel update followed by collaborative close.
-	// 2. The other channel will be user for non-collaborative close.
+	// 2. The other channel will be used for non-collaborative close.
 	t.Run("OpenCh_Sub_Unsub_ChProposal_Respond_Accept", func(t *testing.T) {
 		proposeAcceptCh := func() {
 			// Propose Channel by alice.
