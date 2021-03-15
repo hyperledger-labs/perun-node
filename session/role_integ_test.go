@@ -59,7 +59,7 @@ func Test_Integ_Role(t *testing.T) {
 	t.Logf("bob database dir is: %s\n", bobCfg.DatabaseDir)
 
 	var alicePeerID, bobPeerID perun.PeerID
-	t.Run("GetPeerID", func(t *testing.T) {
+	passed := t.Run("GetPeerID", func(t *testing.T) {
 		t.Run("happy", func(t *testing.T) {
 			alicePeerID, err = alice.GetPeerID(perun.OwnAlias)
 			require.NoErrorf(t, err, "alice reading own peer ID")
@@ -75,8 +75,9 @@ func Test_Integ_Role(t *testing.T) {
 			t.Log(err)
 		})
 	})
+	require.True(t, passed)
 
-	t.Run("AddPeerID", func(t *testing.T) {
+	passed = t.Run("AddPeerID", func(t *testing.T) {
 		t.Run("happy", func(t *testing.T) {
 			err = alice.AddPeerID(bobPeerID)
 			require.NoErrorf(t, err, "alice adding bob's peer ID")
@@ -91,6 +92,7 @@ func Test_Integ_Role(t *testing.T) {
 			t.Log(err)
 		})
 	})
+	require.True(t, passed)
 
 	const challengeDurSecs uint64 = 10
 	wg := &sync.WaitGroup{}
@@ -100,7 +102,7 @@ func Test_Integ_Role(t *testing.T) {
 	// 1. One of the channel will be used for send/accept channel update,
 	//    send/reject channel update followed by collaborative close.
 	// 2. The other channel will be used for non-collaborative close.
-	t.Run("OpenCh_Sub_Unsub_ChProposal_Respond_Accept", func(t *testing.T) {
+	passed = t.Run("OpenCh_Sub_Unsub_ChProposal_Respond_Accept", func(t *testing.T) {
 		proposeAcceptCh := func() {
 			// Propose Channel by alice.
 			wg.Add(1)
@@ -141,8 +143,9 @@ func Test_Integ_Role(t *testing.T) {
 		proposeAcceptCh()
 		proposeAcceptCh()
 	})
+	require.True(t, passed)
 
-	t.Run("OpenCh_Sub_Unsub_ChProposal_Respond_Reject", func(t *testing.T) {
+	passed = t.Run("OpenCh_Sub_Unsub_ChProposal_Respond_Reject", func(t *testing.T) {
 		// Propose Channel by bob.
 		wg.Add(1)
 		go func() {
@@ -179,9 +182,10 @@ func Test_Integ_Role(t *testing.T) {
 		err = alice.UnsubChProposals()
 		require.NoError(t, err, "alice unsubscribing from channel proposals")
 	})
+	require.True(t, passed)
 
 	aliceChs, bobChs := make([]perun.ChAPI, 2), make([]perun.ChAPI, 2)
-	t.Run("GetChsInfo_GetCh", func(t *testing.T) {
+	passed = t.Run("GetChsInfo_GetCh", func(t *testing.T) {
 		aliceChInfos := alice.GetChsInfo()
 		require.Lenf(t, aliceChInfos, 2, "alice session should have exactly two channels")
 		bobChInfos := bob.GetChsInfo()
@@ -197,8 +201,9 @@ func Test_Integ_Role(t *testing.T) {
 		bobChs[1], err = bob.GetCh(bobChInfos[1].ChID)
 		require.NoError(t, err, "getting bob ChAPI instance")
 	})
+	require.True(t, passed)
 
-	t.Run("SendUpdate_Sub_Unsub_ChUpdate_Respond_Accept", func(t *testing.T) {
+	passed = t.Run("SendUpdate_Sub_Unsub_ChUpdate_Respond_Accept", func(t *testing.T) {
 		// Send channel update by bob.
 		wg.Add(1)
 		go func() {
@@ -242,8 +247,9 @@ func Test_Integ_Role(t *testing.T) {
 		err = aliceChs[0].UnsubChUpdates()
 		require.NoError(t, err, "alice unsubscribing from channel updates")
 	})
+	require.True(t, passed)
 
-	t.Run("SendUpdate_Sub_Unsub_ChUpdate_Respond_Reject", func(t *testing.T) {
+	passed = t.Run("SendUpdate_Sub_Unsub_ChUpdate_Respond_Reject", func(t *testing.T) {
 		// Send channel update by alice.
 		wg.Add(1)
 		go func() {
@@ -288,8 +294,9 @@ func Test_Integ_Role(t *testing.T) {
 		err = bobChs[0].UnsubChUpdates()
 		require.NoError(t, err, "bob unsubscribing from channel updates")
 	})
+	require.True(t, passed)
 
-	t.Run("Session_Close_NoForce_Error", func(t *testing.T) {
+	passed = t.Run("Session_Close_NoForce_Error", func(t *testing.T) {
 		var openChsInfo []perun.ChInfo
 		openChsInfo, err = alice.Close(false)
 		require.Error(t, err)
@@ -297,6 +304,7 @@ func Test_Integ_Role(t *testing.T) {
 		require.Len(t, openChsInfo, 2)
 		assert.Equal(t, aliceChs[0].ID(), openChsInfo[0].ChID)
 	})
+	require.True(t, passed)
 
 	closeCh := func(chIndex int, isCollaborative bool) {
 		// Subscribe to channel update notifications by Alice.
@@ -361,20 +369,23 @@ func Test_Integ_Role(t *testing.T) {
 		t.Log(err)
 	}
 
-	t.Run("Collaborative channel close", func(t *testing.T) {
+	passed = t.Run("Collaborative channel close", func(t *testing.T) {
 		closeCh(0, true)
 	})
+	require.True(t, passed)
 
-	t.Run("Non_collaborative channel close", func(t *testing.T) {
+	passed = t.Run("Non_collaborative channel close", func(t *testing.T) {
 		closeCh(1, false)
 	})
+	require.True(t, passed)
 
-	t.Run("Session_Close_NoForce_Success", func(t *testing.T) {
+	passed = t.Run("Session_Close_NoForce_Success", func(t *testing.T) {
 		var openChsInfo []perun.ChInfo
 		openChsInfo, err = alice.Close(false)
 		require.NoError(t, err, "alice closing session with no force option")
 		require.Len(t, openChsInfo, 0)
 	})
+	require.True(t, passed)
 
 	t.Run("Session_Close_Force_Success", func(t *testing.T) {
 		var openChsInfo []perun.ChInfo
