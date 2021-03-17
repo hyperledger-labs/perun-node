@@ -69,7 +69,8 @@ This project currently contains two executable packages located in the `cmd` dir
 
 For detailed information on the features offered by these two applications and
 steps on how to try them out, see the
-[Trying It Out](cmd/perunnodecli/TryingItOut.md) article.
+[tutorial section](https://labs.hyperledger.org/perun-doc/node/introduction.html#user-guide)
+on the project documentation website.
 
 ## Getting Started
 
