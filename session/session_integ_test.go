@@ -140,7 +140,7 @@ func Test_Integ_Persistence(t *testing.T) {
 		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 		aliceCfg := sessiontest.NewConfigT(t, prng)
 		// Use idprovider and databaseDir from a session that was persisted already.
-		// Copy database directory to tmp before using as it will be modifed when reading as well.
+		// Copy database directory to tmp before using as it will be modified when reading as well.
 		// ID provider file can be used as such.
 		aliceCfg.DatabaseDir = copyDirToTmp(t, "../testdata/session/persistence/alice-database")
 		aliceCfg.IDProviderURL = "../testdata/session/persistence/alice-idprovider.yaml"

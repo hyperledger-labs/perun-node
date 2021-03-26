@@ -67,7 +67,7 @@ func newCred(wb perun.WalletBackend, cfg WalletConfig, addr string) (perun.Crede
 	}, nil
 }
 
-// parseUnlock parses the given addresses string using the wallet backend and unlocks accounts
+// parseUnlock parses the given addresses string using the wallet backend and unlock accounts
 // corresponding to each of the given addresses.
 func parseUnlock(wb perun.WalletBackend, w pwallet.Wallet, addrs ...string) ([]pwallet.Address, error) {
 	var err error
