@@ -93,7 +93,7 @@ func NewConfigT(t *testing.T, rng *rand.Rand, peerIDs ...perun.PeerID) session.C
 	return sessionCfg
 }
 
-// NewConfig generates random configuration data for the session using the given prng . It creates a local ID provider
+// NewConfig generates random configuration data for the session using the given prng. It creates a local ID provider
 // instance, populates it with the list of peer IDs passed to this function and updates the URL in the session config.
 // This function also registers cleanup functions for removing all the temp files and dirs after the test.
 //

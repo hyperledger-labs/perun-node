@@ -30,7 +30,7 @@ type timeoutConfig struct {
 func (t timeoutConfig) proposeCh(challegeDurSecs uint64) time.Duration {
 	challegeDur := time.Duration(challegeDurSecs) * time.Second
 	// The worst case path considered is
-	// 1. Connect to the peer and expect acknownledgement,
+	// 1. Connect to the peer and expect acknowledgement,
 	// 2. Send channel proposal and wait for response.
 	// 3. Fund the channel and wait for challengeDurSecs for other to fund.
 	// 4. Somebody does not fund, so register the initial state and wait for challengeDurSecs.

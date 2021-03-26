@@ -757,13 +757,13 @@ func (s *Session) Close(force bool) ([]perun.ChInfo, error) {
 		// Calling Phase() also waits for the mutex on pchannel that ensures any handling of Registered event
 		// in the Watch routine is also completed. But if the event was received after acquiring channel mutex
 		// and completed before pc.Phase() returned, this event will not yet be serviced by perun-node.
-		// A solution to this is to add a provision (that is currenlt missing) to suspend the Watcher (only
+		// A solution to this is to add a provision (that is currently missing) to suspend the Watcher (only
 		// for open channels) before acquiring channel mutex and restoring it later if force option is false.
 		//
-		// TODO (mano): Add a provision in go-perun to suspend the watcher and it use it here.
+		// TODO (mano): Add a provision in go-perun to suspend the watcher and use it here.
 		//
-		// Since there will be no ongoing operations in perun-node, the pchannel is should be in one of the two
-		// stable phases knonwn to perun node (see state diagram in the docs for details) : Acting or Withdrawn.
+		// Since there will be no ongoing operations in perun-node, the pchannel should be in one of the two
+		// stable phases known to perun node (see state diagram in the docs for details) : Acting or Withdrawn.
 		phase := ch.pch.Phase()
 		if phase != pchannel.Acting && phase != pchannel.Withdrawn {
 			unexpectedPhaseChIDs = append(unexpectedPhaseChIDs, ch.ID())
