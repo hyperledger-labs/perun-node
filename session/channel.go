@@ -426,7 +426,7 @@ func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept
 		err = ch.acceptChUpdate(pctx, entry)
 		if err == nil && entry.notif.Type == perun.ChUpdateTypeFinal {
 			ch.Info("Responded to update successfully, registering the state as it was final update.")
-			time.Sleep(2 * blocktime) // Wait for 2 blocks before calling register when close was not initated.
+			time.Sleep(2 * blocktime) // Wait for 2 blocks before calling register when close was not initiated.
 			err = ch.register(pctx)
 		}
 	case false:
