@@ -733,27 +733,29 @@ func Test_ProposeCh_CloseSession(t *testing.T) {
 }
 
 func Test_Session_HandleUpdateWInterface(t *testing.T) {
-	t.Run("happy", func(t *testing.T) {
-		peerIDs := newPeerIDs(t, uint(2))
-		validOpeningBalInfo := perun.BalInfo{
-			Currency: currency.ETH,
-			Parts:    []string{perun.OwnAlias, peerIDs[0].Alias},
-			Bal:      []string{"1", "2"},
-		}
-		updatedBalInfo := validOpeningBalInfo
-		updatedBalInfo.Bal = []string{"0.5", "2.5"}
+	peerIDs := newPeerIDs(t, uint(2))
+	validOpeningBalInfo := perun.BalInfo{
+		Currency: currency.ETH,
+		Parts:    []string{perun.OwnAlias, peerIDs[0].Alias},
+		Bal:      []string{"1", "2"},
+	}
+	updatedBalInfo := validOpeningBalInfo
+	updatedBalInfo.Bal = []string{"0.5", "2.5"}
 
-		chUpdate := &pclient.ChannelUpdate{
-			State: makeState(t, updatedBalInfo, false),
-		}
+	currState := makeState(t, validOpeningBalInfo, false)
+	chUpdate := &pclient.ChannelUpdate{
+		State: makeState(t, updatedBalInfo, false),
+	}
+
+	t.Run("happy", func(t *testing.T) {
 		session, _ := newSessionWMockChClient(t, true)
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Reject", mock.Anything, mock.Anything).Return(nil)
-		session.HandleUpdateWInterface(*chUpdate, responder)
+		session.HandleUpdateWInterface(currState, *chUpdate, responder)
 	})
 	t.Run("session_closed", func(t *testing.T) {
 		session, _ := newSessionWMockChClient(t, false)
-		session.HandleUpdate(pclient.ChannelUpdate{}, new(pclient.UpdateResponder))
+		session.HandleUpdate(currState, pclient.ChannelUpdate{}, new(pclient.UpdateResponder))
 	})
 }
 

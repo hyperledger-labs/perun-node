@@ -709,13 +709,15 @@ func (s *Session) GetCh(chID string) (perun.ChAPI, error) {
 // HandleUpdate is a handler to be registered on the channel client for processing incoming channel updates.
 // This function just identifies the channel to which update is received and invokes the handler for that
 // channel.
-func (s *Session) HandleUpdate(chUpdate pclient.ChannelUpdate, responder *pclient.UpdateResponder) {
-	s.HandleUpdateWInterface(chUpdate, responder)
+func (s *Session) HandleUpdate(
+	currState *pchannel.State, chUpdate pclient.ChannelUpdate, responder *pclient.UpdateResponder) {
+	s.HandleUpdateWInterface(currState, chUpdate, responder)
 }
 
 // HandleUpdateWInterface is the actual implemention of HandleUpdate that takes arguments as interface types.
 // It is implemented this way to enable easier testing.
-func (s *Session) HandleUpdateWInterface(chUpdate pclient.ChannelUpdate, responder ChUpdateResponder) {
+func (s *Session) HandleUpdateWInterface(
+	currState *pchannel.State, chUpdate pclient.ChannelUpdate, responder ChUpdateResponder) {
 	s.Debugf("SDK Callback: HandleUpdate. Params: %+v", chUpdate)
 	s.Lock()
 	defer s.Unlock()
@@ -734,7 +736,7 @@ func (s *Session) HandleUpdateWInterface(chUpdate pclient.ChannelUpdate, respond
 		s.Info("Error rejecting incoming update for unknown channel with id %s: %v", chID, err)
 		return
 	}
-	go ch.HandleUpdate(chUpdate, responder)
+	go ch.HandleUpdate(currState, chUpdate, responder)
 }
 
 // Close implements sessionAPI.Close.
