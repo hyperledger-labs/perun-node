@@ -128,7 +128,7 @@ func Test_OpenPayCh(t *testing.T) {
 	t.Run("error", func(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
 		sessionAPI.On("OpenCh", context.Background(), openingBalInfoInput, app, challengeDurSecs).Return(
-			perun.ChInfo{}, assert.AnError)
+			perun.ChInfo{}, perun.NewAPIErrV2UnknownInternal(assert.AnError))
 
 		_, gotErr := payment.OpenPayCh(context.Background(), sessionAPI, openingBalInfoInput, challengeDurSecs)
 		require.Error(t, gotErr)

@@ -155,7 +155,7 @@ func (_m *SessionAPI) ID() string {
 }
 
 // OpenCh provides a mock function with given fields: _a0, _a1, _a2, _a3
-func (_m *SessionAPI) OpenCh(_a0 context.Context, _a1 perun.BalInfo, _a2 perun.App, _a3 uint64) (perun.ChInfo, error) {
+func (_m *SessionAPI) OpenCh(_a0 context.Context, _a1 perun.BalInfo, _a2 perun.App, _a3 uint64) (perun.ChInfo, perun.APIErrorV2) {
 	ret := _m.Called(_a0, _a1, _a2, _a3)
 
 	var r0 perun.ChInfo
@@ -165,11 +165,13 @@ func (_m *SessionAPI) OpenCh(_a0 context.Context, _a1 perun.BalInfo, _a2 perun.A
 		r0 = ret.Get(0).(perun.ChInfo)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, perun.BalInfo, perun.App, uint64) error); ok {
+	var r1 perun.APIErrorV2
+	if rf, ok := ret.Get(1).(func(context.Context, perun.BalInfo, perun.App, uint64) perun.APIErrorV2); ok {
 		r1 = rf(_a0, _a1, _a2, _a3)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(perun.APIErrorV2)
+		}
 	}
 
 	return r0, r1

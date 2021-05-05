@@ -319,6 +319,26 @@ const (
 )
 
 type (
+	// ErrV2InfoPeerRequestTimedOut represents the fields in the additional
+	// info for ErrPeerRequestTimedOut.
+	ErrV2InfoPeerRequestTimedOut struct {
+		PeerAlias string
+		Timeout   string
+	}
+
+	// ErrV2InfoPeerRejected represents the fields in the additional info for
+	// ErrRejectedByPeer.
+	ErrV2InfoPeerRejected struct {
+		PeerAlias string
+		Reason    string
+	}
+
+	// ErrV2InfoPeerNotFunded represents the fields in the additional info for
+	// ErrV2InfoPeerNotFunded.
+	ErrV2InfoPeerNotFunded struct {
+		PeerAlias string
+	}
+
 	// ErrV2InfoResourceNotFound represents the fields in the additional info for
 	// ErrResourceNotFound.
 	ErrV2InfoResourceNotFound struct {
@@ -339,6 +359,20 @@ type (
 		Name        string
 		Value       string
 		Requirement string
+	}
+
+	// ErrV2InfoTxTimedOut represents the fields in the additional info
+	// for ErrTxTimedOut.
+	ErrV2InfoTxTimedOut struct {
+		TxType    string
+		TxID      string
+		TxTimeout string
+	}
+
+	// ErrV2InfoChainNotReachable represents the fields in the additional info
+	// for ErrChainNotReachable.
+	ErrV2InfoChainNotReachable struct {
+		ChainURL string
 	}
 )
 
@@ -379,7 +413,7 @@ type SessionAPI interface {
 	ID() string
 	AddPeerID(PeerID) APIErrorV2
 	GetPeerID(alias string) (PeerID, APIErrorV2)
-	OpenCh(context.Context, BalInfo, App, uint64) (ChInfo, error)
+	OpenCh(context.Context, BalInfo, App, uint64) (ChInfo, APIErrorV2)
 	GetChsInfo() []ChInfo
 	SubChProposals(ChProposalNotifier) APIErrorV2
 	UnsubChProposals() APIErrorV2

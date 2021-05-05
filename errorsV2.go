@@ -54,6 +54,47 @@ func (e apiErrorV2) Error() string {
 		e.Category(), e.Code(), e.Message(), e.AddInfo())
 }
 
+// NewAPIErrV2PeerRequestTimedOut returns an ErrV2PeerRequestTimedOut API Error
+// with the given peer alias and response timeout.
+func NewAPIErrV2PeerRequestTimedOut(peerAlias, timeout, message string) APIErrorV2 {
+	return apiErrorV2{
+		category: ParticipantError,
+		code:     ErrV2PeerRequestTimedOut,
+		message:  message,
+		addInfo: ErrV2InfoPeerRequestTimedOut{
+			PeerAlias: peerAlias,
+			Timeout:   timeout,
+		},
+	}
+}
+
+// NewAPIErrV2PeerRejected returns an ErrV2PeerRejected API Error with the
+// given peer alias and reason.
+func NewAPIErrV2PeerRejected(peerAlias, reason, message string) APIErrorV2 {
+	return apiErrorV2{
+		category: ParticipantError,
+		code:     ErrV2PeerRejected,
+		message:  message,
+		addInfo: ErrV2InfoPeerRejected{
+			PeerAlias: peerAlias,
+			Reason:    reason,
+		},
+	}
+}
+
+// NewAPIErrV2PeerNotFunded returns an ErrV2PeerNotFunded API Error with the
+// given peer alias.
+func NewAPIErrV2PeerNotFunded(peerAlias, message string) APIErrorV2 {
+	return apiErrorV2{
+		category: ParticipantError,
+		code:     ErrV2PeerNotFunded,
+		message:  message,
+		addInfo: ErrV2InfoPeerNotFunded{
+			PeerAlias: peerAlias,
+		},
+	}
+}
+
 // NewAPIErrV2ResourceNotFound returns an ErrResourceNotFound API Error with
 // the given resource type, ID and error message.
 func NewAPIErrV2ResourceNotFound(resourceType, resourceID, message string) APIErrorV2 {
@@ -104,6 +145,34 @@ func NewAPIErrV2FailedPreCondition(message string) APIErrorV2 {
 		category: ClientError,
 		code:     ErrV2FailedPreCondition,
 		message:  message,
+	}
+}
+
+// NewAPIErrV2TxTimedOut returns an ErrV2TxTimedOut API Error with the given
+// error message.
+func NewAPIErrV2TxTimedOut(txType, txID, txTimeout, message string) APIErrorV2 {
+	return apiErrorV2{
+		category: ProtocolFatalError,
+		code:     ErrV2TxTimedOut,
+		message:  message,
+		addInfo: ErrV2InfoTxTimedOut{
+			TxType:    txType,
+			TxID:      txID,
+			TxTimeout: txTimeout,
+		},
+	}
+}
+
+// NewAPIErrV2ChainNotReachable returns an ErrV2ChainNotReachable API Error
+// with the given error message.
+func NewAPIErrV2ChainNotReachable(chainURL, message string) APIErrorV2 {
+	return apiErrorV2{
+		category: ProtocolFatalError,
+		code:     ErrV2ChainNotReachable,
+		message:  message,
+		addInfo: ErrV2InfoChainNotReachable{
+			ChainURL: chainURL,
+		},
 	}
 }
 
