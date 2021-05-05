@@ -301,23 +301,21 @@ type ErrorCode int
 
 // Error code definitions.
 const (
-	ErrV2PeerResponseTimedOut      ErrorCode = 101
-	ErrV2RejectedByPeer            ErrorCode = 102
-	ErrV2PeerNotFunded             ErrorCode = 103
-	ErrV2UserResponseTimedOut      ErrorCode = 104
-	ErrV2ResourceNotFound          ErrorCode = 201
-	ErrV2ResourceExists            ErrorCode = 202
-	ErrV2InvalidArgument           ErrorCode = 203
-	ErrV2FailedPreCondition        ErrorCode = 204
-	ErrV2InvalidConfig             ErrorCode = 205
-	ErrV2ChainNodeNotReachable     ErrorCode = 206
-	ErrV2InvalidContracts          ErrorCode = 207
-	ErrV2TxTimedOut                ErrorCode = 301
-	ErrV2InsufficientBalForTx      ErrorCode = 302
-	ErrV2ChainNodeDisconnected     ErrorCode = 303
-	ErrV2InsufficientBalForDeposit ErrorCode = 304
-	ErrV2UnknownInternal           ErrorCode = 401
-	ErrV2OffChainComm              ErrorCode = 402
+	ErrV2PeerRequestTimedOut  ErrorCode = 101
+	ErrV2PeerRejected         ErrorCode = 102
+	ErrV2PeerNotFunded        ErrorCode = 103
+	ErrV2UserResponseTimedOut ErrorCode = 104
+	ErrV2ResourceNotFound     ErrorCode = 201
+	ErrV2ResourceExists       ErrorCode = 202
+	ErrV2InvalidArgument      ErrorCode = 203
+	ErrV2FailedPreCondition   ErrorCode = 204
+	ErrV2InvalidConfig        ErrorCode = 205
+	ErrV2CannotConnectToChain ErrorCode = 206
+	ErrV2InvalidContracts     ErrorCode = 207
+	ErrV2TxTimedOut           ErrorCode = 301
+	ErrV2ChainNotReachable    ErrorCode = 302
+	ErrV2UnknownInternal      ErrorCode = 401
+	ErrV2OffChainComm         ErrorCode = 402
 )
 
 type (
