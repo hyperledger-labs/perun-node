@@ -83,7 +83,7 @@ enum ErrorCode {
        atleast one constant. */
     DefaultInvalidCode             = 0;
 
-    ErrV2PeerResponseTimedOut      = 101;
+    ErrV2PeerRequestTimedOut       = 101;
     ErrV2RejectedByPeer            = 102;
     ErrV2PeerNotFunded             = 103;
     ErrV2UserResponseTimedOut      = 104;
@@ -92,12 +92,10 @@ enum ErrorCode {
     ErrV2InvalidArgument           = 203;
     ErrV2FailedPreCondition        = 204;
     ErrV2InvalidConfig             = 205;
-    ErrV2ChainNodeNotReachable     = 206;
+    ErrV2CannotConnectToChain      = 206;
     ErrV2InvalidContracts          = 207;
     ErrV2TxTimedOut                = 301;
-    ErrV2InsufficientBalForTx      = 302;
-    ErrV2ChainNodeDisconnected     = 303;
-    ErrV2InsufficientBalForDeposit = 304;
+    ErrV2ChainNotReachable         = 302;
     ErrV2UnknownInternal           = 401;
     ErrV2OffChainComm              = 402;
 }
