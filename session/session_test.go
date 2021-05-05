@@ -81,15 +81,8 @@ func Test_Session_AddPeerID(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := idprovider.ErrPeerAliasAlreadyUsed.Error()
-		wantRequirement := "peer alias should be unique for each peer ID"
-		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrV2InvalidArgument, err.Code())
-		assert.Equal(t, wantMessage, err.Message())
-		addInfo, ok := err.AddInfo().(perun.ErrV2InfoInvalidArgument)
-		require.True(t, ok)
-		assert.Equal(t, "peer alias", addInfo.Name)
-		assert.Equal(t, peer1WithAlias0.Alias, addInfo.Value)
-		assert.Equal(t, wantRequirement, addInfo.Requirement)
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2InvalidArgument, wantMessage)
+		assertErrV2InfoInvalidArgument(t, err.AddInfo(), "peer alias", peer1WithAlias0.Alias)
 	})
 
 	t.Run("peerID_already_registered", func(t *testing.T) {
@@ -97,13 +90,8 @@ func Test_Session_AddPeerID(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := idprovider.ErrPeerIDAlreadyRegistered.Error()
-		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrV2ResourceExists, err.Code())
-		assert.Equal(t, wantMessage, err.Message())
-		addInfo, ok := err.AddInfo().(perun.ErrV2InfoResourceExists)
-		require.True(t, ok)
-		assert.Equal(t, "peer alias", addInfo.Type)
-		assert.Equal(t, peerIDs[0].Alias, addInfo.ID)
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceExists, wantMessage)
+		assertErrV2InfoResourceExists(t, err.AddInfo(), "peer alias", peerIDs[0].Alias)
 	})
 
 	t.Run("peerID_address_string_too_long", func(t *testing.T) {
@@ -113,13 +101,9 @@ func Test_Session_AddPeerID(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := idprovider.ErrParsingOffChainAddress.Error()
-		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrV2InvalidArgument, err.Code())
-		assert.Contains(t, err.Message(), wantMessage)
-		addInfo, ok := err.AddInfo().(perun.ErrV2InfoInvalidArgument)
-		require.True(t, ok)
-		assert.Equal(t, "off-chain address string", addInfo.Name)
-		assert.Equal(t, peer1WithInvalidAddrString.OffChainAddrString, addInfo.Value)
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2InvalidArgument, wantMessage)
+		argumentValue := peer1WithInvalidAddrString.OffChainAddrString
+		assertErrV2InfoInvalidArgument(t, err.AddInfo(), "off-chain address string", argumentValue)
 	})
 
 	t.Run("session_closed", func(t *testing.T) {
@@ -127,9 +111,7 @@ func Test_Session_AddPeerID(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := session.ErrSessionClosed.Error()
-		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrV2FailedPreCondition, err.Code())
-		assert.Equal(t, wantMessage, err.Message())
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 }
@@ -151,14 +133,9 @@ func Test_Session_GetPeerID(t *testing.T) {
 		_, err := openSession.GetPeerID(unknownAlias)
 		require.Error(t, err)
 
-		wantMessage := session.ErrUnknownPeerAlias
-		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrV2ResourceNotFound, err.Code())
-		assert.Contains(t, err.Message(), wantMessage)
-		addInfo, ok := err.AddInfo().(perun.ErrV2InfoResourceNotFound)
-		require.True(t, ok)
-		assert.Equal(t, "peer alias", addInfo.Type)
-		assert.Equal(t, unknownAlias, addInfo.ID)
+		wantMessage := session.ErrUnknownPeerAlias.Error()
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceNotFound, wantMessage)
+		assertErrV2InfoResourceNotFound(t, err.AddInfo(), "peer alias", unknownAlias)
 	})
 
 	t.Run("session_closed", func(t *testing.T) {
@@ -166,9 +143,7 @@ func Test_Session_GetPeerID(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := session.ErrSessionClosed.Error()
-		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrV2FailedPreCondition, err.Code())
-		assert.Equal(t, wantMessage, err.Message())
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 }
@@ -529,13 +504,8 @@ func Test_SubUnsubChProposal(t *testing.T) {
 	err = openSession.SubChProposals(dummyNotifier)
 	require.Error(t, err)
 	wantMessage := session.ErrSubAlreadyExists.Error()
-	assert.Equal(t, perun.ClientError, err.Category())
-	assert.Equal(t, perun.ErrV2ResourceExists, err.Code())
-	assert.Contains(t, err.Message(), wantMessage)
-	addInfo, ok := err.AddInfo().(perun.ErrV2InfoResourceExists)
-	require.True(t, ok)
-	assert.Equal(t, "subscription to channel proposals", addInfo.Type)
-	assert.Equal(t, openSession.ID(), addInfo.ID)
+	assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceExists, wantMessage)
+	assertErrV2InfoResourceExists(t, err.AddInfo(), "subscription to channel proposals", openSession.ID())
 
 	// == SubTest 3: Unsub successfully ==
 	err = openSession.UnsubChProposals()
@@ -545,21 +515,14 @@ func Test_SubUnsubChProposal(t *testing.T) {
 	err = openSession.UnsubChProposals()
 	require.Error(t, err)
 	wantMessage = session.ErrNoActiveSub.Error()
-	assert.Equal(t, perun.ClientError, err.Category())
-	assert.Equal(t, perun.ErrV2ResourceNotFound, err.Code())
-	assert.Contains(t, err.Message(), wantMessage)
-	addInfo1, ok := err.AddInfo().(perun.ErrV2InfoResourceNotFound)
-	require.True(t, ok)
-	assert.Equal(t, "subscription to channel proposals", addInfo1.Type)
-	assert.Equal(t, openSession.ID(), addInfo1.ID)
+	assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceNotFound, wantMessage)
+	assertErrV2InfoResourceNotFound(t, err.AddInfo(), "subscription to channel proposals", openSession.ID())
 
 	t.Run("Sub_sessionClosed", func(t *testing.T) {
 		err = closedSession.SubChProposals(dummyNotifier)
 		require.Error(t, err)
 		wantMessage := session.ErrSessionClosed.Error()
-		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrV2FailedPreCondition, err.Code())
-		assert.Equal(t, wantMessage, err.Message())
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 
@@ -567,9 +530,7 @@ func Test_SubUnsubChProposal(t *testing.T) {
 		err = closedSession.UnsubChProposals()
 		require.Error(t, err)
 		wantMessage := session.ErrSessionClosed.Error()
-		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrV2FailedPreCondition, err.Code())
-		assert.Equal(t, wantMessage, err.Message())
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 }
@@ -950,6 +911,15 @@ func assertErrV2InfoResourceNotFound(t *testing.T, info interface{}, resourceTyp
 	t.Helper()
 
 	addInfo, ok := info.(perun.ErrV2InfoResourceNotFound)
+	require.True(t, ok)
+	assert.Equal(t, resourceType, addInfo.Type)
+	assert.Equal(t, resourceID, addInfo.ID)
+}
+
+func assertErrV2InfoResourceExists(t *testing.T, info interface{}, resourceType, resourceID string) {
+	t.Helper()
+
+	addInfo, ok := info.(perun.ErrV2InfoResourceExists)
 	require.True(t, ok)
 	assert.Equal(t, resourceType, addInfo.Type)
 	assert.Equal(t, resourceID, addInfo.ID)
