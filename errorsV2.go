@@ -111,7 +111,7 @@ func NewAPIErrV2FailedPreCondition(message string) APIErrorV2 {
 // error message.
 func NewAPIErrV2UnknownInternal(err error) APIErrorV2 {
 	return apiErrorV2{
-		category: ClientError,
+		category: InternalError,
 		code:     ErrV2UnknownInternal,
 		message:  err.Error(),
 	}

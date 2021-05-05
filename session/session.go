@@ -260,6 +260,7 @@ func (s *Session) AddPeerID(peerID perun.PeerID) perun.APIErrorV2 {
 
 	err := s.idProvider.Write(peerID.Alias, peerID)
 	if err != nil {
+		// The error should be one of these following errors.
 		switch {
 		case errors.Is(err, idprovider.ErrPeerAliasAlreadyUsed):
 			requirement := "peer alias should be unique for each peer ID"
@@ -268,8 +269,6 @@ func (s *Session) AddPeerID(peerID perun.PeerID) perun.APIErrorV2 {
 			apiErr = perun.NewAPIErrV2ResourceExists("peer alias", peerID.Alias, err.Error())
 		case errors.Is(err, idprovider.ErrParsingOffChainAddress):
 			apiErr = perun.NewAPIErrV2InvalidArgument("off-chain address string", peerID.OffChainAddrString, "", err.Error())
-		default:
-			apiErr = perun.NewAPIErrV2UnknownInternal(err)
 		}
 		s.WithFields(perun.APIErrV2AsMap("AddPeerID", apiErr)).Error(apiErr.Message())
 		return apiErr
@@ -680,12 +679,8 @@ func (s *Session) GetChV2(chID string) (perun.ChAPI, perun.APIErrorV2) {
 	ch, err := s.GetCh(chID)
 	var apiErr perun.APIErrorV2
 	if err != nil {
-		switch {
-		case errors.Is(err, ErrUnknownChID):
-			apiErr = perun.NewAPIErrV2ResourceNotFound("channel id", chID, err.Error())
-		default:
-			apiErr = perun.NewAPIErrV2UnknownInternal(errors.WithMessage(err, "Unexpected error from GetCh"))
-		}
+		// The only type of error returned by GetSession is "unknown session ID".
+		apiErr = perun.NewAPIErrV2ResourceNotFound("channel id", chID, err.Error())
 		s.WithFields(perun.APIErrV2AsMap("GetSessionV2 (internal)", apiErr)).Error(apiErr.Message())
 	}
 	return ch, apiErr

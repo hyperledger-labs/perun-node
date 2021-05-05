@@ -126,12 +126,8 @@ func (n *node) GetSessionV2(sessionID string) (perun.SessionAPI, perun.APIErrorV
 	sess, err := n.GetSession(sessionID)
 	var apiErr perun.APIErrorV2
 	if err != nil {
-		switch {
-		case errors.Is(err, ErrUnknownSessionID):
-			apiErr = perun.NewAPIErrV2ResourceNotFound("session id", sessionID, err.Error())
-		default:
-			apiErr = perun.NewAPIErrV2UnknownInternal(errors.WithMessage(err, "Unexpected error from GetSession"))
-		}
+		// The only type of error returned by GetSession is "unknown session ID".
+		apiErr = perun.NewAPIErrV2ResourceNotFound("session id", sessionID, err.Error())
 		n.WithFields(perun.APIErrV2AsMap("GetSessionV2 (internal)", apiErr)).Error(apiErr.Message())
 	}
 	return sess, apiErr
