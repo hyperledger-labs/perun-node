@@ -319,18 +319,20 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	}()
 
 	if !s.isOpen {
-		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
 		return perun.ChInfo{}, apiErr
 	}
 
 	sanitizeBalInfo(openingBalInfo)
-	parts, apiErr := retrievePartIDs(openingBalInfo.Parts, s.idProvider)
+	var parts []perun.PeerID
+	parts, apiErr = retrievePartIDs(openingBalInfo.Parts, s.idProvider)
 	if apiErr != nil {
 		return perun.ChInfo{}, apiErr
 	}
 	registerParts(parts, s.chClient)
 
-	allocations, apiErr := makeAllocation(openingBalInfo, s.chAsset)
+	var allocations *pchannel.Allocation
+	allocations, apiErr = makeAllocation(openingBalInfo, s.chAsset)
 	if apiErr != nil {
 		return perun.ChInfo{}, apiErr
 	}
@@ -346,7 +348,7 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	pch, err := s.chClient.ProposeChannel(ctx, proposal)
 	if err != nil {
 		// Once openingBalInfo is sanitized, the peer alias is expected to be at index 1.
-		apiErr := s.handleChannelProposalError(openingBalInfo.Parts[1], err)
+		apiErr = s.handleChannelProposalError(openingBalInfo.Parts[1], err)
 		return perun.ChInfo{}, apiErr
 	}
 
