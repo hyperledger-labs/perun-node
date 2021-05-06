@@ -311,23 +311,27 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 		"\nReceived request:session.OpenCh Params %+v,%+v,%+v", openingBalInfo, app, challengeDurSecs)
 	// Session lock is not acquired at the beging, but only when adding the channel to session.
 
+	var apiErr perun.APIErrorV2
+	defer func() {
+		if apiErr != nil {
+			s.WithFields(perun.APIErrV2AsMap("OpenCh", apiErr)).Error(apiErr.Message())
+		}
+	}()
+
 	if !s.isOpen {
 		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
-		s.WithFields(perun.APIErrV2AsMap("OpenCh", apiErr)).Error(apiErr.Message())
 		return perun.ChInfo{}, apiErr
 	}
 
 	sanitizeBalInfo(openingBalInfo)
 	parts, apiErr := retrievePartIDs(openingBalInfo.Parts, s.idProvider)
 	if apiErr != nil {
-		s.WithFields(perun.APIErrV2AsMap("OpenCh", apiErr)).Error(apiErr.Message())
 		return perun.ChInfo{}, apiErr
 	}
 	registerParts(parts, s.chClient)
 
 	allocations, apiErr := makeAllocation(openingBalInfo, s.chAsset)
 	if apiErr != nil {
-		s.WithFields(perun.APIErrV2AsMap("OpenCh", apiErr)).Error(apiErr.Message())
 		return perun.ChInfo{}, apiErr
 	}
 
@@ -343,7 +347,6 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	if err != nil {
 		// Once openingBalInfo is sanitized, the peer alias is expected to be at index 1.
 		apiErr := s.handleChannelProposalError(openingBalInfo.Parts[1], err)
-		s.WithFields(perun.APIErrV2AsMap("OpenCh", apiErr)).Error(apiErr.Message())
 		return perun.ChInfo{}, apiErr
 	}
 
