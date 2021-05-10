@@ -366,11 +366,12 @@ func Test_Session_OpenCh(t *testing.T) {
 	})
 
 	t.Run("chClient_proposeChannel_PeerNotFunded", func(t *testing.T) {
+		var peerIdx uint16 = 1 // Index of peer (proposee) is always 1.
 		// pointer to the error is used as go-perun returns this error as pointer.
 		fundingTimeoutError := &pchannel.FundingTimeoutError{
 			Errors: []*pchannel.AssetFundingError{{
 				Asset:         pchannel.Index(0),
-				TimedOutPeers: []pchannel.Index{1},
+				TimedOutPeers: []pchannel.Index{peerIdx},
 			}},
 		}
 		ch, _ := newMockPCh(t, validOpeningBalInfo)
@@ -584,7 +585,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		Bal:      []string{"1", "2"},
 	}
 
-	t.Run("happy_Handle_Respond_Accept", func(t *testing.T) {
+	t.Run("happy_accept", func(t *testing.T) {
 		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
 
 		ch, _ := newMockPCh(t, openingBalInfo)
@@ -597,7 +598,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		assert.Equal(t, gotChInfo.ChID, fmt.Sprintf("%x", ch.ID()))
 	})
 
-	t.Run("happy_Handle_Respond_Reject", func(t *testing.T) {
+	t.Run("happy_reject", func(t *testing.T) {
 		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
 
 		responder := &mocks.ChProposalResponder{}
@@ -608,44 +609,35 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("happy_Handle_Respond_Accept_Error", func(t *testing.T) {
-		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
+	t.Run("respond_session_closed", func(t *testing.T) {
+		sess, _ := newSessionWMockChClient(t, false, peerIDs...)
 
-		ch, _ := newMockPCh(t, openingBalInfo)
-		responder := &mocks.ChProposalResponder{}
-		responder.On("Accept", mock.Anything, mock.Anything).Return(ch, assert.AnError)
-		session.HandleProposalWInterface(chProposal, responder)
+		chProposalID := "any-proposal-id" // A closed session returns error irrespective of proposal id.
+		_, err := sess.RespondChProposal(context.Background(), chProposalID, true)
+		require.Error(t, err)
 
-		_, err := session.RespondChProposal(context.Background(), chProposalID, true)
-		assert.Error(t, err)
-		t.Log(err)
+		wantMessage := session.ErrSessionClosed.Error()
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
+		assert.Nil(t, err.AddInfo())
 	})
 
-	t.Run("Handle_Respond_Reject_Error", func(t *testing.T) {
-		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
-
-		responder := &mocks.ChProposalResponder{}
-		responder.On("Reject", mock.Anything, mock.Anything).Return(assert.AnError)
-		session.HandleProposalWInterface(chProposal, responder)
-
-		_, err := session.RespondChProposal(context.Background(), chProposalID, false)
-		assert.Error(t, err)
-		t.Log(err)
-	})
-
-	t.Run("Respond_Unknonwn_ProposalID", func(t *testing.T) {
+	t.Run("respond_unknown_proposalID", func(t *testing.T) {
 		session, _ := newSessionWMockChClient(t, true, peerIDs...)
 
-		_, err := session.RespondChProposal(context.Background(), "unknown-proposal-id", true)
+		unknownProposalID := "unknown-proposal-id"
+		_, err := session.RespondChProposal(context.Background(), unknownProposalID, true)
 		require.Error(t, err)
-		t.Log(err)
+
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceNotFound, "proposal")
+		assertErrV2InfoResourceNotFound(t, err.AddInfo(), "proposal", unknownProposalID)
 	})
 
-	t.Run("Handle_Respond_Timeout", func(t *testing.T) {
+	t.Run("response_timeout_expired", func(t *testing.T) {
+		modifiedResponseTimeout := 1 * time.Second
 		chClient := &mocks.ChClient{} // Dummy ChClient is sufficient as no methods on it will be invoked.
 		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 		modifiedCfg := sessiontest.NewConfigT(t, prng, peerIDs...)
-		modifiedCfg.ResponseTimeout = 1 * time.Second
+		modifiedCfg.ResponseTimeout = modifiedResponseTimeout
 		session, err := session.NewSessionForTest(modifiedCfg, true, chClient)
 		require.NoError(t, err)
 		require.NotNil(t, session)
@@ -654,22 +646,95 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		require.NoError(t, err)
 		chProposal := newChProposal(t, ownPeerID, peerIDs[0])
 		chProposalID := fmt.Sprintf("%x", chProposal.ProposalID())
-
-		responder := &mocks.ChProposalResponder{} // Dummy responder is sufficient as no methods on it will be invoked.
+		responder := &mocks.ChProposalResponder{} // Dummy responder as no methods on it will be invoked.
 		session.HandleProposalWInterface(chProposal, responder)
-		time.Sleep(2 * time.Second) // Wait until the notification expires.
-		_, err = session.RespondChProposal(context.Background(), chProposalID, true)
-		assert.Error(t, err)
-		t.Log(err)
+		time.Sleep(modifiedResponseTimeout + 1*time.Second) // Wait until the notification expires.
+		_, apiErr := session.RespondChProposal(context.Background(), chProposalID, true)
+		require.Error(t, apiErr)
+
+		assertAPIError(t, apiErr, perun.ParticipantError, perun.ErrV2UserResponseTimedOut, "")
+		assertErrV2InfoUserResponseTimedout(t, apiErr.AddInfo())
 	})
 
-	t.Run("Respond_Session_Closed", func(t *testing.T) {
-		session, _ := newSessionWMockChClient(t, false, peerIDs...)
+	t.Run("respond_accept_AnError", func(t *testing.T) {
+		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
 
-		chProposalID := "any-proposal-id" // A closed session returns error irrespective of proposal id.
+		ch, _ := newMockPCh(t, openingBalInfo)
+		responder := &mocks.ChProposalResponder{}
+		responder.On("Accept", mock.Anything, mock.Anything).Return(ch, assert.AnError)
+		session.HandleProposalWInterface(chProposal, responder)
+
 		_, err := session.RespondChProposal(context.Background(), chProposalID, true)
-		assert.Error(t, err)
-		t.Log(err)
+		assertAPIError(t, err, perun.InternalError, perun.ErrV2UnknownInternal, assert.AnError.Error())
+	})
+
+	t.Run("respond_reject_AnError", func(t *testing.T) {
+		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
+
+		responder := &mocks.ChProposalResponder{}
+		responder.On("Reject", mock.Anything, mock.Anything).Return(assert.AnError)
+		session.HandleProposalWInterface(chProposal, responder)
+
+		_, err := session.RespondChProposal(context.Background(), chProposalID, false)
+		assertAPIError(t, err, perun.InternalError, perun.ErrV2UnknownInternal, assert.AnError.Error())
+	})
+
+	t.Run("respond_accept_PeerNotFunded", func(t *testing.T) {
+		var peerIdx uint16 = 0 // Index of peer (proposer) is always 0.
+		// pointer to the error is used as go-perun returns this error as pointer.
+		fundingTimeoutError := &pchannel.FundingTimeoutError{
+			Errors: []*pchannel.AssetFundingError{{
+				Asset:         pchannel.Index(0),
+				TimedOutPeers: []pchannel.Index{peerIdx},
+			}},
+		}
+		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
+
+		ch, _ := newMockPCh(t, openingBalInfo)
+		responder := &mocks.ChProposalResponder{}
+		responder.On("Accept", mock.Anything, mock.Anything).Return(ch, fundingTimeoutError)
+		session.HandleProposalWInterface(chProposal, responder)
+
+		_, err := session.RespondChProposal(context.Background(), chProposalID, true)
+		peerAlias := peerIDs[0].Alias // peer in validOpeningBal is peerIDs[0].
+		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerNotFunded, fundingTimeoutError.Error())
+		assertErrV2InfoPeerNotFunded(t, err.AddInfo(), peerAlias)
+	})
+
+	t.Run("respond_accept_FundingTxTimedOut", func(t *testing.T) {
+		fundingTxTimedoutError := pclient.TxTimedoutError{
+			TxType: pethchannel.Fund.String(),
+			TxID:   "0xabcd",
+		}
+		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
+
+		ch, _ := newMockPCh(t, openingBalInfo)
+		responder := &mocks.ChProposalResponder{}
+		responder.On("Accept", mock.Anything, mock.Anything).Return(ch, fundingTxTimedoutError)
+		session.HandleProposalWInterface(chProposal, responder)
+
+		_, err := session.RespondChProposal(context.Background(), chProposalID, true)
+		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2TxTimedOut, fundingTxTimedoutError.Error())
+		txType := fundingTxTimedoutError.TxType
+		txID := fundingTxTimedoutError.TxID
+		txTimeout := ethereumtest.OnChainTxTimeout.String()
+		assertErrV2InfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
+	})
+
+	t.Run("respond_accept_ChainNotReachable", func(t *testing.T) {
+		chainURL := ethereumtest.ChainURL
+		chainNotReachableError := pclient.ChainNotReachableError{}
+		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
+
+		ch, _ := newMockPCh(t, openingBalInfo)
+		responder := &mocks.ChProposalResponder{}
+		responder.On("Accept", mock.Anything, mock.Anything).Return(ch, chainNotReachableError)
+		session.HandleProposalWInterface(chProposal, responder)
+
+		_, err := session.RespondChProposal(context.Background(), chProposalID, true)
+		wantMessage := chainNotReachableError.Error()
+		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2ChainNotReachable, wantMessage)
+		assertErrV2InfoChainNotReachable(t, err.AddInfo(), chainURL)
 	})
 }
 
@@ -905,6 +970,14 @@ func assertErrV2InfoPeerNotFunded(t *testing.T, info interface{}, peerAlias stri
 	addInfo, ok := info.(perun.ErrV2InfoPeerNotFunded)
 	require.True(t, ok)
 	assert.Equal(t, peerAlias, addInfo.PeerAlias)
+}
+
+func assertErrV2InfoUserResponseTimedout(t *testing.T, info interface{}) {
+	t.Helper()
+
+	addInfo, ok := info.(perun.ErrV2InfoUserResponseTimedOut)
+	require.True(t, ok)
+	assert.Less(t, addInfo.Expiry, time.Now().Unix())
 }
 
 func assertErrV2InfoResourceNotFound(t *testing.T, info interface{}, resourceType, resourceID string) {
