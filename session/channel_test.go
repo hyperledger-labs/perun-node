@@ -136,6 +136,7 @@ func Test_HandleUpdate(t *testing.T) {
 	updatedBalInfo.Bal = []string{"0.5", "2.5"}
 	pch, _ := newMockPCh(t, validOpeningBalInfo)
 
+	currState := makeState(t, validOpeningBalInfo, false)
 	nonFinalState := makeState(t, updatedBalInfo, false)
 	finalState := makeState(t, updatedBalInfo, true)
 
@@ -144,7 +145,7 @@ func Test_HandleUpdate(t *testing.T) {
 			State: nonFinalState,
 		}
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)
-		ch.HandleUpdate(*chUpdate, &mocks.ChUpdateResponder{})
+		ch.HandleUpdate(currState, *chUpdate, &mocks.ChUpdateResponder{})
 	})
 
 	t.Run("happy_final", func(t *testing.T) {
@@ -152,7 +153,7 @@ func Test_HandleUpdate(t *testing.T) {
 			State: finalState,
 		}
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)
-		ch.HandleUpdate(*chUpdate, &mocks.ChUpdateResponder{})
+		ch.HandleUpdate(currState, *chUpdate, &mocks.ChUpdateResponder{})
 	})
 
 	t.Run("happy_unexpected_chUpdate", func(t *testing.T) {
@@ -160,7 +161,7 @@ func Test_HandleUpdate(t *testing.T) {
 			State: nonFinalState,
 		}
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, false)
-		ch.HandleUpdate(*chUpdate, &mocks.ChUpdateResponder{})
+		ch.HandleUpdate(currState, *chUpdate, &mocks.ChUpdateResponder{})
 	})
 }
 
@@ -243,6 +244,7 @@ func Test_HandleUpdate_Sub(t *testing.T) {
 	updatedBalInfo.Bal = []string{"0.5", "2.5"}
 	pch, _ := newMockPCh(t, validOpeningBalInfo)
 
+	currState := makeState(t, validOpeningBalInfo, false)
 	nonFinalState := makeState(t, updatedBalInfo, false)
 	t.Run("happy_HandleSub", func(t *testing.T) {
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, 10, true)
@@ -250,7 +252,7 @@ func Test_HandleUpdate_Sub(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: nonFinalState,
 		}
-		ch.HandleUpdate(*chUpdate, &mocks.ChUpdateResponder{})
+		ch.HandleUpdate(currState, *chUpdate, &mocks.ChUpdateResponder{})
 
 		notifs := make([]perun.ChUpdateNotif, 0, 2)
 		notifier := func(notif perun.ChUpdateNotif) {
@@ -279,7 +281,7 @@ func Test_HandleUpdate_Sub(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: nonFinalState,
 		}
-		ch.HandleUpdate(*chUpdate, &mocks.ChUpdateResponder{})
+		ch.HandleUpdate(currState, *chUpdate, &mocks.ChUpdateResponder{})
 		assert.Eventually(t, notifRecieved, 2*time.Second, 100*time.Millisecond)
 	})
 }
@@ -295,6 +297,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 	updatedBalInfo.Bal = []string{"0.5", "2.5"}
 	pch, _ := newMockPCh(t, validOpeningBalInfo)
 
+	currState := makeState(t, validOpeningBalInfo, false)
 	nonFinalState := makeState(t, updatedBalInfo, false)
 	finalState := makeState(t, updatedBalInfo, true)
 
@@ -306,7 +309,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Accept", mock.Anything).Return(nil)
 		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
-		ch.HandleUpdate(*chUpdate, responder)
+		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		chInfo, err := ch.RespondChUpdate(context.Background(), updateID, true)
 		require.NoError(t, err)
@@ -321,7 +324,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Reject", mock.Anything, mock.Anything).Return(nil)
 		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
-		ch.HandleUpdate(*chUpdate, responder)
+		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		chInfo, err := ch.RespondChUpdate(context.Background(), updateID, false)
 		require.NoError(t, err)
@@ -336,7 +339,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Accept", mock.Anything).Return(assert.AnError)
 		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
-		ch.HandleUpdate(*chUpdate, responder)
+		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
 		require.Error(t, err)
@@ -351,7 +354,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Reject", mock.Anything, mock.Anything).Return(assert.AnError)
 		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
-		ch.HandleUpdate(*chUpdate, responder)
+		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, false)
 		require.Error(t, err)
@@ -366,7 +369,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Accept", mock.Anything).Return(nil)
 		updateID := "random-update-id"
-		ch.HandleUpdate(*chUpdate, responder)
+		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
 		require.Error(t, err)
@@ -381,7 +384,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Accept", mock.Anything).Return(nil)
 		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
-		ch.HandleUpdate(*chUpdate, responder)
+		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		time.Sleep(2 * time.Second)
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
@@ -408,7 +411,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		pch.On("Register", mock.Anything).Return(nil)
 
 		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
-		ch.HandleUpdate(*chUpdate, responder)
+		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		chInfo, err := ch.RespondChUpdate(context.Background(), updateID, true)
 		require.NoError(t, err)
@@ -426,7 +429,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		pch.On("Register", mock.Anything).Return(assert.AnError)
 
 		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
-		ch.HandleUpdate(*chUpdate, responder)
+		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
 		require.Error(t, err)
