@@ -62,7 +62,6 @@ type (
 		parts            []string
 		timeoutCfg       timeoutConfig
 		challengeDurSecs uint64
-		currState        *pchannel.State
 
 		chUpdateNotifier   perun.ChUpdateNotifier
 		chUpdateNotifCache []perun.ChUpdateNotif
@@ -96,7 +95,6 @@ func newCh(pch perun.Channel, currency string, parts []string, timeoutCfg timeou
 		id:                 fmt.Sprintf("%x", pch.ID()),
 		pch:                pch,
 		status:             open,
-		currState:          pch.State().Clone(),
 		timeoutCfg:         timeoutCfg,
 		challengeDurSecs:   challengeDurSecs,
 		currency:           currency,
@@ -268,7 +266,6 @@ func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 		return perun.ChInfo{}, err
 	}
 	prevChInfo := ch.getChInfo()
-	ch.currState = ch.pch.State().Clone()
 	ch.Debugf("State upated from %v to %v", prevChInfo, ch.getChInfo())
 	return ch.getChInfo(), nil
 }
@@ -290,7 +287,8 @@ func (ch *Channel) sendChUpdate(pctx context.Context, updater perun.StateUpdater
 // HandleUpdate handles the incoming updates on an open channel. All updates are sent to a centralized
 // update handler defined on the session. The centrazlied handler identifies the channel and then
 // invokes this function to process the update.
-func (ch *Channel) HandleUpdate(chUpdate pclient.ChannelUpdate, responder ChUpdateResponder) {
+func (ch *Channel) HandleUpdate(
+	currState *pchannel.State, chUpdate pclient.ChannelUpdate, responder ChUpdateResponder) {
 	ch.Lock()
 	defer ch.Unlock()
 
@@ -300,7 +298,8 @@ func (ch *Channel) HandleUpdate(chUpdate pclient.ChannelUpdate, responder ChUpda
 	}
 
 	expiry := time.Now().UTC().Add(ch.timeoutCfg.response).Unix()
-	notif := makeChUpdateNotif(ch.getChInfo(), chUpdate.State, expiry)
+	currChInfo := makeChInfo(ch.id, ch.parts, ch.currency, currState)
+	notif := makeChUpdateNotif(currChInfo, chUpdate.State, expiry)
 	entry := chUpdateResponderEntry{
 		notif:       notif,
 		responder:   responder,
@@ -441,8 +440,6 @@ func (ch *Channel) acceptChUpdate(pctx context.Context, entry chUpdateResponderE
 	err := entry.responder.Accept(ctx)
 	if err != nil {
 		ch.Error("Accepting channel update", err)
-	} else {
-		ch.currState = ch.pch.State().Clone()
 	}
 	return perun.GetAPIError(errors.Wrap(err, "accepting update"))
 }
@@ -468,7 +465,7 @@ func (ch *Channel) GetChInfo() perun.ChInfo {
 
 // This function assumes that caller has already locked the channel.
 func (ch *Channel) getChInfo() perun.ChInfo {
-	return makeChInfo(ch.ID(), ch.parts, ch.currency, ch.currState)
+	return makeChInfo(ch.ID(), ch.parts, ch.currency, ch.pch.State().Clone())
 }
 
 func makeChInfo(chID string, parts []string, curr string, state *pchannel.State) perun.ChInfo {
@@ -544,8 +541,6 @@ func (ch *Channel) finalize(pctx context.Context) {
 	err := ch.pch.UpdateBy(ctx, chFinalizer)
 	if err != nil {
 		ch.Info("Error when trying to finalize state", err)
-	} else {
-		ch.currState = ch.pch.State().Clone()
 	}
 }
 
