@@ -45,7 +45,7 @@ func OpenSession(n perun.NodeAPI, configFile string) (string, []PayChInfo, error
 
 // OpenPayCh opens a payment channel using the given sessionAPI instance with the specified parameters.
 func OpenPayCh(pctx context.Context, s perun.SessionAPI, openingBalInfo perun.BalInfo, challengeDurSecs uint64) (
-	PayChInfo, error) {
+	PayChInfo, perun.APIErrorV2) {
 	paymentApp := perun.App{
 		Def:  pchannel.NoApp(),
 		Data: pchannel.NoData(),

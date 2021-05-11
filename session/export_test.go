@@ -56,6 +56,7 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient perun.ChClient) (*Sessi
 		Logger:               log.NewLoggerWithField("session-id", sessionID),
 		id:                   sessionID,
 		isOpen:               isOpen,
+		chainURL:             cfg.ChainURL,
 		timeoutCfg:           timeoutCfg,
 		user:                 user,
 		chAsset:              chAsset,
