@@ -81,11 +81,11 @@ jobs:
       - run: echo "ganache-cli-running"
       - run:
           name: Run unit and integration tests
-          command: gotestsum --junitfile ${RESULTS}/unit_and_integration_tests.xml --format=short-verbose -- -tags=integration -coverprofile=unit_and_integration_tests.out -p 1 ./...
+          command: gotestsum --junitfile ${RESULTS}/unit_and_integration_tests.xml --format=standard-verbose -- -tags=integration -coverprofile=unit_and_integration_tests.out -p 1 ./...
       # Run unit tests alone when the combined run of unit and integration tests fail.
       - run:
           name: Run only unit tests
-          command: gotestsum --junitfile ${RESULTS}/unit_tests.xml --format=short-verbose -- -coverprofile=unit_tests.out ./...
+          command: gotestsum --junitfile ${RESULTS}/unit_tests.xml --format=standard-verbose -- -coverprofile=unit_tests.out ./...
           when: on_fail
       - run:
           name: Generate coverage report for unit and integration tests.
