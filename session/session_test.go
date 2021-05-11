@@ -349,7 +349,6 @@ func Test_Session_OpenCh(t *testing.T) {
 
 		wantMessage := "proposing channel"
 		assertAPIError(t, err, perun.InternalError, perun.ErrV2UnknownInternal, wantMessage)
-		t.Log(err.Message())
 	})
 
 	t.Run("chClient_proposeChannel_PeerRequestTimedOut", func(t *testing.T) {
@@ -367,6 +366,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		peerAlias := peerIDs[0].Alias // peer in validOpeningBal is peerIDs[0].
 		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerRequestTimedOut, wantMessage)
 		assertErrV2InfoPeerRequestTimedOut(t, err.AddInfo(), peerAlias, timeout)
+		assert.Contains(t, err.Message(), "proposing channel")
 	})
 
 	t.Run("chClient_proposeChannel_PeerRejected", func(t *testing.T) {
@@ -387,6 +387,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		peerAlias := peerIDs[0].Alias // peer in validOpeningBal is peerIDs[0].
 		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerRejected, wantMessage)
 		assertErrV2InfoPeerRejected(t, err.AddInfo(), peerAlias, reason)
+		assert.Contains(t, err.Message(), "proposing channel")
 	})
 
 	t.Run("chClient_proposeChannel_PeerNotFunded", func(t *testing.T) {
@@ -409,6 +410,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		peerAlias := peerIDs[0].Alias // peer in validOpeningBal is peerIDs[0].
 		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerNotFunded, wantMessage)
 		assertErrV2InfoPeerNotFunded(t, err.AddInfo(), peerAlias)
+		assert.Contains(t, err.Message(), "proposing channel")
 	})
 
 	t.Run("chClient_proposeChannel_FundingTxTimedOut", func(t *testing.T) {
@@ -430,6 +432,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		txID := fundingTxTimedoutError.TxID
 		txTimeout := ethereumtest.OnChainTxTimeout.String()
 		assertErrV2InfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
+		assert.Contains(t, err.Message(), "proposing channel")
 	})
 
 	t.Run("chClient_proposeChannel_ChainNotReachable", func(t *testing.T) {
@@ -446,6 +449,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		wantMessage := chainNotReachableError.Error()
 		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2ChainNotReachable, wantMessage)
 		assertErrV2InfoChainNotReachable(t, err.AddInfo(), chainURL)
+		assert.Contains(t, err.Message(), "proposing channel")
 	})
 }
 

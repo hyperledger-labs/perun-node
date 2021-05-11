@@ -309,7 +309,7 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	perun.ChInfo, perun.APIErrorV2) {
 	s.WithField("method", "OpenCh").Infof(
 		"\nReceived request:session.OpenCh Params %+v,%+v,%+v", openingBalInfo, app, challengeDurSecs)
-	// Session lock is not acquired at the beging, but only when adding the channel to session.
+	// Session lock is not acquired at the beginning, but only when adding the channel to session.
 
 	var apiErr perun.APIErrorV2
 	defer func() {
@@ -347,8 +347,8 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	defer cancel()
 	pch, err := s.chClient.ProposeChannel(ctx, proposal)
 	if err != nil {
-		// Once openingBalInfo is sanitized, the peer alias is expected to be at index 1.
-		apiErr = s.handleChannelProposalError(openingBalInfo.Parts[1], err)
+		// Once openingBalInfo is sanitized, the alias of peer (proposee) is at index 1.
+		apiErr = s.handleChannelProposalError(openingBalInfo.Parts[1], errors.WithMessage(err, "proposing channel"))
 		return perun.ChInfo{}, apiErr
 	}
 
@@ -368,12 +368,12 @@ func (s *Session) handleChannelProposalError(peerAlias string, err error) perun.
 	switch {
 	case errors.As(err, &peerResponseTimedOutError):
 		timeout := s.timeoutCfg.response.String()
-		message := peerResponseTimedOutError.Error()
+		message := errors.WithMessage(err, peerResponseTimedOutError.Error()).Error()
 		return perun.NewAPIErrV2PeerRequestTimedOut(peerAlias, timeout, message)
 
 	case errors.As(err, &peerRejectedError):
 		reason := peerRejectedError.Reason
-		message := peerRejectedError.Error()
+		message := errors.WithMessage(err, peerRejectedError.Error()).Error()
 		return perun.NewAPIErrV2PeerRejected(peerAlias, reason, message)
 
 	case errors.As(err, &fundingTimeoutError):
@@ -385,23 +385,20 @@ func (s *Session) handleChannelProposalError(peerAlias string, err error) perun.
 			err = errors.WithMessage(err, "channel can contain only one participant other than self")
 			return perun.NewAPIErrV2UnknownInternal(err)
 		}
-		if fundingTimeoutError.Errors[0].TimedOutPeers[0] != 1 {
-			err = errors.WithMessage(err, "index of the participant must be 1")
-			return perun.NewAPIErrV2UnknownInternal(err)
-		}
 		return perun.NewAPIErrV2PeerNotFunded(peerAlias, err.Error())
 
 	case errors.As(err, &txTimedOutError):
 		txType := txTimedOutError.TxType
 		txID := txTimedOutError.TxID
-		message := txTimedOutError.Error()
+		message := errors.WithMessage(err, txTimedOutError.Error()).Error()
 		return perun.NewAPIErrV2TxTimedOut(txType, txID, s.timeoutCfg.onChainTx.String(), message)
 
 	case errors.As(err, &chainNotReachableError):
-		return perun.NewAPIErrV2ChainNotReachable(s.chainURL, chainNotReachableError.Error())
+		message := errors.WithMessage(err, chainNotReachableError.Error()).Error()
+		return perun.NewAPIErrV2ChainNotReachable(s.chainURL, message)
 
 	default:
-		return perun.NewAPIErrV2UnknownInternal(errors.WithMessage(err, "proposing channel"))
+		return perun.NewAPIErrV2UnknownInternal(err)
 	}
 }
 
