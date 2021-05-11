@@ -24,10 +24,10 @@ import (
 	"time"
 
 	"github.com/phayes/freeport"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	pethchannel "perun.network/go-perun/backend/ethereum/channel"
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
 	pwire "perun.network/go-perun/wire"
@@ -235,87 +235,221 @@ func Test_Session_OpenCh(t *testing.T) {
 
 	t.Run("session_closed", func(t *testing.T) {
 		ch, _ := newMockPCh(t, validOpeningBalInfo)
-		session, chClient := newSessionWMockChClient(t, false, peerIDs...)
+		sess, chClient := newSessionWMockChClient(t, false, peerIDs...)
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, nil)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 
-		_, err := session.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
+		_, err := sess.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := session.ErrSessionClosed.Error()
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
+		assert.Nil(t, err.AddInfo())
 	})
 
-	t.Run("missing_parts", func(t *testing.T) {
+	t.Run("one_unknown_peer_alias", func(t *testing.T) {
+		unknownAlias := "unknown-alias"
 		invalidOpeningBalInfo := validOpeningBalInfo
-		invalidOpeningBalInfo.Parts = []string{perun.OwnAlias, "missing-part"}
-		session, _ := newSessionWMockChClient(t, true, peerIDs...)
+		invalidOpeningBalInfo.Parts = []string{perun.OwnAlias, unknownAlias}
+		sess, _ := newSessionWMockChClient(t, true, peerIDs...)
 
-		_, err := session.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
+		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := session.ErrUnknownPeerAlias.Error()
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceNotFound, wantMessage)
+		assertErrV2InfoResourceNotFound(t, err.AddInfo(), "peer alias", unknownAlias)
 	})
 
-	t.Run("repeated_parts", func(t *testing.T) {
+	t.Run("two_unknown_peer_aliases", func(t *testing.T) {
+		unknownAlias1 := "unknown-alias-1"
+		unknownAlias2 := "unknown-alias-2"
+		invalidOpeningBalInfo := validOpeningBalInfo
+		invalidOpeningBalInfo.Parts = []string{unknownAlias1, unknownAlias2}
+		sess, _ := newSessionWMockChClient(t, true, peerIDs...)
+
+		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
+		require.Error(t, err)
+
+		wantMessage := session.ErrUnknownPeerAlias.Error()
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceNotFound, wantMessage)
+		resourceType := "peer alias"
+		resourceID := fmt.Sprintf("%s,%s", unknownAlias1, unknownAlias2)
+		assertErrV2InfoResourceNotFound(t, err.AddInfo(), resourceType, resourceID)
+	})
+
+	t.Run("repeated_peer_aliases", func(t *testing.T) {
 		invalidOpeningBalInfo := validOpeningBalInfo
 		invalidOpeningBalInfo.Parts = []string{peerIDs[0].Alias, peerIDs[0].Alias}
-		session, _ := newSessionWMockChClient(t, true, peerIDs...)
+		sess, _ := newSessionWMockChClient(t, true, peerIDs...)
 
-		_, err := session.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
+		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := session.ErrRepeatedPeerAlias.Error()
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2InvalidArgument, wantMessage)
+		resourceType := "peer alias"
+		assertErrV2InfoInvalidArgument(t, err.AddInfo(), resourceType, peerIDs[0].Alias)
 	})
 
 	t.Run("missing_own_alias", func(t *testing.T) {
 		invalidOpeningBalInfo := validOpeningBalInfo
 		invalidOpeningBalInfo.Parts = []string{peerIDs[0].Alias, peerIDs[1].Alias}
-		session, _ := newSessionWMockChClient(t, true, peerIDs...)
+		sess, _ := newSessionWMockChClient(t, true, peerIDs...)
 
-		_, err := session.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
+		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := session.ErrNoEntryForSelf.Error()
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2InvalidArgument, wantMessage)
+		argumentName := "peer alias"
+		argumentValue := fmt.Sprintf("%s,%s", peerIDs[0].Alias, peerIDs[1].Alias)
+		assertErrV2InfoInvalidArgument(t, err.AddInfo(), argumentName, argumentValue)
 	})
 
 	t.Run("unsupported_currency", func(t *testing.T) {
 		invalidOpeningBalInfo := validOpeningBalInfo
 		invalidOpeningBalInfo.Currency = "unsupported-currency"
-		session, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 
-		_, err := session.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
+		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := session.ErrUnknownCurrency.Error()
+		argumentName := "currency"
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2InvalidArgument, wantMessage)
+		assertErrV2InfoInvalidArgument(t, err.AddInfo(), argumentName, invalidOpeningBalInfo.Currency)
 	})
 
 	t.Run("invalid_amount", func(t *testing.T) {
 		invalidOpeningBalInfo := validOpeningBalInfo
 		invalidOpeningBalInfo.Bal = []string{"abc", "gef"}
-		session, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 
-		_, err := session.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
+		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := session.ErrInvalidAmountInBalance.Error()
+		argumentName := "amount"
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2InvalidArgument, wantMessage)
+		assertErrV2InfoInvalidArgument(t, err.AddInfo(), argumentName, invalidOpeningBalInfo.Bal[0])
 	})
 
 	t.Run("chClient_proposeChannel_AnError", func(t *testing.T) {
+		anError := assert.AnError
 		ch, _ := newMockPCh(t, validOpeningBalInfo)
-		session, chClient := newSessionWMockChClient(t, true, peerIDs...)
-		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, assert.AnError)
+		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
+		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, anError)
 
-		_, err := session.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
+		_, err := sess.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := "proposing channel"
+		assertAPIError(t, err, perun.InternalError, perun.ErrV2UnknownInternal, wantMessage)
+	})
+
+	t.Run("chClient_proposeChannel_PeerRequestTimedOut", func(t *testing.T) {
+		timeout := sessiontest.ResponseTimeout.String()
+		peerRequestTimedOutError := pclient.RequestTimedOutError("some-error")
+		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		chClient.On("Register", mock.Anything, mock.Anything).Return()
+		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, peerRequestTimedOutError)
+
+		_, err := sess.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
+		require.Error(t, err)
+
+		wantMessage := peerRequestTimedOutError.Error()
+		peerAlias := peerIDs[0].Alias // peer in validOpeningBal is peerIDs[0].
+		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerRequestTimedOut, wantMessage)
+		assertErrV2InfoPeerRequestTimedOut(t, err.AddInfo(), peerAlias, timeout)
+		assert.Contains(t, err.Message(), "proposing channel")
 	})
 
 	t.Run("chClient_proposeChannel_PeerRejected", func(t *testing.T) {
+		reason := "some random reason"
+		peerRejectedError := pclient.PeerRejectedError{
+			ItemType: "channel proposal",
+			Reason:   reason,
+		}
 		ch, _ := newMockPCh(t, validOpeningBalInfo)
-		session, chClient := newSessionWMockChClient(t, true, peerIDs...)
-		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, errors.New("channel proposal rejected"))
+		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
+		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, peerRejectedError)
 
-		_, err := session.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
+		_, err := sess.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := peerRejectedError.Error()
+		peerAlias := peerIDs[0].Alias // peer in validOpeningBal is peerIDs[0].
+		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerRejected, wantMessage)
+		assertErrV2InfoPeerRejected(t, err.AddInfo(), peerAlias, reason)
+		assert.Contains(t, err.Message(), "proposing channel")
+	})
+
+	t.Run("chClient_proposeChannel_PeerNotFunded", func(t *testing.T) {
+		// pointer to the error is used as go-perun returns this error as pointer.
+		fundingTimeoutError := &pchannel.FundingTimeoutError{
+			Errors: []*pchannel.AssetFundingError{{
+				Asset:         pchannel.Index(0),
+				TimedOutPeers: []pchannel.Index{1},
+			}},
+		}
+		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		chClient.On("Register", mock.Anything, mock.Anything).Return()
+		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, fundingTimeoutError)
+
+		_, err := sess.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
+		require.Error(t, err)
+
+		wantMessage := fundingTimeoutError.Error()
+		peerAlias := peerIDs[0].Alias // peer in validOpeningBal is peerIDs[0].
+		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerNotFunded, wantMessage)
+		assertErrV2InfoPeerNotFunded(t, err.AddInfo(), peerAlias)
+		assert.Contains(t, err.Message(), "proposing channel")
+	})
+
+	t.Run("chClient_proposeChannel_FundingTxTimedOut", func(t *testing.T) {
+		fundingTxTimedoutError := pclient.TxTimedoutError{
+			TxType: pethchannel.Fund.String(),
+			TxID:   "0xabcd",
+		}
+		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		chClient.On("Register", mock.Anything, mock.Anything).Return()
+		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, fundingTxTimedoutError)
+
+		_, err := sess.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
+		require.Error(t, err)
+
+		wantMessage := fundingTxTimedoutError.Error()
+		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2TxTimedOut, wantMessage)
+		txType := fundingTxTimedoutError.TxType
+		txID := fundingTxTimedoutError.TxID
+		txTimeout := ethereumtest.OnChainTxTimeout.String()
+		assertErrV2InfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
+		assert.Contains(t, err.Message(), "proposing channel")
+	})
+
+	t.Run("chClient_proposeChannel_ChainNotReachable", func(t *testing.T) {
+		chainURL := ethereumtest.ChainURL
+		chainNotReachableError := pclient.ChainNotReachableError{}
+		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		chClient.On("Register", mock.Anything, mock.Anything).Return()
+		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, chainNotReachableError)
+
+		_, err := sess.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
+		require.Error(t, err)
+
+		wantMessage := chainNotReachableError.Error()
+		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2ChainNotReachable, wantMessage)
+		assertErrV2InfoChainNotReachable(t, err.AddInfo(), chainURL)
+		assert.Contains(t, err.Message(), "proposing channel")
 	})
 }
 
@@ -776,4 +910,75 @@ func newPeerIDs(t *testing.T, n uint) []perun.PeerID {
 		require.NoError(t, err)
 	}
 	return peerIDs
+}
+
+func assertAPIError(t *testing.T, e perun.APIErrorV2, category perun.ErrorCategory, code perun.ErrorCode, msg string) {
+	t.Helper()
+
+	assert.Equal(t, category, e.Category())
+	assert.Equal(t, code, e.Code())
+	assert.Contains(t, e.Message(), msg)
+}
+
+func assertErrV2InfoPeerRequestTimedOut(t *testing.T, info interface{}, peerAlias, timeout string) {
+	t.Helper()
+
+	addInfo, ok := info.(perun.ErrV2InfoPeerRequestTimedOut)
+	require.True(t, ok)
+	assert.Equal(t, peerAlias, addInfo.PeerAlias)
+	assert.Equal(t, timeout, addInfo.Timeout)
+}
+
+func assertErrV2InfoPeerRejected(t *testing.T, info interface{}, peerAlias, reason string) {
+	t.Helper()
+
+	addInfo, ok := info.(perun.ErrV2InfoPeerRejected)
+	require.True(t, ok)
+	assert.Equal(t, peerAlias, addInfo.PeerAlias)
+	assert.Equal(t, reason, addInfo.Reason)
+}
+
+func assertErrV2InfoPeerNotFunded(t *testing.T, info interface{}, peerAlias string) {
+	t.Helper()
+
+	addInfo, ok := info.(perun.ErrV2InfoPeerNotFunded)
+	require.True(t, ok)
+	assert.Equal(t, peerAlias, addInfo.PeerAlias)
+}
+
+func assertErrV2InfoResourceNotFound(t *testing.T, info interface{}, resourceType, resourceID string) {
+	t.Helper()
+
+	addInfo, ok := info.(perun.ErrV2InfoResourceNotFound)
+	require.True(t, ok)
+	assert.Equal(t, resourceType, addInfo.Type)
+	assert.Equal(t, resourceID, addInfo.ID)
+}
+
+func assertErrV2InfoInvalidArgument(t *testing.T, info interface{}, name, value string) {
+	t.Helper()
+
+	addInfo, ok := info.(perun.ErrV2InfoInvalidArgument)
+	require.True(t, ok)
+	assert.Equal(t, name, addInfo.Name)
+	assert.Equal(t, value, addInfo.Value)
+	t.Log("requirement:", addInfo.Requirement)
+}
+
+func assertErrV2InfoTxTimedOut(t *testing.T, info interface{}, txType, txID, txTimeout string) {
+	t.Helper()
+
+	addInfo, ok := info.(perun.ErrV2InfoTxTimedOut)
+	require.True(t, ok)
+	assert.Equal(t, txType, addInfo.TxType)
+	assert.Equal(t, txID, addInfo.TxID)
+	assert.Equal(t, txTimeout, addInfo.TxTimeout)
+}
+
+func assertErrV2InfoChainNotReachable(t *testing.T, info interface{}, chainURL string) {
+	t.Helper()
+
+	addInfo, ok := info.(perun.ErrV2InfoChainNotReachable)
+	require.True(t, ok)
+	assert.Equal(t, chainURL, addInfo.ChainURL)
 }

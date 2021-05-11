@@ -195,15 +195,15 @@ func (a *payChAPIServer) GetPeerID(ctx context.Context, req *pb.GetPeerIDReq) (*
 
 // OpenPayCh wraps session.OpenPayCh.
 func (a *payChAPIServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*pb.OpenPayChResp, error) {
-	errResponse := func(err error) *pb.OpenPayChResp {
+	errResponse := func(err perun.APIErrorV2) *pb.OpenPayChResp {
 		return &pb.OpenPayChResp{
 			Response: &pb.OpenPayChResp_Error{
-				Error: &pb.MsgError{Error: err.Error()},
+				Error: toGrpcError(err),
 			},
 		}
 	}
 
-	sess, err := a.n.GetSession(req.SessionID)
+	sess, err := a.n.GetSessionV2(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}

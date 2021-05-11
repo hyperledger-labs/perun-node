@@ -249,7 +249,7 @@ func channelSendFn(c *ishell.Context) {
 	}
 	msgErr, ok := resp.Response.(*pb.OpenPayChResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error opening channel : %v", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error opening channel : %v", apiErrorString(msgErr.Error)))
 		return
 	}
 	msg := resp.Response.(*pb.OpenPayChResp_MsgSuccess_)
