@@ -163,8 +163,10 @@ func makeState(t *testing.T, balInfo perun.BalInfo, isFinal bool) *pchannel.Stat
 
 func newMockPCh(t *testing.T, openingBalInfo perun.BalInfo) (
 	*mocks.Channel, chan time.Time) {
+	var chID [32]byte
+	rand.Read(chID[:])
 	ch := &mocks.Channel{}
-	ch.On("ID").Return([32]byte{0, 1, 2})
+	ch.On("ID").Return(chID)
 	ch.On("State").Return(makeState(t, openingBalInfo, false))
 	watcherSignal := make(chan time.Time)
 	ch.On("Watch", mock.Anything).WaitUntil(watcherSignal).Return(nil)
@@ -740,34 +742,67 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 
 func Test_ProposeCh_GetChsInfo(t *testing.T) {
 	peerIDs := newPeerIDs(t, uint(2))
-	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-	cfg := sessiontest.NewConfigT(t, prng, peerIDs...)
-	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETH,
-		Parts:    []string{perun.OwnAlias, peerIDs[0].Alias},
-		Bal:      []string{"1", "2"},
+	setupSession := func() (perun.SessionAPI, *mocks.ChClient) {
+		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+		cfg := sessiontest.NewConfigT(t, prng, peerIDs...)
+		chClient := &mocks.ChClient{}
+		session, err := session.NewSessionForTest(cfg, true, chClient)
+		require.NoError(t, err)
+		require.NotNil(t, session)
+		return session, chClient
 	}
-	app := perun.App{
-		Def:  pchannel.NoApp(),
-		Data: pchannel.NoData(),
+
+	proposeCh := func(session perun.SessionAPI, chClient *mocks.ChClient) string {
+		validOpeningBalInfo := perun.BalInfo{
+			Currency: currency.ETH,
+			Parts:    []string{perun.OwnAlias, peerIDs[0].Alias},
+			Bal:      []string{"1", "2"},
+		}
+		app := perun.App{
+			Def:  pchannel.NoApp(),
+			Data: pchannel.NoData(),
+		}
+		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, nil).Once()
+		chClient.On("Register", mock.Anything, mock.Anything).Return().Once()
+
+		chInfo, err := session.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
+		require.NoError(t, err)
+		require.NotZero(t, chInfo)
+		return chInfo.ChID
 	}
-	ch, _ := newMockPCh(t, validOpeningBalInfo)
-	chClient := &mocks.ChClient{}
-	chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, nil)
-	chClient.On("Register", mock.Anything, mock.Anything).Return()
-	session, err := session.NewSessionForTest(cfg, true, chClient)
-	require.NoError(t, err)
-	require.NotNil(t, session)
 
-	chInfo, err := session.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
-	require.NoError(t, err)
-	require.NotZero(t, chInfo)
-
-	t.Run("happy", func(t *testing.T) {
-		chID := fmt.Sprintf("%x", ch.ID())
-		chsInfo := session.GetChsInfo()
+	t.Run("happy_one_channel", func(t *testing.T) {
+		sess, chClient := setupSession()
+		chID := proposeCh(sess, chClient)
+		chsInfo := sess.GetChsInfo()
 		assert.Len(t, chsInfo, 1)
 		assert.Equal(t, chsInfo[0].ChID, chID)
+	})
+
+	t.Run("happy_many_channels_ordered", func(t *testing.T) {
+		sess, chClient := setupSession()
+		cntChsToOpen := 20
+		chIDs := make([]string, cntChsToOpen)
+		for i := 0; i < cntChsToOpen; i++ {
+			chIDs[i] = proposeCh(sess, chClient)
+		}
+
+		getChIDs := func() []string {
+			chsInfo := sess.GetChsInfo()
+			gotChIDs := make([]string, len(chsInfo))
+			for i := range chsInfo {
+				gotChIDs[i] = chsInfo[i].ChID
+			}
+			return gotChIDs
+		}
+		gotChIDs1 := getChIDs()
+		gotChIDs2 := getChIDs()
+		gotChIDs3 := getChIDs()
+
+		assert.Equal(t, chIDs, gotChIDs1)
+		assert.Equal(t, chIDs, gotChIDs2)
+		assert.Equal(t, chIDs, gotChIDs3)
 	})
 }
 
