@@ -475,7 +475,7 @@ type ChAPI interface {
 
 	// Methods to transact on, close the channel and read its state.
 	// These APIs use a mutex lock.
-	SendChUpdate(context.Context, StateUpdater) (ChInfo, error)
+	SendChUpdate(context.Context, StateUpdater) (ChInfo, APIErrorV2)
 	SubChUpdates(ChUpdateNotifier) APIErrorV2
 	UnsubChUpdates() APIErrorV2
 	RespondChUpdate(context.Context, string, bool) (ChInfo, error)
