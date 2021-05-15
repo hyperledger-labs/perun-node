@@ -478,7 +478,7 @@ type ChAPI interface {
 	SendChUpdate(context.Context, StateUpdater) (ChInfo, APIErrorV2)
 	SubChUpdates(ChUpdateNotifier) APIErrorV2
 	UnsubChUpdates() APIErrorV2
-	RespondChUpdate(context.Context, string, bool) (ChInfo, error)
+	RespondChUpdate(context.Context, string, bool) (ChInfo, APIErrorV2)
 	GetChInfo() ChInfo
 	Close(context.Context) (ChInfo, error)
 }

@@ -61,6 +61,7 @@ type (
 		parts            []string
 		timeoutCfg       timeoutConfig
 		challengeDurSecs uint64
+		chainURL         string
 
 		chUpdateNotifier   perun.ChUpdateNotifier
 		chUpdateNotifCache []perun.ChUpdateNotif
@@ -88,7 +89,7 @@ type (
 //go:generate mockery --name ChUpdateResponder --output ../internal/mocks
 
 // newCh sets up a channel object from the passed pchannel.
-func newCh(pch perun.Channel, currency string, parts []string, timeoutCfg timeoutConfig,
+func newCh(pch perun.Channel, chainURL, currency string, parts []string, timeoutCfg timeoutConfig,
 	challengeDurSecs uint64) *Channel {
 	ch := &Channel{
 		id:                 fmt.Sprintf("%x", pch.ID()),
@@ -96,6 +97,7 @@ func newCh(pch perun.Channel, currency string, parts []string, timeoutCfg timeou
 		status:             open,
 		timeoutCfg:         timeoutCfg,
 		challengeDurSecs:   challengeDurSecs,
+		chainURL:           chainURL,
 		currency:           currency,
 		parts:              parts,
 		wasCloseInitiated:  false,
@@ -402,61 +404,94 @@ func (ch *Channel) unsubChUpdates() {
 }
 
 // RespondChUpdate implements chAPI.RespondChUpdate.
-func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) (perun.ChInfo, error) {
-	ch.Debug("Received request channel.RespondChUpdate")
+func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) ( // nolint: gocognit
+	perun.ChInfo, perun.APIErrorV2) { // the nolint directive will be removed in a later refactor.
+	ch.WithField("method", "RespondChUpdate").Infof("\nReceived request with params %+v,%+v", updateID, accept)
 	ch.Lock()
 	defer ch.Unlock()
 
+	var apiErr perun.APIErrorV2
+	defer func() {
+		if apiErr != nil {
+			ch.WithFields(perun.APIErrV2AsMap("RespondChUpdate", apiErr)).Error(apiErr.Message())
+		}
+	}()
+
 	if ch.status == closed {
-		return ch.getChInfo(), perun.ErrChClosed
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error())
+		return ch.getChInfo(), apiErr
 	}
 
 	entry, ok := ch.chUpdateResponders[updateID]
 	if !ok {
-		ch.Error(perun.ErrUnknownUpdateID, updateID)
-		return perun.ChInfo{}, perun.ErrUnknownUpdateID
+		apiErr = perun.NewAPIErrV2ResourceNotFound("update", updateID, ErrUnknownUpdateID.Error())
+		return ch.getChInfo(), apiErr
 	}
 	delete(ch.chUpdateResponders, updateID)
 
 	currTime := time.Now().UTC().Unix()
 	if entry.notifExpiry < currTime {
-		ch.Error("timeout:", entry.notifExpiry, "received response at:", currTime)
-		return perun.ChInfo{}, perun.ErrRespTimeoutExpired
+		apiErr = perun.NewAPIErrV2UserResponseTimedOut(entry.notif.Expiry, currTime)
+		return ch.getChInfo(), apiErr
 	}
 
-	var err error
 	switch accept {
 	case true:
-		err = ch.acceptChUpdate(pctx, entry)
-		if err == nil && entry.notif.Type == perun.ChUpdateTypeFinal {
+		apiErr = ch.acceptChUpdate(pctx, entry)
+		if apiErr == nil {
+			ch.WithField("method", "RespondChUpdate").Info("Channel update accepted successfully")
+		}
+		if apiErr == nil && entry.notif.Type == perun.ChUpdateTypeFinal {
 			ch.Info("Responded to update successfully, registering the state as it was final update.")
 			time.Sleep(2 * blocktime) // Wait for 2 blocks before calling register when close was not initiated.
-			err = ch.register(pctx)
+			err := ch.register(pctx)
+			if err != nil {
+				// TODO: Move this check inside ch.register when updating ch.Close to use new error type.
+				apiErr = ch.handleChRegisterError(err)
+				if apiErr == nil {
+					ch.WithField("method", "RespondChUpdate").Info("Finalized channel state registered successfully")
+				}
+			}
 		}
 	case false:
-		err = ch.rejectChUpdate(pctx, entry, "rejected by user")
+		apiErr = ch.rejectChUpdate(pctx, entry, "rejected by user")
+		if apiErr == nil {
+			ch.WithField("method", "RespondChUpdate").Info("Channel update rejected successfully")
+		}
 	}
-	return ch.getChInfo(), err
+	return ch.getChInfo(), apiErr
 }
 
-func (ch *Channel) acceptChUpdate(pctx context.Context, entry chUpdateResponderEntry) error {
+func (ch *Channel) acceptChUpdate(pctx context.Context, entry chUpdateResponderEntry) perun.APIErrorV2 {
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdate())
 	defer cancel()
 	err := entry.responder.Accept(ctx)
 	if err != nil {
 		ch.Error("Accepting channel update", err)
+		return perun.NewAPIErrV2UnknownInternal(errors.Wrap(err, "accepting update"))
 	}
-	return perun.GetAPIError(errors.Wrap(err, "accepting update"))
+	return nil
 }
 
-func (ch *Channel) rejectChUpdate(pctx context.Context, entry chUpdateResponderEntry, reason string) error {
+func (ch *Channel) rejectChUpdate(pctx context.Context, entry chUpdateResponderEntry, reason string) perun.APIErrorV2 {
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdate())
 	defer cancel()
 	err := entry.responder.Reject(ctx, reason)
 	if err != nil {
 		ch.Error("Rejecting channel update", err)
+		return perun.NewAPIErrV2UnknownInternal(errors.Wrap(err, "rejecting update"))
 	}
-	return perun.GetAPIError(errors.Wrap(err, "rejecting update"))
+	return nil
+}
+
+// handleChRegisterError inspects the passed error, constructs an
+// appropriate APIError and returns it.
+func (ch *Channel) handleChRegisterError(err error) perun.APIErrorV2 {
+	var apiErr perun.APIErrorV2
+	if apiErr = handleChainError(ch.chainURL, ch.timeoutCfg.onChainTx.String(), err); apiErr != nil {
+		return apiErr
+	}
+	return perun.NewAPIErrV2UnknownInternal(err)
 }
 
 // GetChInfo implements chAPI.GetChInfo.
@@ -526,7 +561,7 @@ func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, error) {
 	ch.finalize(pctx)
 	err := ch.register(pctx)
 	ch.wasCloseInitiated = true
-	return ch.getChInfo(), err
+	return ch.getChInfo(), perun.GetAPIError(err)
 }
 
 // finalize tries to finalize the channel offchain by sending an update with isFinal = true
@@ -553,11 +588,7 @@ func (ch *Channel) finalize(pctx context.Context) {
 func (ch *Channel) register(pctx context.Context) error {
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.register(ch.challengeDurSecs))
 	defer cancel()
-	err := ch.pch.Register(ctx)
-	if err != nil {
-		ch.Error("Registering channel", err)
-	}
-	return perun.GetAPIError(err)
+	return errors.WithMessage(ch.pch.Register(ctx), "registering channel state")
 }
 
 // Close the computing resources (listeners, subscriptions etc.,) of the channel.

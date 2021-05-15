@@ -25,10 +25,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	pethchannel "perun.network/go-perun/backend/ethereum/channel"
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/internal/mocks"
 	"github.com/hyperledger-labs/perun-node/session"
@@ -322,7 +324,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 	nonFinalState := makeState(t, updatedBalInfo, false)
 	finalState := makeState(t, updatedBalInfo, true)
 
-	t.Run("happy_Handle_Respond_Accept", func(t *testing.T) {
+	t.Run("happy_accept", func(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: nonFinalState,
 		}
@@ -337,7 +339,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		assert.NotZero(t, chInfo)
 	})
 
-	t.Run("happy_Handle_Respond_Reject", func(t *testing.T) {
+	t.Run("happy_reject", func(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: nonFinalState,
 		}
@@ -352,52 +354,36 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		assert.NotZero(t, chInfo)
 	})
 
-	t.Run("Handle_Respond_Accept_Error", func(t *testing.T) {
-		chUpdate := &pclient.ChannelUpdate{
-			State: nonFinalState,
-		}
-		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
-		responder := &mocks.ChUpdateResponder{}
-		responder.On("Accept", mock.Anything).Return(assert.AnError)
-		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
-		ch.HandleUpdate(currState, *chUpdate, responder)
+	t.Run("respond_channel_closed", func(t *testing.T) {
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
+		updateID := "any-update-id" // A closed channel returns error irrespective of update id.
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := session.ErrChClosed.Error()
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
+		assert.Nil(t, err.AddInfo())
 	})
 
-	t.Run("Handle_Respond_Reject_Error", func(t *testing.T) {
-		chUpdate := &pclient.ChannelUpdate{
-			State: nonFinalState,
-		}
-		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
-		responder := &mocks.ChUpdateResponder{}
-		responder.On("Reject", mock.Anything, mock.Anything).Return(assert.AnError)
-		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
-		ch.HandleUpdate(currState, *chUpdate, responder)
-
-		_, err := ch.RespondChUpdate(context.Background(), updateID, false)
-		require.Error(t, err)
-		t.Log(err)
-	})
-
-	t.Run("Handle_Respond_Unknown_UpdateID", func(t *testing.T) {
+	t.Run("unknown_UpdateID", func(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: nonFinalState,
 		}
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Accept", mock.Anything).Return(nil)
-		updateID := "random-update-id"
+		unknownUpdateID := "random-update-id"
 		ch.HandleUpdate(currState, *chUpdate, responder)
 
-		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
+		_, err := ch.RespondChUpdate(context.Background(), unknownUpdateID, true)
 		require.Error(t, err)
-		t.Log(err)
+
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceNotFound, "update")
+		assertErrV2InfoResourceNotFound(t, err.AddInfo(), "update", unknownUpdateID)
 	})
 
-	t.Run("Handle_Respond_Expired", func(t *testing.T) {
+	t.Run("response_timeout_expired", func(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: nonFinalState,
 		}
@@ -410,18 +396,42 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
 		require.Error(t, err)
+
+		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2UserResponseTimedOut, "")
+		assertErrV2InfoUserResponseTimedout(t, err.AddInfo())
 	})
 
-	t.Run("Handle_Respond_ChannelClosed", func(t *testing.T) {
-		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
-		updateID := "any-update-id" // A closed channel returns error irrespective of update id.
+	t.Run("respond_accept_Error", func(t *testing.T) {
+		chUpdate := &pclient.ChannelUpdate{
+			State: nonFinalState,
+		}
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+		responder := &mocks.ChUpdateResponder{}
+		responder.On("Accept", mock.Anything).Return(assert.AnError)
+		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
+		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
 		require.Error(t, err)
-		t.Log(err)
+		assertAPIError(t, err, perun.InternalError, perun.ErrV2UnknownInternal, assert.AnError.Error())
 	})
 
-	t.Run("happy_Handle_Respond_Accept_Final", func(t *testing.T) {
+	t.Run("respond_reject_Error", func(t *testing.T) {
+		chUpdate := &pclient.ChannelUpdate{
+			State: nonFinalState,
+		}
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+		responder := &mocks.ChUpdateResponder{}
+		responder.On("Reject", mock.Anything, mock.Anything).Return(assert.AnError)
+		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
+		ch.HandleUpdate(currState, *chUpdate, responder)
+
+		_, err := ch.RespondChUpdate(context.Background(), updateID, false)
+		require.Error(t, err)
+		assertAPIError(t, err, perun.InternalError, perun.ErrV2UnknownInternal, assert.AnError.Error())
+	})
+
+	t.Run("happy_accept_Final", func(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: finalState,
 		}
@@ -439,7 +449,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		assert.NotZero(t, chInfo)
 	})
 
-	t.Run("Handle_Respond_Accept_RegisterError", func(t *testing.T) {
+	t.Run("Handle_accept_register_AnError", func(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: finalState,
 		}
@@ -454,7 +464,55 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
 		require.Error(t, err)
-		t.Log(err)
+		assertAPIError(t, err, perun.InternalError, perun.ErrV2UnknownInternal, assert.AnError.Error())
+	})
+
+	t.Run("Handle_accept_register_TxTimeoutError", func(t *testing.T) {
+		txTimedoutError := pclient.TxTimedoutError{
+			TxType: pethchannel.Register.String(),
+			TxID:   "0xabcd",
+		}
+		chUpdate := &pclient.ChannelUpdate{
+			State: finalState,
+		}
+		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+		responder := &mocks.ChUpdateResponder{}
+		responder.On("Accept", mock.Anything).Return(nil)
+		pch.On("Register", mock.Anything).Return(txTimedoutError)
+
+		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
+		ch.HandleUpdate(currState, *chUpdate, responder)
+
+		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
+		require.Error(t, err)
+		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2TxTimedOut, txTimedoutError.Error())
+		txType := txTimedoutError.TxType
+		txID := txTimedoutError.TxID
+		txTimeout := ethereumtest.OnChainTxTimeout.String()
+		assertErrV2InfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
+	})
+
+	t.Run("Handle_accept_register_ChainNotReachable", func(t *testing.T) {
+		chainURL := ethereumtest.ChainURL
+		chainNotReachableError := pclient.ChainNotReachableError{}
+		chUpdate := &pclient.ChannelUpdate{
+			State: finalState,
+		}
+		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+		responder := &mocks.ChUpdateResponder{}
+		responder.On("Accept", mock.Anything).Return(nil)
+		pch.On("Register", mock.Anything).Return(chainNotReachableError)
+
+		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
+		ch.HandleUpdate(currState, *chUpdate, responder)
+
+		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
+		require.Error(t, err)
+		wantMessage := chainNotReachableError.Error()
+		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2ChainNotReachable, wantMessage)
+		assertErrV2InfoChainNotReachable(t, err.AddInfo(), chainURL)
 	})
 }
 

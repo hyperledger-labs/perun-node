@@ -22,6 +22,7 @@ import (
 	pchannel "perun.network/go-perun/channel"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/log"
 )
 
@@ -69,8 +70,13 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient perun.ChClient) (*Sessi
 
 func NewChForTest(pch perun.Channel,
 	currency string, parts []string, responseTimeout time.Duration, challengeDurSecs uint64, isOpen bool) *Channel {
-	timeoutCfg := timeoutConfig{response: responseTimeout}
-	ch := newCh(pch, currency, parts, timeoutCfg, challengeDurSecs)
+	chainURL := ethereumtest.ChainURL
+	onChainTxTimeout := ethereumtest.OnChainTxTimeout
+	timeoutCfg := timeoutConfig{
+		response:  responseTimeout,
+		onChainTx: onChainTxTimeout,
+	}
+	ch := newCh(pch, chainURL, currency, parts, timeoutCfg, challengeDurSecs)
 	if isOpen {
 		ch.status = open
 	} else {
