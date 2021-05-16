@@ -523,12 +523,14 @@ func Test_Close(t *testing.T) {
 		Parts:    []string{perun.OwnAlias, peers[0].Alias},
 		Bal:      []string{"1", "2"},
 	}
+	peerIdx := 1
 
 	t.Run("happy_finalizeNoError_settle", func(t *testing.T) {
 		pch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		var finalizer perun.StateUpdater
+		pch.On("Idx").Return(pchannel.Index(peerIdx))
 		pch.On("UpdateBy", mock.Anything, mock.MatchedBy(func(gotFinalizer perun.StateUpdater) bool {
 			finalizer = gotFinalizer
 			return true
@@ -548,6 +550,7 @@ func Test_Close(t *testing.T) {
 		pch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
+		pch.On("Idx").Return(pchannel.Index(peerIdx))
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(assert.AnError)
 		pch.On("Register", mock.Anything).Return(nil)
 
@@ -560,6 +563,7 @@ func Test_Close(t *testing.T) {
 		pch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
+		pch.On("Idx").Return(pchannel.Index(peerIdx))
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
 		pch.On("Register", mock.Anything).Return(nil)
 
@@ -568,24 +572,67 @@ func Test_Close(t *testing.T) {
 		assert.NotZero(t, gotChInfo)
 	})
 
-	t.Run("settleError", func(t *testing.T) {
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
-		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
-
-		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
-		pch.On("Register", mock.Anything).Return(assert.AnError)
-
-		_, err := ch.Close(context.Background())
-		require.Error(t, err)
-	})
-
 	t.Run("channel_closed", func(t *testing.T) {
 		pch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
 
 		_, err := ch.Close(context.Background())
 		require.Error(t, err)
-		t.Log(err)
+
+		wantMessage := session.ErrChClosed.Error()
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
+		assert.Nil(t, err.AddInfo())
+	})
+
+	t.Run("finalized_settle_AnError", func(t *testing.T) {
+		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+
+		pch.On("Idx").Return(pchannel.Index(peerIdx))
+		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
+		pch.On("Register", mock.Anything).Return(assert.AnError)
+
+		_, err := ch.Close(context.Background())
+		require.Error(t, err)
+		assertAPIError(t, err, perun.InternalError, perun.ErrV2UnknownInternal, assert.AnError.Error())
+	})
+
+	t.Run("finalized_settle_TxTimeoutError", func(t *testing.T) {
+		txTimedoutError := pclient.TxTimedoutError{
+			TxType: pethchannel.Register.String(),
+			TxID:   "0xabcd",
+		}
+		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+
+		pch.On("Idx").Return(pchannel.Index(peerIdx))
+		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
+		pch.On("Register", mock.Anything).Return(txTimedoutError)
+
+		_, err := ch.Close(context.Background())
+		require.Error(t, err)
+		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2TxTimedOut, txTimedoutError.Error())
+		txType := txTimedoutError.TxType
+		txID := txTimedoutError.TxID
+		txTimeout := ethereumtest.OnChainTxTimeout.String()
+		assertErrV2InfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
+	})
+
+	t.Run("finalized_settle_ChainNotReachable", func(t *testing.T) {
+		chainURL := ethereumtest.ChainURL
+		chainNotReachableError := pclient.ChainNotReachableError{}
+		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+
+		pch.On("Idx").Return(pchannel.Index(peerIdx))
+		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
+		pch.On("Register", mock.Anything).Return(chainNotReachableError)
+
+		_, err := ch.Close(context.Background())
+		require.Error(t, err)
+		wantMessage := chainNotReachableError.Error()
+		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2ChainNotReachable, wantMessage)
+		assertErrV2InfoChainNotReachable(t, err.AddInfo(), chainURL)
 	})
 }
 

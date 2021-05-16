@@ -480,7 +480,7 @@ type ChAPI interface {
 	UnsubChUpdates() APIErrorV2
 	RespondChUpdate(context.Context, string, bool) (ChInfo, APIErrorV2)
 	GetChInfo() ChInfo
-	Close(context.Context) (ChInfo, error)
+	Close(context.Context) (ChInfo, APIErrorV2)
 }
 
 // Enumeration of values for ChUpdateType:
