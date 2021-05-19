@@ -73,6 +73,7 @@ const (
 	ErrUnknownProposalID      Error = "unknown proposal id"
 	ErrChClosed               Error = "channel is closed"
 	ErrUnknownChID            Error = "no channel corresponding to the specified ID"
+	ErrUnknownUpdateID        Error = "unknown update id"
 )
 
 type (
@@ -246,7 +247,7 @@ func (s *Session) handleRestoredCh(pch perun.Channel) {
 
 	registerParts(partIDs, s.chClient)
 
-	ch := newCh(pch, currency.ETH, aliases, s.timeoutCfg, pch.Params().ChallengeDuration)
+	ch := newCh(pch, s.chainURL, currency.ETH, aliases, s.timeoutCfg, pch.Params().ChallengeDuration)
 	s.addCh(ch)
 	s.Debugf("restored channel from persistence: %v", ch.getChInfo())
 }
@@ -352,7 +353,7 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 		return perun.ChInfo{}, apiErr
 	}
 
-	ch := newCh(pch, openingBalInfo.Currency, openingBalInfo.Parts, s.timeoutCfg, challengeDurSecs)
+	ch := newCh(pch, s.chainURL, openingBalInfo.Currency, openingBalInfo.Parts, s.timeoutCfg, challengeDurSecs)
 	s.addCh(ch)
 	s.WithFields(log.Fields{"method": "OpenCh", "channelID": ch.ID()}).Info("Channel opened successfully")
 	return ch.GetChInfo(), nil
@@ -706,7 +707,8 @@ func (s *Session) acceptChProposal(pctx context.Context, entry chProposalRespond
 
 	// Set ETH as the currency interpreter for incoming channel.
 	// TODO: (mano) Provide an option for user to configure when more currency interpreters are supported.
-	ch := newCh(pch, currency.ETH, entry.notif.OpeningBalInfo.Parts, s.timeoutCfg, entry.notif.ChallengeDurSecs)
+	parts := entry.notif.OpeningBalInfo.Parts
+	ch := newCh(pch, s.chainURL, currency.ETH, parts, s.timeoutCfg, entry.notif.ChallengeDurSecs)
 	s.addCh(ch)
 	s.WithFields(log.Fields{"method": "RespondChProposal", "channelID": ch.ID()}).Info("Channel opened successfully")
 	return ch.getChInfo(), nil

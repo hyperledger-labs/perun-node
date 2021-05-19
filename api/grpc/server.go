@@ -523,21 +523,19 @@ func (a *payChAPIServer) closeGrpcPayChUpdateSub(sessionID, chID string) {
 // RespondPayChUpdate wraps ch.RespondPayChUpdate.
 func (a *payChAPIServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPayChUpdateReq) (
 	*pb.RespondPayChUpdateResp, error) {
-	errResponse := func(err error) *pb.RespondPayChUpdateResp {
+	errResponse := func(err perun.APIErrorV2) *pb.RespondPayChUpdateResp {
 		return &pb.RespondPayChUpdateResp{
 			Response: &pb.RespondPayChUpdateResp_Error{
-				Error: &pb.MsgError{
-					Error: err.Error(),
-				},
+				Error: toGrpcError(err),
 			},
 		}
 	}
 
-	sess, err := a.n.GetSession(req.SessionID)
+	sess, err := a.n.GetSessionV2(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	ch, err := sess.GetCh(req.ChID)
+	ch, err := sess.GetChV2(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}
