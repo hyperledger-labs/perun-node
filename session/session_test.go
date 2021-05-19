@@ -1053,6 +1053,7 @@ func assertErrV2InfoTxTimedOut(t *testing.T, info interface{}, txType, txID, txT
 	assert.Equal(t, txTimeout, addInfo.TxTimeout)
 }
 
+// nolint: unparam	// to fix chainURL always receives same value warning.
 func assertErrV2InfoChainNotReachable(t *testing.T, info interface{}, chainURL string) {
 	t.Helper()
 

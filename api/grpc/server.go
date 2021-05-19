@@ -588,21 +588,19 @@ func (a *payChAPIServer) GetPayChInfo(ctx context.Context, req *pb.GetPayChInfoR
 
 // ClosePayCh wraps ch.ClosePayCh.
 func (a *payChAPIServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*pb.ClosePayChResp, error) {
-	errResponse := func(err error) *pb.ClosePayChResp {
+	errResponse := func(err perun.APIErrorV2) *pb.ClosePayChResp {
 		return &pb.ClosePayChResp{
 			Response: &pb.ClosePayChResp_Error{
-				Error: &pb.MsgError{
-					Error: err.Error(),
-				},
+				Error: toGrpcError(err),
 			},
 		}
 	}
 
-	sess, err := a.n.GetSession(req.SessionID)
+	sess, err := a.n.GetSessionV2(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	ch, err := sess.GetCh(req.ChID)
+	ch, err := sess.GetChV2(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}

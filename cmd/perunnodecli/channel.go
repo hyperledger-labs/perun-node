@@ -476,7 +476,7 @@ func chCloseNSettleFn(c *ishell.Context) {
 	}
 	msgErr, ok := resp.Response.(*pb.ClosePayChResp_Error)
 	if ok {
-		sh.Printf("%s\n\n", redf("Error closing channel update: %v", msgErr.Error.Error))
+		sh.Printf("%s\n\n", redf("Error closing channel update: %v", apiErrorString(msgErr.Error)))
 		return
 	}
 	msg := resp.Response.(*pb.ClosePayChResp_MsgSuccess_)

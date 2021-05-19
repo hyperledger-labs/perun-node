@@ -239,7 +239,7 @@ func Test_ClosePayCh(t *testing.T) {
 	})
 	t.Run("error", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("Close", context.Background()).Return(updatedChInfo, assert.AnError)
+		chAPI.On("Close", context.Background()).Return(updatedChInfo, perun.NewAPIErrV2UnknownInternal(assert.AnError))
 
 		_, gotErr := payment.ClosePayCh(context.Background(), chAPI)
 		require.Error(t, gotErr)

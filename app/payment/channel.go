@@ -138,7 +138,7 @@ func RespondPayChUpdate(pctx context.Context, ch perun.ChAPI, updateID string, a
 }
 
 // ClosePayCh closes the payment channel.
-func ClosePayCh(pctx context.Context, ch perun.ChAPI) (PayChInfo, error) {
+func ClosePayCh(pctx context.Context, ch perun.ChAPI) (PayChInfo, perun.APIErrorV2) {
 	chInfo, err := ch.Close(pctx)
 	return toPayChInfo(chInfo), err
 }
