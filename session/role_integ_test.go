@@ -224,7 +224,6 @@ func Test_Integ_Role(t *testing.T) {
 				return nil
 			}
 
-			// nolint: govet	// err does not shadow, using a new var to prevent data race.
 			_, err := bobChs[0].SendChUpdate(ctx, updater)
 			require.NoError(t, err, "bob sending channel update")
 		}()
@@ -270,7 +269,6 @@ func Test_Integ_Role(t *testing.T) {
 				return nil
 			}
 
-			// nolint: govet	// err does not shadow, using a new var to prevent data race.
 			_, err := aliceChs[0].SendChUpdate(ctx, updater)
 			require.Error(t, err, "alice sending channel update should be rejected by bob")
 			t.Log(err)

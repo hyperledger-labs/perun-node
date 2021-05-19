@@ -18,7 +18,6 @@ package payment_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -74,7 +73,8 @@ func Test_SendPayChUpdate(t *testing.T) {
 
 		invalidAmount := "abc"
 		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, invalidAmount)
-		require.True(t, errors.Is(gotErr, perun.ErrInvalidAmount))
+		assertAPIError(t, gotErr, perun.ClientError, perun.ErrV2InvalidArgument, payment.ErrInvalidAmount.Error())
+		assertErrV2InfoInvalidArgument(t, gotErr.AddInfo(), "amount", invalidAmount)
 	})
 
 	t.Run("error_InvalidPayee", func(t *testing.T) {
@@ -83,12 +83,14 @@ func Test_SendPayChUpdate(t *testing.T) {
 
 		invalidPayee := "invalid-payee"
 		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, invalidPayee, amountToSend)
-		require.True(t, errors.Is(gotErr, perun.ErrInvalidPayee))
+		assertAPIError(t, gotErr, perun.ClientError, perun.ErrV2InvalidArgument, payment.ErrInvalidPayee.Error())
+		assertErrV2InfoInvalidArgument(t, gotErr.AddInfo(), "payee", invalidPayee)
 	})
 
 	t.Run("error_SendChUpdate", func(t *testing.T) {
 		chAPI := newChAPIMock()
-		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(perun.ChInfo{}, assert.AnError)
+		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(
+			perun.ChInfo{}, perun.NewAPIErrV2UnknownInternal(assert.AnError))
 
 		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, amountToSend)
 		require.Error(t, gotErr)
@@ -242,4 +244,22 @@ func Test_ClosePayCh(t *testing.T) {
 		require.Error(t, gotErr)
 		t.Log(gotErr)
 	})
+}
+
+func assertAPIError(t *testing.T, e perun.APIErrorV2, category perun.ErrorCategory, code perun.ErrorCode, msg string) {
+	t.Helper()
+
+	assert.Equal(t, category, e.Category())
+	assert.Equal(t, code, e.Code())
+	assert.Contains(t, e.Message(), msg)
+}
+
+func assertErrV2InfoInvalidArgument(t *testing.T, info interface{}, name, value string) {
+	t.Helper()
+
+	addInfo, ok := info.(perun.ErrV2InfoInvalidArgument)
+	require.True(t, ok)
+	assert.Equal(t, name, addInfo.Name)
+	assert.Equal(t, value, addInfo.Value)
+	t.Log("requirement:", addInfo.Requirement)
 }

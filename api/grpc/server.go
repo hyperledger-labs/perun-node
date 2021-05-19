@@ -394,21 +394,19 @@ func (a *payChAPIServer) CloseSession(ctx context.Context, req *pb.CloseSessionR
 // SendPayChUpdate wraps ch.SendPayChUpdate.
 func (a *payChAPIServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpdateReq) (
 	*pb.SendPayChUpdateResp, error) {
-	errResponse := func(err error) *pb.SendPayChUpdateResp {
+	errResponse := func(err perun.APIErrorV2) *pb.SendPayChUpdateResp {
 		return &pb.SendPayChUpdateResp{
 			Response: &pb.SendPayChUpdateResp_Error{
-				Error: &pb.MsgError{
-					Error: err.Error(),
-				},
+				Error: toGrpcError(err),
 			},
 		}
 	}
 
-	sess, err := a.n.GetSession(req.SessionID)
+	sess, err := a.n.GetSessionV2(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	ch, err := sess.GetCh(req.ChID)
+	ch, err := sess.GetChV2(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}

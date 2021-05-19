@@ -22,8 +22,24 @@ import (
 
 	pchannel "perun.network/go-perun/channel"
 
+	"github.com/pkg/errors"
+
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/currency"
+)
+
+// Error type is used to define error constants for this package.
+type Error string
+
+// Error implements error interface.
+func (e Error) Error() string {
+	return string(e)
+}
+
+// Definition of error constants for this package.
+const (
+	ErrInvalidAmount Error = "invalid amount"
+	ErrInvalidPayee  Error = "invalid payee"
 )
 
 type (
@@ -51,25 +67,18 @@ type (
 
 // SendPayChUpdate send the given amount to the payee. Payee should be one of the channel participants.
 // Use "self" to request payments.
-func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string) (PayChInfo, error) {
-	parsedAmount, err := parseAmount(ch.Currency(), amount)
+func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string) (PayChInfo, perun.APIErrorV2) {
+	parsedAmount, err := currency.NewParser(ch.Currency()).Parse(amount)
 	if err != nil {
-		return PayChInfo{}, err
+		err = errors.WithMessage(err, ErrInvalidAmount.Error())
+		return PayChInfo{}, perun.NewAPIErrV2InvalidArgument("amount", amount, "", err.Error())
 	}
 	payerIdx, payeeIdx, err := getPayerPayeeIdx(ch.Parts(), payee)
 	if err != nil {
-		return PayChInfo{}, err
+		return PayChInfo{}, perun.NewAPIErrV2InvalidArgument("payee", payee, "", err.Error())
 	}
-	chInfo, err := ch.SendChUpdate(pctx, newUpdate(payerIdx, payeeIdx, parsedAmount))
-	return toPayChInfo(chInfo), err
-}
-
-func parseAmount(chCurrency string, amount string) (*big.Int, error) {
-	parsedAmount, err := currency.NewParser(chCurrency).Parse(amount)
-	if err != nil {
-		return nil, perun.ErrInvalidAmount
-	}
-	return parsedAmount, nil
+	chInfo, apiErr := ch.SendChUpdate(pctx, newUpdate(payerIdx, payeeIdx, parsedAmount))
+	return toPayChInfo(chInfo), apiErr
 }
 
 func getPayerPayeeIdx(parts []string, payee string) (payerIdx, payeeIdx int, _ error) {
@@ -80,7 +89,7 @@ func getPayerPayeeIdx(parts []string, payee string) (payerIdx, payeeIdx int, _ e
 			return payerIdx, payeeIdx, nil
 		}
 	}
-	return 0, 0, perun.ErrInvalidPayee
+	return 0, 0, ErrInvalidPayee
 }
 
 func newUpdate(payerIdx, payeeIdx int, parsedAmount *big.Int) perun.StateUpdater {
@@ -149,4 +158,4 @@ func toPayChInfo(chInfo perun.ChInfo) PayChInfo {
 		BalInfo: chInfo.BalInfo,
 		Version: chInfo.Version,
 	}
-} // nolint:gofumpt // unknown error, maybe a false positive
+}
