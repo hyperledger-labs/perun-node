@@ -41,6 +41,10 @@ import (
 	"github.com/hyperledger-labs/perun-node/log"
 )
 
+// initialChRegistrySize is the initial size of channel registry. The
+// registry size will automatically be increased when more channels are added.
+const initialChRegistrySize = 10
+
 // walletBackend for initializing user wallets and parsing off-chain addresses
 // in incoming peer IDs. A package level unexported variable is used so that a
 // test wallet backend can be set using a function defined in export_test.go.
@@ -92,7 +96,7 @@ type (
 		timeoutCfg timeoutConfig
 		chainURL   string // chain URL is stored for retrieval when annotating errors
 
-		chs map[string]*Channel
+		chs *chRegistry
 
 		chProposalNotifier    perun.ChProposalNotifier
 		chProposalNotifsCache []perun.ChProposalNotif
@@ -179,7 +183,7 @@ func New(cfg Config) (*Session, error) {
 		chAsset:              chAsset,
 		chClient:             chClient,
 		idProvider:           idProvider,
-		chs:                  make(map[string]*Channel),
+		chs:                  newChRegistry(initialChRegistrySize),
 		chProposalResponders: make(map[string]chProposalResponderEntry),
 	}
 	err = sess.chClient.RestoreChs(sess.handleRestoredCh)
@@ -514,7 +518,7 @@ func makeAllocation(balInfo perun.BalInfo, chAsset pchannel.Asset) (*pchannel.Al
 func (s *Session) addCh(ch *Channel) {
 	ch.Logger = log.NewDerivedLoggerWithField(s.Logger, "channel-id", ch.id)
 	s.Lock()
-	s.chs[ch.id] = ch
+	s.chs.put(ch)
 	s.Unlock()
 }
 
@@ -747,13 +751,12 @@ func (s *Session) GetChsInfo() []perun.ChInfo {
 	s.Lock()
 	defer s.Unlock()
 
-	openChsInfo := make([]perun.ChInfo, len(s.chs))
-	i := 0
-	for _, ch := range s.chs {
-		openChsInfo[i] = ch.GetChInfo()
-		i++
-	}
-	return openChsInfo
+	chsInfo := make([]perun.ChInfo, s.chs.count())
+	s.chs.forEach(func(i int, ch *Channel) {
+		chsInfo[i] = ch.GetChInfo()
+	})
+
+	return chsInfo
 }
 
 // GetChV2 is a wrapper over GetCh that returns the error in the
@@ -778,9 +781,9 @@ func (s *Session) GetCh(chID string) (perun.ChAPI, error) {
 	s.Debugf("Internal call to get channel instance. Params: %+v", chID)
 
 	s.Lock()
-	ch, ok := s.chs[chID]
+	ch := s.chs.get(chID)
 	s.Unlock()
-	if !ok {
+	if ch == nil {
 		s.Info(perun.ErrUnknownChID, "not found in session")
 		return nil, perun.ErrUnknownChID
 	}
@@ -811,8 +814,8 @@ func (s *Session) HandleUpdateWInterface(
 	}
 
 	chID := fmt.Sprintf("%x", chUpdate.State.ID)
-	ch, ok := s.chs[chID]
-	if !ok {
+	ch := s.chs.get(chID)
+	if ch == nil {
 		s.Info("Received update for unknown channel", chID)
 		err := responder.Reject(context.Background(), "unknown channel for this session")
 		s.Info("Error rejecting incoming update for unknown channel with id %s: %v", chID, err)
@@ -834,7 +837,7 @@ func (s *Session) Close(force bool) ([]perun.ChInfo, error) {
 	openChsInfo := []perun.ChInfo{}
 	unexpectedPhaseChIDs := []string{}
 
-	for _, ch := range s.chs {
+	s.chs.forEach(func(i int, ch *Channel) {
 		// Acquire channel mutex to ensure any ongoing operation on the channel is finished.
 		ch.Lock()
 
@@ -855,7 +858,8 @@ func (s *Session) Close(force bool) ([]perun.ChInfo, error) {
 		if ch.status == open {
 			openChsInfo = append(openChsInfo, ch.getChInfo())
 		}
-	}
+	})
+
 	if len(unexpectedPhaseChIDs) != 0 {
 		err := fmt.Errorf("chs in unexpected phase during session close: %v", unexpectedPhaseChIDs)
 		s.Error(err.Error())
@@ -874,9 +878,9 @@ func (s *Session) Close(force bool) ([]perun.ChInfo, error) {
 }
 
 func (s *Session) unlockAllChs() {
-	for _, ch := range s.chs {
+	s.chs.forEach(func(i int, ch *Channel) {
 		ch.Unlock()
-	}
+	})
 }
 
 func (s *Session) close() error {
