@@ -334,17 +334,15 @@ func (a *payChAPIServer) closeGrpcPayChProposalSub(sessionID string) {
 // RespondPayChProposal wraps session.RespondPayChProposal.
 func (a *payChAPIServer) RespondPayChProposal(ctx context.Context, req *pb.RespondPayChProposalReq) (
 	*pb.RespondPayChProposalResp, error) {
-	errResponse := func(err error) *pb.RespondPayChProposalResp {
+	errResponse := func(err perun.APIErrorV2) *pb.RespondPayChProposalResp {
 		return &pb.RespondPayChProposalResp{
 			Response: &pb.RespondPayChProposalResp_Error{
-				Error: &pb.MsgError{
-					Error: err.Error(),
-				},
+				Error: toGrpcError(err),
 			},
 		}
 	}
 
-	sess, err := a.n.GetSession(req.SessionID)
+	sess, err := a.n.GetSessionV2(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -668,13 +666,39 @@ func toGrpcBalInfo(src perun.BalInfo) *pb.BalInfo {
 
 // toGrpcError is a helper function to convert APIErrorV2 struct defined in perun-node
 // to APIErrorV2 struct defined in grpc package.
-func toGrpcError(err perun.APIErrorV2) *pb.MsgErrorV2 {
+func toGrpcError(err perun.APIErrorV2) *pb.MsgErrorV2 { //nolint: funlen
 	grpcErr := pb.MsgErrorV2{
 		Category: pb.ErrorCategory(err.Category()),
 		Code:     pb.ErrorCode(err.Code()),
 		Message:  err.Message(),
 	}
 	switch info := err.AddInfo().(type) {
+	case perun.ErrV2InfoPeerRequestTimedOut:
+		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoPeerRequestTimedOut{
+			ErrV2InfoPeerRequestTimedOut: &pb.ErrV2InfoPeerRequestTimedOut{
+				Timeout: info.Timeout,
+			},
+		}
+	case perun.ErrV2InfoPeerRejected:
+		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoPeerRejected{
+			ErrV2InfoPeerRejected: &pb.ErrV2InfoPeerRejected{
+				PeerAlias: info.PeerAlias,
+				Reason:    info.Reason,
+			},
+		}
+	case perun.ErrV2InfoPeerNotFunded:
+		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoPeerNotFunded{
+			ErrV2InfoPeerNotFunded: &pb.ErrV2InfoPeerNotFunded{
+				PeerAlias: info.PeerAlias,
+			},
+		}
+	case perun.ErrV2InfoUserResponseTimedOut:
+		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoUserResponseTimedOut{
+			ErrV2InfoUserResponseTimedOut: &pb.ErrV2InfoUserResponseTimedOut{
+				Expiry:     info.Expiry,
+				ReceivedAt: info.ReceivedAt,
+			},
+		}
 	case perun.ErrV2InfoResourceNotFound:
 		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoResourceNotFound{
 			ErrV2InfoResourceNotFound: &pb.ErrV2InfoResourceNotFound{
@@ -697,6 +721,23 @@ func toGrpcError(err perun.APIErrorV2) *pb.MsgErrorV2 {
 				Requirement: info.Requirement,
 			},
 		}
+	case perun.ErrV2InfoTxTimedOut:
+		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoTxTimedOut{
+			ErrV2InfoTxTimedOut: &pb.ErrV2InfoTxTimedOut{
+				TxType:    info.TxType,
+				TxID:      info.TxID,
+				TxTimeout: info.TxTimeout,
+			},
+		}
+	case perun.ErrV2InfoChainNotReachable:
+		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoChainNotReachable{
+			ErrV2InfoChainNotReachable: &pb.ErrV2InfoChainNotReachable{
+				ChainURL: info.ChainURL,
+			},
+		}
+	default:
+		// It is Unknonwn Internal Error which has no additional info.
+		grpcErr.AddInfo = nil
 	}
 	return &grpcErr
 }

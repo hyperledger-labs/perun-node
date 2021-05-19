@@ -334,9 +334,16 @@ type (
 	}
 
 	// ErrV2InfoPeerNotFunded represents the fields in the additional info for
-	// ErrV2InfoPeerNotFunded.
+	// ErrPeerNotFunded.
 	ErrV2InfoPeerNotFunded struct {
 		PeerAlias string
+	}
+
+	// ErrV2InfoUserResponseTimedOut represents the fields in the additional info for
+	// ErrUserResponseTimedOut.
+	ErrV2InfoUserResponseTimedOut struct {
+		Expiry     int64
+		ReceivedAt int64
 	}
 
 	// ErrV2InfoResourceNotFound represents the fields in the additional info for
@@ -417,7 +424,7 @@ type SessionAPI interface {
 	GetChsInfo() []ChInfo
 	SubChProposals(ChProposalNotifier) APIErrorV2
 	UnsubChProposals() APIErrorV2
-	RespondChProposal(context.Context, string, bool) (ChInfo, error)
+	RespondChProposal(context.Context, string, bool) (ChInfo, APIErrorV2)
 	Close(force bool) ([]ChInfo, error)
 
 	// This function is used internally to get a ChAPI instance.

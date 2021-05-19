@@ -84,9 +84,10 @@ func UnsubPayChProposals(s perun.SessionAPI) perun.APIErrorV2 {
 }
 
 // RespondPayChProposal sends the response to a payment channel proposal notification.
-func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID string, accept bool) (PayChInfo, error) {
-	chInfo, err := s.RespondChProposal(pctx, proposalID, accept)
-	return toPayChInfo(chInfo), err
+func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID string, accept bool) (PayChInfo,
+	perun.APIErrorV2) {
+	chInfo, apiErr := s.RespondChProposal(pctx, proposalID, accept)
+	return toPayChInfo(chInfo), apiErr
 }
 
 // CloseSession closes the current session.

@@ -197,7 +197,6 @@ func Test_UnsubPayChProposals(t *testing.T) {
 	})
 }
 
-// nolint: dupl	// not duplicate of Test_RespondPayChUpdate.
 func Test_RespondPayChProposal(t *testing.T) {
 	proposalID := "proposal-id-1"
 	t.Run("happy_accept", func(t *testing.T) {
@@ -220,7 +219,8 @@ func Test_RespondPayChProposal(t *testing.T) {
 	t.Run("error", func(t *testing.T) {
 		accept := true
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("RespondChProposal", context.Background(), proposalID, accept).Return(perun.ChInfo{}, assert.AnError)
+		sessionAPI.On("RespondChProposal", context.Background(), proposalID, accept).Return(perun.ChInfo{},
+			perun.NewAPIErrV2UnknownInternal(assert.AnError))
 
 		_, gotErr := payment.RespondPayChProposal(context.Background(), sessionAPI, proposalID, accept)
 		assert.Error(t, gotErr)
