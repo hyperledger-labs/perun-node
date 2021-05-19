@@ -64,9 +64,15 @@ message MsgErrorV2 {
     ErrorCode code = 2;
     string message = 3;
     oneof addInfo {
-        ErrV2InfoResourceNotFound ErrV2InfoResourceNotFound = 4;
-        ErrV2InfoResourceExists ErrV2InfoResourceExists = 5;
-        ErrV2InfoInvalidArgument ErrV2InfoInvalidArgument = 6;
+        ErrV2InfoPeerRequestTimedOut ErrV2InfoPeerRequestTimedOut = 4;
+        ErrV2InfoPeerRejected ErrV2InfoPeerRejected = 5;
+        ErrV2InfoPeerNotFunded ErrV2InfoPeerNotFunded = 6;
+        ErrV2InfoUserResponseTimedOut ErrV2InfoUserResponseTimedOut = 7;
+        ErrV2InfoResourceNotFound ErrV2InfoResourceNotFound = 8;
+        ErrV2InfoResourceExists ErrV2InfoResourceExists = 9;
+        ErrV2InfoInvalidArgument ErrV2InfoInvalidArgument = 10;
+        ErrV2InfoTxTimedOut ErrV2InfoTxTimedOut = 11;
+        ErrV2InfoChainNotReachable ErrV2InfoChainNotReachable = 12;
     }
 }
 
@@ -100,6 +106,25 @@ enum ErrorCode {
     ErrV2OffChainComm              = 402;
 }
 
+message ErrV2InfoPeerRequestTimedOut {
+    string peerAlias = 1;
+    string timeout = 2;
+}
+
+message ErrV2InfoPeerRejected {
+    string peerAlias = 1;
+    string reason = 2;
+}
+
+message ErrV2InfoPeerNotFunded {
+    string peerAlias = 1;
+}
+
+message ErrV2InfoUserResponseTimedOut {
+    int64 expiry = 1;
+    int64 receivedAt = 2;
+}
+
 message ErrV2InfoResourceNotFound {
     string type = 1;
     string id = 2;
@@ -114,6 +139,16 @@ message ErrV2InfoInvalidArgument {
     string name = 1;
     string value = 2;
     string requirement = 3;
+}
+
+message ErrV2InfoTxTimedOut {
+    string txType = 1;
+    string txID = 2;
+    string txTimeout = 3;
+}
+
+message ErrV2InfoChainNotReachable {
+    string chainURL = 1;
 }
 
 // Payment_API provides APIs for a user to open payment channels, send/receive payments
@@ -281,7 +316,7 @@ message RespondPayChProposalReq{
 message RespondPayChProposalResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgError error = 2;
+        MsgErrorV2 error = 2;
     }
     message MsgSuccess {
         PayChInfo openedPayChInfo=2;

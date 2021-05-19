@@ -195,7 +195,6 @@ func Test_UnsubPayChUpdates(t *testing.T) {
 	})
 }
 
-// nolint: dupl	// not duplicate of Test_RespondPayChProposal.
 func Test_RespondPayChUpdate(t *testing.T) {
 	updateID := "update-id-1"
 	t.Run("happy_accept", func(t *testing.T) {

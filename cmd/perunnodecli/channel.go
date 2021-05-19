@@ -381,7 +381,8 @@ func channelAcceptFn(c *ishell.Context) {
 	}
 	msgErr, ok := resp.Response.(*pb.RespondPayChProposalResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error responding accept to channel opening request : %v.", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error responding accept to channel opening request : %v.",
+			apiErrorString(msgErr.Error)))
 		return
 	}
 	msg := resp.Response.(*pb.RespondPayChProposalResp_MsgSuccess_)
@@ -440,7 +441,8 @@ func channelRejectFn(c *ishell.Context) {
 	}
 	msgErr, ok := resp.Response.(*pb.RespondPayChProposalResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error responding accept to channel opening request : %v.", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error responding accept to channel opening request : %v.",
+			apiErrorString(msgErr.Error)))
 		return
 	}
 	c.Printf("%s\n\n", greenf("Channel proposal rejected successfully."))

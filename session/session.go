@@ -70,6 +70,7 @@ const (
 	ErrInvalidAmountInBalance Error = "invalid amount in balance"
 	ErrSubAlreadyExists       Error = "subscription already exists"
 	ErrNoActiveSub            Error = "no active subscription"
+	ErrUnknownProposalID      Error = "unknown proposal id"
 	ErrChClosed               Error = "channel is closed"
 	ErrUnknownChID            Error = "no channel corresponding to the specified ID"
 )
@@ -308,7 +309,7 @@ func (s *Session) GetPeerID(alias string) (perun.PeerID, perun.APIErrorV2) {
 func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app perun.App, challengeDurSecs uint64) (
 	perun.ChInfo, perun.APIErrorV2) {
 	s.WithField("method", "OpenCh").Infof(
-		"\nReceived request:session.OpenCh Params %+v,%+v,%+v", openingBalInfo, app, challengeDurSecs)
+		"\nReceived request with params %+v,%+v,%+v", openingBalInfo, app, challengeDurSecs)
 	// Session lock is not acquired at the beginning, but only when adding the channel to session.
 
 	var apiErr perun.APIErrorV2
@@ -340,15 +341,15 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	proposal, err := pclient.NewLedgerChannelProposal(challengeDurSecs, s.user.OffChainAddr, allocations,
 		makeOffChainAddrs(parts), pclient.WithApp(app.Def, app.Data), pclient.WithRandomNonce())
 	if err != nil {
-		err = errors.WithMessage(err, "constructing channel proposal")
-		return perun.ChInfo{}, perun.NewAPIErrV2UnknownInternal(err)
+		apiErr = perun.NewAPIErrV2UnknownInternal(errors.WithMessage(err, "constructing channel proposal"))
+		return perun.ChInfo{}, apiErr
 	}
 	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.proposeCh(challengeDurSecs))
 	defer cancel()
 	pch, err := s.chClient.ProposeChannel(ctx, proposal)
 	if err != nil {
-		// Once openingBalInfo is sanitized, the alias of peer (proposee) is at index 1.
-		apiErr = s.handleChannelProposalError(openingBalInfo.Parts[1], errors.WithMessage(err, "proposing channel"))
+		err = errors.WithMessage(err, "proposing channel")
+		apiErr = s.handleProposeChError(openingBalInfo.Parts, err)
 		return perun.ChInfo{}, apiErr
 	}
 
@@ -358,47 +359,44 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	return ch.GetChInfo(), nil
 }
 
-func (s *Session) handleChannelProposalError(peerAlias string, err error) perun.APIErrorV2 {
+// handleProposeChError inspects the passed error, constructs an
+// appropriate APIError and returns it.
+//
+// Passed error must be non-nil.
+func (s *Session) handleProposeChError(parts []string, err error) perun.APIErrorV2 {
+	var peerIdx uint16 = 1 // In a sanitized openingBalInfo, peer (proposee) is at index 1.
+
+	var apiErr perun.APIErrorV2
+	if apiErr = handleChainError(s.chainURL, s.timeoutCfg.onChainTx.String(), err); apiErr != nil {
+		return apiErr
+	} else if apiErr = handleFundingTimeoutError(parts[peerIdx], peerIdx, err); apiErr != nil {
+		return apiErr
+	} else if apiErr = handleProposalError(parts[peerIdx], s.timeoutCfg.response.String(), err); apiErr != nil {
+		return apiErr
+	}
+	return perun.NewAPIErrV2UnknownInternal(err)
+}
+
+// handleProposalError inspects if the passed error is a proposal error.
+// If yes, it constructs & returns an APIError. If not, returns nil
+//
+// Passed error must be non-nil.
+func handleProposalError(peerAlias, responseTimeout string, err error) perun.APIErrorV2 {
 	peerResponseTimedOutError := pclient.RequestTimedOutError("")
 	peerRejectedError := pclient.PeerRejectedError{}
-	txTimedOutError := pclient.TxTimedoutError{}
-	chainNotReachableError := pclient.ChainNotReachableError{}
-	fundingTimeoutError := &pchannel.FundingTimeoutError{} // go-perun returns pointer to error.
 
 	switch {
 	case errors.As(err, &peerResponseTimedOutError):
-		timeout := s.timeoutCfg.response.String()
 		message := errors.WithMessage(err, peerResponseTimedOutError.Error()).Error()
-		return perun.NewAPIErrV2PeerRequestTimedOut(peerAlias, timeout, message)
+		return perun.NewAPIErrV2PeerRequestTimedOut(peerAlias, responseTimeout, message)
 
 	case errors.As(err, &peerRejectedError):
 		reason := peerRejectedError.Reason
 		message := errors.WithMessage(err, peerRejectedError.Error()).Error()
 		return perun.NewAPIErrV2PeerRejected(peerAlias, reason, message)
 
-	case errors.As(err, &fundingTimeoutError):
-		if len(fundingTimeoutError.Errors) != 1 {
-			err = errors.WithMessage(err, "channel can contain only one asset")
-			return perun.NewAPIErrV2UnknownInternal(err)
-		}
-		if len(fundingTimeoutError.Errors[0].TimedOutPeers) != 1 {
-			err = errors.WithMessage(err, "channel can contain only one participant other than self")
-			return perun.NewAPIErrV2UnknownInternal(err)
-		}
-		return perun.NewAPIErrV2PeerNotFunded(peerAlias, err.Error())
-
-	case errors.As(err, &txTimedOutError):
-		txType := txTimedOutError.TxType
-		txID := txTimedOutError.TxID
-		message := errors.WithMessage(err, txTimedOutError.Error()).Error()
-		return perun.NewAPIErrV2TxTimedOut(txType, txID, s.timeoutCfg.onChainTx.String(), message)
-
-	case errors.As(err, &chainNotReachableError):
-		message := errors.WithMessage(err, chainNotReachableError.Error()).Error()
-		return perun.NewAPIErrV2ChainNotReachable(s.chainURL, message)
-
 	default:
-		return perun.NewAPIErrV2UnknownInternal(err)
+		return nil
 	}
 }
 
@@ -549,7 +547,7 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 		p, ok := s.idProvider.ReadByOffChainAddr(ledgerChProposal.Peers[i])
 		if !ok {
 			s.Info("Received channel proposal from unknonwn peer ID", ledgerChProposal.Peers[i].String())
-			// nolint: errcheck, gosec		// It is sufficient to just log this error.
+			// nolint: errcheck              // It is sufficient to just log this error.
 			s.rejectChProposal(context.Background(), responder, "peer ID not found in session ID Provider")
 			expiry = 0
 			break
@@ -647,11 +645,22 @@ func (s *Session) UnsubChProposals() perun.APIErrorV2 {
 }
 
 // RespondChProposal implements sessionAPI.RespondChProposal.
-func (s *Session) RespondChProposal(pctx context.Context, chProposalID string, accept bool) (perun.ChInfo, error) {
-	s.Debugf("Received request: session.RespondChProposal. Params: %+v, %+v", chProposalID, accept)
+func (s *Session) RespondChProposal(pctx context.Context, chProposalID string, accept bool) (
+	perun.ChInfo, perun.APIErrorV2) {
+	s.WithField("method", "RespondChProposal").Infof("\nReceived request with Params %+v,%+v", chProposalID, accept)
+	// Session lock is not acquired at the beginning, but only when retrieving
+	// the proposal and when adding the opened channel to session.
+
+	var apiErr perun.APIErrorV2
+	defer func() {
+		if apiErr != nil {
+			s.WithFields(perun.APIErrV2AsMap("RespondChProposal", apiErr)).Error(apiErr.Message())
+		}
+	}()
 
 	if !s.isOpen {
-		return perun.ChInfo{}, perun.ErrSessionClosed
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
+		return perun.ChInfo{}, apiErr
 	}
 
 	// Lock the session mutex only when retrieving the channel responder and deleting it.
@@ -659,31 +668,31 @@ func (s *Session) RespondChProposal(pctx context.Context, chProposalID string, a
 	s.Lock()
 	entry, ok := s.chProposalResponders[chProposalID]
 	if !ok {
-		s.Info(perun.ErrUnknownProposalID)
 		s.Unlock()
-		return perun.ChInfo{}, perun.ErrUnknownProposalID
+		apiErr = perun.NewAPIErrV2ResourceNotFound("proposal", chProposalID, ErrUnknownProposalID.Error())
+		return perun.ChInfo{}, apiErr
 	}
 	delete(s.chProposalResponders, chProposalID)
 	s.Unlock()
 
 	currTime := time.Now().UTC().Unix()
 	if entry.notif.Expiry < currTime {
-		s.Info("timeout:", entry.notif.Expiry, "received response at:", currTime)
-		return perun.ChInfo{}, perun.ErrRespTimeoutExpired
+		apiErr = perun.NewAPIErrV2UserResponseTimedOut(entry.notif.Expiry, currTime)
+		return perun.ChInfo{}, apiErr
 	}
 
 	var openedChInfo perun.ChInfo
-	var err error
 	switch accept {
 	case true:
-		openedChInfo, err = s.acceptChProposal(pctx, entry)
+		openedChInfo, apiErr = s.acceptChProposal(pctx, entry)
 	case false:
-		err = s.rejectChProposal(pctx, entry.responder, "rejected by user")
+		apiErr = s.rejectChProposal(pctx, entry.responder, "rejected by user")
 	}
-	return openedChInfo, perun.GetAPIError(err)
+	return openedChInfo, apiErr
 }
 
-func (s *Session) acceptChProposal(pctx context.Context, entry chProposalResponderEntry) (perun.ChInfo, error) {
+func (s *Session) acceptChProposal(pctx context.Context, entry chProposalResponderEntry) (
+	perun.ChInfo, perun.APIErrorV2) {
 	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.respChProposalAccept(entry.notif.ChallengeDurSecs))
 	defer cancel()
 
@@ -693,25 +702,42 @@ func (s *Session) acceptChProposal(pctx context.Context, entry chProposalRespond
 	pch, err := entry.responder.Accept(ctx, resp)
 	if err != nil {
 		err = errors.WithMessage(err, "accepting channel proposal")
-		s.Error(err)
-		return perun.ChInfo{}, err
+		return perun.ChInfo{}, s.handleChProposalAcceptError(entry.notif.OpeningBalInfo.Parts, err)
 	}
 
 	// Set ETH as the currency interpreter for incoming channel.
 	// TODO: (mano) Provide an option for user to configure when more currency interpreters are supported.
 	ch := newCh(pch, currency.ETH, entry.notif.OpeningBalInfo.Parts, s.timeoutCfg, entry.notif.ChallengeDurSecs)
 	s.addCh(ch)
+	s.WithFields(log.Fields{"method": "RespondChProposal", "channelID": ch.ID()}).Info("Channel opened successfully")
 	return ch.getChInfo(), nil
 }
 
-func (s *Session) rejectChProposal(pctx context.Context, responder ChProposalResponder, reason string) error {
+// handleProposeChannelError inspects the passed error, constructs an
+// appropriate APIError and returns it.
+//
+// Passed error must be non-nil.
+func (s *Session) handleChProposalAcceptError(parts []string, err error) perun.APIErrorV2 {
+	var peerIdx uint16 = 0 // In a sanitized openingBalInfo, peer (proposer) is at index 0.
+
+	var apiErr perun.APIErrorV2
+	if apiErr = handleChainError(s.chainURL, s.timeoutCfg.onChainTx.String(), err); apiErr != nil {
+		return apiErr
+	} else if apiErr = handleFundingTimeoutError(parts[peerIdx], peerIdx, err); apiErr != nil {
+		return apiErr
+	}
+	return perun.NewAPIErrV2UnknownInternal(err)
+}
+
+func (s *Session) rejectChProposal(pctx context.Context, responder ChProposalResponder,
+	reason string) perun.APIErrorV2 {
 	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.respChProposalReject())
 	defer cancel()
 	err := responder.Reject(ctx, reason)
 	if err != nil {
-		s.Error("Rejecting channel proposal", err)
+		return perun.NewAPIErrV2UnknownInternal(err)
 	}
-	return err
+	return nil
 }
 
 // GetChsInfo implements sessionAPI.GetChsInfo.
@@ -856,4 +882,53 @@ func (s *Session) close() error {
 	s.user.OnChain.Wallet.LockAll()
 	s.user.OffChain.Wallet.LockAll()
 	return errors.WithMessage(s.chClient.Close(), "closing session")
+}
+
+// handleFundingTimeoutError inspects if the passed error is an funding timeout error.
+// If yes, it constructs & returns an APIError. If not, returns nil
+//
+// Passed error must be non-nil.
+func handleFundingTimeoutError(peerAlias string, peerIdx uint16, err error) perun.APIErrorV2 {
+	fundingTimeoutError := &pchannel.FundingTimeoutError{} // go-perun returns pointer to error.
+	ok := errors.As(err, &fundingTimeoutError)
+	if !ok {
+		return nil
+	}
+	if len(fundingTimeoutError.Errors) != 1 {
+		err = errors.WithMessage(err, "channel can contain only one asset")
+		return perun.NewAPIErrV2UnknownInternal(err)
+	}
+	if len(fundingTimeoutError.Errors[0].TimedOutPeers) != 1 {
+		err = errors.WithMessage(err, "channel can contain only one participant other than self")
+		return perun.NewAPIErrV2UnknownInternal(err)
+	}
+	if fundingTimeoutError.Errors[0].TimedOutPeers[0] != peerIdx {
+		err = errors.WithMessage(err, fmt.Sprintf("index of peer must be %d", peerIdx))
+		return perun.NewAPIErrV2UnknownInternal(err)
+	}
+	return perun.NewAPIErrV2PeerNotFunded(peerAlias, err.Error())
+}
+
+// handleChainError inspects if the passed error is an on-chain error.
+// If yes, it constructs & returns an APIError. If not, returns nil
+//
+// Passed error must be non-nil.
+func handleChainError(chainURL, onChainTxTimeout string, err error) perun.APIErrorV2 {
+	txTimedOutError := pclient.TxTimedoutError{}
+	chainNotReachableError := pclient.ChainNotReachableError{}
+
+	switch {
+	case errors.As(err, &txTimedOutError):
+		txType := txTimedOutError.TxType
+		txID := txTimedOutError.TxID
+		message := errors.WithMessage(err, txTimedOutError.Error()).Error()
+		return perun.NewAPIErrV2TxTimedOut(txType, txID, onChainTxTimeout, message)
+
+	case errors.As(err, &chainNotReachableError):
+		message := errors.WithMessage(err, chainNotReachableError.Error()).Error()
+		return perun.NewAPIErrV2ChainNotReachable(chainURL, message)
+
+	default:
+		return nil
+	}
 }

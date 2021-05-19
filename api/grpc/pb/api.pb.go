@@ -237,7 +237,7 @@ func (x SubPayChUpdatesResp_Notify_ChUpdateType) Number() protoreflect.EnumNumbe
 
 // Deprecated: Use SubPayChUpdatesResp_Notify_ChUpdateType.Descriptor instead.
 func (SubPayChUpdatesResp_Notify_ChUpdateType) EnumDescriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{35, 0, 0}
+	return file_api_proto_rawDescGZIP(), []int{41, 0, 0}
 }
 
 // Peer ID represents the data required to identify and communicate
@@ -505,9 +505,15 @@ type MsgErrorV2 struct {
 	Code     ErrorCode     `protobuf:"varint,2,opt,name=code,proto3,enum=pb.ErrorCode" json:"code,omitempty"`
 	Message  string        `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	// Types that are assignable to AddInfo:
+	//	*MsgErrorV2_ErrV2InfoPeerRequestTimedOut
+	//	*MsgErrorV2_ErrV2InfoPeerRejected
+	//	*MsgErrorV2_ErrV2InfoPeerNotFunded
+	//	*MsgErrorV2_ErrV2InfoUserResponseTimedOut
 	//	*MsgErrorV2_ErrV2InfoResourceNotFound
 	//	*MsgErrorV2_ErrV2InfoResourceExists
 	//	*MsgErrorV2_ErrV2InfoInvalidArgument
+	//	*MsgErrorV2_ErrV2InfoTxTimedOut
+	//	*MsgErrorV2_ErrV2InfoChainNotReachable
 	AddInfo isMsgErrorV2_AddInfo `protobuf_oneof:"addInfo"`
 }
 
@@ -571,6 +577,34 @@ func (m *MsgErrorV2) GetAddInfo() isMsgErrorV2_AddInfo {
 	return nil
 }
 
+func (x *MsgErrorV2) GetErrV2InfoPeerRequestTimedOut() *ErrV2InfoPeerRequestTimedOut {
+	if x, ok := x.GetAddInfo().(*MsgErrorV2_ErrV2InfoPeerRequestTimedOut); ok {
+		return x.ErrV2InfoPeerRequestTimedOut
+	}
+	return nil
+}
+
+func (x *MsgErrorV2) GetErrV2InfoPeerRejected() *ErrV2InfoPeerRejected {
+	if x, ok := x.GetAddInfo().(*MsgErrorV2_ErrV2InfoPeerRejected); ok {
+		return x.ErrV2InfoPeerRejected
+	}
+	return nil
+}
+
+func (x *MsgErrorV2) GetErrV2InfoPeerNotFunded() *ErrV2InfoPeerNotFunded {
+	if x, ok := x.GetAddInfo().(*MsgErrorV2_ErrV2InfoPeerNotFunded); ok {
+		return x.ErrV2InfoPeerNotFunded
+	}
+	return nil
+}
+
+func (x *MsgErrorV2) GetErrV2InfoUserResponseTimedOut() *ErrV2InfoUserResponseTimedOut {
+	if x, ok := x.GetAddInfo().(*MsgErrorV2_ErrV2InfoUserResponseTimedOut); ok {
+		return x.ErrV2InfoUserResponseTimedOut
+	}
+	return nil
+}
+
 func (x *MsgErrorV2) GetErrV2InfoResourceNotFound() *ErrV2InfoResourceNotFound {
 	if x, ok := x.GetAddInfo().(*MsgErrorV2_ErrV2InfoResourceNotFound); ok {
 		return x.ErrV2InfoResourceNotFound
@@ -592,27 +626,289 @@ func (x *MsgErrorV2) GetErrV2InfoInvalidArgument() *ErrV2InfoInvalidArgument {
 	return nil
 }
 
+func (x *MsgErrorV2) GetErrV2InfoTxTimedOut() *ErrV2InfoTxTimedOut {
+	if x, ok := x.GetAddInfo().(*MsgErrorV2_ErrV2InfoTxTimedOut); ok {
+		return x.ErrV2InfoTxTimedOut
+	}
+	return nil
+}
+
+func (x *MsgErrorV2) GetErrV2InfoChainNotReachable() *ErrV2InfoChainNotReachable {
+	if x, ok := x.GetAddInfo().(*MsgErrorV2_ErrV2InfoChainNotReachable); ok {
+		return x.ErrV2InfoChainNotReachable
+	}
+	return nil
+}
+
 type isMsgErrorV2_AddInfo interface {
 	isMsgErrorV2_AddInfo()
 }
 
+type MsgErrorV2_ErrV2InfoPeerRequestTimedOut struct {
+	ErrV2InfoPeerRequestTimedOut *ErrV2InfoPeerRequestTimedOut `protobuf:"bytes,4,opt,name=ErrV2InfoPeerRequestTimedOut,proto3,oneof"`
+}
+
+type MsgErrorV2_ErrV2InfoPeerRejected struct {
+	ErrV2InfoPeerRejected *ErrV2InfoPeerRejected `protobuf:"bytes,5,opt,name=ErrV2InfoPeerRejected,proto3,oneof"`
+}
+
+type MsgErrorV2_ErrV2InfoPeerNotFunded struct {
+	ErrV2InfoPeerNotFunded *ErrV2InfoPeerNotFunded `protobuf:"bytes,6,opt,name=ErrV2InfoPeerNotFunded,proto3,oneof"`
+}
+
+type MsgErrorV2_ErrV2InfoUserResponseTimedOut struct {
+	ErrV2InfoUserResponseTimedOut *ErrV2InfoUserResponseTimedOut `protobuf:"bytes,7,opt,name=ErrV2InfoUserResponseTimedOut,proto3,oneof"`
+}
+
 type MsgErrorV2_ErrV2InfoResourceNotFound struct {
-	ErrV2InfoResourceNotFound *ErrV2InfoResourceNotFound `protobuf:"bytes,4,opt,name=ErrV2InfoResourceNotFound,proto3,oneof"`
+	ErrV2InfoResourceNotFound *ErrV2InfoResourceNotFound `protobuf:"bytes,8,opt,name=ErrV2InfoResourceNotFound,proto3,oneof"`
 }
 
 type MsgErrorV2_ErrV2InfoResourceExists struct {
-	ErrV2InfoResourceExists *ErrV2InfoResourceExists `protobuf:"bytes,5,opt,name=ErrV2InfoResourceExists,proto3,oneof"`
+	ErrV2InfoResourceExists *ErrV2InfoResourceExists `protobuf:"bytes,9,opt,name=ErrV2InfoResourceExists,proto3,oneof"`
 }
 
 type MsgErrorV2_ErrV2InfoInvalidArgument struct {
-	ErrV2InfoInvalidArgument *ErrV2InfoInvalidArgument `protobuf:"bytes,6,opt,name=ErrV2InfoInvalidArgument,proto3,oneof"`
+	ErrV2InfoInvalidArgument *ErrV2InfoInvalidArgument `protobuf:"bytes,10,opt,name=ErrV2InfoInvalidArgument,proto3,oneof"`
 }
+
+type MsgErrorV2_ErrV2InfoTxTimedOut struct {
+	ErrV2InfoTxTimedOut *ErrV2InfoTxTimedOut `protobuf:"bytes,11,opt,name=ErrV2InfoTxTimedOut,proto3,oneof"`
+}
+
+type MsgErrorV2_ErrV2InfoChainNotReachable struct {
+	ErrV2InfoChainNotReachable *ErrV2InfoChainNotReachable `protobuf:"bytes,12,opt,name=ErrV2InfoChainNotReachable,proto3,oneof"`
+}
+
+func (*MsgErrorV2_ErrV2InfoPeerRequestTimedOut) isMsgErrorV2_AddInfo() {}
+
+func (*MsgErrorV2_ErrV2InfoPeerRejected) isMsgErrorV2_AddInfo() {}
+
+func (*MsgErrorV2_ErrV2InfoPeerNotFunded) isMsgErrorV2_AddInfo() {}
+
+func (*MsgErrorV2_ErrV2InfoUserResponseTimedOut) isMsgErrorV2_AddInfo() {}
 
 func (*MsgErrorV2_ErrV2InfoResourceNotFound) isMsgErrorV2_AddInfo() {}
 
 func (*MsgErrorV2_ErrV2InfoResourceExists) isMsgErrorV2_AddInfo() {}
 
 func (*MsgErrorV2_ErrV2InfoInvalidArgument) isMsgErrorV2_AddInfo() {}
+
+func (*MsgErrorV2_ErrV2InfoTxTimedOut) isMsgErrorV2_AddInfo() {}
+
+func (*MsgErrorV2_ErrV2InfoChainNotReachable) isMsgErrorV2_AddInfo() {}
+
+type ErrV2InfoPeerRequestTimedOut struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PeerAlias string `protobuf:"bytes,1,opt,name=peerAlias,proto3" json:"peerAlias,omitempty"`
+	Timeout   string `protobuf:"bytes,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
+}
+
+func (x *ErrV2InfoPeerRequestTimedOut) Reset() {
+	*x = ErrV2InfoPeerRequestTimedOut{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ErrV2InfoPeerRequestTimedOut) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ErrV2InfoPeerRequestTimedOut) ProtoMessage() {}
+
+func (x *ErrV2InfoPeerRequestTimedOut) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ErrV2InfoPeerRequestTimedOut.ProtoReflect.Descriptor instead.
+func (*ErrV2InfoPeerRequestTimedOut) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ErrV2InfoPeerRequestTimedOut) GetPeerAlias() string {
+	if x != nil {
+		return x.PeerAlias
+	}
+	return ""
+}
+
+func (x *ErrV2InfoPeerRequestTimedOut) GetTimeout() string {
+	if x != nil {
+		return x.Timeout
+	}
+	return ""
+}
+
+type ErrV2InfoPeerRejected struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PeerAlias string `protobuf:"bytes,1,opt,name=peerAlias,proto3" json:"peerAlias,omitempty"`
+	Reason    string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+}
+
+func (x *ErrV2InfoPeerRejected) Reset() {
+	*x = ErrV2InfoPeerRejected{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ErrV2InfoPeerRejected) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ErrV2InfoPeerRejected) ProtoMessage() {}
+
+func (x *ErrV2InfoPeerRejected) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ErrV2InfoPeerRejected.ProtoReflect.Descriptor instead.
+func (*ErrV2InfoPeerRejected) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ErrV2InfoPeerRejected) GetPeerAlias() string {
+	if x != nil {
+		return x.PeerAlias
+	}
+	return ""
+}
+
+func (x *ErrV2InfoPeerRejected) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type ErrV2InfoPeerNotFunded struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PeerAlias string `protobuf:"bytes,1,opt,name=peerAlias,proto3" json:"peerAlias,omitempty"`
+}
+
+func (x *ErrV2InfoPeerNotFunded) Reset() {
+	*x = ErrV2InfoPeerNotFunded{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ErrV2InfoPeerNotFunded) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ErrV2InfoPeerNotFunded) ProtoMessage() {}
+
+func (x *ErrV2InfoPeerNotFunded) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ErrV2InfoPeerNotFunded.ProtoReflect.Descriptor instead.
+func (*ErrV2InfoPeerNotFunded) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ErrV2InfoPeerNotFunded) GetPeerAlias() string {
+	if x != nil {
+		return x.PeerAlias
+	}
+	return ""
+}
+
+type ErrV2InfoUserResponseTimedOut struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Expiry     int64 `protobuf:"varint,1,opt,name=expiry,proto3" json:"expiry,omitempty"`
+	ReceivedAt int64 `protobuf:"varint,2,opt,name=receivedAt,proto3" json:"receivedAt,omitempty"`
+}
+
+func (x *ErrV2InfoUserResponseTimedOut) Reset() {
+	*x = ErrV2InfoUserResponseTimedOut{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ErrV2InfoUserResponseTimedOut) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ErrV2InfoUserResponseTimedOut) ProtoMessage() {}
+
+func (x *ErrV2InfoUserResponseTimedOut) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ErrV2InfoUserResponseTimedOut.ProtoReflect.Descriptor instead.
+func (*ErrV2InfoUserResponseTimedOut) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ErrV2InfoUserResponseTimedOut) GetExpiry() int64 {
+	if x != nil {
+		return x.Expiry
+	}
+	return 0
+}
+
+func (x *ErrV2InfoUserResponseTimedOut) GetReceivedAt() int64 {
+	if x != nil {
+		return x.ReceivedAt
+	}
+	return 0
+}
 
 type ErrV2InfoResourceNotFound struct {
 	state         protoimpl.MessageState
@@ -626,7 +922,7 @@ type ErrV2InfoResourceNotFound struct {
 func (x *ErrV2InfoResourceNotFound) Reset() {
 	*x = ErrV2InfoResourceNotFound{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[5]
+		mi := &file_api_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -639,7 +935,7 @@ func (x *ErrV2InfoResourceNotFound) String() string {
 func (*ErrV2InfoResourceNotFound) ProtoMessage() {}
 
 func (x *ErrV2InfoResourceNotFound) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[5]
+	mi := &file_api_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -652,7 +948,7 @@ func (x *ErrV2InfoResourceNotFound) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrV2InfoResourceNotFound.ProtoReflect.Descriptor instead.
 func (*ErrV2InfoResourceNotFound) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ErrV2InfoResourceNotFound) GetType() string {
@@ -681,7 +977,7 @@ type ErrV2InfoResourceExists struct {
 func (x *ErrV2InfoResourceExists) Reset() {
 	*x = ErrV2InfoResourceExists{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[6]
+		mi := &file_api_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -694,7 +990,7 @@ func (x *ErrV2InfoResourceExists) String() string {
 func (*ErrV2InfoResourceExists) ProtoMessage() {}
 
 func (x *ErrV2InfoResourceExists) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[6]
+	mi := &file_api_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -707,7 +1003,7 @@ func (x *ErrV2InfoResourceExists) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrV2InfoResourceExists.ProtoReflect.Descriptor instead.
 func (*ErrV2InfoResourceExists) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ErrV2InfoResourceExists) GetType() string {
@@ -737,7 +1033,7 @@ type ErrV2InfoInvalidArgument struct {
 func (x *ErrV2InfoInvalidArgument) Reset() {
 	*x = ErrV2InfoInvalidArgument{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[7]
+		mi := &file_api_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -750,7 +1046,7 @@ func (x *ErrV2InfoInvalidArgument) String() string {
 func (*ErrV2InfoInvalidArgument) ProtoMessage() {}
 
 func (x *ErrV2InfoInvalidArgument) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[7]
+	mi := &file_api_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -763,7 +1059,7 @@ func (x *ErrV2InfoInvalidArgument) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrV2InfoInvalidArgument.ProtoReflect.Descriptor instead.
 func (*ErrV2InfoInvalidArgument) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ErrV2InfoInvalidArgument) GetName() string {
@@ -787,6 +1083,116 @@ func (x *ErrV2InfoInvalidArgument) GetRequirement() string {
 	return ""
 }
 
+type ErrV2InfoTxTimedOut struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	TxType    string `protobuf:"bytes,1,opt,name=txType,proto3" json:"txType,omitempty"`
+	TxID      string `protobuf:"bytes,2,opt,name=txID,proto3" json:"txID,omitempty"`
+	TxTimeout string `protobuf:"bytes,3,opt,name=txTimeout,proto3" json:"txTimeout,omitempty"`
+}
+
+func (x *ErrV2InfoTxTimedOut) Reset() {
+	*x = ErrV2InfoTxTimedOut{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ErrV2InfoTxTimedOut) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ErrV2InfoTxTimedOut) ProtoMessage() {}
+
+func (x *ErrV2InfoTxTimedOut) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ErrV2InfoTxTimedOut.ProtoReflect.Descriptor instead.
+func (*ErrV2InfoTxTimedOut) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ErrV2InfoTxTimedOut) GetTxType() string {
+	if x != nil {
+		return x.TxType
+	}
+	return ""
+}
+
+func (x *ErrV2InfoTxTimedOut) GetTxID() string {
+	if x != nil {
+		return x.TxID
+	}
+	return ""
+}
+
+func (x *ErrV2InfoTxTimedOut) GetTxTimeout() string {
+	if x != nil {
+		return x.TxTimeout
+	}
+	return ""
+}
+
+type ErrV2InfoChainNotReachable struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ChainURL string `protobuf:"bytes,1,opt,name=chainURL,proto3" json:"chainURL,omitempty"`
+}
+
+func (x *ErrV2InfoChainNotReachable) Reset() {
+	*x = ErrV2InfoChainNotReachable{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ErrV2InfoChainNotReachable) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ErrV2InfoChainNotReachable) ProtoMessage() {}
+
+func (x *ErrV2InfoChainNotReachable) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ErrV2InfoChainNotReachable.ProtoReflect.Descriptor instead.
+func (*ErrV2InfoChainNotReachable) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ErrV2InfoChainNotReachable) GetChainURL() string {
+	if x != nil {
+		return x.ChainURL
+	}
+	return ""
+}
+
 type GetConfigReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -796,7 +1202,7 @@ type GetConfigReq struct {
 func (x *GetConfigReq) Reset() {
 	*x = GetConfigReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[8]
+		mi := &file_api_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -809,7 +1215,7 @@ func (x *GetConfigReq) String() string {
 func (*GetConfigReq) ProtoMessage() {}
 
 func (x *GetConfigReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[8]
+	mi := &file_api_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -822,7 +1228,7 @@ func (x *GetConfigReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConfigReq.ProtoReflect.Descriptor instead.
 func (*GetConfigReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_rawDescGZIP(), []int{14}
 }
 
 type GetConfigResp struct {
@@ -840,7 +1246,7 @@ type GetConfigResp struct {
 func (x *GetConfigResp) Reset() {
 	*x = GetConfigResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[9]
+		mi := &file_api_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -853,7 +1259,7 @@ func (x *GetConfigResp) String() string {
 func (*GetConfigResp) ProtoMessage() {}
 
 func (x *GetConfigResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[9]
+	mi := &file_api_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -866,7 +1272,7 @@ func (x *GetConfigResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConfigResp.ProtoReflect.Descriptor instead.
 func (*GetConfigResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{9}
+	return file_api_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetConfigResp) GetChainAddress() string {
@@ -915,7 +1321,7 @@ type OpenSessionReq struct {
 func (x *OpenSessionReq) Reset() {
 	*x = OpenSessionReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[10]
+		mi := &file_api_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -928,7 +1334,7 @@ func (x *OpenSessionReq) String() string {
 func (*OpenSessionReq) ProtoMessage() {}
 
 func (x *OpenSessionReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[10]
+	mi := &file_api_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -941,7 +1347,7 @@ func (x *OpenSessionReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenSessionReq.ProtoReflect.Descriptor instead.
 func (*OpenSessionReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{10}
+	return file_api_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *OpenSessionReq) GetConfigFile() string {
@@ -965,7 +1371,7 @@ type OpenSessionResp struct {
 func (x *OpenSessionResp) Reset() {
 	*x = OpenSessionResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[11]
+		mi := &file_api_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -978,7 +1384,7 @@ func (x *OpenSessionResp) String() string {
 func (*OpenSessionResp) ProtoMessage() {}
 
 func (x *OpenSessionResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[11]
+	mi := &file_api_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -991,7 +1397,7 @@ func (x *OpenSessionResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenSessionResp.ProtoReflect.Descriptor instead.
 func (*OpenSessionResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{11}
+	return file_api_proto_rawDescGZIP(), []int{17}
 }
 
 func (m *OpenSessionResp) GetResponse() isOpenSessionResp_Response {
@@ -1040,7 +1446,7 @@ type TimeReq struct {
 func (x *TimeReq) Reset() {
 	*x = TimeReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[12]
+		mi := &file_api_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1053,7 +1459,7 @@ func (x *TimeReq) String() string {
 func (*TimeReq) ProtoMessage() {}
 
 func (x *TimeReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[12]
+	mi := &file_api_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1066,7 +1472,7 @@ func (x *TimeReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimeReq.ProtoReflect.Descriptor instead.
 func (*TimeReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{12}
+	return file_api_proto_rawDescGZIP(), []int{18}
 }
 
 type TimeResp struct {
@@ -1080,7 +1486,7 @@ type TimeResp struct {
 func (x *TimeResp) Reset() {
 	*x = TimeResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[13]
+		mi := &file_api_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1093,7 +1499,7 @@ func (x *TimeResp) String() string {
 func (*TimeResp) ProtoMessage() {}
 
 func (x *TimeResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[13]
+	mi := &file_api_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1106,7 +1512,7 @@ func (x *TimeResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimeResp.ProtoReflect.Descriptor instead.
 func (*TimeResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{13}
+	return file_api_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *TimeResp) GetTime() int64 {
@@ -1125,7 +1531,7 @@ type HelpReq struct {
 func (x *HelpReq) Reset() {
 	*x = HelpReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[14]
+		mi := &file_api_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1138,7 +1544,7 @@ func (x *HelpReq) String() string {
 func (*HelpReq) ProtoMessage() {}
 
 func (x *HelpReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[14]
+	mi := &file_api_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1151,7 +1557,7 @@ func (x *HelpReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HelpReq.ProtoReflect.Descriptor instead.
 func (*HelpReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{14}
+	return file_api_proto_rawDescGZIP(), []int{20}
 }
 
 type HelpResp struct {
@@ -1165,7 +1571,7 @@ type HelpResp struct {
 func (x *HelpResp) Reset() {
 	*x = HelpResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[15]
+		mi := &file_api_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1178,7 +1584,7 @@ func (x *HelpResp) String() string {
 func (*HelpResp) ProtoMessage() {}
 
 func (x *HelpResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[15]
+	mi := &file_api_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1191,7 +1597,7 @@ func (x *HelpResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HelpResp.ProtoReflect.Descriptor instead.
 func (*HelpResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{15}
+	return file_api_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *HelpResp) GetApis() []string {
@@ -1213,7 +1619,7 @@ type AddPeerIDReq struct {
 func (x *AddPeerIDReq) Reset() {
 	*x = AddPeerIDReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[16]
+		mi := &file_api_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1226,7 +1632,7 @@ func (x *AddPeerIDReq) String() string {
 func (*AddPeerIDReq) ProtoMessage() {}
 
 func (x *AddPeerIDReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[16]
+	mi := &file_api_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1239,7 +1645,7 @@ func (x *AddPeerIDReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddPeerIDReq.ProtoReflect.Descriptor instead.
 func (*AddPeerIDReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{16}
+	return file_api_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *AddPeerIDReq) GetSessionID() string {
@@ -1270,7 +1676,7 @@ type AddPeerIDResp struct {
 func (x *AddPeerIDResp) Reset() {
 	*x = AddPeerIDResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[17]
+		mi := &file_api_proto_msgTypes[23]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1283,7 +1689,7 @@ func (x *AddPeerIDResp) String() string {
 func (*AddPeerIDResp) ProtoMessage() {}
 
 func (x *AddPeerIDResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[17]
+	mi := &file_api_proto_msgTypes[23]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1296,7 +1702,7 @@ func (x *AddPeerIDResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddPeerIDResp.ProtoReflect.Descriptor instead.
 func (*AddPeerIDResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{17}
+	return file_api_proto_rawDescGZIP(), []int{23}
 }
 
 func (m *AddPeerIDResp) GetResponse() isAddPeerIDResp_Response {
@@ -1348,7 +1754,7 @@ type GetPeerIDReq struct {
 func (x *GetPeerIDReq) Reset() {
 	*x = GetPeerIDReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[18]
+		mi := &file_api_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1361,7 +1767,7 @@ func (x *GetPeerIDReq) String() string {
 func (*GetPeerIDReq) ProtoMessage() {}
 
 func (x *GetPeerIDReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[18]
+	mi := &file_api_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1374,7 +1780,7 @@ func (x *GetPeerIDReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPeerIDReq.ProtoReflect.Descriptor instead.
 func (*GetPeerIDReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{18}
+	return file_api_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetPeerIDReq) GetSessionID() string {
@@ -1405,7 +1811,7 @@ type GetPeerIDResp struct {
 func (x *GetPeerIDResp) Reset() {
 	*x = GetPeerIDResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[19]
+		mi := &file_api_proto_msgTypes[25]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1418,7 +1824,7 @@ func (x *GetPeerIDResp) String() string {
 func (*GetPeerIDResp) ProtoMessage() {}
 
 func (x *GetPeerIDResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[19]
+	mi := &file_api_proto_msgTypes[25]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1431,7 +1837,7 @@ func (x *GetPeerIDResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPeerIDResp.ProtoReflect.Descriptor instead.
 func (*GetPeerIDResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{19}
+	return file_api_proto_rawDescGZIP(), []int{25}
 }
 
 func (m *GetPeerIDResp) GetResponse() isGetPeerIDResp_Response {
@@ -1484,7 +1890,7 @@ type OpenPayChReq struct {
 func (x *OpenPayChReq) Reset() {
 	*x = OpenPayChReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[20]
+		mi := &file_api_proto_msgTypes[26]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1497,7 +1903,7 @@ func (x *OpenPayChReq) String() string {
 func (*OpenPayChReq) ProtoMessage() {}
 
 func (x *OpenPayChReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[20]
+	mi := &file_api_proto_msgTypes[26]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1510,7 +1916,7 @@ func (x *OpenPayChReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenPayChReq.ProtoReflect.Descriptor instead.
 func (*OpenPayChReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{20}
+	return file_api_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *OpenPayChReq) GetSessionID() string {
@@ -1548,7 +1954,7 @@ type OpenPayChResp struct {
 func (x *OpenPayChResp) Reset() {
 	*x = OpenPayChResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[21]
+		mi := &file_api_proto_msgTypes[27]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1561,7 +1967,7 @@ func (x *OpenPayChResp) String() string {
 func (*OpenPayChResp) ProtoMessage() {}
 
 func (x *OpenPayChResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[21]
+	mi := &file_api_proto_msgTypes[27]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1574,7 +1980,7 @@ func (x *OpenPayChResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenPayChResp.ProtoReflect.Descriptor instead.
 func (*OpenPayChResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{21}
+	return file_api_proto_rawDescGZIP(), []int{27}
 }
 
 func (m *OpenPayChResp) GetResponse() isOpenPayChResp_Response {
@@ -1625,7 +2031,7 @@ type GetPayChsInfoReq struct {
 func (x *GetPayChsInfoReq) Reset() {
 	*x = GetPayChsInfoReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[22]
+		mi := &file_api_proto_msgTypes[28]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1638,7 +2044,7 @@ func (x *GetPayChsInfoReq) String() string {
 func (*GetPayChsInfoReq) ProtoMessage() {}
 
 func (x *GetPayChsInfoReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[22]
+	mi := &file_api_proto_msgTypes[28]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1651,7 +2057,7 @@ func (x *GetPayChsInfoReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPayChsInfoReq.ProtoReflect.Descriptor instead.
 func (*GetPayChsInfoReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{22}
+	return file_api_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetPayChsInfoReq) GetSessionID() string {
@@ -1675,7 +2081,7 @@ type GetPayChsInfoResp struct {
 func (x *GetPayChsInfoResp) Reset() {
 	*x = GetPayChsInfoResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[23]
+		mi := &file_api_proto_msgTypes[29]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1688,7 +2094,7 @@ func (x *GetPayChsInfoResp) String() string {
 func (*GetPayChsInfoResp) ProtoMessage() {}
 
 func (x *GetPayChsInfoResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[23]
+	mi := &file_api_proto_msgTypes[29]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1701,7 +2107,7 @@ func (x *GetPayChsInfoResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPayChsInfoResp.ProtoReflect.Descriptor instead.
 func (*GetPayChsInfoResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{23}
+	return file_api_proto_rawDescGZIP(), []int{29}
 }
 
 func (m *GetPayChsInfoResp) GetResponse() isGetPayChsInfoResp_Response {
@@ -1752,7 +2158,7 @@ type SubPayChProposalsReq struct {
 func (x *SubPayChProposalsReq) Reset() {
 	*x = SubPayChProposalsReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[24]
+		mi := &file_api_proto_msgTypes[30]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1765,7 +2171,7 @@ func (x *SubPayChProposalsReq) String() string {
 func (*SubPayChProposalsReq) ProtoMessage() {}
 
 func (x *SubPayChProposalsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[24]
+	mi := &file_api_proto_msgTypes[30]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1778,7 +2184,7 @@ func (x *SubPayChProposalsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubPayChProposalsReq.ProtoReflect.Descriptor instead.
 func (*SubPayChProposalsReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{24}
+	return file_api_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *SubPayChProposalsReq) GetSessionID() string {
@@ -1802,7 +2208,7 @@ type SubPayChProposalsResp struct {
 func (x *SubPayChProposalsResp) Reset() {
 	*x = SubPayChProposalsResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[25]
+		mi := &file_api_proto_msgTypes[31]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1815,7 +2221,7 @@ func (x *SubPayChProposalsResp) String() string {
 func (*SubPayChProposalsResp) ProtoMessage() {}
 
 func (x *SubPayChProposalsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[25]
+	mi := &file_api_proto_msgTypes[31]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1828,7 +2234,7 @@ func (x *SubPayChProposalsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubPayChProposalsResp.ProtoReflect.Descriptor instead.
 func (*SubPayChProposalsResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{25}
+	return file_api_proto_rawDescGZIP(), []int{31}
 }
 
 func (m *SubPayChProposalsResp) GetResponse() isSubPayChProposalsResp_Response {
@@ -1879,7 +2285,7 @@ type UnsubPayChProposalsReq struct {
 func (x *UnsubPayChProposalsReq) Reset() {
 	*x = UnsubPayChProposalsReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[26]
+		mi := &file_api_proto_msgTypes[32]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1892,7 +2298,7 @@ func (x *UnsubPayChProposalsReq) String() string {
 func (*UnsubPayChProposalsReq) ProtoMessage() {}
 
 func (x *UnsubPayChProposalsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[26]
+	mi := &file_api_proto_msgTypes[32]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1905,7 +2311,7 @@ func (x *UnsubPayChProposalsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsubPayChProposalsReq.ProtoReflect.Descriptor instead.
 func (*UnsubPayChProposalsReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{26}
+	return file_api_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *UnsubPayChProposalsReq) GetSessionID() string {
@@ -1929,7 +2335,7 @@ type UnsubPayChProposalsResp struct {
 func (x *UnsubPayChProposalsResp) Reset() {
 	*x = UnsubPayChProposalsResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[27]
+		mi := &file_api_proto_msgTypes[33]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1942,7 +2348,7 @@ func (x *UnsubPayChProposalsResp) String() string {
 func (*UnsubPayChProposalsResp) ProtoMessage() {}
 
 func (x *UnsubPayChProposalsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[27]
+	mi := &file_api_proto_msgTypes[33]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1955,7 +2361,7 @@ func (x *UnsubPayChProposalsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsubPayChProposalsResp.ProtoReflect.Descriptor instead.
 func (*UnsubPayChProposalsResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{27}
+	return file_api_proto_rawDescGZIP(), []int{33}
 }
 
 func (m *UnsubPayChProposalsResp) GetResponse() isUnsubPayChProposalsResp_Response {
@@ -2008,7 +2414,7 @@ type RespondPayChProposalReq struct {
 func (x *RespondPayChProposalReq) Reset() {
 	*x = RespondPayChProposalReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[28]
+		mi := &file_api_proto_msgTypes[34]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2021,7 +2427,7 @@ func (x *RespondPayChProposalReq) String() string {
 func (*RespondPayChProposalReq) ProtoMessage() {}
 
 func (x *RespondPayChProposalReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[28]
+	mi := &file_api_proto_msgTypes[34]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2034,7 +2440,7 @@ func (x *RespondPayChProposalReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RespondPayChProposalReq.ProtoReflect.Descriptor instead.
 func (*RespondPayChProposalReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{28}
+	return file_api_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *RespondPayChProposalReq) GetSessionID() string {
@@ -2072,7 +2478,7 @@ type RespondPayChProposalResp struct {
 func (x *RespondPayChProposalResp) Reset() {
 	*x = RespondPayChProposalResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[29]
+		mi := &file_api_proto_msgTypes[35]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2085,7 +2491,7 @@ func (x *RespondPayChProposalResp) String() string {
 func (*RespondPayChProposalResp) ProtoMessage() {}
 
 func (x *RespondPayChProposalResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[29]
+	mi := &file_api_proto_msgTypes[35]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2098,7 +2504,7 @@ func (x *RespondPayChProposalResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RespondPayChProposalResp.ProtoReflect.Descriptor instead.
 func (*RespondPayChProposalResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{29}
+	return file_api_proto_rawDescGZIP(), []int{35}
 }
 
 func (m *RespondPayChProposalResp) GetResponse() isRespondPayChProposalResp_Response {
@@ -2115,7 +2521,7 @@ func (x *RespondPayChProposalResp) GetMsgSuccess() *RespondPayChProposalResp_Msg
 	return nil
 }
 
-func (x *RespondPayChProposalResp) GetError() *MsgError {
+func (x *RespondPayChProposalResp) GetError() *MsgErrorV2 {
 	if x, ok := x.GetResponse().(*RespondPayChProposalResp_Error); ok {
 		return x.Error
 	}
@@ -2131,7 +2537,7 @@ type RespondPayChProposalResp_MsgSuccess_ struct {
 }
 
 type RespondPayChProposalResp_Error struct {
-	Error *MsgError `protobuf:"bytes,2,opt,name=error,proto3,oneof"`
+	Error *MsgErrorV2 `protobuf:"bytes,2,opt,name=error,proto3,oneof"`
 }
 
 func (*RespondPayChProposalResp_MsgSuccess_) isRespondPayChProposalResp_Response() {}
@@ -2150,7 +2556,7 @@ type CloseSessionReq struct {
 func (x *CloseSessionReq) Reset() {
 	*x = CloseSessionReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[30]
+		mi := &file_api_proto_msgTypes[36]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2163,7 +2569,7 @@ func (x *CloseSessionReq) String() string {
 func (*CloseSessionReq) ProtoMessage() {}
 
 func (x *CloseSessionReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[30]
+	mi := &file_api_proto_msgTypes[36]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2176,7 +2582,7 @@ func (x *CloseSessionReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseSessionReq.ProtoReflect.Descriptor instead.
 func (*CloseSessionReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{30}
+	return file_api_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *CloseSessionReq) GetSessionID() string {
@@ -2207,7 +2613,7 @@ type CloseSessionResp struct {
 func (x *CloseSessionResp) Reset() {
 	*x = CloseSessionResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[31]
+		mi := &file_api_proto_msgTypes[37]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2220,7 +2626,7 @@ func (x *CloseSessionResp) String() string {
 func (*CloseSessionResp) ProtoMessage() {}
 
 func (x *CloseSessionResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[31]
+	mi := &file_api_proto_msgTypes[37]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2233,7 +2639,7 @@ func (x *CloseSessionResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseSessionResp.ProtoReflect.Descriptor instead.
 func (*CloseSessionResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{31}
+	return file_api_proto_rawDescGZIP(), []int{37}
 }
 
 func (m *CloseSessionResp) GetResponse() isCloseSessionResp_Response {
@@ -2287,7 +2693,7 @@ type SendPayChUpdateReq struct {
 func (x *SendPayChUpdateReq) Reset() {
 	*x = SendPayChUpdateReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[32]
+		mi := &file_api_proto_msgTypes[38]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2300,7 +2706,7 @@ func (x *SendPayChUpdateReq) String() string {
 func (*SendPayChUpdateReq) ProtoMessage() {}
 
 func (x *SendPayChUpdateReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[32]
+	mi := &file_api_proto_msgTypes[38]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2313,7 +2719,7 @@ func (x *SendPayChUpdateReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendPayChUpdateReq.ProtoReflect.Descriptor instead.
 func (*SendPayChUpdateReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{32}
+	return file_api_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *SendPayChUpdateReq) GetSessionID() string {
@@ -2358,7 +2764,7 @@ type SendPayChUpdateResp struct {
 func (x *SendPayChUpdateResp) Reset() {
 	*x = SendPayChUpdateResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[33]
+		mi := &file_api_proto_msgTypes[39]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2371,7 +2777,7 @@ func (x *SendPayChUpdateResp) String() string {
 func (*SendPayChUpdateResp) ProtoMessage() {}
 
 func (x *SendPayChUpdateResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[33]
+	mi := &file_api_proto_msgTypes[39]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2384,7 +2790,7 @@ func (x *SendPayChUpdateResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendPayChUpdateResp.ProtoReflect.Descriptor instead.
 func (*SendPayChUpdateResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{33}
+	return file_api_proto_rawDescGZIP(), []int{39}
 }
 
 func (m *SendPayChUpdateResp) GetResponse() isSendPayChUpdateResp_Response {
@@ -2436,7 +2842,7 @@ type SubpayChUpdatesReq struct {
 func (x *SubpayChUpdatesReq) Reset() {
 	*x = SubpayChUpdatesReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[34]
+		mi := &file_api_proto_msgTypes[40]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2449,7 +2855,7 @@ func (x *SubpayChUpdatesReq) String() string {
 func (*SubpayChUpdatesReq) ProtoMessage() {}
 
 func (x *SubpayChUpdatesReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[34]
+	mi := &file_api_proto_msgTypes[40]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2462,7 +2868,7 @@ func (x *SubpayChUpdatesReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubpayChUpdatesReq.ProtoReflect.Descriptor instead.
 func (*SubpayChUpdatesReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{34}
+	return file_api_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *SubpayChUpdatesReq) GetSessionID() string {
@@ -2493,7 +2899,7 @@ type SubPayChUpdatesResp struct {
 func (x *SubPayChUpdatesResp) Reset() {
 	*x = SubPayChUpdatesResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[35]
+		mi := &file_api_proto_msgTypes[41]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2506,7 +2912,7 @@ func (x *SubPayChUpdatesResp) String() string {
 func (*SubPayChUpdatesResp) ProtoMessage() {}
 
 func (x *SubPayChUpdatesResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[35]
+	mi := &file_api_proto_msgTypes[41]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2519,7 +2925,7 @@ func (x *SubPayChUpdatesResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubPayChUpdatesResp.ProtoReflect.Descriptor instead.
 func (*SubPayChUpdatesResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{35}
+	return file_api_proto_rawDescGZIP(), []int{41}
 }
 
 func (m *SubPayChUpdatesResp) GetResponse() isSubPayChUpdatesResp_Response {
@@ -2571,7 +2977,7 @@ type UnsubPayChUpdatesReq struct {
 func (x *UnsubPayChUpdatesReq) Reset() {
 	*x = UnsubPayChUpdatesReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[36]
+		mi := &file_api_proto_msgTypes[42]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2584,7 +2990,7 @@ func (x *UnsubPayChUpdatesReq) String() string {
 func (*UnsubPayChUpdatesReq) ProtoMessage() {}
 
 func (x *UnsubPayChUpdatesReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[36]
+	mi := &file_api_proto_msgTypes[42]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2597,7 +3003,7 @@ func (x *UnsubPayChUpdatesReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsubPayChUpdatesReq.ProtoReflect.Descriptor instead.
 func (*UnsubPayChUpdatesReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{36}
+	return file_api_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *UnsubPayChUpdatesReq) GetSessionID() string {
@@ -2628,7 +3034,7 @@ type UnsubPayChUpdatesResp struct {
 func (x *UnsubPayChUpdatesResp) Reset() {
 	*x = UnsubPayChUpdatesResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[37]
+		mi := &file_api_proto_msgTypes[43]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2641,7 +3047,7 @@ func (x *UnsubPayChUpdatesResp) String() string {
 func (*UnsubPayChUpdatesResp) ProtoMessage() {}
 
 func (x *UnsubPayChUpdatesResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[37]
+	mi := &file_api_proto_msgTypes[43]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2654,7 +3060,7 @@ func (x *UnsubPayChUpdatesResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsubPayChUpdatesResp.ProtoReflect.Descriptor instead.
 func (*UnsubPayChUpdatesResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{37}
+	return file_api_proto_rawDescGZIP(), []int{43}
 }
 
 func (m *UnsubPayChUpdatesResp) GetResponse() isUnsubPayChUpdatesResp_Response {
@@ -2708,7 +3114,7 @@ type RespondPayChUpdateReq struct {
 func (x *RespondPayChUpdateReq) Reset() {
 	*x = RespondPayChUpdateReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[38]
+		mi := &file_api_proto_msgTypes[44]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2721,7 +3127,7 @@ func (x *RespondPayChUpdateReq) String() string {
 func (*RespondPayChUpdateReq) ProtoMessage() {}
 
 func (x *RespondPayChUpdateReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[38]
+	mi := &file_api_proto_msgTypes[44]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2734,7 +3140,7 @@ func (x *RespondPayChUpdateReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RespondPayChUpdateReq.ProtoReflect.Descriptor instead.
 func (*RespondPayChUpdateReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{38}
+	return file_api_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *RespondPayChUpdateReq) GetSessionID() string {
@@ -2779,7 +3185,7 @@ type RespondPayChUpdateResp struct {
 func (x *RespondPayChUpdateResp) Reset() {
 	*x = RespondPayChUpdateResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[39]
+		mi := &file_api_proto_msgTypes[45]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2792,7 +3198,7 @@ func (x *RespondPayChUpdateResp) String() string {
 func (*RespondPayChUpdateResp) ProtoMessage() {}
 
 func (x *RespondPayChUpdateResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[39]
+	mi := &file_api_proto_msgTypes[45]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2805,7 +3211,7 @@ func (x *RespondPayChUpdateResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RespondPayChUpdateResp.ProtoReflect.Descriptor instead.
 func (*RespondPayChUpdateResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{39}
+	return file_api_proto_rawDescGZIP(), []int{45}
 }
 
 func (m *RespondPayChUpdateResp) GetResponse() isRespondPayChUpdateResp_Response {
@@ -2857,7 +3263,7 @@ type GetPayChInfoReq struct {
 func (x *GetPayChInfoReq) Reset() {
 	*x = GetPayChInfoReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[40]
+		mi := &file_api_proto_msgTypes[46]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2870,7 +3276,7 @@ func (x *GetPayChInfoReq) String() string {
 func (*GetPayChInfoReq) ProtoMessage() {}
 
 func (x *GetPayChInfoReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[40]
+	mi := &file_api_proto_msgTypes[46]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2883,7 +3289,7 @@ func (x *GetPayChInfoReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPayChInfoReq.ProtoReflect.Descriptor instead.
 func (*GetPayChInfoReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{40}
+	return file_api_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *GetPayChInfoReq) GetSessionID() string {
@@ -2914,7 +3320,7 @@ type GetPayChInfoResp struct {
 func (x *GetPayChInfoResp) Reset() {
 	*x = GetPayChInfoResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[41]
+		mi := &file_api_proto_msgTypes[47]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2927,7 +3333,7 @@ func (x *GetPayChInfoResp) String() string {
 func (*GetPayChInfoResp) ProtoMessage() {}
 
 func (x *GetPayChInfoResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[41]
+	mi := &file_api_proto_msgTypes[47]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2940,7 +3346,7 @@ func (x *GetPayChInfoResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPayChInfoResp.ProtoReflect.Descriptor instead.
 func (*GetPayChInfoResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{41}
+	return file_api_proto_rawDescGZIP(), []int{47}
 }
 
 func (m *GetPayChInfoResp) GetResponse() isGetPayChInfoResp_Response {
@@ -2992,7 +3398,7 @@ type ClosePayChReq struct {
 func (x *ClosePayChReq) Reset() {
 	*x = ClosePayChReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[42]
+		mi := &file_api_proto_msgTypes[48]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3005,7 +3411,7 @@ func (x *ClosePayChReq) String() string {
 func (*ClosePayChReq) ProtoMessage() {}
 
 func (x *ClosePayChReq) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[42]
+	mi := &file_api_proto_msgTypes[48]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3018,7 +3424,7 @@ func (x *ClosePayChReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClosePayChReq.ProtoReflect.Descriptor instead.
 func (*ClosePayChReq) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{42}
+	return file_api_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *ClosePayChReq) GetSessionID() string {
@@ -3049,7 +3455,7 @@ type ClosePayChResp struct {
 func (x *ClosePayChResp) Reset() {
 	*x = ClosePayChResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[43]
+		mi := &file_api_proto_msgTypes[49]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3062,7 +3468,7 @@ func (x *ClosePayChResp) String() string {
 func (*ClosePayChResp) ProtoMessage() {}
 
 func (x *ClosePayChResp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[43]
+	mi := &file_api_proto_msgTypes[49]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3075,7 +3481,7 @@ func (x *ClosePayChResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClosePayChResp.ProtoReflect.Descriptor instead.
 func (*ClosePayChResp) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{43}
+	return file_api_proto_rawDescGZIP(), []int{49}
 }
 
 func (m *ClosePayChResp) GetResponse() isClosePayChResp_Response {
@@ -3127,7 +3533,7 @@ type OpenSessionResp_MsgSuccess struct {
 func (x *OpenSessionResp_MsgSuccess) Reset() {
 	*x = OpenSessionResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[44]
+		mi := &file_api_proto_msgTypes[50]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3140,7 +3546,7 @@ func (x *OpenSessionResp_MsgSuccess) String() string {
 func (*OpenSessionResp_MsgSuccess) ProtoMessage() {}
 
 func (x *OpenSessionResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[44]
+	mi := &file_api_proto_msgTypes[50]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3153,7 +3559,7 @@ func (x *OpenSessionResp_MsgSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenSessionResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*OpenSessionResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{11, 0}
+	return file_api_proto_rawDescGZIP(), []int{17, 0}
 }
 
 func (x *OpenSessionResp_MsgSuccess) GetSessionID() string {
@@ -3181,7 +3587,7 @@ type AddPeerIDResp_MsgSuccess struct {
 func (x *AddPeerIDResp_MsgSuccess) Reset() {
 	*x = AddPeerIDResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[45]
+		mi := &file_api_proto_msgTypes[51]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3194,7 +3600,7 @@ func (x *AddPeerIDResp_MsgSuccess) String() string {
 func (*AddPeerIDResp_MsgSuccess) ProtoMessage() {}
 
 func (x *AddPeerIDResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[45]
+	mi := &file_api_proto_msgTypes[51]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3207,7 +3613,7 @@ func (x *AddPeerIDResp_MsgSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddPeerIDResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*AddPeerIDResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{17, 0}
+	return file_api_proto_rawDescGZIP(), []int{23, 0}
 }
 
 func (x *AddPeerIDResp_MsgSuccess) GetSuccess() bool {
@@ -3228,7 +3634,7 @@ type GetPeerIDResp_MsgSuccess struct {
 func (x *GetPeerIDResp_MsgSuccess) Reset() {
 	*x = GetPeerIDResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[46]
+		mi := &file_api_proto_msgTypes[52]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3241,7 +3647,7 @@ func (x *GetPeerIDResp_MsgSuccess) String() string {
 func (*GetPeerIDResp_MsgSuccess) ProtoMessage() {}
 
 func (x *GetPeerIDResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[46]
+	mi := &file_api_proto_msgTypes[52]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3254,7 +3660,7 @@ func (x *GetPeerIDResp_MsgSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPeerIDResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*GetPeerIDResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{19, 0}
+	return file_api_proto_rawDescGZIP(), []int{25, 0}
 }
 
 func (x *GetPeerIDResp_MsgSuccess) GetPeerID() *PeerID {
@@ -3275,7 +3681,7 @@ type OpenPayChResp_MsgSuccess struct {
 func (x *OpenPayChResp_MsgSuccess) Reset() {
 	*x = OpenPayChResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[47]
+		mi := &file_api_proto_msgTypes[53]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3288,7 +3694,7 @@ func (x *OpenPayChResp_MsgSuccess) String() string {
 func (*OpenPayChResp_MsgSuccess) ProtoMessage() {}
 
 func (x *OpenPayChResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[47]
+	mi := &file_api_proto_msgTypes[53]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3301,7 +3707,7 @@ func (x *OpenPayChResp_MsgSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenPayChResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*OpenPayChResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{21, 0}
+	return file_api_proto_rawDescGZIP(), []int{27, 0}
 }
 
 func (x *OpenPayChResp_MsgSuccess) GetOpenedPayChInfo() *PayChInfo {
@@ -3322,7 +3728,7 @@ type GetPayChsInfoResp_MsgSuccess struct {
 func (x *GetPayChsInfoResp_MsgSuccess) Reset() {
 	*x = GetPayChsInfoResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[48]
+		mi := &file_api_proto_msgTypes[54]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3335,7 +3741,7 @@ func (x *GetPayChsInfoResp_MsgSuccess) String() string {
 func (*GetPayChsInfoResp_MsgSuccess) ProtoMessage() {}
 
 func (x *GetPayChsInfoResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[48]
+	mi := &file_api_proto_msgTypes[54]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3348,7 +3754,7 @@ func (x *GetPayChsInfoResp_MsgSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPayChsInfoResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*GetPayChsInfoResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{23, 0}
+	return file_api_proto_rawDescGZIP(), []int{29, 0}
 }
 
 func (x *GetPayChsInfoResp_MsgSuccess) GetOpenPayChsInfo() []*PayChInfo {
@@ -3372,7 +3778,7 @@ type SubPayChProposalsResp_Notify struct {
 func (x *SubPayChProposalsResp_Notify) Reset() {
 	*x = SubPayChProposalsResp_Notify{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[49]
+		mi := &file_api_proto_msgTypes[55]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3385,7 +3791,7 @@ func (x *SubPayChProposalsResp_Notify) String() string {
 func (*SubPayChProposalsResp_Notify) ProtoMessage() {}
 
 func (x *SubPayChProposalsResp_Notify) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[49]
+	mi := &file_api_proto_msgTypes[55]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3398,7 +3804,7 @@ func (x *SubPayChProposalsResp_Notify) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubPayChProposalsResp_Notify.ProtoReflect.Descriptor instead.
 func (*SubPayChProposalsResp_Notify) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{25, 0}
+	return file_api_proto_rawDescGZIP(), []int{31, 0}
 }
 
 func (x *SubPayChProposalsResp_Notify) GetProposalID() string {
@@ -3440,7 +3846,7 @@ type UnsubPayChProposalsResp_MsgSuccess struct {
 func (x *UnsubPayChProposalsResp_MsgSuccess) Reset() {
 	*x = UnsubPayChProposalsResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[50]
+		mi := &file_api_proto_msgTypes[56]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3453,7 +3859,7 @@ func (x *UnsubPayChProposalsResp_MsgSuccess) String() string {
 func (*UnsubPayChProposalsResp_MsgSuccess) ProtoMessage() {}
 
 func (x *UnsubPayChProposalsResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[50]
+	mi := &file_api_proto_msgTypes[56]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3466,7 +3872,7 @@ func (x *UnsubPayChProposalsResp_MsgSuccess) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use UnsubPayChProposalsResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*UnsubPayChProposalsResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{27, 0}
+	return file_api_proto_rawDescGZIP(), []int{33, 0}
 }
 
 func (x *UnsubPayChProposalsResp_MsgSuccess) GetSuccess() bool {
@@ -3487,7 +3893,7 @@ type RespondPayChProposalResp_MsgSuccess struct {
 func (x *RespondPayChProposalResp_MsgSuccess) Reset() {
 	*x = RespondPayChProposalResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[51]
+		mi := &file_api_proto_msgTypes[57]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3500,7 +3906,7 @@ func (x *RespondPayChProposalResp_MsgSuccess) String() string {
 func (*RespondPayChProposalResp_MsgSuccess) ProtoMessage() {}
 
 func (x *RespondPayChProposalResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[51]
+	mi := &file_api_proto_msgTypes[57]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3513,7 +3919,7 @@ func (x *RespondPayChProposalResp_MsgSuccess) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use RespondPayChProposalResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*RespondPayChProposalResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{29, 0}
+	return file_api_proto_rawDescGZIP(), []int{35, 0}
 }
 
 func (x *RespondPayChProposalResp_MsgSuccess) GetOpenedPayChInfo() *PayChInfo {
@@ -3534,7 +3940,7 @@ type CloseSessionResp_MsgSuccess struct {
 func (x *CloseSessionResp_MsgSuccess) Reset() {
 	*x = CloseSessionResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[52]
+		mi := &file_api_proto_msgTypes[58]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3547,7 +3953,7 @@ func (x *CloseSessionResp_MsgSuccess) String() string {
 func (*CloseSessionResp_MsgSuccess) ProtoMessage() {}
 
 func (x *CloseSessionResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[52]
+	mi := &file_api_proto_msgTypes[58]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3560,7 +3966,7 @@ func (x *CloseSessionResp_MsgSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseSessionResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*CloseSessionResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{31, 0}
+	return file_api_proto_rawDescGZIP(), []int{37, 0}
 }
 
 func (x *CloseSessionResp_MsgSuccess) GetOpenPayChsInfo() []*PayChInfo {
@@ -3582,7 +3988,7 @@ type CloseSessionResp_MsgError struct {
 func (x *CloseSessionResp_MsgError) Reset() {
 	*x = CloseSessionResp_MsgError{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[53]
+		mi := &file_api_proto_msgTypes[59]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3595,7 +4001,7 @@ func (x *CloseSessionResp_MsgError) String() string {
 func (*CloseSessionResp_MsgError) ProtoMessage() {}
 
 func (x *CloseSessionResp_MsgError) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[53]
+	mi := &file_api_proto_msgTypes[59]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3608,7 +4014,7 @@ func (x *CloseSessionResp_MsgError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseSessionResp_MsgError.ProtoReflect.Descriptor instead.
 func (*CloseSessionResp_MsgError) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{31, 1}
+	return file_api_proto_rawDescGZIP(), []int{37, 1}
 }
 
 func (x *CloseSessionResp_MsgError) GetOpenPayChsInfo() []*PayChInfo {
@@ -3636,7 +4042,7 @@ type SendPayChUpdateResp_MsgSuccess struct {
 func (x *SendPayChUpdateResp_MsgSuccess) Reset() {
 	*x = SendPayChUpdateResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[54]
+		mi := &file_api_proto_msgTypes[60]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3649,7 +4055,7 @@ func (x *SendPayChUpdateResp_MsgSuccess) String() string {
 func (*SendPayChUpdateResp_MsgSuccess) ProtoMessage() {}
 
 func (x *SendPayChUpdateResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[54]
+	mi := &file_api_proto_msgTypes[60]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3662,7 +4068,7 @@ func (x *SendPayChUpdateResp_MsgSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendPayChUpdateResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*SendPayChUpdateResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{33, 0}
+	return file_api_proto_rawDescGZIP(), []int{39, 0}
 }
 
 func (x *SendPayChUpdateResp_MsgSuccess) GetUpdatedPayChInfo() *PayChInfo {
@@ -3687,7 +4093,7 @@ type SubPayChUpdatesResp_Notify struct {
 func (x *SubPayChUpdatesResp_Notify) Reset() {
 	*x = SubPayChUpdatesResp_Notify{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[55]
+		mi := &file_api_proto_msgTypes[61]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3700,7 +4106,7 @@ func (x *SubPayChUpdatesResp_Notify) String() string {
 func (*SubPayChUpdatesResp_Notify) ProtoMessage() {}
 
 func (x *SubPayChUpdatesResp_Notify) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[55]
+	mi := &file_api_proto_msgTypes[61]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3713,7 +4119,7 @@ func (x *SubPayChUpdatesResp_Notify) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubPayChUpdatesResp_Notify.ProtoReflect.Descriptor instead.
 func (*SubPayChUpdatesResp_Notify) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{35, 0}
+	return file_api_proto_rawDescGZIP(), []int{41, 0}
 }
 
 func (x *SubPayChUpdatesResp_Notify) GetUpdateID() string {
@@ -3762,7 +4168,7 @@ type UnsubPayChUpdatesResp_MsgSuccess struct {
 func (x *UnsubPayChUpdatesResp_MsgSuccess) Reset() {
 	*x = UnsubPayChUpdatesResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[56]
+		mi := &file_api_proto_msgTypes[62]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3775,7 +4181,7 @@ func (x *UnsubPayChUpdatesResp_MsgSuccess) String() string {
 func (*UnsubPayChUpdatesResp_MsgSuccess) ProtoMessage() {}
 
 func (x *UnsubPayChUpdatesResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[56]
+	mi := &file_api_proto_msgTypes[62]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3788,7 +4194,7 @@ func (x *UnsubPayChUpdatesResp_MsgSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsubPayChUpdatesResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*UnsubPayChUpdatesResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{37, 0}
+	return file_api_proto_rawDescGZIP(), []int{43, 0}
 }
 
 func (x *UnsubPayChUpdatesResp_MsgSuccess) GetSuccess() bool {
@@ -3809,7 +4215,7 @@ type RespondPayChUpdateResp_MsgSuccess struct {
 func (x *RespondPayChUpdateResp_MsgSuccess) Reset() {
 	*x = RespondPayChUpdateResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[57]
+		mi := &file_api_proto_msgTypes[63]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3822,7 +4228,7 @@ func (x *RespondPayChUpdateResp_MsgSuccess) String() string {
 func (*RespondPayChUpdateResp_MsgSuccess) ProtoMessage() {}
 
 func (x *RespondPayChUpdateResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[57]
+	mi := &file_api_proto_msgTypes[63]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3835,7 +4241,7 @@ func (x *RespondPayChUpdateResp_MsgSuccess) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use RespondPayChUpdateResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*RespondPayChUpdateResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{39, 0}
+	return file_api_proto_rawDescGZIP(), []int{45, 0}
 }
 
 func (x *RespondPayChUpdateResp_MsgSuccess) GetUpdatedPayChInfo() *PayChInfo {
@@ -3856,7 +4262,7 @@ type GetPayChInfoResp_MsgSuccess struct {
 func (x *GetPayChInfoResp_MsgSuccess) Reset() {
 	*x = GetPayChInfoResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[58]
+		mi := &file_api_proto_msgTypes[64]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3869,7 +4275,7 @@ func (x *GetPayChInfoResp_MsgSuccess) String() string {
 func (*GetPayChInfoResp_MsgSuccess) ProtoMessage() {}
 
 func (x *GetPayChInfoResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[58]
+	mi := &file_api_proto_msgTypes[64]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3882,7 +4288,7 @@ func (x *GetPayChInfoResp_MsgSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPayChInfoResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*GetPayChInfoResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{41, 0}
+	return file_api_proto_rawDescGZIP(), []int{47, 0}
 }
 
 func (x *GetPayChInfoResp_MsgSuccess) GetPayChInfo() *PayChInfo {
@@ -3903,7 +4309,7 @@ type ClosePayChResp_MsgSuccess struct {
 func (x *ClosePayChResp_MsgSuccess) Reset() {
 	*x = ClosePayChResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_proto_msgTypes[59]
+		mi := &file_api_proto_msgTypes[65]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3916,7 +4322,7 @@ func (x *ClosePayChResp_MsgSuccess) String() string {
 func (*ClosePayChResp_MsgSuccess) ProtoMessage() {}
 
 func (x *ClosePayChResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[59]
+	mi := &file_api_proto_msgTypes[65]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3929,7 +4335,7 @@ func (x *ClosePayChResp_MsgSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClosePayChResp_MsgSuccess.ProtoReflect.Descriptor instead.
 func (*ClosePayChResp_MsgSuccess) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{43, 0}
+	return file_api_proto_rawDescGZIP(), []int{49, 0}
 }
 
 func (x *ClosePayChResp_MsgSuccess) GetClosedPayChInfo() *PayChInfo {
@@ -3964,7 +4370,7 @@ var file_api_proto_rawDesc = []byte{
 	0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09,
 	0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x22, 0x20, 0x0a, 0x08, 0x4d, 0x73, 0x67,
 	0x45, 0x72, 0x72, 0x6f, 0x72, 0x12, 0x14, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x22, 0x97, 0x03, 0x0a, 0x0a,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x22, 0xc2, 0x07, 0x0a, 0x0a,
 	0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x56, 0x32, 0x12, 0x2d, 0x0a, 0x08, 0x63, 0x61,
 	0x74, 0x65, 0x67, 0x6f, 0x72, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x11, 0x2e, 0x70,
 	0x62, 0x2e, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x43, 0x61, 0x74, 0x65, 0x67, 0x6f, 0x72, 0x79, 0x52,
@@ -3972,199 +4378,263 @@ var file_api_proto_rawDesc = []byte{
 	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x0d, 0x2e, 0x70, 0x62, 0x2e, 0x45, 0x72, 0x72,
 	0x6f, 0x72, 0x43, 0x6f, 0x64, 0x65, 0x52, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x12, 0x18, 0x0a, 0x07,
 	0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6d,
-	0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x5d, 0x0a, 0x19, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49,
-	0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x4e, 0x6f, 0x74, 0x46, 0x6f,
-	0x75, 0x6e, 0x64, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x70, 0x62, 0x2e, 0x45,
-	0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
-	0x4e, 0x6f, 0x74, 0x46, 0x6f, 0x75, 0x6e, 0x64, 0x48, 0x00, 0x52, 0x19, 0x45, 0x72, 0x72, 0x56,
+	0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x66, 0x0a, 0x1c, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49,
+	0x6e, 0x66, 0x6f, 0x50, 0x65, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x54, 0x69,
+	0x6d, 0x65, 0x64, 0x4f, 0x75, 0x74, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x20, 0x2e, 0x70,
+	0x62, 0x2e, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x50, 0x65, 0x65, 0x72, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x54, 0x69, 0x6d, 0x65, 0x64, 0x4f, 0x75, 0x74, 0x48, 0x00,
+	0x52, 0x1c, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x50, 0x65, 0x65, 0x72, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x54, 0x69, 0x6d, 0x65, 0x64, 0x4f, 0x75, 0x74, 0x12, 0x51,
+	0x0a, 0x15, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x50, 0x65, 0x65, 0x72, 0x52,
+	0x65, 0x6a, 0x65, 0x63, 0x74, 0x65, 0x64, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x19, 0x2e,
+	0x70, 0x62, 0x2e, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x50, 0x65, 0x65, 0x72,
+	0x52, 0x65, 0x6a, 0x65, 0x63, 0x74, 0x65, 0x64, 0x48, 0x00, 0x52, 0x15, 0x45, 0x72, 0x72, 0x56,
+	0x32, 0x49, 0x6e, 0x66, 0x6f, 0x50, 0x65, 0x65, 0x72, 0x52, 0x65, 0x6a, 0x65, 0x63, 0x74, 0x65,
+	0x64, 0x12, 0x54, 0x0a, 0x16, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x50, 0x65,
+	0x65, 0x72, 0x4e, 0x6f, 0x74, 0x46, 0x75, 0x6e, 0x64, 0x65, 0x64, 0x18, 0x06, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x1a, 0x2e, 0x70, 0x62, 0x2e, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f,
+	0x50, 0x65, 0x65, 0x72, 0x4e, 0x6f, 0x74, 0x46, 0x75, 0x6e, 0x64, 0x65, 0x64, 0x48, 0x00, 0x52,
+	0x16, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x50, 0x65, 0x65, 0x72, 0x4e, 0x6f,
+	0x74, 0x46, 0x75, 0x6e, 0x64, 0x65, 0x64, 0x12, 0x69, 0x0a, 0x1d, 0x45, 0x72, 0x72, 0x56, 0x32,
+	0x49, 0x6e, 0x66, 0x6f, 0x55, 0x73, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x54, 0x69, 0x6d, 0x65, 0x64, 0x4f, 0x75, 0x74, 0x18, 0x07, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21,
+	0x2e, 0x70, 0x62, 0x2e, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x55, 0x73, 0x65,
+	0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x54, 0x69, 0x6d, 0x65, 0x64, 0x4f, 0x75,
+	0x74, 0x48, 0x00, 0x52, 0x1d, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x55, 0x73,
+	0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x54, 0x69, 0x6d, 0x65, 0x64, 0x4f,
+	0x75, 0x74, 0x12, 0x5d, 0x0a, 0x19, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x52,
+	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x4e, 0x6f, 0x74, 0x46, 0x6f, 0x75, 0x6e, 0x64, 0x18,
+	0x08, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x70, 0x62, 0x2e, 0x45, 0x72, 0x72, 0x56, 0x32,
+	0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x4e, 0x6f, 0x74, 0x46,
+	0x6f, 0x75, 0x6e, 0x64, 0x48, 0x00, 0x52, 0x19, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66,
+	0x6f, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x4e, 0x6f, 0x74, 0x46, 0x6f, 0x75, 0x6e,
+	0x64, 0x12, 0x57, 0x0a, 0x17, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65,
+	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x45, 0x78, 0x69, 0x73, 0x74, 0x73, 0x18, 0x09, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x70, 0x62, 0x2e, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66,
+	0x6f, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x45, 0x78, 0x69, 0x73, 0x74, 0x73, 0x48,
+	0x00, 0x52, 0x17, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x45, 0x78, 0x69, 0x73, 0x74, 0x73, 0x12, 0x5a, 0x0a, 0x18, 0x45, 0x72,
+	0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x49, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x41, 0x72,
+	0x67, 0x75, 0x6d, 0x65, 0x6e, 0x74, 0x18, 0x0a, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x70,
+	0x62, 0x2e, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x49, 0x6e, 0x76, 0x61, 0x6c,
+	0x69, 0x64, 0x41, 0x72, 0x67, 0x75, 0x6d, 0x65, 0x6e, 0x74, 0x48, 0x00, 0x52, 0x18, 0x45, 0x72,
+	0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x49, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x41, 0x72,
+	0x67, 0x75, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x4b, 0x0a, 0x13, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49,
+	0x6e, 0x66, 0x6f, 0x54, 0x78, 0x54, 0x69, 0x6d, 0x65, 0x64, 0x4f, 0x75, 0x74, 0x18, 0x0b, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x70, 0x62, 0x2e, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e,
+	0x66, 0x6f, 0x54, 0x78, 0x54, 0x69, 0x6d, 0x65, 0x64, 0x4f, 0x75, 0x74, 0x48, 0x00, 0x52, 0x13,
+	0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x54, 0x78, 0x54, 0x69, 0x6d, 0x65, 0x64,
+	0x4f, 0x75, 0x74, 0x12, 0x60, 0x0a, 0x1a, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f,
+	0x43, 0x68, 0x61, 0x69, 0x6e, 0x4e, 0x6f, 0x74, 0x52, 0x65, 0x61, 0x63, 0x68, 0x61, 0x62, 0x6c,
+	0x65, 0x18, 0x0c, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1e, 0x2e, 0x70, 0x62, 0x2e, 0x45, 0x72, 0x72,
+	0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x43, 0x68, 0x61, 0x69, 0x6e, 0x4e, 0x6f, 0x74, 0x52, 0x65,
+	0x61, 0x63, 0x68, 0x61, 0x62, 0x6c, 0x65, 0x48, 0x00, 0x52, 0x1a, 0x45, 0x72, 0x72, 0x56, 0x32,
+	0x49, 0x6e, 0x66, 0x6f, 0x43, 0x68, 0x61, 0x69, 0x6e, 0x4e, 0x6f, 0x74, 0x52, 0x65, 0x61, 0x63,
+	0x68, 0x61, 0x62, 0x6c, 0x65, 0x42, 0x09, 0x0a, 0x07, 0x61, 0x64, 0x64, 0x49, 0x6e, 0x66, 0x6f,
+	0x22, 0x56, 0x0a, 0x1c, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x50, 0x65, 0x65,
+	0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x54, 0x69, 0x6d, 0x65, 0x64, 0x4f, 0x75, 0x74,
+	0x12, 0x1c, 0x0a, 0x09, 0x70, 0x65, 0x65, 0x72, 0x41, 0x6c, 0x69, 0x61, 0x73, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x09, 0x70, 0x65, 0x65, 0x72, 0x41, 0x6c, 0x69, 0x61, 0x73, 0x12, 0x18,
+	0x0a, 0x07, 0x74, 0x69, 0x6d, 0x65, 0x6f, 0x75, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x07, 0x74, 0x69, 0x6d, 0x65, 0x6f, 0x75, 0x74, 0x22, 0x4d, 0x0a, 0x15, 0x45, 0x72, 0x72, 0x56,
+	0x32, 0x49, 0x6e, 0x66, 0x6f, 0x50, 0x65, 0x65, 0x72, 0x52, 0x65, 0x6a, 0x65, 0x63, 0x74, 0x65,
+	0x64, 0x12, 0x1c, 0x0a, 0x09, 0x70, 0x65, 0x65, 0x72, 0x41, 0x6c, 0x69, 0x61, 0x73, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x70, 0x65, 0x65, 0x72, 0x41, 0x6c, 0x69, 0x61, 0x73, 0x12,
+	0x16, 0x0a, 0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x06, 0x72, 0x65, 0x61, 0x73, 0x6f, 0x6e, 0x22, 0x36, 0x0a, 0x16, 0x45, 0x72, 0x72, 0x56, 0x32,
+	0x49, 0x6e, 0x66, 0x6f, 0x50, 0x65, 0x65, 0x72, 0x4e, 0x6f, 0x74, 0x46, 0x75, 0x6e, 0x64, 0x65,
+	0x64, 0x12, 0x1c, 0x0a, 0x09, 0x70, 0x65, 0x65, 0x72, 0x41, 0x6c, 0x69, 0x61, 0x73, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x70, 0x65, 0x65, 0x72, 0x41, 0x6c, 0x69, 0x61, 0x73, 0x22,
+	0x57, 0x0a, 0x1d, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x55, 0x73, 0x65, 0x72,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x54, 0x69, 0x6d, 0x65, 0x64, 0x4f, 0x75, 0x74,
+	0x12, 0x16, 0x0a, 0x06, 0x65, 0x78, 0x70, 0x69, 0x72, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03,
+	0x52, 0x06, 0x65, 0x78, 0x70, 0x69, 0x72, 0x79, 0x12, 0x1e, 0x0a, 0x0a, 0x72, 0x65, 0x63, 0x65,
+	0x69, 0x76, 0x65, 0x64, 0x41, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x0a, 0x72, 0x65,
+	0x63, 0x65, 0x69, 0x76, 0x65, 0x64, 0x41, 0x74, 0x22, 0x3f, 0x0a, 0x19, 0x45, 0x72, 0x72, 0x56,
 	0x32, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x4e, 0x6f, 0x74,
-	0x46, 0x6f, 0x75, 0x6e, 0x64, 0x12, 0x57, 0x0a, 0x17, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e,
-	0x66, 0x6f, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x45, 0x78, 0x69, 0x73, 0x74, 0x73,
-	0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x70, 0x62, 0x2e, 0x45, 0x72, 0x72, 0x56,
-	0x32, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x45, 0x78, 0x69,
-	0x73, 0x74, 0x73, 0x48, 0x00, 0x52, 0x17, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f,
-	0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x45, 0x78, 0x69, 0x73, 0x74, 0x73, 0x12, 0x5a,
-	0x0a, 0x18, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x49, 0x6e, 0x76, 0x61, 0x6c,
-	0x69, 0x64, 0x41, 0x72, 0x67, 0x75, 0x6d, 0x65, 0x6e, 0x74, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x1c, 0x2e, 0x70, 0x62, 0x2e, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x49,
-	0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x41, 0x72, 0x67, 0x75, 0x6d, 0x65, 0x6e, 0x74, 0x48, 0x00,
-	0x52, 0x18, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x49, 0x6e, 0x76, 0x61, 0x6c,
-	0x69, 0x64, 0x41, 0x72, 0x67, 0x75, 0x6d, 0x65, 0x6e, 0x74, 0x42, 0x09, 0x0a, 0x07, 0x61, 0x64,
-	0x64, 0x49, 0x6e, 0x66, 0x6f, 0x22, 0x3f, 0x0a, 0x19, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e,
-	0x66, 0x6f, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x4e, 0x6f, 0x74, 0x46, 0x6f, 0x75,
-	0x6e, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x22, 0x3d, 0x0a, 0x17, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49,
-	0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x45, 0x78, 0x69, 0x73, 0x74,
-	0x73, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x02, 0x69, 0x64, 0x22, 0x66, 0x0a, 0x18, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e,
-	0x66, 0x6f, 0x49, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x41, 0x72, 0x67, 0x75, 0x6d, 0x65, 0x6e,
-	0x74, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x20, 0x0a, 0x0b, 0x72,
-	0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x0b, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x22, 0x0e, 0x0a,
-	0x0c, 0x47, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x71, 0x22, 0xcf, 0x01,
-	0x0a, 0x0d, 0x47, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x73, 0x70, 0x12,
-	0x22, 0x0a, 0x0c, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x41, 0x64, 0x64, 0x72,
-	0x65, 0x73, 0x73, 0x12, 0x2e, 0x0a, 0x12, 0x61, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74,
-	0x6f, 0x72, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x12, 0x61, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x41, 0x64, 0x64, 0x72,
-	0x65, 0x73, 0x73, 0x12, 0x22, 0x0a, 0x0c, 0x61, 0x73, 0x73, 0x65, 0x74, 0x41, 0x64, 0x64, 0x72,
-	0x65, 0x73, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x61, 0x73, 0x73, 0x65, 0x74,
-	0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x1c, 0x0a, 0x09, 0x63, 0x6f, 0x6d, 0x6d, 0x54,
-	0x79, 0x70, 0x65, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28, 0x09, 0x52, 0x09, 0x63, 0x6f, 0x6d, 0x6d,
-	0x54, 0x79, 0x70, 0x65, 0x73, 0x12, 0x28, 0x0a, 0x0f, 0x69, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69,
-	0x64, 0x65, 0x72, 0x54, 0x79, 0x70, 0x65, 0x73, 0x18, 0x05, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0f,
-	0x69, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x54, 0x79, 0x70, 0x65, 0x73, 0x22,
-	0x30, 0x0a, 0x0e, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65,
-	0x71, 0x12, 0x1e, 0x0a, 0x0a, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x46, 0x69, 0x6c, 0x65, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x46, 0x69, 0x6c,
-	0x65, 0x22, 0xe2, 0x01, 0x0a, 0x0f, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f,
-	0x6e, 0x52, 0x65, 0x73, 0x70, 0x12, 0x40, 0x0a, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63,
-	0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1e, 0x2e, 0x70, 0x62, 0x2e, 0x4f,
-	0x70, 0x65, 0x6e, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x70, 0x2e, 0x4d,
-	0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x48, 0x00, 0x52, 0x0a, 0x6d, 0x73, 0x67,
-	0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x24, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45,
-	0x72, 0x72, 0x6f, 0x72, 0x48, 0x00, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x1a, 0x5b, 0x0a,
-	0x0a, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x1c, 0x0a, 0x09, 0x73,
-	0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09,
-	0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x12, 0x2f, 0x0a, 0x0b, 0x72, 0x65, 0x73,
-	0x74, 0x6f, 0x72, 0x65, 0x64, 0x43, 0x68, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0d,
-	0x2e, 0x70, 0x62, 0x2e, 0x50, 0x61, 0x79, 0x43, 0x68, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x0b, 0x72,
-	0x65, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x64, 0x43, 0x68, 0x73, 0x42, 0x0a, 0x0a, 0x08, 0x72, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x09, 0x0a, 0x07, 0x54, 0x69, 0x6d, 0x65, 0x52, 0x65,
-	0x71, 0x22, 0x1e, 0x0a, 0x08, 0x54, 0x69, 0x6d, 0x65, 0x52, 0x65, 0x73, 0x70, 0x12, 0x12, 0x0a,
-	0x04, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x04, 0x74, 0x69, 0x6d,
-	0x65, 0x22, 0x09, 0x0a, 0x07, 0x48, 0x65, 0x6c, 0x70, 0x52, 0x65, 0x71, 0x22, 0x1e, 0x0a, 0x08,
-	0x48, 0x65, 0x6c, 0x70, 0x52, 0x65, 0x73, 0x70, 0x12, 0x12, 0x0a, 0x04, 0x61, 0x70, 0x69, 0x73,
-	0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x04, 0x61, 0x70, 0x69, 0x73, 0x22, 0x50, 0x0a, 0x0c,
-	0x41, 0x64, 0x64, 0x50, 0x65, 0x65, 0x72, 0x49, 0x44, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09,
-	0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x12, 0x22, 0x0a, 0x06, 0x70, 0x65,
-	0x65, 0x72, 0x49, 0x44, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x70, 0x62, 0x2e,
-	0x50, 0x65, 0x65, 0x72, 0x49, 0x44, 0x52, 0x06, 0x70, 0x65, 0x65, 0x72, 0x49, 0x44, 0x22, 0xab,
-	0x01, 0x0a, 0x0d, 0x41, 0x64, 0x64, 0x50, 0x65, 0x65, 0x72, 0x49, 0x44, 0x52, 0x65, 0x73, 0x70,
+	0x46, 0x6f, 0x75, 0x6e, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x22, 0x3d, 0x0a, 0x17, 0x45, 0x72, 0x72,
+	0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x45, 0x78,
+	0x69, 0x73, 0x74, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x22, 0x66, 0x0a, 0x18, 0x45, 0x72, 0x72, 0x56,
+	0x32, 0x49, 0x6e, 0x66, 0x6f, 0x49, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x41, 0x72, 0x67, 0x75,
+	0x6d, 0x65, 0x6e, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75,
+	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x20,
+	0x0a, 0x0b, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x18, 0x03, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x0b, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74,
+	0x22, 0x5f, 0x0a, 0x13, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x54, 0x78, 0x54,
+	0x69, 0x6d, 0x65, 0x64, 0x4f, 0x75, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x74, 0x78, 0x54, 0x79, 0x70,
+	0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x74, 0x78, 0x54, 0x79, 0x70, 0x65, 0x12,
+	0x12, 0x0a, 0x04, 0x74, 0x78, 0x49, 0x44, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x74,
+	0x78, 0x49, 0x44, 0x12, 0x1c, 0x0a, 0x09, 0x74, 0x78, 0x54, 0x69, 0x6d, 0x65, 0x6f, 0x75, 0x74,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x74, 0x78, 0x54, 0x69, 0x6d, 0x65, 0x6f, 0x75,
+	0x74, 0x22, 0x38, 0x0a, 0x1a, 0x45, 0x72, 0x72, 0x56, 0x32, 0x49, 0x6e, 0x66, 0x6f, 0x43, 0x68,
+	0x61, 0x69, 0x6e, 0x4e, 0x6f, 0x74, 0x52, 0x65, 0x61, 0x63, 0x68, 0x61, 0x62, 0x6c, 0x65, 0x12,
+	0x1a, 0x0a, 0x08, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x55, 0x52, 0x4c, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x08, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x55, 0x52, 0x4c, 0x22, 0x0e, 0x0a, 0x0c, 0x47,
+	0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x71, 0x22, 0xcf, 0x01, 0x0a, 0x0d,
+	0x47, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x73, 0x70, 0x12, 0x22, 0x0a,
+	0x0c, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x0c, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73,
+	0x73, 0x12, 0x2e, 0x0a, 0x12, 0x61, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72,
+	0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x12, 0x61,
+	0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73,
+	0x73, 0x12, 0x22, 0x0a, 0x0c, 0x61, 0x73, 0x73, 0x65, 0x74, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73,
+	0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x61, 0x73, 0x73, 0x65, 0x74, 0x41, 0x64,
+	0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x1c, 0x0a, 0x09, 0x63, 0x6f, 0x6d, 0x6d, 0x54, 0x79, 0x70,
+	0x65, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28, 0x09, 0x52, 0x09, 0x63, 0x6f, 0x6d, 0x6d, 0x54, 0x79,
+	0x70, 0x65, 0x73, 0x12, 0x28, 0x0a, 0x0f, 0x69, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65,
+	0x72, 0x54, 0x79, 0x70, 0x65, 0x73, 0x18, 0x05, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0f, 0x69, 0x64,
+	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x54, 0x79, 0x70, 0x65, 0x73, 0x22, 0x30, 0x0a,
+	0x0e, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x12,
+	0x1e, 0x0a, 0x0a, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x46, 0x69, 0x6c, 0x65, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x0a, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x46, 0x69, 0x6c, 0x65, 0x22,
+	0xe2, 0x01, 0x0a, 0x0f, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52,
+	0x65, 0x73, 0x70, 0x12, 0x40, 0x0a, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73,
+	0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1e, 0x2e, 0x70, 0x62, 0x2e, 0x4f, 0x70, 0x65,
+	0x6e, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x70, 0x2e, 0x4d, 0x73, 0x67,
+	0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x48, 0x00, 0x52, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75,
+	0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x24, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72,
+	0x6f, 0x72, 0x48, 0x00, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x1a, 0x5b, 0x0a, 0x0a, 0x4d,
+	0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73,
+	0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65,
+	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x12, 0x2f, 0x0a, 0x0b, 0x72, 0x65, 0x73, 0x74, 0x6f,
+	0x72, 0x65, 0x64, 0x43, 0x68, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x70,
+	0x62, 0x2e, 0x50, 0x61, 0x79, 0x43, 0x68, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x0b, 0x72, 0x65, 0x73,
+	0x74, 0x6f, 0x72, 0x65, 0x64, 0x43, 0x68, 0x73, 0x42, 0x0a, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x22, 0x09, 0x0a, 0x07, 0x54, 0x69, 0x6d, 0x65, 0x52, 0x65, 0x71, 0x22,
+	0x1e, 0x0a, 0x08, 0x54, 0x69, 0x6d, 0x65, 0x52, 0x65, 0x73, 0x70, 0x12, 0x12, 0x0a, 0x04, 0x74,
+	0x69, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x22,
+	0x09, 0x0a, 0x07, 0x48, 0x65, 0x6c, 0x70, 0x52, 0x65, 0x71, 0x22, 0x1e, 0x0a, 0x08, 0x48, 0x65,
+	0x6c, 0x70, 0x52, 0x65, 0x73, 0x70, 0x12, 0x12, 0x0a, 0x04, 0x61, 0x70, 0x69, 0x73, 0x18, 0x01,
+	0x20, 0x03, 0x28, 0x09, 0x52, 0x04, 0x61, 0x70, 0x69, 0x73, 0x22, 0x50, 0x0a, 0x0c, 0x41, 0x64,
+	0x64, 0x50, 0x65, 0x65, 0x72, 0x49, 0x44, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65,
+	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73,
+	0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x12, 0x22, 0x0a, 0x06, 0x70, 0x65, 0x65, 0x72,
+	0x49, 0x44, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x70, 0x62, 0x2e, 0x50, 0x65,
+	0x65, 0x72, 0x49, 0x44, 0x52, 0x06, 0x70, 0x65, 0x65, 0x72, 0x49, 0x44, 0x22, 0xab, 0x01, 0x0a,
+	0x0d, 0x41, 0x64, 0x64, 0x50, 0x65, 0x65, 0x72, 0x49, 0x44, 0x52, 0x65, 0x73, 0x70, 0x12, 0x3e,
+	0x0a, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x70, 0x62, 0x2e, 0x41, 0x64, 0x64, 0x50, 0x65, 0x65, 0x72, 0x49,
+	0x44, 0x52, 0x65, 0x73, 0x70, 0x2e, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73,
+	0x48, 0x00, 0x52, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x26,
+	0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0e, 0x2e,
+	0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x56, 0x32, 0x48, 0x00, 0x52,
+	0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x1a, 0x26, 0x0a, 0x0a, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63,
+	0x63, 0x65, 0x73, 0x73, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x42, 0x0a,
+	0x0a, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x42, 0x0a, 0x0c, 0x47, 0x65,
+	0x74, 0x50, 0x65, 0x65, 0x72, 0x49, 0x44, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65,
+	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73,
+	0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x12, 0x14, 0x0a, 0x05, 0x61, 0x6c, 0x69, 0x61,
+	0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x61, 0x6c, 0x69, 0x61, 0x73, 0x22, 0xb5,
+	0x01, 0x0a, 0x0d, 0x47, 0x65, 0x74, 0x50, 0x65, 0x65, 0x72, 0x49, 0x44, 0x52, 0x65, 0x73, 0x70,
 	0x12, 0x3e, 0x0a, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x70, 0x62, 0x2e, 0x41, 0x64, 0x64, 0x50, 0x65, 0x65,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x70, 0x62, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x65, 0x65,
 	0x72, 0x49, 0x44, 0x52, 0x65, 0x73, 0x70, 0x2e, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65,
 	0x73, 0x73, 0x48, 0x00, 0x52, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73,
 	0x12, 0x26, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32,
 	0x0e, 0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x56, 0x32, 0x48,
-	0x00, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x1a, 0x26, 0x0a, 0x0a, 0x4d, 0x73, 0x67, 0x53,
-	0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73,
-	0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73,
-	0x42, 0x0a, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x42, 0x0a, 0x0c,
-	0x47, 0x65, 0x74, 0x50, 0x65, 0x65, 0x72, 0x49, 0x44, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09,
-	0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x12, 0x14, 0x0a, 0x05, 0x61, 0x6c,
-	0x69, 0x61, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x61, 0x6c, 0x69, 0x61, 0x73,
-	0x22, 0xb5, 0x01, 0x0a, 0x0d, 0x47, 0x65, 0x74, 0x50, 0x65, 0x65, 0x72, 0x49, 0x44, 0x52, 0x65,
-	0x73, 0x70, 0x12, 0x3e, 0x0a, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x70, 0x62, 0x2e, 0x47, 0x65, 0x74, 0x50,
-	0x65, 0x65, 0x72, 0x49, 0x44, 0x52, 0x65, 0x73, 0x70, 0x2e, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63,
-	0x63, 0x65, 0x73, 0x73, 0x48, 0x00, 0x52, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65,
-	0x73, 0x73, 0x12, 0x26, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x0e, 0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x56,
-	0x32, 0x48, 0x00, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x1a, 0x30, 0x0a, 0x0a, 0x4d, 0x73,
-	0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x22, 0x0a, 0x06, 0x70, 0x65, 0x65, 0x72,
-	0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x70, 0x62, 0x2e, 0x50, 0x65,
-	0x65, 0x72, 0x49, 0x44, 0x52, 0x06, 0x70, 0x65, 0x65, 0x72, 0x49, 0x44, 0x42, 0x0a, 0x0a, 0x08,
-	0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x8d, 0x01, 0x0a, 0x0c, 0x4f, 0x70, 0x65,
-	0x6e, 0x50, 0x61, 0x79, 0x43, 0x68, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73,
-	0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65,
-	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x12, 0x33, 0x0a, 0x0e, 0x6f, 0x70, 0x65, 0x6e, 0x69,
-	0x6e, 0x67, 0x42, 0x61, 0x6c, 0x49, 0x6e, 0x66, 0x6f, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x00, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x1a, 0x30, 0x0a, 0x0a, 0x4d, 0x73, 0x67, 0x53,
+	0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x22, 0x0a, 0x06, 0x70, 0x65, 0x65, 0x72, 0x49, 0x44,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x70, 0x62, 0x2e, 0x50, 0x65, 0x65, 0x72,
+	0x49, 0x44, 0x52, 0x06, 0x70, 0x65, 0x65, 0x72, 0x49, 0x44, 0x42, 0x0a, 0x0a, 0x08, 0x72, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x8d, 0x01, 0x0a, 0x0c, 0x4f, 0x70, 0x65, 0x6e, 0x50,
+	0x61, 0x79, 0x43, 0x68, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69,
+	0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65, 0x73, 0x73,
+	0x69, 0x6f, 0x6e, 0x49, 0x44, 0x12, 0x33, 0x0a, 0x0e, 0x6f, 0x70, 0x65, 0x6e, 0x69, 0x6e, 0x67,
+	0x42, 0x61, 0x6c, 0x49, 0x6e, 0x66, 0x6f, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0b, 0x2e,
+	0x70, 0x62, 0x2e, 0x42, 0x61, 0x6c, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x0e, 0x6f, 0x70, 0x65, 0x6e,
+	0x69, 0x6e, 0x67, 0x42, 0x61, 0x6c, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x2a, 0x0a, 0x10, 0x63, 0x68,
+	0x61, 0x6c, 0x6c, 0x65, 0x6e, 0x67, 0x65, 0x44, 0x75, 0x72, 0x53, 0x65, 0x63, 0x73, 0x18, 0x03,
+	0x20, 0x01, 0x28, 0x04, 0x52, 0x10, 0x63, 0x68, 0x61, 0x6c, 0x6c, 0x65, 0x6e, 0x67, 0x65, 0x44,
+	0x75, 0x72, 0x53, 0x65, 0x63, 0x73, 0x22, 0xca, 0x01, 0x0a, 0x0d, 0x4f, 0x70, 0x65, 0x6e, 0x50,
+	0x61, 0x79, 0x43, 0x68, 0x52, 0x65, 0x73, 0x70, 0x12, 0x3e, 0x0a, 0x0a, 0x6d, 0x73, 0x67, 0x53,
+	0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x70,
+	0x62, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x50, 0x61, 0x79, 0x43, 0x68, 0x52, 0x65, 0x73, 0x70, 0x2e,
+	0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x48, 0x00, 0x52, 0x0a, 0x6d, 0x73,
+	0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x26, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f,
+	0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67,
+	0x45, 0x72, 0x72, 0x6f, 0x72, 0x56, 0x32, 0x48, 0x00, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72,
+	0x1a, 0x45, 0x0a, 0x0a, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x37,
+	0x0a, 0x0f, 0x6f, 0x70, 0x65, 0x6e, 0x65, 0x64, 0x50, 0x61, 0x79, 0x43, 0x68, 0x49, 0x6e, 0x66,
+	0x6f, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x70, 0x62, 0x2e, 0x50, 0x61, 0x79,
+	0x43, 0x68, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x0f, 0x6f, 0x70, 0x65, 0x6e, 0x65, 0x64, 0x50, 0x61,
+	0x79, 0x43, 0x68, 0x49, 0x6e, 0x66, 0x6f, 0x42, 0x0a, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x22, 0x30, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x50, 0x61, 0x79, 0x43, 0x68, 0x73,
+	0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69,
+	0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65, 0x73, 0x73,
+	0x69, 0x6f, 0x6e, 0x49, 0x44, 0x22, 0xd0, 0x01, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x50, 0x61, 0x79,
+	0x43, 0x68, 0x73, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x70, 0x12, 0x42, 0x0a, 0x0a, 0x6d,
+	0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x20, 0x2e, 0x70, 0x62, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x61, 0x79, 0x43, 0x68, 0x73, 0x49, 0x6e,
+	0x66, 0x6f, 0x52, 0x65, 0x73, 0x70, 0x2e, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73,
+	0x73, 0x48, 0x00, 0x52, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12,
+	0x26, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0e,
+	0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x56, 0x32, 0x48, 0x00,
+	0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x1a, 0x43, 0x0a, 0x0a, 0x4d, 0x73, 0x67, 0x53, 0x75,
+	0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x35, 0x0a, 0x0e, 0x6f, 0x70, 0x65, 0x6e, 0x50, 0x61, 0x79,
+	0x43, 0x68, 0x73, 0x49, 0x6e, 0x66, 0x6f, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0d, 0x2e,
+	0x70, 0x62, 0x2e, 0x50, 0x61, 0x79, 0x43, 0x68, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x0e, 0x6f, 0x70,
+	0x65, 0x6e, 0x50, 0x61, 0x79, 0x43, 0x68, 0x73, 0x49, 0x6e, 0x66, 0x6f, 0x42, 0x0a, 0x0a, 0x08,
+	0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x34, 0x0a, 0x14, 0x53, 0x75, 0x62, 0x50,
+	0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x73, 0x52, 0x65, 0x71,
+	0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x22, 0xab,
+	0x02, 0x0a, 0x15, 0x53, 0x75, 0x62, 0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f,
+	0x73, 0x61, 0x6c, 0x73, 0x52, 0x65, 0x73, 0x70, 0x12, 0x3a, 0x0a, 0x06, 0x6e, 0x6f, 0x74, 0x69,
+	0x66, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x20, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x75,
+	0x62, 0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x73, 0x52,
+	0x65, 0x73, 0x70, 0x2e, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x48, 0x00, 0x52, 0x06, 0x6e, 0x6f,
+	0x74, 0x69, 0x66, 0x79, 0x12, 0x26, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f,
+	0x72, 0x56, 0x32, 0x48, 0x00, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x1a, 0xa1, 0x01, 0x0a,
+	0x06, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x12, 0x1e, 0x0a, 0x0a, 0x70, 0x72, 0x6f, 0x70, 0x6f,
+	0x73, 0x61, 0x6c, 0x49, 0x44, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x70, 0x72, 0x6f,
+	0x70, 0x6f, 0x73, 0x61, 0x6c, 0x49, 0x44, 0x12, 0x33, 0x0a, 0x0e, 0x6f, 0x70, 0x65, 0x6e, 0x69,
+	0x6e, 0x67, 0x42, 0x61, 0x6c, 0x49, 0x6e, 0x66, 0x6f, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32,
 	0x0b, 0x2e, 0x70, 0x62, 0x2e, 0x42, 0x61, 0x6c, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x0e, 0x6f, 0x70,
 	0x65, 0x6e, 0x69, 0x6e, 0x67, 0x42, 0x61, 0x6c, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x2a, 0x0a, 0x10,
 	0x63, 0x68, 0x61, 0x6c, 0x6c, 0x65, 0x6e, 0x67, 0x65, 0x44, 0x75, 0x72, 0x53, 0x65, 0x63, 0x73,
-	0x18, 0x03, 0x20, 0x01, 0x28, 0x04, 0x52, 0x10, 0x63, 0x68, 0x61, 0x6c, 0x6c, 0x65, 0x6e, 0x67,
-	0x65, 0x44, 0x75, 0x72, 0x53, 0x65, 0x63, 0x73, 0x22, 0xca, 0x01, 0x0a, 0x0d, 0x4f, 0x70, 0x65,
-	0x6e, 0x50, 0x61, 0x79, 0x43, 0x68, 0x52, 0x65, 0x73, 0x70, 0x12, 0x3e, 0x0a, 0x0a, 0x6d, 0x73,
-	0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c,
-	0x2e, 0x70, 0x62, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x50, 0x61, 0x79, 0x43, 0x68, 0x52, 0x65, 0x73,
+	0x18, 0x05, 0x20, 0x01, 0x28, 0x04, 0x52, 0x10, 0x63, 0x68, 0x61, 0x6c, 0x6c, 0x65, 0x6e, 0x67,
+	0x65, 0x44, 0x75, 0x72, 0x53, 0x65, 0x63, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x65, 0x78, 0x70, 0x69,
+	0x72, 0x79, 0x18, 0x06, 0x20, 0x01, 0x28, 0x03, 0x52, 0x06, 0x65, 0x78, 0x70, 0x69, 0x72, 0x79,
+	0x42, 0x0a, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x36, 0x0a, 0x16,
+	0x55, 0x6e, 0x73, 0x75, 0x62, 0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73,
+	0x61, 0x6c, 0x73, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f,
+	0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69,
+	0x6f, 0x6e, 0x49, 0x44, 0x22, 0xbf, 0x01, 0x0a, 0x17, 0x55, 0x6e, 0x73, 0x75, 0x62, 0x50, 0x61,
+	0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x73, 0x52, 0x65, 0x73, 0x70,
+	0x12, 0x48, 0x0a, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x26, 0x2e, 0x70, 0x62, 0x2e, 0x55, 0x6e, 0x73, 0x75, 0x62, 0x50,
+	0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x73, 0x52, 0x65, 0x73,
 	0x70, 0x2e, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x48, 0x00, 0x52, 0x0a,
 	0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x26, 0x0a, 0x05, 0x65, 0x72,
 	0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x70, 0x62, 0x2e, 0x4d,
 	0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x56, 0x32, 0x48, 0x00, 0x52, 0x05, 0x65, 0x72, 0x72,
-	0x6f, 0x72, 0x1a, 0x45, 0x0a, 0x0a, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73,
-	0x12, 0x37, 0x0a, 0x0f, 0x6f, 0x70, 0x65, 0x6e, 0x65, 0x64, 0x50, 0x61, 0x79, 0x43, 0x68, 0x49,
-	0x6e, 0x66, 0x6f, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x70, 0x62, 0x2e, 0x50,
-	0x61, 0x79, 0x43, 0x68, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x0f, 0x6f, 0x70, 0x65, 0x6e, 0x65, 0x64,
-	0x50, 0x61, 0x79, 0x43, 0x68, 0x49, 0x6e, 0x66, 0x6f, 0x42, 0x0a, 0x0a, 0x08, 0x72, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x30, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x50, 0x61, 0x79, 0x43,
-	0x68, 0x73, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73,
-	0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65,
-	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x22, 0xd0, 0x01, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x50,
-	0x61, 0x79, 0x43, 0x68, 0x73, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x70, 0x12, 0x42, 0x0a,
-	0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x20, 0x2e, 0x70, 0x62, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x61, 0x79, 0x43, 0x68, 0x73,
-	0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x70, 0x2e, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63,
-	0x65, 0x73, 0x73, 0x48, 0x00, 0x52, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73,
-	0x73, 0x12, 0x26, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x0e, 0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x56, 0x32,
-	0x48, 0x00, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x1a, 0x43, 0x0a, 0x0a, 0x4d, 0x73, 0x67,
-	0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x35, 0x0a, 0x0e, 0x6f, 0x70, 0x65, 0x6e, 0x50,
-	0x61, 0x79, 0x43, 0x68, 0x73, 0x49, 0x6e, 0x66, 0x6f, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32,
-	0x0d, 0x2e, 0x70, 0x62, 0x2e, 0x50, 0x61, 0x79, 0x43, 0x68, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x0e,
-	0x6f, 0x70, 0x65, 0x6e, 0x50, 0x61, 0x79, 0x43, 0x68, 0x73, 0x49, 0x6e, 0x66, 0x6f, 0x42, 0x0a,
-	0x0a, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x34, 0x0a, 0x14, 0x53, 0x75,
-	0x62, 0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x73, 0x52,
-	0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44,
-	0x22, 0xab, 0x02, 0x0a, 0x15, 0x53, 0x75, 0x62, 0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f,
-	0x70, 0x6f, 0x73, 0x61, 0x6c, 0x73, 0x52, 0x65, 0x73, 0x70, 0x12, 0x3a, 0x0a, 0x06, 0x6e, 0x6f,
-	0x74, 0x69, 0x66, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x20, 0x2e, 0x70, 0x62, 0x2e,
-	0x53, 0x75, 0x62, 0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c,
-	0x73, 0x52, 0x65, 0x73, 0x70, 0x2e, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x48, 0x00, 0x52, 0x06,
-	0x6e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x12, 0x26, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72,
-	0x72, 0x6f, 0x72, 0x56, 0x32, 0x48, 0x00, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x1a, 0xa1,
-	0x01, 0x0a, 0x06, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x12, 0x1e, 0x0a, 0x0a, 0x70, 0x72, 0x6f,
-	0x70, 0x6f, 0x73, 0x61, 0x6c, 0x49, 0x44, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x70,
-	0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x49, 0x44, 0x12, 0x33, 0x0a, 0x0e, 0x6f, 0x70, 0x65,
-	0x6e, 0x69, 0x6e, 0x67, 0x42, 0x61, 0x6c, 0x49, 0x6e, 0x66, 0x6f, 0x18, 0x04, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x0b, 0x2e, 0x70, 0x62, 0x2e, 0x42, 0x61, 0x6c, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x0e,
-	0x6f, 0x70, 0x65, 0x6e, 0x69, 0x6e, 0x67, 0x42, 0x61, 0x6c, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x2a,
-	0x0a, 0x10, 0x63, 0x68, 0x61, 0x6c, 0x6c, 0x65, 0x6e, 0x67, 0x65, 0x44, 0x75, 0x72, 0x53, 0x65,
-	0x63, 0x73, 0x18, 0x05, 0x20, 0x01, 0x28, 0x04, 0x52, 0x10, 0x63, 0x68, 0x61, 0x6c, 0x6c, 0x65,
-	0x6e, 0x67, 0x65, 0x44, 0x75, 0x72, 0x53, 0x65, 0x63, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x65, 0x78,
-	0x70, 0x69, 0x72, 0x79, 0x18, 0x06, 0x20, 0x01, 0x28, 0x03, 0x52, 0x06, 0x65, 0x78, 0x70, 0x69,
-	0x72, 0x79, 0x42, 0x0a, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x36,
-	0x0a, 0x16, 0x55, 0x6e, 0x73, 0x75, 0x62, 0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70,
-	0x6f, 0x73, 0x61, 0x6c, 0x73, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73, 0x73,
-	0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65, 0x73,
-	0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x22, 0xbf, 0x01, 0x0a, 0x17, 0x55, 0x6e, 0x73, 0x75, 0x62,
-	0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x73, 0x52, 0x65,
-	0x73, 0x70, 0x12, 0x48, 0x0a, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x26, 0x2e, 0x70, 0x62, 0x2e, 0x55, 0x6e, 0x73, 0x75,
-	0x62, 0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x73, 0x52,
-	0x65, 0x73, 0x70, 0x2e, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x48, 0x00,
-	0x52, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x26, 0x0a, 0x05,
-	0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x70, 0x62,
-	0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x56, 0x32, 0x48, 0x00, 0x52, 0x05, 0x65,
-	0x72, 0x72, 0x6f, 0x72, 0x1a, 0x26, 0x0a, 0x0a, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65,
-	0x73, 0x73, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x08, 0x52, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x42, 0x0a, 0x0a, 0x08,
-	0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x6f, 0x0a, 0x17, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x72, 0x1a, 0x26, 0x0a, 0x0a, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73,
+	0x12, 0x18, 0x0a, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x08, 0x52, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x42, 0x0a, 0x0a, 0x08, 0x72, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x6f, 0x0a, 0x17, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x64, 0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x52, 0x65,
+	0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x12,
+	0x1e, 0x0a, 0x0a, 0x70, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x49, 0x44, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x0a, 0x70, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x49, 0x44, 0x12,
+	0x16, 0x0a, 0x06, 0x61, 0x63, 0x63, 0x65, 0x70, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x08, 0x52,
+	0x06, 0x61, 0x63, 0x63, 0x65, 0x70, 0x74, 0x22, 0xe0, 0x01, 0x0a, 0x18, 0x52, 0x65, 0x73, 0x70,
 	0x6f, 0x6e, 0x64, 0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c,
-	0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49,
-	0x44, 0x12, 0x1e, 0x0a, 0x0a, 0x70, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x49, 0x44, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x70, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x49,
-	0x44, 0x12, 0x16, 0x0a, 0x06, 0x61, 0x63, 0x63, 0x65, 0x70, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28,
-	0x08, 0x52, 0x06, 0x61, 0x63, 0x63, 0x65, 0x70, 0x74, 0x22, 0xde, 0x01, 0x0a, 0x18, 0x52, 0x65,
+	0x52, 0x65, 0x73, 0x70, 0x12, 0x49, 0x0a, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65,
+	0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x27, 0x2e, 0x70, 0x62, 0x2e, 0x52, 0x65,
 	0x73, 0x70, 0x6f, 0x6e, 0x64, 0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73,
-	0x61, 0x6c, 0x52, 0x65, 0x73, 0x70, 0x12, 0x49, 0x0a, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63,
-	0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x27, 0x2e, 0x70, 0x62, 0x2e,
-	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x64, 0x50, 0x61, 0x79, 0x43, 0x68, 0x50, 0x72, 0x6f, 0x70,
-	0x6f, 0x73, 0x61, 0x6c, 0x52, 0x65, 0x73, 0x70, 0x2e, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63,
-	0x65, 0x73, 0x73, 0x48, 0x00, 0x52, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73,
-	0x73, 0x12, 0x24, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x0c, 0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x48, 0x00,
+	0x61, 0x6c, 0x52, 0x65, 0x73, 0x70, 0x2e, 0x4d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73,
+	0x73, 0x48, 0x00, 0x52, 0x0a, 0x6d, 0x73, 0x67, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12,
+	0x26, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0e,
+	0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x56, 0x32, 0x48, 0x00,
 	0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x1a, 0x45, 0x0a, 0x0a, 0x4d, 0x73, 0x67, 0x53, 0x75,
 	0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x37, 0x0a, 0x0f, 0x6f, 0x70, 0x65, 0x6e, 0x65, 0x64, 0x50,
 	0x61, 0x79, 0x43, 0x68, 0x49, 0x6e, 0x66, 0x6f, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0d,
@@ -4438,7 +4908,7 @@ func file_api_proto_rawDescGZIP() []byte {
 }
 
 var file_api_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_api_proto_msgTypes = make([]protoimpl.MessageInfo, 60)
+var file_api_proto_msgTypes = make([]protoimpl.MessageInfo, 66)
 var file_api_proto_goTypes = []interface{}{
 	(ErrorCategory)(0), // 0: pb.ErrorCategory
 	(ErrorCode)(0),     // 1: pb.ErrorCode
@@ -4448,156 +4918,168 @@ var file_api_proto_goTypes = []interface{}{
 	(*PayChInfo)(nil),                           // 5: pb.PayChInfo
 	(*MsgError)(nil),                            // 6: pb.MsgError
 	(*MsgErrorV2)(nil),                          // 7: pb.MsgErrorV2
-	(*ErrV2InfoResourceNotFound)(nil),           // 8: pb.ErrV2InfoResourceNotFound
-	(*ErrV2InfoResourceExists)(nil),             // 9: pb.ErrV2InfoResourceExists
-	(*ErrV2InfoInvalidArgument)(nil),            // 10: pb.ErrV2InfoInvalidArgument
-	(*GetConfigReq)(nil),                        // 11: pb.GetConfigReq
-	(*GetConfigResp)(nil),                       // 12: pb.GetConfigResp
-	(*OpenSessionReq)(nil),                      // 13: pb.OpenSessionReq
-	(*OpenSessionResp)(nil),                     // 14: pb.OpenSessionResp
-	(*TimeReq)(nil),                             // 15: pb.TimeReq
-	(*TimeResp)(nil),                            // 16: pb.TimeResp
-	(*HelpReq)(nil),                             // 17: pb.HelpReq
-	(*HelpResp)(nil),                            // 18: pb.HelpResp
-	(*AddPeerIDReq)(nil),                        // 19: pb.AddPeerIDReq
-	(*AddPeerIDResp)(nil),                       // 20: pb.AddPeerIDResp
-	(*GetPeerIDReq)(nil),                        // 21: pb.GetPeerIDReq
-	(*GetPeerIDResp)(nil),                       // 22: pb.GetPeerIDResp
-	(*OpenPayChReq)(nil),                        // 23: pb.OpenPayChReq
-	(*OpenPayChResp)(nil),                       // 24: pb.OpenPayChResp
-	(*GetPayChsInfoReq)(nil),                    // 25: pb.GetPayChsInfoReq
-	(*GetPayChsInfoResp)(nil),                   // 26: pb.GetPayChsInfoResp
-	(*SubPayChProposalsReq)(nil),                // 27: pb.SubPayChProposalsReq
-	(*SubPayChProposalsResp)(nil),               // 28: pb.SubPayChProposalsResp
-	(*UnsubPayChProposalsReq)(nil),              // 29: pb.UnsubPayChProposalsReq
-	(*UnsubPayChProposalsResp)(nil),             // 30: pb.UnsubPayChProposalsResp
-	(*RespondPayChProposalReq)(nil),             // 31: pb.RespondPayChProposalReq
-	(*RespondPayChProposalResp)(nil),            // 32: pb.RespondPayChProposalResp
-	(*CloseSessionReq)(nil),                     // 33: pb.CloseSessionReq
-	(*CloseSessionResp)(nil),                    // 34: pb.CloseSessionResp
-	(*SendPayChUpdateReq)(nil),                  // 35: pb.SendPayChUpdateReq
-	(*SendPayChUpdateResp)(nil),                 // 36: pb.SendPayChUpdateResp
-	(*SubpayChUpdatesReq)(nil),                  // 37: pb.SubpayChUpdatesReq
-	(*SubPayChUpdatesResp)(nil),                 // 38: pb.SubPayChUpdatesResp
-	(*UnsubPayChUpdatesReq)(nil),                // 39: pb.UnsubPayChUpdatesReq
-	(*UnsubPayChUpdatesResp)(nil),               // 40: pb.UnsubPayChUpdatesResp
-	(*RespondPayChUpdateReq)(nil),               // 41: pb.RespondPayChUpdateReq
-	(*RespondPayChUpdateResp)(nil),              // 42: pb.RespondPayChUpdateResp
-	(*GetPayChInfoReq)(nil),                     // 43: pb.GetPayChInfoReq
-	(*GetPayChInfoResp)(nil),                    // 44: pb.GetPayChInfoResp
-	(*ClosePayChReq)(nil),                       // 45: pb.ClosePayChReq
-	(*ClosePayChResp)(nil),                      // 46: pb.ClosePayChResp
-	(*OpenSessionResp_MsgSuccess)(nil),          // 47: pb.OpenSessionResp.MsgSuccess
-	(*AddPeerIDResp_MsgSuccess)(nil),            // 48: pb.AddPeerIDResp.MsgSuccess
-	(*GetPeerIDResp_MsgSuccess)(nil),            // 49: pb.GetPeerIDResp.MsgSuccess
-	(*OpenPayChResp_MsgSuccess)(nil),            // 50: pb.OpenPayChResp.MsgSuccess
-	(*GetPayChsInfoResp_MsgSuccess)(nil),        // 51: pb.GetPayChsInfoResp.MsgSuccess
-	(*SubPayChProposalsResp_Notify)(nil),        // 52: pb.SubPayChProposalsResp.Notify
-	(*UnsubPayChProposalsResp_MsgSuccess)(nil),  // 53: pb.UnsubPayChProposalsResp.MsgSuccess
-	(*RespondPayChProposalResp_MsgSuccess)(nil), // 54: pb.RespondPayChProposalResp.MsgSuccess
-	(*CloseSessionResp_MsgSuccess)(nil),         // 55: pb.CloseSessionResp.MsgSuccess
-	(*CloseSessionResp_MsgError)(nil),           // 56: pb.CloseSessionResp.MsgError
-	(*SendPayChUpdateResp_MsgSuccess)(nil),      // 57: pb.SendPayChUpdateResp.MsgSuccess
-	(*SubPayChUpdatesResp_Notify)(nil),          // 58: pb.SubPayChUpdatesResp.Notify
-	(*UnsubPayChUpdatesResp_MsgSuccess)(nil),    // 59: pb.UnsubPayChUpdatesResp.MsgSuccess
-	(*RespondPayChUpdateResp_MsgSuccess)(nil),   // 60: pb.RespondPayChUpdateResp.MsgSuccess
-	(*GetPayChInfoResp_MsgSuccess)(nil),         // 61: pb.GetPayChInfoResp.MsgSuccess
-	(*ClosePayChResp_MsgSuccess)(nil),           // 62: pb.ClosePayChResp.MsgSuccess
+	(*ErrV2InfoPeerRequestTimedOut)(nil),        // 8: pb.ErrV2InfoPeerRequestTimedOut
+	(*ErrV2InfoPeerRejected)(nil),               // 9: pb.ErrV2InfoPeerRejected
+	(*ErrV2InfoPeerNotFunded)(nil),              // 10: pb.ErrV2InfoPeerNotFunded
+	(*ErrV2InfoUserResponseTimedOut)(nil),       // 11: pb.ErrV2InfoUserResponseTimedOut
+	(*ErrV2InfoResourceNotFound)(nil),           // 12: pb.ErrV2InfoResourceNotFound
+	(*ErrV2InfoResourceExists)(nil),             // 13: pb.ErrV2InfoResourceExists
+	(*ErrV2InfoInvalidArgument)(nil),            // 14: pb.ErrV2InfoInvalidArgument
+	(*ErrV2InfoTxTimedOut)(nil),                 // 15: pb.ErrV2InfoTxTimedOut
+	(*ErrV2InfoChainNotReachable)(nil),          // 16: pb.ErrV2InfoChainNotReachable
+	(*GetConfigReq)(nil),                        // 17: pb.GetConfigReq
+	(*GetConfigResp)(nil),                       // 18: pb.GetConfigResp
+	(*OpenSessionReq)(nil),                      // 19: pb.OpenSessionReq
+	(*OpenSessionResp)(nil),                     // 20: pb.OpenSessionResp
+	(*TimeReq)(nil),                             // 21: pb.TimeReq
+	(*TimeResp)(nil),                            // 22: pb.TimeResp
+	(*HelpReq)(nil),                             // 23: pb.HelpReq
+	(*HelpResp)(nil),                            // 24: pb.HelpResp
+	(*AddPeerIDReq)(nil),                        // 25: pb.AddPeerIDReq
+	(*AddPeerIDResp)(nil),                       // 26: pb.AddPeerIDResp
+	(*GetPeerIDReq)(nil),                        // 27: pb.GetPeerIDReq
+	(*GetPeerIDResp)(nil),                       // 28: pb.GetPeerIDResp
+	(*OpenPayChReq)(nil),                        // 29: pb.OpenPayChReq
+	(*OpenPayChResp)(nil),                       // 30: pb.OpenPayChResp
+	(*GetPayChsInfoReq)(nil),                    // 31: pb.GetPayChsInfoReq
+	(*GetPayChsInfoResp)(nil),                   // 32: pb.GetPayChsInfoResp
+	(*SubPayChProposalsReq)(nil),                // 33: pb.SubPayChProposalsReq
+	(*SubPayChProposalsResp)(nil),               // 34: pb.SubPayChProposalsResp
+	(*UnsubPayChProposalsReq)(nil),              // 35: pb.UnsubPayChProposalsReq
+	(*UnsubPayChProposalsResp)(nil),             // 36: pb.UnsubPayChProposalsResp
+	(*RespondPayChProposalReq)(nil),             // 37: pb.RespondPayChProposalReq
+	(*RespondPayChProposalResp)(nil),            // 38: pb.RespondPayChProposalResp
+	(*CloseSessionReq)(nil),                     // 39: pb.CloseSessionReq
+	(*CloseSessionResp)(nil),                    // 40: pb.CloseSessionResp
+	(*SendPayChUpdateReq)(nil),                  // 41: pb.SendPayChUpdateReq
+	(*SendPayChUpdateResp)(nil),                 // 42: pb.SendPayChUpdateResp
+	(*SubpayChUpdatesReq)(nil),                  // 43: pb.SubpayChUpdatesReq
+	(*SubPayChUpdatesResp)(nil),                 // 44: pb.SubPayChUpdatesResp
+	(*UnsubPayChUpdatesReq)(nil),                // 45: pb.UnsubPayChUpdatesReq
+	(*UnsubPayChUpdatesResp)(nil),               // 46: pb.UnsubPayChUpdatesResp
+	(*RespondPayChUpdateReq)(nil),               // 47: pb.RespondPayChUpdateReq
+	(*RespondPayChUpdateResp)(nil),              // 48: pb.RespondPayChUpdateResp
+	(*GetPayChInfoReq)(nil),                     // 49: pb.GetPayChInfoReq
+	(*GetPayChInfoResp)(nil),                    // 50: pb.GetPayChInfoResp
+	(*ClosePayChReq)(nil),                       // 51: pb.ClosePayChReq
+	(*ClosePayChResp)(nil),                      // 52: pb.ClosePayChResp
+	(*OpenSessionResp_MsgSuccess)(nil),          // 53: pb.OpenSessionResp.MsgSuccess
+	(*AddPeerIDResp_MsgSuccess)(nil),            // 54: pb.AddPeerIDResp.MsgSuccess
+	(*GetPeerIDResp_MsgSuccess)(nil),            // 55: pb.GetPeerIDResp.MsgSuccess
+	(*OpenPayChResp_MsgSuccess)(nil),            // 56: pb.OpenPayChResp.MsgSuccess
+	(*GetPayChsInfoResp_MsgSuccess)(nil),        // 57: pb.GetPayChsInfoResp.MsgSuccess
+	(*SubPayChProposalsResp_Notify)(nil),        // 58: pb.SubPayChProposalsResp.Notify
+	(*UnsubPayChProposalsResp_MsgSuccess)(nil),  // 59: pb.UnsubPayChProposalsResp.MsgSuccess
+	(*RespondPayChProposalResp_MsgSuccess)(nil), // 60: pb.RespondPayChProposalResp.MsgSuccess
+	(*CloseSessionResp_MsgSuccess)(nil),         // 61: pb.CloseSessionResp.MsgSuccess
+	(*CloseSessionResp_MsgError)(nil),           // 62: pb.CloseSessionResp.MsgError
+	(*SendPayChUpdateResp_MsgSuccess)(nil),      // 63: pb.SendPayChUpdateResp.MsgSuccess
+	(*SubPayChUpdatesResp_Notify)(nil),          // 64: pb.SubPayChUpdatesResp.Notify
+	(*UnsubPayChUpdatesResp_MsgSuccess)(nil),    // 65: pb.UnsubPayChUpdatesResp.MsgSuccess
+	(*RespondPayChUpdateResp_MsgSuccess)(nil),   // 66: pb.RespondPayChUpdateResp.MsgSuccess
+	(*GetPayChInfoResp_MsgSuccess)(nil),         // 67: pb.GetPayChInfoResp.MsgSuccess
+	(*ClosePayChResp_MsgSuccess)(nil),           // 68: pb.ClosePayChResp.MsgSuccess
 }
 var file_api_proto_depIdxs = []int32{
 	4,  // 0: pb.PayChInfo.balInfo:type_name -> pb.BalInfo
 	0,  // 1: pb.MsgErrorV2.category:type_name -> pb.ErrorCategory
 	1,  // 2: pb.MsgErrorV2.code:type_name -> pb.ErrorCode
-	8,  // 3: pb.MsgErrorV2.ErrV2InfoResourceNotFound:type_name -> pb.ErrV2InfoResourceNotFound
-	9,  // 4: pb.MsgErrorV2.ErrV2InfoResourceExists:type_name -> pb.ErrV2InfoResourceExists
-	10, // 5: pb.MsgErrorV2.ErrV2InfoInvalidArgument:type_name -> pb.ErrV2InfoInvalidArgument
-	47, // 6: pb.OpenSessionResp.msgSuccess:type_name -> pb.OpenSessionResp.MsgSuccess
-	6,  // 7: pb.OpenSessionResp.error:type_name -> pb.MsgError
-	3,  // 8: pb.AddPeerIDReq.peerID:type_name -> pb.PeerID
-	48, // 9: pb.AddPeerIDResp.msgSuccess:type_name -> pb.AddPeerIDResp.MsgSuccess
-	7,  // 10: pb.AddPeerIDResp.error:type_name -> pb.MsgErrorV2
-	49, // 11: pb.GetPeerIDResp.msgSuccess:type_name -> pb.GetPeerIDResp.MsgSuccess
-	7,  // 12: pb.GetPeerIDResp.error:type_name -> pb.MsgErrorV2
-	4,  // 13: pb.OpenPayChReq.openingBalInfo:type_name -> pb.BalInfo
-	50, // 14: pb.OpenPayChResp.msgSuccess:type_name -> pb.OpenPayChResp.MsgSuccess
-	7,  // 15: pb.OpenPayChResp.error:type_name -> pb.MsgErrorV2
-	51, // 16: pb.GetPayChsInfoResp.msgSuccess:type_name -> pb.GetPayChsInfoResp.MsgSuccess
-	7,  // 17: pb.GetPayChsInfoResp.error:type_name -> pb.MsgErrorV2
-	52, // 18: pb.SubPayChProposalsResp.notify:type_name -> pb.SubPayChProposalsResp.Notify
-	7,  // 19: pb.SubPayChProposalsResp.error:type_name -> pb.MsgErrorV2
-	53, // 20: pb.UnsubPayChProposalsResp.msgSuccess:type_name -> pb.UnsubPayChProposalsResp.MsgSuccess
-	7,  // 21: pb.UnsubPayChProposalsResp.error:type_name -> pb.MsgErrorV2
-	54, // 22: pb.RespondPayChProposalResp.msgSuccess:type_name -> pb.RespondPayChProposalResp.MsgSuccess
-	6,  // 23: pb.RespondPayChProposalResp.error:type_name -> pb.MsgError
-	55, // 24: pb.CloseSessionResp.msgSuccess:type_name -> pb.CloseSessionResp.MsgSuccess
-	56, // 25: pb.CloseSessionResp.error:type_name -> pb.CloseSessionResp.MsgError
-	57, // 26: pb.SendPayChUpdateResp.msgSuccess:type_name -> pb.SendPayChUpdateResp.MsgSuccess
-	6,  // 27: pb.SendPayChUpdateResp.error:type_name -> pb.MsgError
-	58, // 28: pb.SubPayChUpdatesResp.notify:type_name -> pb.SubPayChUpdatesResp.Notify
-	7,  // 29: pb.SubPayChUpdatesResp.error:type_name -> pb.MsgErrorV2
-	59, // 30: pb.UnsubPayChUpdatesResp.msgSuccess:type_name -> pb.UnsubPayChUpdatesResp.MsgSuccess
-	7,  // 31: pb.UnsubPayChUpdatesResp.error:type_name -> pb.MsgErrorV2
-	60, // 32: pb.RespondPayChUpdateResp.msgSuccess:type_name -> pb.RespondPayChUpdateResp.MsgSuccess
-	6,  // 33: pb.RespondPayChUpdateResp.error:type_name -> pb.MsgError
-	61, // 34: pb.GetPayChInfoResp.msgSuccess:type_name -> pb.GetPayChInfoResp.MsgSuccess
-	7,  // 35: pb.GetPayChInfoResp.error:type_name -> pb.MsgErrorV2
-	62, // 36: pb.ClosePayChResp.msgSuccess:type_name -> pb.ClosePayChResp.MsgSuccess
-	6,  // 37: pb.ClosePayChResp.error:type_name -> pb.MsgError
-	5,  // 38: pb.OpenSessionResp.MsgSuccess.restoredChs:type_name -> pb.PayChInfo
-	3,  // 39: pb.GetPeerIDResp.MsgSuccess.peerID:type_name -> pb.PeerID
-	5,  // 40: pb.OpenPayChResp.MsgSuccess.openedPayChInfo:type_name -> pb.PayChInfo
-	5,  // 41: pb.GetPayChsInfoResp.MsgSuccess.openPayChsInfo:type_name -> pb.PayChInfo
-	4,  // 42: pb.SubPayChProposalsResp.Notify.openingBalInfo:type_name -> pb.BalInfo
-	5,  // 43: pb.RespondPayChProposalResp.MsgSuccess.openedPayChInfo:type_name -> pb.PayChInfo
-	5,  // 44: pb.CloseSessionResp.MsgSuccess.openPayChsInfo:type_name -> pb.PayChInfo
-	5,  // 45: pb.CloseSessionResp.MsgError.openPayChsInfo:type_name -> pb.PayChInfo
-	5,  // 46: pb.SendPayChUpdateResp.MsgSuccess.updatedPayChInfo:type_name -> pb.PayChInfo
-	5,  // 47: pb.SubPayChUpdatesResp.Notify.proposedPayChInfo:type_name -> pb.PayChInfo
-	2,  // 48: pb.SubPayChUpdatesResp.Notify.Type:type_name -> pb.SubPayChUpdatesResp.Notify.ChUpdateType
-	5,  // 49: pb.RespondPayChUpdateResp.MsgSuccess.updatedPayChInfo:type_name -> pb.PayChInfo
-	5,  // 50: pb.GetPayChInfoResp.MsgSuccess.payChInfo:type_name -> pb.PayChInfo
-	5,  // 51: pb.ClosePayChResp.MsgSuccess.closedPayChInfo:type_name -> pb.PayChInfo
-	11, // 52: pb.Payment_API.GetConfig:input_type -> pb.GetConfigReq
-	13, // 53: pb.Payment_API.OpenSession:input_type -> pb.OpenSessionReq
-	15, // 54: pb.Payment_API.Time:input_type -> pb.TimeReq
-	17, // 55: pb.Payment_API.Help:input_type -> pb.HelpReq
-	19, // 56: pb.Payment_API.AddPeerID:input_type -> pb.AddPeerIDReq
-	21, // 57: pb.Payment_API.GetPeerID:input_type -> pb.GetPeerIDReq
-	23, // 58: pb.Payment_API.OpenPayCh:input_type -> pb.OpenPayChReq
-	25, // 59: pb.Payment_API.GetPayChsInfo:input_type -> pb.GetPayChsInfoReq
-	27, // 60: pb.Payment_API.SubPayChProposals:input_type -> pb.SubPayChProposalsReq
-	29, // 61: pb.Payment_API.UnsubPayChProposals:input_type -> pb.UnsubPayChProposalsReq
-	31, // 62: pb.Payment_API.RespondPayChProposal:input_type -> pb.RespondPayChProposalReq
-	33, // 63: pb.Payment_API.CloseSession:input_type -> pb.CloseSessionReq
-	35, // 64: pb.Payment_API.SendPayChUpdate:input_type -> pb.SendPayChUpdateReq
-	37, // 65: pb.Payment_API.SubPayChUpdates:input_type -> pb.SubpayChUpdatesReq
-	39, // 66: pb.Payment_API.UnsubPayChUpdates:input_type -> pb.UnsubPayChUpdatesReq
-	41, // 67: pb.Payment_API.RespondPayChUpdate:input_type -> pb.RespondPayChUpdateReq
-	43, // 68: pb.Payment_API.GetPayChInfo:input_type -> pb.GetPayChInfoReq
-	45, // 69: pb.Payment_API.ClosePayCh:input_type -> pb.ClosePayChReq
-	12, // 70: pb.Payment_API.GetConfig:output_type -> pb.GetConfigResp
-	14, // 71: pb.Payment_API.OpenSession:output_type -> pb.OpenSessionResp
-	16, // 72: pb.Payment_API.Time:output_type -> pb.TimeResp
-	18, // 73: pb.Payment_API.Help:output_type -> pb.HelpResp
-	20, // 74: pb.Payment_API.AddPeerID:output_type -> pb.AddPeerIDResp
-	22, // 75: pb.Payment_API.GetPeerID:output_type -> pb.GetPeerIDResp
-	24, // 76: pb.Payment_API.OpenPayCh:output_type -> pb.OpenPayChResp
-	26, // 77: pb.Payment_API.GetPayChsInfo:output_type -> pb.GetPayChsInfoResp
-	28, // 78: pb.Payment_API.SubPayChProposals:output_type -> pb.SubPayChProposalsResp
-	30, // 79: pb.Payment_API.UnsubPayChProposals:output_type -> pb.UnsubPayChProposalsResp
-	32, // 80: pb.Payment_API.RespondPayChProposal:output_type -> pb.RespondPayChProposalResp
-	34, // 81: pb.Payment_API.CloseSession:output_type -> pb.CloseSessionResp
-	36, // 82: pb.Payment_API.SendPayChUpdate:output_type -> pb.SendPayChUpdateResp
-	38, // 83: pb.Payment_API.SubPayChUpdates:output_type -> pb.SubPayChUpdatesResp
-	40, // 84: pb.Payment_API.UnsubPayChUpdates:output_type -> pb.UnsubPayChUpdatesResp
-	42, // 85: pb.Payment_API.RespondPayChUpdate:output_type -> pb.RespondPayChUpdateResp
-	44, // 86: pb.Payment_API.GetPayChInfo:output_type -> pb.GetPayChInfoResp
-	46, // 87: pb.Payment_API.ClosePayCh:output_type -> pb.ClosePayChResp
-	70, // [70:88] is the sub-list for method output_type
-	52, // [52:70] is the sub-list for method input_type
-	52, // [52:52] is the sub-list for extension type_name
-	52, // [52:52] is the sub-list for extension extendee
-	0,  // [0:52] is the sub-list for field type_name
+	8,  // 3: pb.MsgErrorV2.ErrV2InfoPeerRequestTimedOut:type_name -> pb.ErrV2InfoPeerRequestTimedOut
+	9,  // 4: pb.MsgErrorV2.ErrV2InfoPeerRejected:type_name -> pb.ErrV2InfoPeerRejected
+	10, // 5: pb.MsgErrorV2.ErrV2InfoPeerNotFunded:type_name -> pb.ErrV2InfoPeerNotFunded
+	11, // 6: pb.MsgErrorV2.ErrV2InfoUserResponseTimedOut:type_name -> pb.ErrV2InfoUserResponseTimedOut
+	12, // 7: pb.MsgErrorV2.ErrV2InfoResourceNotFound:type_name -> pb.ErrV2InfoResourceNotFound
+	13, // 8: pb.MsgErrorV2.ErrV2InfoResourceExists:type_name -> pb.ErrV2InfoResourceExists
+	14, // 9: pb.MsgErrorV2.ErrV2InfoInvalidArgument:type_name -> pb.ErrV2InfoInvalidArgument
+	15, // 10: pb.MsgErrorV2.ErrV2InfoTxTimedOut:type_name -> pb.ErrV2InfoTxTimedOut
+	16, // 11: pb.MsgErrorV2.ErrV2InfoChainNotReachable:type_name -> pb.ErrV2InfoChainNotReachable
+	53, // 12: pb.OpenSessionResp.msgSuccess:type_name -> pb.OpenSessionResp.MsgSuccess
+	6,  // 13: pb.OpenSessionResp.error:type_name -> pb.MsgError
+	3,  // 14: pb.AddPeerIDReq.peerID:type_name -> pb.PeerID
+	54, // 15: pb.AddPeerIDResp.msgSuccess:type_name -> pb.AddPeerIDResp.MsgSuccess
+	7,  // 16: pb.AddPeerIDResp.error:type_name -> pb.MsgErrorV2
+	55, // 17: pb.GetPeerIDResp.msgSuccess:type_name -> pb.GetPeerIDResp.MsgSuccess
+	7,  // 18: pb.GetPeerIDResp.error:type_name -> pb.MsgErrorV2
+	4,  // 19: pb.OpenPayChReq.openingBalInfo:type_name -> pb.BalInfo
+	56, // 20: pb.OpenPayChResp.msgSuccess:type_name -> pb.OpenPayChResp.MsgSuccess
+	7,  // 21: pb.OpenPayChResp.error:type_name -> pb.MsgErrorV2
+	57, // 22: pb.GetPayChsInfoResp.msgSuccess:type_name -> pb.GetPayChsInfoResp.MsgSuccess
+	7,  // 23: pb.GetPayChsInfoResp.error:type_name -> pb.MsgErrorV2
+	58, // 24: pb.SubPayChProposalsResp.notify:type_name -> pb.SubPayChProposalsResp.Notify
+	7,  // 25: pb.SubPayChProposalsResp.error:type_name -> pb.MsgErrorV2
+	59, // 26: pb.UnsubPayChProposalsResp.msgSuccess:type_name -> pb.UnsubPayChProposalsResp.MsgSuccess
+	7,  // 27: pb.UnsubPayChProposalsResp.error:type_name -> pb.MsgErrorV2
+	60, // 28: pb.RespondPayChProposalResp.msgSuccess:type_name -> pb.RespondPayChProposalResp.MsgSuccess
+	7,  // 29: pb.RespondPayChProposalResp.error:type_name -> pb.MsgErrorV2
+	61, // 30: pb.CloseSessionResp.msgSuccess:type_name -> pb.CloseSessionResp.MsgSuccess
+	62, // 31: pb.CloseSessionResp.error:type_name -> pb.CloseSessionResp.MsgError
+	63, // 32: pb.SendPayChUpdateResp.msgSuccess:type_name -> pb.SendPayChUpdateResp.MsgSuccess
+	6,  // 33: pb.SendPayChUpdateResp.error:type_name -> pb.MsgError
+	64, // 34: pb.SubPayChUpdatesResp.notify:type_name -> pb.SubPayChUpdatesResp.Notify
+	7,  // 35: pb.SubPayChUpdatesResp.error:type_name -> pb.MsgErrorV2
+	65, // 36: pb.UnsubPayChUpdatesResp.msgSuccess:type_name -> pb.UnsubPayChUpdatesResp.MsgSuccess
+	7,  // 37: pb.UnsubPayChUpdatesResp.error:type_name -> pb.MsgErrorV2
+	66, // 38: pb.RespondPayChUpdateResp.msgSuccess:type_name -> pb.RespondPayChUpdateResp.MsgSuccess
+	6,  // 39: pb.RespondPayChUpdateResp.error:type_name -> pb.MsgError
+	67, // 40: pb.GetPayChInfoResp.msgSuccess:type_name -> pb.GetPayChInfoResp.MsgSuccess
+	7,  // 41: pb.GetPayChInfoResp.error:type_name -> pb.MsgErrorV2
+	68, // 42: pb.ClosePayChResp.msgSuccess:type_name -> pb.ClosePayChResp.MsgSuccess
+	6,  // 43: pb.ClosePayChResp.error:type_name -> pb.MsgError
+	5,  // 44: pb.OpenSessionResp.MsgSuccess.restoredChs:type_name -> pb.PayChInfo
+	3,  // 45: pb.GetPeerIDResp.MsgSuccess.peerID:type_name -> pb.PeerID
+	5,  // 46: pb.OpenPayChResp.MsgSuccess.openedPayChInfo:type_name -> pb.PayChInfo
+	5,  // 47: pb.GetPayChsInfoResp.MsgSuccess.openPayChsInfo:type_name -> pb.PayChInfo
+	4,  // 48: pb.SubPayChProposalsResp.Notify.openingBalInfo:type_name -> pb.BalInfo
+	5,  // 49: pb.RespondPayChProposalResp.MsgSuccess.openedPayChInfo:type_name -> pb.PayChInfo
+	5,  // 50: pb.CloseSessionResp.MsgSuccess.openPayChsInfo:type_name -> pb.PayChInfo
+	5,  // 51: pb.CloseSessionResp.MsgError.openPayChsInfo:type_name -> pb.PayChInfo
+	5,  // 52: pb.SendPayChUpdateResp.MsgSuccess.updatedPayChInfo:type_name -> pb.PayChInfo
+	5,  // 53: pb.SubPayChUpdatesResp.Notify.proposedPayChInfo:type_name -> pb.PayChInfo
+	2,  // 54: pb.SubPayChUpdatesResp.Notify.Type:type_name -> pb.SubPayChUpdatesResp.Notify.ChUpdateType
+	5,  // 55: pb.RespondPayChUpdateResp.MsgSuccess.updatedPayChInfo:type_name -> pb.PayChInfo
+	5,  // 56: pb.GetPayChInfoResp.MsgSuccess.payChInfo:type_name -> pb.PayChInfo
+	5,  // 57: pb.ClosePayChResp.MsgSuccess.closedPayChInfo:type_name -> pb.PayChInfo
+	17, // 58: pb.Payment_API.GetConfig:input_type -> pb.GetConfigReq
+	19, // 59: pb.Payment_API.OpenSession:input_type -> pb.OpenSessionReq
+	21, // 60: pb.Payment_API.Time:input_type -> pb.TimeReq
+	23, // 61: pb.Payment_API.Help:input_type -> pb.HelpReq
+	25, // 62: pb.Payment_API.AddPeerID:input_type -> pb.AddPeerIDReq
+	27, // 63: pb.Payment_API.GetPeerID:input_type -> pb.GetPeerIDReq
+	29, // 64: pb.Payment_API.OpenPayCh:input_type -> pb.OpenPayChReq
+	31, // 65: pb.Payment_API.GetPayChsInfo:input_type -> pb.GetPayChsInfoReq
+	33, // 66: pb.Payment_API.SubPayChProposals:input_type -> pb.SubPayChProposalsReq
+	35, // 67: pb.Payment_API.UnsubPayChProposals:input_type -> pb.UnsubPayChProposalsReq
+	37, // 68: pb.Payment_API.RespondPayChProposal:input_type -> pb.RespondPayChProposalReq
+	39, // 69: pb.Payment_API.CloseSession:input_type -> pb.CloseSessionReq
+	41, // 70: pb.Payment_API.SendPayChUpdate:input_type -> pb.SendPayChUpdateReq
+	43, // 71: pb.Payment_API.SubPayChUpdates:input_type -> pb.SubpayChUpdatesReq
+	45, // 72: pb.Payment_API.UnsubPayChUpdates:input_type -> pb.UnsubPayChUpdatesReq
+	47, // 73: pb.Payment_API.RespondPayChUpdate:input_type -> pb.RespondPayChUpdateReq
+	49, // 74: pb.Payment_API.GetPayChInfo:input_type -> pb.GetPayChInfoReq
+	51, // 75: pb.Payment_API.ClosePayCh:input_type -> pb.ClosePayChReq
+	18, // 76: pb.Payment_API.GetConfig:output_type -> pb.GetConfigResp
+	20, // 77: pb.Payment_API.OpenSession:output_type -> pb.OpenSessionResp
+	22, // 78: pb.Payment_API.Time:output_type -> pb.TimeResp
+	24, // 79: pb.Payment_API.Help:output_type -> pb.HelpResp
+	26, // 80: pb.Payment_API.AddPeerID:output_type -> pb.AddPeerIDResp
+	28, // 81: pb.Payment_API.GetPeerID:output_type -> pb.GetPeerIDResp
+	30, // 82: pb.Payment_API.OpenPayCh:output_type -> pb.OpenPayChResp
+	32, // 83: pb.Payment_API.GetPayChsInfo:output_type -> pb.GetPayChsInfoResp
+	34, // 84: pb.Payment_API.SubPayChProposals:output_type -> pb.SubPayChProposalsResp
+	36, // 85: pb.Payment_API.UnsubPayChProposals:output_type -> pb.UnsubPayChProposalsResp
+	38, // 86: pb.Payment_API.RespondPayChProposal:output_type -> pb.RespondPayChProposalResp
+	40, // 87: pb.Payment_API.CloseSession:output_type -> pb.CloseSessionResp
+	42, // 88: pb.Payment_API.SendPayChUpdate:output_type -> pb.SendPayChUpdateResp
+	44, // 89: pb.Payment_API.SubPayChUpdates:output_type -> pb.SubPayChUpdatesResp
+	46, // 90: pb.Payment_API.UnsubPayChUpdates:output_type -> pb.UnsubPayChUpdatesResp
+	48, // 91: pb.Payment_API.RespondPayChUpdate:output_type -> pb.RespondPayChUpdateResp
+	50, // 92: pb.Payment_API.GetPayChInfo:output_type -> pb.GetPayChInfoResp
+	52, // 93: pb.Payment_API.ClosePayCh:output_type -> pb.ClosePayChResp
+	76, // [76:94] is the sub-list for method output_type
+	58, // [58:76] is the sub-list for method input_type
+	58, // [58:58] is the sub-list for extension type_name
+	58, // [58:58] is the sub-list for extension extendee
+	0,  // [0:58] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_init() }
@@ -4667,7 +5149,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ErrV2InfoResourceNotFound); i {
+			switch v := v.(*ErrV2InfoPeerRequestTimedOut); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4679,7 +5161,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ErrV2InfoResourceExists); i {
+			switch v := v.(*ErrV2InfoPeerRejected); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4691,7 +5173,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ErrV2InfoInvalidArgument); i {
+			switch v := v.(*ErrV2InfoPeerNotFunded); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4703,7 +5185,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetConfigReq); i {
+			switch v := v.(*ErrV2InfoUserResponseTimedOut); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4715,7 +5197,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetConfigResp); i {
+			switch v := v.(*ErrV2InfoResourceNotFound); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4727,7 +5209,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenSessionReq); i {
+			switch v := v.(*ErrV2InfoResourceExists); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4739,7 +5221,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenSessionResp); i {
+			switch v := v.(*ErrV2InfoInvalidArgument); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4751,7 +5233,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TimeReq); i {
+			switch v := v.(*ErrV2InfoTxTimedOut); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4763,7 +5245,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TimeResp); i {
+			switch v := v.(*ErrV2InfoChainNotReachable); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4775,7 +5257,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*HelpReq); i {
+			switch v := v.(*GetConfigReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4787,7 +5269,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*HelpResp); i {
+			switch v := v.(*GetConfigResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4799,7 +5281,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddPeerIDReq); i {
+			switch v := v.(*OpenSessionReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4811,7 +5293,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddPeerIDResp); i {
+			switch v := v.(*OpenSessionResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4823,7 +5305,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetPeerIDReq); i {
+			switch v := v.(*TimeReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4835,7 +5317,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetPeerIDResp); i {
+			switch v := v.(*TimeResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4847,7 +5329,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenPayChReq); i {
+			switch v := v.(*HelpReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4859,7 +5341,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenPayChResp); i {
+			switch v := v.(*HelpResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4871,7 +5353,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetPayChsInfoReq); i {
+			switch v := v.(*AddPeerIDReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4883,7 +5365,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetPayChsInfoResp); i {
+			switch v := v.(*AddPeerIDResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4895,7 +5377,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SubPayChProposalsReq); i {
+			switch v := v.(*GetPeerIDReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4907,7 +5389,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SubPayChProposalsResp); i {
+			switch v := v.(*GetPeerIDResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4919,7 +5401,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UnsubPayChProposalsReq); i {
+			switch v := v.(*OpenPayChReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4931,7 +5413,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UnsubPayChProposalsResp); i {
+			switch v := v.(*OpenPayChResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4943,7 +5425,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RespondPayChProposalReq); i {
+			switch v := v.(*GetPayChsInfoReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4955,7 +5437,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RespondPayChProposalResp); i {
+			switch v := v.(*GetPayChsInfoResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4967,7 +5449,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseSessionReq); i {
+			switch v := v.(*SubPayChProposalsReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4979,7 +5461,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseSessionResp); i {
+			switch v := v.(*SubPayChProposalsResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4991,7 +5473,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SendPayChUpdateReq); i {
+			switch v := v.(*UnsubPayChProposalsReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5003,7 +5485,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SendPayChUpdateResp); i {
+			switch v := v.(*UnsubPayChProposalsResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5015,7 +5497,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SubpayChUpdatesReq); i {
+			switch v := v.(*RespondPayChProposalReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5027,7 +5509,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[35].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SubPayChUpdatesResp); i {
+			switch v := v.(*RespondPayChProposalResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5039,7 +5521,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[36].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UnsubPayChUpdatesReq); i {
+			switch v := v.(*CloseSessionReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5051,7 +5533,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[37].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UnsubPayChUpdatesResp); i {
+			switch v := v.(*CloseSessionResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5063,7 +5545,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[38].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RespondPayChUpdateReq); i {
+			switch v := v.(*SendPayChUpdateReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5075,7 +5557,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[39].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RespondPayChUpdateResp); i {
+			switch v := v.(*SendPayChUpdateResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5087,7 +5569,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[40].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetPayChInfoReq); i {
+			switch v := v.(*SubpayChUpdatesReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5099,7 +5581,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[41].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetPayChInfoResp); i {
+			switch v := v.(*SubPayChUpdatesResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5111,7 +5593,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[42].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ClosePayChReq); i {
+			switch v := v.(*UnsubPayChUpdatesReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5123,7 +5605,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[43].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ClosePayChResp); i {
+			switch v := v.(*UnsubPayChUpdatesResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5135,7 +5617,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[44].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenSessionResp_MsgSuccess); i {
+			switch v := v.(*RespondPayChUpdateReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5147,7 +5629,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[45].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddPeerIDResp_MsgSuccess); i {
+			switch v := v.(*RespondPayChUpdateResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5159,7 +5641,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[46].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetPeerIDResp_MsgSuccess); i {
+			switch v := v.(*GetPayChInfoReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5171,7 +5653,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[47].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenPayChResp_MsgSuccess); i {
+			switch v := v.(*GetPayChInfoResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5183,7 +5665,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[48].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetPayChsInfoResp_MsgSuccess); i {
+			switch v := v.(*ClosePayChReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5195,7 +5677,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[49].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SubPayChProposalsResp_Notify); i {
+			switch v := v.(*ClosePayChResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5207,7 +5689,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[50].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UnsubPayChProposalsResp_MsgSuccess); i {
+			switch v := v.(*OpenSessionResp_MsgSuccess); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5219,7 +5701,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[51].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RespondPayChProposalResp_MsgSuccess); i {
+			switch v := v.(*AddPeerIDResp_MsgSuccess); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5231,7 +5713,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[52].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseSessionResp_MsgSuccess); i {
+			switch v := v.(*GetPeerIDResp_MsgSuccess); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5243,7 +5725,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[53].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseSessionResp_MsgError); i {
+			switch v := v.(*OpenPayChResp_MsgSuccess); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5255,7 +5737,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[54].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SendPayChUpdateResp_MsgSuccess); i {
+			switch v := v.(*GetPayChsInfoResp_MsgSuccess); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5267,7 +5749,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[55].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SubPayChUpdatesResp_Notify); i {
+			switch v := v.(*SubPayChProposalsResp_Notify); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5279,7 +5761,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[56].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UnsubPayChUpdatesResp_MsgSuccess); i {
+			switch v := v.(*UnsubPayChProposalsResp_MsgSuccess); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5291,7 +5773,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[57].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RespondPayChUpdateResp_MsgSuccess); i {
+			switch v := v.(*RespondPayChProposalResp_MsgSuccess); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5303,7 +5785,7 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[58].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetPayChInfoResp_MsgSuccess); i {
+			switch v := v.(*CloseSessionResp_MsgSuccess); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -5315,6 +5797,78 @@ func file_api_proto_init() {
 			}
 		}
 		file_api_proto_msgTypes[59].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CloseSessionResp_MsgError); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_msgTypes[60].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SendPayChUpdateResp_MsgSuccess); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_msgTypes[61].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SubPayChUpdatesResp_Notify); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_msgTypes[62].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UnsubPayChUpdatesResp_MsgSuccess); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_msgTypes[63].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RespondPayChUpdateResp_MsgSuccess); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_msgTypes[64].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetPayChInfoResp_MsgSuccess); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_proto_msgTypes[65].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ClosePayChResp_MsgSuccess); i {
 			case 0:
 				return &v.state
@@ -5328,67 +5882,73 @@ func file_api_proto_init() {
 		}
 	}
 	file_api_proto_msgTypes[4].OneofWrappers = []interface{}{
+		(*MsgErrorV2_ErrV2InfoPeerRequestTimedOut)(nil),
+		(*MsgErrorV2_ErrV2InfoPeerRejected)(nil),
+		(*MsgErrorV2_ErrV2InfoPeerNotFunded)(nil),
+		(*MsgErrorV2_ErrV2InfoUserResponseTimedOut)(nil),
 		(*MsgErrorV2_ErrV2InfoResourceNotFound)(nil),
 		(*MsgErrorV2_ErrV2InfoResourceExists)(nil),
 		(*MsgErrorV2_ErrV2InfoInvalidArgument)(nil),
+		(*MsgErrorV2_ErrV2InfoTxTimedOut)(nil),
+		(*MsgErrorV2_ErrV2InfoChainNotReachable)(nil),
 	}
-	file_api_proto_msgTypes[11].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[17].OneofWrappers = []interface{}{
 		(*OpenSessionResp_MsgSuccess_)(nil),
 		(*OpenSessionResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[17].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[23].OneofWrappers = []interface{}{
 		(*AddPeerIDResp_MsgSuccess_)(nil),
 		(*AddPeerIDResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[19].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[25].OneofWrappers = []interface{}{
 		(*GetPeerIDResp_MsgSuccess_)(nil),
 		(*GetPeerIDResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[21].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[27].OneofWrappers = []interface{}{
 		(*OpenPayChResp_MsgSuccess_)(nil),
 		(*OpenPayChResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[23].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[29].OneofWrappers = []interface{}{
 		(*GetPayChsInfoResp_MsgSuccess_)(nil),
 		(*GetPayChsInfoResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[25].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[31].OneofWrappers = []interface{}{
 		(*SubPayChProposalsResp_Notify_)(nil),
 		(*SubPayChProposalsResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[27].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[33].OneofWrappers = []interface{}{
 		(*UnsubPayChProposalsResp_MsgSuccess_)(nil),
 		(*UnsubPayChProposalsResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[29].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[35].OneofWrappers = []interface{}{
 		(*RespondPayChProposalResp_MsgSuccess_)(nil),
 		(*RespondPayChProposalResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[31].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[37].OneofWrappers = []interface{}{
 		(*CloseSessionResp_MsgSuccess_)(nil),
 		(*CloseSessionResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[33].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[39].OneofWrappers = []interface{}{
 		(*SendPayChUpdateResp_MsgSuccess_)(nil),
 		(*SendPayChUpdateResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[35].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[41].OneofWrappers = []interface{}{
 		(*SubPayChUpdatesResp_Notify_)(nil),
 		(*SubPayChUpdatesResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[37].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[43].OneofWrappers = []interface{}{
 		(*UnsubPayChUpdatesResp_MsgSuccess_)(nil),
 		(*UnsubPayChUpdatesResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[39].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[45].OneofWrappers = []interface{}{
 		(*RespondPayChUpdateResp_MsgSuccess_)(nil),
 		(*RespondPayChUpdateResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[41].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[47].OneofWrappers = []interface{}{
 		(*GetPayChInfoResp_MsgSuccess_)(nil),
 		(*GetPayChInfoResp_Error)(nil),
 	}
-	file_api_proto_msgTypes[43].OneofWrappers = []interface{}{
+	file_api_proto_msgTypes[49].OneofWrappers = []interface{}{
 		(*ClosePayChResp_MsgSuccess_)(nil),
 		(*ClosePayChResp_Error)(nil),
 	}
@@ -5398,7 +5958,7 @@ func file_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_proto_rawDesc,
 			NumEnums:      3,
-			NumMessages:   60,
+			NumMessages:   66,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

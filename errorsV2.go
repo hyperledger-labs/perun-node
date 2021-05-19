@@ -95,6 +95,20 @@ func NewAPIErrV2PeerNotFunded(peerAlias, message string) APIErrorV2 {
 	}
 }
 
+// NewAPIErrV2UserResponseTimedOut returns an ErrUserResponseTimedOut API Error
+// with the given expiry.
+func NewAPIErrV2UserResponseTimedOut(expiry, receivedAt int64) APIErrorV2 {
+	return apiErrorV2{
+		category: ParticipantError,
+		code:     ErrV2UserResponseTimedOut,
+		message:  "user response timed out",
+		addInfo: ErrV2InfoUserResponseTimedOut{
+			Expiry:     expiry,
+			ReceivedAt: receivedAt,
+		},
+	}
+}
+
 // NewAPIErrV2ResourceNotFound returns an ErrResourceNotFound API Error with
 // the given resource type, ID and error message.
 func NewAPIErrV2ResourceNotFound(resourceType, resourceID, message string) APIErrorV2 {
