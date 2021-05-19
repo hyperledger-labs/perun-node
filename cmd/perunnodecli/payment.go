@@ -139,7 +139,7 @@ func paymentSendFn(c *ishell.Context) {
 	}
 	msgErr, ok := resp.Response.(*pb.SendPayChUpdateResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error sending payment to peer: %v.", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error sending payment to peer: %v.", apiErrorString(msgErr.Error)))
 		return
 	}
 
@@ -181,7 +181,7 @@ func paymentRequestFn(c *ishell.Context) {
 	}
 	msgErr, ok := resp.Response.(*pb.SendPayChUpdateResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error requesting payment from peer: %v.", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error requesting payment from peer: %v.", apiErrorString(msgErr.Error)))
 		return
 	}
 

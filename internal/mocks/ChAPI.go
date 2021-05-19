@@ -129,7 +129,7 @@ func (_m *ChAPI) RespondChUpdate(_a0 context.Context, _a1 string, _a2 bool) (per
 }
 
 // SendChUpdate provides a mock function with given fields: _a0, _a1
-func (_m *ChAPI) SendChUpdate(_a0 context.Context, _a1 perun.StateUpdater) (perun.ChInfo, error) {
+func (_m *ChAPI) SendChUpdate(_a0 context.Context, _a1 perun.StateUpdater) (perun.ChInfo, perun.APIErrorV2) {
 	ret := _m.Called(_a0, _a1)
 
 	var r0 perun.ChInfo
@@ -139,11 +139,13 @@ func (_m *ChAPI) SendChUpdate(_a0 context.Context, _a1 perun.StateUpdater) (peru
 		r0 = ret.Get(0).(perun.ChInfo)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, perun.StateUpdater) error); ok {
+	var r1 perun.APIErrorV2
+	if rf, ok := ret.Get(1).(func(context.Context, perun.StateUpdater) perun.APIErrorV2); ok {
 		r1 = rf(_a0, _a1)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(perun.APIErrorV2)
+		}
 	}
 
 	return r0, r1

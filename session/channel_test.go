@@ -22,7 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -93,12 +92,14 @@ func Test_GetChInfo(t *testing.T) {
 
 func Test_SendChUpdate(t *testing.T) {
 	peers := newPeerIDs(t, uint(2))
+	peerAlias := peers[0].Alias
 	validOpeningBalInfo := perun.BalInfo{
 		Currency: currency.ETH,
-		Parts:    []string{perun.OwnAlias, peers[0].Alias},
+		Parts:    []string{perun.OwnAlias, peerAlias},
 		Bal:      []string{"1", "2"},
 	}
-	nilUpdater := func(s *pchannel.State) error {
+	ourIdx := 0
+	noopUpdater := func(s *pchannel.State) error {
 		return nil
 	}
 
@@ -106,27 +107,56 @@ func Test_SendChUpdate(t *testing.T) {
 		pch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
+		pch.On("Idx").Return(pchannel.Index(1))
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
-		gotChInfo, err := ch.SendChUpdate(context.Background(), nilUpdater)
+		gotChInfo, err := ch.SendChUpdate(context.Background(), noopUpdater)
 		require.NoError(t, err)
 		assert.NotZero(t, gotChInfo)
-	})
-
-	t.Run("UpdateBy_RejectedByPeer", func(t *testing.T) {
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
-		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
-
-		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(errors.New("rejected by user"))
-		_, err := ch.SendChUpdate(context.Background(), nilUpdater)
-		require.Error(t, err)
 	})
 
 	t.Run("channel_closed", func(t *testing.T) {
 		pch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
 
-		_, err := ch.SendChUpdate(context.Background(), nilUpdater)
+		_, err := ch.SendChUpdate(context.Background(), noopUpdater)
 		require.Error(t, err)
+
+		wantMessage := session.ErrChClosed.Error()
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
+		assert.Nil(t, err.AddInfo())
+	})
+
+	t.Run("UpdateBy_PeerRequestTimedOut", func(t *testing.T) {
+		timeout := responseTimeout.String()
+		peerRequestTimedOutError := pclient.RequestTimedOutError("some-error")
+		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+
+		pch.On("Idx").Return(pchannel.Index(ourIdx))
+		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(peerRequestTimedOutError)
+		_, err := ch.SendChUpdate(context.Background(), noopUpdater)
+
+		wantMessage := peerRequestTimedOutError.Error()
+		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerRequestTimedOut, wantMessage)
+		assertErrV2InfoPeerRequestTimedOut(t, err.AddInfo(), peerAlias, timeout)
+	})
+
+	t.Run("UpdateBy_RejectedByPeer", func(t *testing.T) {
+		reason := "some random reason"
+		peerRejectedError := pclient.PeerRejectedError{
+			ItemType: "channel update",
+			Reason:   reason,
+		}
+		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+
+		pch.On("Idx").Return(pchannel.Index(ourIdx))
+		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(peerRejectedError)
+		_, err := ch.SendChUpdate(context.Background(), noopUpdater)
+
+		wantMessage := peerRejectedError.Error()
+		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerRejected, wantMessage)
+		assertErrV2InfoPeerRejected(t, err.AddInfo(), peerAlias, reason)
 	})
 }
 

@@ -352,7 +352,7 @@ message SendPayChUpdateReq {
 message SendPayChUpdateResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgError error = 2;
+        MsgErrorV2 error = 2;
     }
     message MsgSuccess {
         PayChInfo updatedPayChInfo = 1;

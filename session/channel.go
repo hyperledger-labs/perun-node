@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strings"
 	"sync"
 	"time"
 
@@ -252,36 +251,42 @@ func (ch *Channel) ChallengeDurSecs() uint64 {
 }
 
 // SendChUpdate implements chAPI.SendChUpdate.
-func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater) (perun.ChInfo, error) {
-	ch.Debug("Received request: channel.SendChUpdate")
+func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater) (perun.ChInfo, perun.APIErrorV2) {
+	ch.WithField("method", "SendChUpdate").Infof("\nReceived request with params %+v", updater)
 	ch.Lock()
 	defer ch.Unlock()
 
+	var apiErr perun.APIErrorV2
+	defer func() {
+		if apiErr != nil {
+			ch.WithFields(perun.APIErrV2AsMap("RespondChProposal", apiErr)).Error(apiErr.Message())
+		}
+	}()
+
 	if ch.status == closed {
-		return ch.getChInfo(), perun.ErrChClosed
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error())
+		return ch.getChInfo(), apiErr
 	}
 
-	err := ch.sendChUpdate(pctx, updater)
-	if err != nil {
-		return perun.ChInfo{}, err
-	}
-	prevChInfo := ch.getChInfo()
-	ch.Debugf("State upated from %v to %v", prevChInfo, ch.getChInfo())
-	return ch.getChInfo(), nil
-}
-
-func (ch *Channel) sendChUpdate(pctx context.Context, updater perun.StateUpdater) error {
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
 	defer cancel()
 	err := ch.pch.UpdateBy(ctx, updater)
 	if err != nil {
-		ch.Error("Sending channel update:", err)
-		// TODO: (mano) Use errors.Is here once a sentinel error value is defined in the SDK.
-		if strings.Contains(err.Error(), "rejected by user") {
-			err = perun.ErrPeerRejected
-		}
+		apiErr = ch.handleSendChUpdateError(errors.WithMessage(err, "sending channel update"))
+		return perun.ChInfo{}, apiErr
 	}
-	return perun.GetAPIError(err)
+	ch.WithField("method", "SendChUpdate").Info("State updated successfully")
+	return ch.getChInfo(), nil
+}
+
+// handleSendChUpdateError inspects the passed error, constructs an
+// appropriate APIError and returns it.
+func (ch *Channel) handleSendChUpdateError(err error) perun.APIErrorV2 {
+	peerAlias := ch.parts[ch.pch.Idx()^1] // Logic works only for a two party channel.
+	if apiErr := handleProposalError(peerAlias, ch.timeoutCfg.response.String(), err); apiErr != nil {
+		return apiErr
+	}
+	return perun.NewAPIErrV2UnknownInternal(err)
 }
 
 // HandleUpdate handles the incoming updates on an open channel. All updates are sent to a centralized

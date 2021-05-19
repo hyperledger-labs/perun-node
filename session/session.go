@@ -348,8 +348,7 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	defer cancel()
 	pch, err := s.chClient.ProposeChannel(ctx, proposal)
 	if err != nil {
-		err = errors.WithMessage(err, "proposing channel")
-		apiErr = s.handleProposeChError(openingBalInfo.Parts, err)
+		apiErr = s.handleProposeChError(openingBalInfo.Parts, errors.WithMessage(err, "proposing channel"))
 		return perun.ChInfo{}, apiErr
 	}
 
