@@ -377,7 +377,7 @@ func paymentAccept(c *ishell.Context) {
 	}
 	msgErr, ok := resp.Response.(*pb.RespondPayChUpdateResp_Error)
 	if ok {
-		sh.Printf("%s\n\n", redf("Error accepting payment channel update: %v", msgErr.Error.Error))
+		sh.Printf("%s\n\n", redf("Error accepting payment channel update: %v", apiErrorString(msgErr.Error)))
 		return
 	}
 	msg := resp.Response.(*pb.RespondPayChUpdateResp_MsgSuccess_)
@@ -421,7 +421,7 @@ func paymentReject(c *ishell.Context) {
 	}
 	msgErr, ok := resp.Response.(*pb.RespondPayChUpdateResp_Error)
 	if ok {
-		sh.Printf("%s\n\n", redf("Error rejecting payment channel update: %v", msgErr.Error.Error))
+		sh.Printf("%s\n\n", redf("Error rejecting payment channel update: %v", apiErrorString(msgErr.Error)))
 		return
 	}
 	sh.Printf("%s\n\n", greenf("Payment channel update rejected successfully."))

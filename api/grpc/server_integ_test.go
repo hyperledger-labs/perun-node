@@ -483,8 +483,8 @@ func RespondPayChUpdateExpectError(t *testing.T, sessionID, chID, updateID strin
 	require.NoError(t, err, "client.RespondPayChUpdate")
 	respErrMsg, ok := resp.Response.(*pb.RespondPayChUpdateResp_Error)
 	require.True(t, ok)
-	require.NotZero(t, respErrMsg.Error.Error, "RespondPayChUpdate for closed channel notif")
-	t.Log("Error responding to channel close notif", respErrMsg.Error.Error)
+	require.NotZero(t, respErrMsg.Error, "RespondPayChUpdate for closed channel notif")
+	t.Log("Error responding to channel close notif", respErrMsg.Error)
 }
 
 func UnsubPayChUpdate(t *testing.T, sessionID, chID string) {

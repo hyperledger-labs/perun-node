@@ -131,7 +131,8 @@ func UnsubPayChUpdates(ch perun.ChAPI) perun.APIErrorV2 {
 }
 
 // RespondPayChUpdate sends a response for a channel update notification.
-func RespondPayChUpdate(pctx context.Context, ch perun.ChAPI, updateID string, accept bool) (PayChInfo, error) {
+func RespondPayChUpdate(pctx context.Context, ch perun.ChAPI, updateID string, accept bool) (
+	PayChInfo, perun.APIErrorV2) {
 	chInfo, err := ch.RespondChUpdate(pctx, updateID, accept)
 	return toPayChInfo(chInfo), err
 }
