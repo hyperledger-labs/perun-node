@@ -315,7 +315,6 @@ func Test_Integ_Role(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			// nolint: govet	// err does not shadow, using a new var to prevent data race.
 			closedChInfo, err := aliceChs[chIndex].Close(ctx)
 			require.NoError(t, err, "alice closing channel")
 			t.Log("alice", closedChInfo)

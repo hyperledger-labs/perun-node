@@ -404,8 +404,8 @@ func (ch *Channel) unsubChUpdates() {
 }
 
 // RespondChUpdate implements chAPI.RespondChUpdate.
-func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) ( // nolint: gocognit
-	perun.ChInfo, perun.APIErrorV2) { // the nolint directive will be removed in a later refactor.
+func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) (
+	perun.ChInfo, perun.APIErrorV2) {
 	ch.WithField("method", "RespondChUpdate").Infof("\nReceived request with params %+v,%+v", updateID, accept)
 	ch.Lock()
 	defer ch.Unlock()
@@ -444,13 +444,9 @@ func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept
 		if apiErr == nil && entry.notif.Type == perun.ChUpdateTypeFinal {
 			ch.Info("Responded to update successfully, registering the state as it was final update.")
 			time.Sleep(2 * blocktime) // Wait for 2 blocks before calling register when close was not initiated.
-			err := ch.register(pctx)
-			if err != nil {
-				// TODO: Move this check inside ch.register when updating ch.Close to use new error type.
-				apiErr = ch.handleChRegisterError(err)
-				if apiErr == nil {
-					ch.WithField("method", "RespondChUpdate").Info("Finalized channel state registered successfully")
-				}
+			apiErr = ch.register(pctx)
+			if apiErr == nil {
+				ch.WithField("method", "RespondChUpdate").Info("Finalized channel state registered successfully")
 			}
 		}
 	case false:
@@ -549,19 +545,28 @@ func makeBalInfoFromRawBal(parts []string, curr string, rawBal []*big.Int) perun
 }
 
 // Close implements chAPI.Close.
-func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, error) {
-	ch.Debug("Received request channel.Close")
+func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, perun.APIErrorV2) {
+	ch.WithField("method", "ChClose").Infof("\nReceived request")
 	ch.Lock()
 	defer ch.Unlock()
 
+	var apiErr perun.APIErrorV2
+	defer func() {
+		if apiErr != nil {
+			ch.WithFields(perun.APIErrV2AsMap("ChClose", apiErr)).Error(apiErr.Message())
+		}
+	}()
+
 	if ch.status == closed {
-		return ch.getChInfo(), perun.ErrChClosed
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error())
+		return ch.getChInfo(), apiErr
 	}
 
 	ch.finalize(pctx)
-	err := ch.register(pctx)
+	apiErr = ch.register(pctx)
 	ch.wasCloseInitiated = true
-	return ch.getChInfo(), perun.GetAPIError(err)
+	ch.WithField("method", "ChClose").Info("State close initiated")
+	return ch.getChInfo(), apiErr
 }
 
 // finalize tries to finalize the channel offchain by sending an update with isFinal = true
@@ -580,15 +585,21 @@ func (ch *Channel) finalize(pctx context.Context) {
 	defer cancel()
 	err := ch.pch.UpdateBy(ctx, chFinalizer)
 	if err != nil {
-		ch.Info("Error when trying to finalize state", err)
+		apiErr := ch.handleSendChUpdateError(err)
+		ch.WithFields(perun.APIErrV2AsMap("ChClose", apiErr)).Error(apiErr.Message())
+		ch.Info("Channel not finalized. Proceeding with register and close")
 	}
 }
 
 // register registers the latest state of the channel on-chain.
-func (ch *Channel) register(pctx context.Context) error {
+func (ch *Channel) register(pctx context.Context) perun.APIErrorV2 {
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.register(ch.challengeDurSecs))
 	defer cancel()
-	return errors.WithMessage(ch.pch.Register(ctx), "registering channel state")
+	err := ch.pch.Register(ctx)
+	if err != nil {
+		return ch.handleChRegisterError(errors.WithMessage(err, "registering channel state"))
+	}
+	return nil
 }
 
 // Close the computing resources (listeners, subscriptions etc.,) of the channel.
@@ -596,7 +607,7 @@ func (ch *Channel) register(pctx context.Context) error {
 // It also removes the channel from the session.
 func (ch *Channel) close() {
 	if err := ch.pch.Close(); err != nil {
-		ch.Error("Closing channel", err)
+		ch.WithField("method", "ChClose").Infof("\nClosing channe %v", err)
 	}
 	ch.watcherWg.Wait()
 	ch.status = closed
