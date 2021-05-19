@@ -67,8 +67,9 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient perun.ChClient) (*Sessi
 	}, nil
 }
 
-func NewChForTest(pch perun.Channel, currency string, parts []string, challengeDurSecs uint64, isOpen bool) *Channel {
-	timeoutCfg := timeoutConfig{response: 1 * time.Second}
+func NewChForTest(pch perun.Channel,
+	currency string, parts []string, responseTimeout time.Duration, challengeDurSecs uint64, isOpen bool) *Channel {
+	timeoutCfg := timeoutConfig{response: responseTimeout}
 	ch := newCh(pch, currency, parts, timeoutCfg, challengeDurSecs)
 	if isOpen {
 		ch.status = open
