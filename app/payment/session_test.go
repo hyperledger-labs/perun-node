@@ -233,15 +233,31 @@ func Test_CloseSession(t *testing.T) {
 		force := false
 		sessionAPI := &mocks.SessionAPI{}
 		sessionAPI.On("Close", force).Return(nil, nil)
+
+		_, err := payment.CloseSession(sessionAPI, force)
+		require.NoError(t, err)
 	})
 	t.Run("happy_Force", func(t *testing.T) {
 		force := true
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("Close", force).Return(nil, nil)
+		sessionAPI.On("Close", force).Return([]perun.ChInfo{updatedChInfo}, nil)
+
+		openChsInfo, err := payment.CloseSession(sessionAPI, force)
+		require.NoError(t, err)
+		assert.Len(t, openChsInfo, 1)
 	})
-	t.Run("ErrorOpenChs_noForce", func(t *testing.T) {
+	t.Run("OpenChs_noForce", func(t *testing.T) {
 		force := false
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("Close", force).Return([]perun.ChInfo{updatedChInfo}, nil)
+		unclosedChsErrAddInfo := perun.NewAPIErrInfoFailedPreConditionUnclosedChs([]perun.ChInfo{updatedChInfo})
+		unclosedChsErr := perun.NewAPIErrV2FailedPreCondition(assert.AnError.Error(), unclosedChsErrAddInfo)
+		sessionAPI.On("Close", force).Return(nil, unclosedChsErr)
+
+		_, err := payment.CloseSession(sessionAPI, force)
+		assert.Error(t, err)
+		paymentAddInfo, ok := err.AddInfo().(payment.ErrV2InfoFailedPreCondUnclosedPayChs)
+		require.True(t, ok)
+		assert.Equal(t, 1, len(paymentAddInfo.PayChs))
+		assert.Equal(t, paymentAddInfo.PayChs[0], wantUpdatedPayChInfo)
 	})
 }

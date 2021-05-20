@@ -893,37 +893,32 @@ func Test_ProposeCh_CloseSession(t *testing.T) {
 	t.Run("no_force_openChs", func(t *testing.T) {
 		ch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch.On("Phase").Return(pchannel.Acting)
-		session := newSessionWCh(t, peerIDs, validOpeningBalInfo, ch)
+		sess := newSessionWCh(t, peerIDs, validOpeningBalInfo, ch)
+		chsInfo := sess.GetChsInfo()
 
-		_, err := session.Close(false)
+		_, err := sess.Close(false)
 		require.Error(t, err)
-		t.Log(err)
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, session.ErrOpenChsExist.Error())
+		assertErrV2InfoFailedPreCondUnclosedChs(t, err.AddInfo(), chsInfo)
 	})
-	t.Run("no_force_openChs", func(t *testing.T) {
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
-		ch.On("Phase").Return(pchannel.Acting)
-		session := newSessionWCh(t, peerIDs, validOpeningBalInfo, ch)
-
-		_, err := session.Close(false)
-		require.Error(t, err)
-		t.Log(err)
-	})
-
 	t.Run("force_unexpectedPhaseChs", func(t *testing.T) {
 		ch, _ := newMockPCh(t, validOpeningBalInfo)
 		ch.On("Phase").Return(pchannel.Registering)
-		session := newSessionWCh(t, peerIDs, validOpeningBalInfo, ch)
+		sess := newSessionWCh(t, peerIDs, validOpeningBalInfo, ch)
+		chsInfo := sess.GetChsInfo()
 
-		_, err := session.Close(false)
+		_, err := sess.Close(false)
 		require.Error(t, err)
-		t.Log(err)
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, session.ErrUnexpectedPhaseChs.Error())
+		assertErrV2InfoFailedPreCondUnclosedChs(t, err.AddInfo(), chsInfo)
 	})
 	t.Run("session_closed", func(t *testing.T) {
-		session, _ := newSessionWMockChClient(t, false)
+		sess, _ := newSessionWMockChClient(t, false)
 
-		_, err := session.Close(false)
+		_, err := sess.Close(false)
 		require.Error(t, err)
-		t.Log(err)
+		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, session.ErrSessionClosed.Error())
+		assert.Nil(t, err.AddInfo())
 	})
 }
 
@@ -1041,6 +1036,14 @@ func assertErrV2InfoInvalidArgument(t *testing.T, info interface{}, name, value 
 	assert.Equal(t, name, addInfo.Name)
 	assert.Equal(t, value, addInfo.Value)
 	t.Log("requirement:", addInfo.Requirement)
+}
+
+func assertErrV2InfoFailedPreCondUnclosedChs(t *testing.T, info interface{}, chInfos []perun.ChInfo) {
+	t.Helper()
+
+	addInfo, ok := info.(perun.ErrV2InfoFailedPreCondUnclosedChs)
+	require.True(t, ok)
+	assert.Equal(t, chInfos, addInfo.ChInfos)
 }
 
 func assertErrV2InfoTxTimedOut(t *testing.T, info interface{}, txType, txID, txTimeout string) {

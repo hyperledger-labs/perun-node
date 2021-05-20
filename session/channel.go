@@ -266,7 +266,7 @@ func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 	}()
 
 	if ch.status == closed {
-		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error())
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error(), nil)
 		return ch.getChInfo(), apiErr
 	}
 
@@ -358,7 +358,7 @@ func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) perun.APIErrorV
 	defer ch.Unlock()
 
 	if ch.status == closed {
-		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error())
+		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error(), nil)
 		ch.WithFields(perun.APIErrV2AsMap("SubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
@@ -385,7 +385,7 @@ func (ch *Channel) UnsubChUpdates() perun.APIErrorV2 {
 	defer ch.Unlock()
 
 	if ch.status == closed {
-		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error())
+		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error(), nil)
 		ch.WithFields(perun.APIErrV2AsMap("UnsubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
@@ -418,7 +418,7 @@ func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept
 	}()
 
 	if ch.status == closed {
-		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error())
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error(), nil)
 		return ch.getChInfo(), apiErr
 	}
 
@@ -558,7 +558,7 @@ func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, perun.APIErrorV2) 
 	}()
 
 	if ch.status == closed {
-		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error())
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error(), nil)
 		return ch.getChInfo(), apiErr
 	}
 

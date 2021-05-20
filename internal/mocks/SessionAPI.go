@@ -31,7 +31,7 @@ func (_m *SessionAPI) AddPeerID(_a0 perun.PeerID) perun.APIErrorV2 {
 }
 
 // Close provides a mock function with given fields: force
-func (_m *SessionAPI) Close(force bool) ([]perun.ChInfo, error) {
+func (_m *SessionAPI) Close(force bool) ([]perun.ChInfo, perun.APIErrorV2) {
 	ret := _m.Called(force)
 
 	var r0 []perun.ChInfo
@@ -43,11 +43,13 @@ func (_m *SessionAPI) Close(force bool) ([]perun.ChInfo, error) {
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(bool) error); ok {
+	var r1 perun.APIErrorV2
+	if rf, ok := ret.Get(1).(func(bool) perun.APIErrorV2); ok {
 		r1 = rf(force)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(perun.APIErrorV2)
+		}
 	}
 
 	return r0, r1
