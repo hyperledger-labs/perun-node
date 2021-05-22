@@ -98,12 +98,10 @@ func (a *payChAPIServer) Help(context.Context, *pb.HelpReq) (*pb.HelpResp, error
 
 // OpenSession wraps node.OpenSession.
 func (a *payChAPIServer) OpenSession(ctx context.Context, req *pb.OpenSessionReq) (*pb.OpenSessionResp, error) {
-	errResponse := func(err error) *pb.OpenSessionResp {
+	errResponse := func(err perun.APIErrorV2) *pb.OpenSessionResp {
 		return &pb.OpenSessionResp{
 			Response: &pb.OpenSessionResp_Error{
-				Error: &pb.MsgError{
-					Error: err.Error(),
-				},
+				Error: toGrpcError(err),
 			},
 		}
 	}

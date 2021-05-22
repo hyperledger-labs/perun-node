@@ -87,7 +87,7 @@ func sessionOpenFn(c *ishell.Context) {
 	}
 	msgErr, ok := resp.Response.(*pb.OpenSessionResp_Error)
 	if ok {
-		c.Printf("%s\n\n", redf("Error opening session : %v", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error opening session : %v", apiErrorString(msgErr.Error)))
 		return
 	}
 	msg := resp.Response.(*pb.OpenSessionResp_MsgSuccess_)

@@ -44,9 +44,10 @@ func init() {
 var n perun.NodeAPI
 
 // Node can be initialized only once and hence run all the error cases before a happy test.
-// This test expects a working ganache-cli node to be started using specific options.
-// See ethereumtest/setupcontracts.go for the details on the command.
 func Test_Integ_New(t *testing.T) {
+	// Deploy contracts.
+	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
+
 	t.Run("err_invalid_log_level", func(t *testing.T) {
 		cfg := validConfig
 		cfg.LogLevel = ""
@@ -88,8 +89,10 @@ func Test_Integ_New(t *testing.T) {
 		apis := n.Help()
 		assert.Equal(t, []string{"payment"}, apis)
 	})
+
 	var sessionID string
 	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+
 	t.Run("happy_OpenSession", func(t *testing.T) {
 		var err error
 		sessionCfg := sessiontest.NewConfigT(t, prng)
@@ -98,16 +101,17 @@ func Test_Integ_New(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotZero(t, sessionID)
 	})
+
 	t.Run("happy_GetSession", func(t *testing.T) {
 		sess, err := n.GetSession(sessionID)
 		require.NoError(t, err)
 		assert.NotNil(t, sess)
 	})
+
 	t.Run("err_GetSession_not_found", func(t *testing.T) {
 		unknownSessID := "unknown session id"
 		_, err := n.GetSessionV2(unknownSessID)
 		require.Error(t, err)
-		t.Log(err)
 
 		wantMessage := node.ErrUnknownSessionID.Error()
 		assert.Equal(t, perun.ClientError, err.Category())
@@ -118,19 +122,31 @@ func Test_Integ_New(t *testing.T) {
 		assert.Equal(t, addInfo.Type, "session id")
 		assert.Equal(t, addInfo.ID, unknownSessID)
 	})
+
 	t.Run("err_OpenSession_config_file_error", func(t *testing.T) {
-		_, _, err := n.OpenSession("random-config-file")
+		invalidConfigFile := "random-config-file"
+		_, _, err := n.OpenSession(invalidConfigFile)
 		require.Error(t, err)
-		t.Log(err)
+
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2InvalidConfig, err.Code())
+		assert.Contains(t, err.Message(), "")
+		require.Nil(t, err.AddInfo())
 	})
+
 	// Simulate one error to fail session.New
 	// Complete test of session.New is done in the session package.
 	t.Run("err_OpenSession_init_error", func(t *testing.T) {
+		invalidChainURL := "invalid-url"
 		sessionCfg := sessiontest.NewConfigT(t, prng)
-		sessionCfg.ChainURL = "invalid-url"
+		sessionCfg.ChainURL = invalidChainURL
 		sessionCfgFile := sessiontest.NewConfigFileT(t, sessionCfg)
 		_, _, err := n.OpenSession(sessionCfgFile)
 		require.Error(t, err)
-		t.Log(err)
+
+		assert.Equal(t, perun.ClientError, err.Category())
+		assert.Equal(t, perun.ErrV2InvalidConfig, err.Code())
+		assert.Contains(t, err.Message(), "")
+		require.Nil(t, err.AddInfo())
 	})
 }

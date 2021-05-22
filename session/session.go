@@ -134,23 +134,23 @@ func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pc
 
 // New initializes a SessionAPI instance for the given configuration and returns an
 // instance of it. All methods on it are safe for concurrent use.
-func New(cfg Config) (*Session, error) {
+func New(cfg Config) (*Session, perun.APIErrorV2) {
 	user, err := NewUnlockedUser(walletBackend, cfg.User)
 	if err != nil {
-		return nil, err
+		return nil, perun.NewAPIErrV2InvalidConfig(errors.WithMessage(err, "initializing user").Error())
 	}
 
 	if cfg.User.CommType != "tcp" {
-		return nil, perun.ErrUnsupportedCommType
+		return nil, perun.NewAPIErrV2UnknownInternal(perun.ErrUnsupportedCommType)
 	}
 	commBackend := tcp.NewTCPBackend(tcptest.DialerTimeout)
 	chAsset, err := walletBackend.ParseAddr(cfg.Asset)
 	if err != nil {
-		return nil, err
+		return nil, perun.NewAPIErrV2InvalidConfig(errors.WithMessage(err, "parsing asset address").Error())
 	}
 	idProvider, err := initIDProvider(cfg.IDProviderType, cfg.IDProviderURL, walletBackend, user.PeerID)
 	if err != nil {
-		return nil, err
+		return nil, perun.NewAPIErrV2InvalidConfig(errors.WithMessage(err, "initializing id provider").Error())
 	}
 
 	chClientCfg := client.Config{
@@ -167,7 +167,7 @@ func New(cfg Config) (*Session, error) {
 	}
 	chClient, err := client.NewEthereumPaymentClient(chClientCfg, user, commBackend)
 	if err != nil {
-		return nil, err
+		return nil, perun.NewAPIErrV2InvalidConfig(errors.WithMessage(err, "initializing payment client").Error())
 	}
 
 	sessionID := calcSessionID(user.OffChainAddr.Bytes())
@@ -190,7 +190,7 @@ func New(cfg Config) (*Session, error) {
 	}
 	err = sess.chClient.RestoreChs(sess.handleRestoredCh)
 	if err != nil {
-		return nil, errors.WithMessage(err, "restoring channels")
+		return nil, perun.NewAPIErrV2InvalidConfig(errors.WithMessage(err, "restoring channels").Error())
 	}
 	chClient.Handle(sess, sess) // Init handlers
 	return sess, nil

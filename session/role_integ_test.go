@@ -118,6 +118,7 @@ func Test_Integ_Role(t *testing.T) {
 					Def:  pchannel.NoApp(),
 					Data: pchannel.NoData(),
 				}
+				//nolint:govet				// err does not shadow
 				_, err := alice.OpenCh(ctx, openingBalInfo, app, challengeDurSecs)
 				require.NoErrorf(t, err, "alice opening channel with bob")
 			}()
@@ -159,6 +160,7 @@ func Test_Integ_Role(t *testing.T) {
 				Def:  pchannel.NoApp(),
 				Data: pchannel.NoData(),
 			}
+			//nolint:govet				// err does not shadow
 			_, err := bob.OpenCh(ctx, openingBalInfo, app, challengeDurSecs)
 			require.Error(t, err, "bob sending channel proposal should be rejected by alice")
 			t.Log(err)
@@ -189,14 +191,14 @@ func Test_Integ_Role(t *testing.T) {
 		bobChInfos := bob.GetChsInfo()
 		require.Lenf(t, bobChInfos, 2, "bob session should have exactly two channels")
 
-		aliceChs[0], err = alice.GetCh(aliceChInfos[0].ChID)
+		aliceChs[0], err = alice.GetChV2(aliceChInfos[0].ChID)
 		require.NoError(t, err, "getting alice ChAPI instance")
-		aliceChs[1], err = alice.GetCh(aliceChInfos[1].ChID)
+		aliceChs[1], err = alice.GetChV2(aliceChInfos[1].ChID)
 		require.NoError(t, err, "getting alice ChAPI instance")
 
-		bobChs[0], err = bob.GetCh(bobChInfos[0].ChID)
+		bobChs[0], err = bob.GetChV2(bobChInfos[0].ChID)
 		require.NoError(t, err, "getting bob ChAPI instance")
-		bobChs[1], err = bob.GetCh(bobChInfos[1].ChID)
+		bobChs[1], err = bob.GetChV2(bobChInfos[1].ChID)
 		require.NoError(t, err, "getting bob ChAPI instance")
 	})
 	require.True(t, passed)
@@ -224,6 +226,7 @@ func Test_Integ_Role(t *testing.T) {
 				return nil
 			}
 
+			//nolint:govet				// err does not shadow
 			_, err := bobChs[0].SendChUpdate(ctx, updater)
 			require.NoError(t, err, "bob sending channel update")
 		}()
@@ -269,6 +272,7 @@ func Test_Integ_Role(t *testing.T) {
 				return nil
 			}
 
+			//nolint:govet				// err does not shadow
 			_, err := aliceChs[0].SendChUpdate(ctx, updater)
 			require.Error(t, err, "alice sending channel update should be rejected by bob")
 			t.Log(err)
@@ -316,6 +320,8 @@ func Test_Integ_Role(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+
+			//nolint:govet				// err does not shadow
 			closedChInfo, err := aliceChs[chIndex].Close(ctx)
 			require.NoError(t, err, "alice closing channel")
 			t.Log("alice", closedChInfo)
