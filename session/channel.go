@@ -253,20 +253,20 @@ func (ch *Channel) ChallengeDurSecs() uint64 {
 }
 
 // SendChUpdate implements chAPI.SendChUpdate.
-func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater) (perun.ChInfo, perun.APIErrorV2) {
+func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater) (perun.ChInfo, perun.APIError) {
 	ch.WithField("method", "SendChUpdate").Infof("\nReceived request with params %+v", updater)
 	ch.Lock()
 	defer ch.Unlock()
 
-	var apiErr perun.APIErrorV2
+	var apiErr perun.APIError
 	defer func() {
 		if apiErr != nil {
-			ch.WithFields(perun.APIErrV2AsMap("RespondChProposal", apiErr)).Error(apiErr.Message())
+			ch.WithFields(perun.APIErrAsMap("SendChUpdate", apiErr)).Error(apiErr.Message())
 		}
 	}()
 
 	if ch.status == closed {
-		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error(), nil)
+		apiErr = perun.NewAPIErrFailedPreCondition(ErrChClosed.Error(), nil)
 		return ch.getChInfo(), apiErr
 	}
 
@@ -283,12 +283,12 @@ func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 
 // handleSendChUpdateError inspects the passed error, constructs an
 // appropriate APIError and returns it.
-func (ch *Channel) handleSendChUpdateError(err error) perun.APIErrorV2 {
+func (ch *Channel) handleSendChUpdateError(err error) perun.APIError {
 	peerAlias := ch.parts[ch.pch.Idx()^1] // Logic works only for a two party channel.
 	if apiErr := handleProposalError(peerAlias, ch.timeoutCfg.response.String(), err); apiErr != nil {
 		return apiErr
 	}
-	return perun.NewAPIErrV2UnknownInternal(err)
+	return perun.NewAPIErrUnknownInternal(err)
 }
 
 // HandleUpdate handles the incoming updates on an open channel. All updates are sent to a centralized
@@ -352,20 +352,20 @@ func makeChUpdateNotif(currChInfo perun.ChInfo, proposedState *pchannel.State, e
 }
 
 // SubChUpdates implements chAPI.SubChUpdates.
-func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) perun.APIErrorV2 {
+func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) perun.APIError {
 	ch.WithField("method", "SubChUpdates").Info("Received request with params:", notifier)
 	ch.Lock()
 	defer ch.Unlock()
 
 	if ch.status == closed {
-		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error(), nil)
-		ch.WithFields(perun.APIErrV2AsMap("SubChUpdates", apiErr)).Error(apiErr.Message())
+		apiErr := perun.NewAPIErrFailedPreCondition(ErrChClosed.Error(), nil)
+		ch.WithFields(perun.APIErrAsMap("SubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
 
 	if ch.chUpdateNotifier != nil {
-		apiErr := perun.NewAPIErrV2ResourceExists("subscription to channel updates", ch.ID(), ErrSubAlreadyExists.Error())
-		ch.WithFields(perun.APIErrV2AsMap("SubChUpdates", apiErr)).Error(apiErr.Message())
+		apiErr := perun.NewAPIErrResourceExists("subscription to channel updates", ch.ID(), ErrSubAlreadyExists.Error())
+		ch.WithFields(perun.APIErrAsMap("SubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
 	ch.chUpdateNotifier = notifier
@@ -379,20 +379,20 @@ func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) perun.APIErrorV
 }
 
 // UnsubChUpdates implements chAPI.UnsubChUpdates.
-func (ch *Channel) UnsubChUpdates() perun.APIErrorV2 {
+func (ch *Channel) UnsubChUpdates() perun.APIError {
 	ch.WithField("method", "UnsubChUpdates").Info("Received request")
 	ch.Lock()
 	defer ch.Unlock()
 
 	if ch.status == closed {
-		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error(), nil)
-		ch.WithFields(perun.APIErrV2AsMap("UnsubChUpdates", apiErr)).Error(apiErr.Message())
+		apiErr := perun.NewAPIErrFailedPreCondition(ErrChClosed.Error(), nil)
+		ch.WithFields(perun.APIErrAsMap("UnsubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
 
 	if ch.chUpdateNotifier == nil {
-		apiErr := perun.NewAPIErrV2ResourceNotFound("subscription to channel updates", ch.ID(), ErrNoActiveSub.Error())
-		ch.WithFields(perun.APIErrV2AsMap("UnsubChUpdates", apiErr)).Error(apiErr.Message())
+		apiErr := perun.NewAPIErrResourceNotFound("subscription to channel updates", ch.ID(), ErrNoActiveSub.Error())
+		ch.WithFields(perun.APIErrAsMap("UnsubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
 	ch.unsubChUpdates()
@@ -405,33 +405,33 @@ func (ch *Channel) unsubChUpdates() {
 
 // RespondChUpdate implements chAPI.RespondChUpdate.
 func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) (
-	perun.ChInfo, perun.APIErrorV2) {
+	perun.ChInfo, perun.APIError) {
 	ch.WithField("method", "RespondChUpdate").Infof("\nReceived request with params %+v,%+v", updateID, accept)
 	ch.Lock()
 	defer ch.Unlock()
 
-	var apiErr perun.APIErrorV2
+	var apiErr perun.APIError
 	defer func() {
 		if apiErr != nil {
-			ch.WithFields(perun.APIErrV2AsMap("RespondChUpdate", apiErr)).Error(apiErr.Message())
+			ch.WithFields(perun.APIErrAsMap("RespondChUpdate", apiErr)).Error(apiErr.Message())
 		}
 	}()
 
 	if ch.status == closed {
-		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error(), nil)
+		apiErr = perun.NewAPIErrFailedPreCondition(ErrChClosed.Error(), nil)
 		return ch.getChInfo(), apiErr
 	}
 
 	entry, ok := ch.chUpdateResponders[updateID]
 	if !ok {
-		apiErr = perun.NewAPIErrV2ResourceNotFound("update", updateID, ErrUnknownUpdateID.Error())
+		apiErr = perun.NewAPIErrResourceNotFound("update", updateID, ErrUnknownUpdateID.Error())
 		return ch.getChInfo(), apiErr
 	}
 	delete(ch.chUpdateResponders, updateID)
 
 	currTime := time.Now().UTC().Unix()
 	if entry.notifExpiry < currTime {
-		apiErr = perun.NewAPIErrV2UserResponseTimedOut(entry.notif.Expiry, currTime)
+		apiErr = perun.NewAPIErrUserResponseTimedOut(entry.notif.Expiry, currTime)
 		return ch.getChInfo(), apiErr
 	}
 
@@ -458,36 +458,36 @@ func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept
 	return ch.getChInfo(), apiErr
 }
 
-func (ch *Channel) acceptChUpdate(pctx context.Context, entry chUpdateResponderEntry) perun.APIErrorV2 {
+func (ch *Channel) acceptChUpdate(pctx context.Context, entry chUpdateResponderEntry) perun.APIError {
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdate())
 	defer cancel()
 	err := entry.responder.Accept(ctx)
 	if err != nil {
 		ch.Error("Accepting channel update", err)
-		return perun.NewAPIErrV2UnknownInternal(errors.Wrap(err, "accepting update"))
+		return perun.NewAPIErrUnknownInternal(errors.Wrap(err, "accepting update"))
 	}
 	return nil
 }
 
-func (ch *Channel) rejectChUpdate(pctx context.Context, entry chUpdateResponderEntry, reason string) perun.APIErrorV2 {
+func (ch *Channel) rejectChUpdate(pctx context.Context, entry chUpdateResponderEntry, reason string) perun.APIError {
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.respChUpdate())
 	defer cancel()
 	err := entry.responder.Reject(ctx, reason)
 	if err != nil {
 		ch.Error("Rejecting channel update", err)
-		return perun.NewAPIErrV2UnknownInternal(errors.Wrap(err, "rejecting update"))
+		return perun.NewAPIErrUnknownInternal(errors.Wrap(err, "rejecting update"))
 	}
 	return nil
 }
 
 // handleChRegisterError inspects the passed error, constructs an
 // appropriate APIError and returns it.
-func (ch *Channel) handleChRegisterError(err error) perun.APIErrorV2 {
-	var apiErr perun.APIErrorV2
+func (ch *Channel) handleChRegisterError(err error) perun.APIError {
+	var apiErr perun.APIError
 	if apiErr = handleChainError(ch.chainURL, ch.timeoutCfg.onChainTx.String(), err); apiErr != nil {
 		return apiErr
 	}
-	return perun.NewAPIErrV2UnknownInternal(err)
+	return perun.NewAPIErrUnknownInternal(err)
 }
 
 // GetChInfo implements chAPI.GetChInfo.
@@ -545,20 +545,20 @@ func makeBalInfoFromRawBal(parts []string, curr string, rawBal []*big.Int) perun
 }
 
 // Close implements chAPI.Close.
-func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, perun.APIErrorV2) {
+func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, perun.APIError) {
 	ch.WithField("method", "ChClose").Infof("\nReceived request")
 	ch.Lock()
 	defer ch.Unlock()
 
-	var apiErr perun.APIErrorV2
+	var apiErr perun.APIError
 	defer func() {
 		if apiErr != nil {
-			ch.WithFields(perun.APIErrV2AsMap("ChClose", apiErr)).Error(apiErr.Message())
+			ch.WithFields(perun.APIErrAsMap("ChClose", apiErr)).Error(apiErr.Message())
 		}
 	}()
 
 	if ch.status == closed {
-		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrChClosed.Error(), nil)
+		apiErr = perun.NewAPIErrFailedPreCondition(ErrChClosed.Error(), nil)
 		return ch.getChInfo(), apiErr
 	}
 
@@ -586,13 +586,13 @@ func (ch *Channel) finalize(pctx context.Context) {
 	err := ch.pch.UpdateBy(ctx, chFinalizer)
 	if err != nil {
 		apiErr := ch.handleSendChUpdateError(err)
-		ch.WithFields(perun.APIErrV2AsMap("ChClose", apiErr)).Error(apiErr.Message())
+		ch.WithFields(perun.APIErrAsMap("ChClose", apiErr)).Error(apiErr.Message())
 		ch.Info("Channel not finalized. Proceeding with register and close")
 	}
 }
 
 // register registers the latest state of the channel on-chain.
-func (ch *Channel) register(pctx context.Context) perun.APIErrorV2 {
+func (ch *Channel) register(pctx context.Context) perun.APIError {
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.register(ch.challengeDurSecs))
 	defer cancel()
 	err := ch.pch.Register(ctx)

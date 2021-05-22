@@ -308,11 +308,11 @@ func CloseSession(t *testing.T, sessionID string, force bool, wantErr bool) []*p
 		msg, ok := resp.Response.(*pb.CloseSessionResp_Error)
 		require.True(t, ok, "CloseSession returned success response")
 		t.Log(msg.Error)
-		addInfo, ok := msg.Error.AddInfo.(*pb.MsgErrorV2_ErrV2InfoFailedPreCondUnclosedChs)
+		addInfo, ok := msg.Error.AddInfo.(*pb.MsgError_ErrInfoFailedPreCondUnclosedChs)
 		if !ok {
 			return nil
 		}
-		return addInfo.ErrV2InfoFailedPreCondUnclosedChs.Chs
+		return addInfo.ErrInfoFailedPreCondUnclosedChs.Chs
 	}
 
 	msg, ok := resp.Response.(*pb.CloseSessionResp_MsgSuccess_)

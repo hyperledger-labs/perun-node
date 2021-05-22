@@ -110,28 +110,14 @@ func Test_Integ_New(t *testing.T) {
 
 	t.Run("err_GetSession_not_found", func(t *testing.T) {
 		unknownSessID := "unknown session id"
-		_, err := n.GetSessionV2(unknownSessID)
+		_, err := n.GetSession(unknownSessID)
 		require.Error(t, err)
 
 		wantMessage := node.ErrUnknownSessionID.Error()
 		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrV2ResourceNotFound, err.Code())
+		assert.Equal(t, perun.ErrResourceNotFound, err.Code())
 		assert.Equal(t, wantMessage, err.Message())
-		addInfo, ok := err.AddInfo().(perun.ErrV2InfoResourceNotFound)
-		require.True(t, ok)
-		assert.Equal(t, addInfo.Type, "session id")
-		assert.Equal(t, addInfo.ID, unknownSessID)
-	})
-
-	t.Run("err_OpenSession_config_file_error", func(t *testing.T) {
-		invalidConfigFile := "random-config-file"
-		_, _, err := n.OpenSession(invalidConfigFile)
-		require.Error(t, err)
-
-		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrV2InvalidConfig, err.Code())
-		assert.Contains(t, err.Message(), "")
-		require.Nil(t, err.AddInfo())
+		assertErrInfoResourceNotFound(t, err.AddInfo(), "session id", unknownSessID)
 	})
 
 	// Simulate one error to fail session.New
@@ -145,8 +131,17 @@ func Test_Integ_New(t *testing.T) {
 		require.Error(t, err)
 
 		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrV2InvalidConfig, err.Code())
+		assert.Equal(t, perun.ErrInvalidConfig, err.Code())
 		assert.Contains(t, err.Message(), "")
 		require.Nil(t, err.AddInfo())
 	})
+}
+
+func assertErrInfoResourceNotFound(t *testing.T, info interface{}, resourceType, resourceID string) {
+	t.Helper()
+
+	addInfo, ok := info.(perun.ErrInfoResourceNotFound)
+	require.True(t, ok)
+	assert.Equal(t, resourceType, addInfo.Type)
+	assert.Equal(t, resourceID, addInfo.ID)
 }
