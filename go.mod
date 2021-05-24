@@ -10,14 +10,17 @@ require (
 	github.com/flynn-archive/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/golang/protobuf v1.4.3
 	github.com/gorilla/websocket v1.4.2
+	github.com/gotk3/gotk3 v0.5.2
 	github.com/kylelemons/godebug v1.1.0
 	github.com/magiconair/properties v1.8.4 // indirect
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
+	github.com/mum4k/termdash v0.0.0-00010101000000-000000000000
 	github.com/otiai10/copy v1.2.0
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
+	github.com/rivo/tview v0.0.0-20210521091241-1fd4a5b7aab3
 	github.com/shopspring/decimal v1.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/afero v1.4.1 // indirect
