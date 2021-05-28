@@ -35,6 +35,8 @@ only once.
 Once in the `connect screen`, press `connect` button to connect with the perun
 node. Once connected, the application will switch to `dashboard screen`.
 
+![Dashboard image not found](dashboard.png?raw=true "Dashboard screen")
+
 In the `dashboard screen`,
 
 - Address and balance of the user's on-chain account are shown in the top left.
