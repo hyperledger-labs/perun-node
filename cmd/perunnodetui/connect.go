@@ -171,6 +171,7 @@ func newButton(text string, color cell.Color, buttonHeight int) (*button.Button,
 // It is a closure over connect screen, passed container, quitter and package level variables.
 func (s *connectScreen) getConnectFn(c *container.Container, quitter chan bool) func() error {
 	return func() error {
+		logInfo("Connecting to perun node...")
 		var err error
 
 		// Read & validate fields; set package level variables.

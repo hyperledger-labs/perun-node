@@ -43,7 +43,7 @@ const (
 	terminalMinY = 29
 
 	logFile  = "perunnodetui.log"
-	logLevel = "debug"
+	logLevel = "info" // only info and error levels are used.
 
 	challengeDurSecs uint64 = 10 // standard value all outgoing channel open requests.
 
@@ -78,15 +78,15 @@ func main() {
 	var err error
 	var isDeployRequested bool
 	isDeployRequested, userName = parseFlags()
-
 	deployContractsIfRequested(isDeployRequested)
-
 	initLoggers(logLevel, logFile)
+
+	fmt.Println("Errors will not be printed to terminal. See log file:", logFile)
 
 	// Initialize termdash container.
 	t, err := tcell.New()
 	if err != nil {
-		logger.Fatal(errors.Wrap(err, "initializing tcell"))
+		panic(errors.Wrap(err, "initializing tcell"))
 	}
 	defer t.Close()
 	// After this point, call only return (not panic/os.Exit),
@@ -119,7 +119,8 @@ func main() {
 	connectScreen.connectBtn.SetCallback(connectScreen.getConnectFn(c, quitter))
 	connectScreen.quitBtn.SetCallback(connectScreen.getQuitFn(quitter))
 	if err = renderConnectScreen(c, connectScreen); err != nil {
-		panic(err)
+		logError(errors.WithMessage(err, "rendering connect screen"))
+		return
 	}
 
 	// renderDummyDashboard(c) // For testing dashboard view. This should normally be commented out.
