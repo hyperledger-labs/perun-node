@@ -90,8 +90,29 @@ func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID s
 	return toPayChInfo(chInfo), apiErr
 }
 
+// ErrV2InfoFailedPreCondUnclosedPayChs is the interpretation of
+// ErrV2InfoFailedPreCondUnclosedChs for payment application.
+type ErrV2InfoFailedPreCondUnclosedPayChs struct {
+	PayChs []PayChInfo
+}
+
 // CloseSession closes the current session.
-func CloseSession(s perun.SessionAPI, force bool) ([]PayChInfo, error) {
+func CloseSession(s perun.SessionAPI, force bool) ([]PayChInfo, perun.APIErrorV2) {
 	openChsInfo, err := s.Close(force)
+	err = toPayChsCloseSessionErr(err)
 	return toPayChsInfo(openChsInfo), err
+}
+
+func toPayChsCloseSessionErr(err perun.APIErrorV2) perun.APIErrorV2 {
+	if err == nil {
+		return err
+	}
+	addInfo, ok := err.AddInfo().(perun.ErrV2InfoFailedPreCondUnclosedChs)
+	if !ok {
+		return err
+	}
+	paymentAddInfo := ErrV2InfoFailedPreCondUnclosedPayChs{
+		PayChs: toPayChsInfo(addInfo.ChInfos),
+	}
+	return perun.NewAPIErrV2(err.Category(), err.Code(), err.Message(), paymentAddInfo)
 }

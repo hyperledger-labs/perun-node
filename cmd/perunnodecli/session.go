@@ -140,7 +140,7 @@ func sessionCloseFn(c *ishell.Context) {
 	if ok {
 		channelSub(c) // If there is an error in session close, re-subscribe to channel opening request notifications.
 
-		c.Printf("%s\n\n", redf("Error closing session : %v", msgErr.Error.Error))
+		c.Printf("%s\n\n", redf("Error closing session : %v", apiErrorString(msgErr.Error)))
 		return
 	}
 	msg := resp.Response.(*pb.CloseSessionResp_MsgSuccess_)

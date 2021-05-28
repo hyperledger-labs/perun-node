@@ -78,6 +78,8 @@ const (
 	ErrChClosed               Error = "channel is closed"
 	ErrUnknownChID            Error = "no channel corresponding to the specified ID"
 	ErrUnknownUpdateID        Error = "unknown update id"
+	ErrOpenChsExist           Error = "Session cannot be closed (without force option) as there are open channels"
+	ErrUnexpectedPhaseChs     Error = "Session contains channels in unexpected phase"
 )
 
 type (
@@ -264,7 +266,7 @@ func (s *Session) AddPeerID(peerID perun.PeerID) perun.APIErrorV2 {
 
 	var apiErr perun.APIErrorV2
 	if !s.isOpen {
-		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error(), nil)
 		s.WithFields(perun.APIErrV2AsMap("AddPeerID", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
@@ -295,7 +297,7 @@ func (s *Session) GetPeerID(alias string) (perun.PeerID, perun.APIErrorV2) {
 	defer s.Unlock()
 
 	if !s.isOpen {
-		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
+		apiErr := perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error(), nil)
 		s.WithFields(perun.APIErrV2AsMap("GetPeerID", apiErr)).Error(apiErr.Message())
 		return perun.PeerID{}, apiErr
 	}
@@ -325,7 +327,7 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	}()
 
 	if !s.isOpen {
-		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error(), nil)
 		return perun.ChInfo{}, apiErr
 	}
 
@@ -604,7 +606,7 @@ func (s *Session) SubChProposals(notifier perun.ChProposalNotifier) perun.APIErr
 
 	var apiErr perun.APIErrorV2
 	if !s.isOpen {
-		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error(), nil)
 		s.WithFields(perun.APIErrV2AsMap("SubChProposals", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
@@ -633,7 +635,7 @@ func (s *Session) UnsubChProposals() perun.APIErrorV2 {
 
 	var apiErr perun.APIErrorV2
 	if !s.isOpen {
-		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error(), nil)
 		s.WithFields(perun.APIErrV2AsMap("UnsubChProposals", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
@@ -663,7 +665,7 @@ func (s *Session) RespondChProposal(pctx context.Context, chProposalID string, a
 	}()
 
 	if !s.isOpen {
-		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error())
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error(), nil)
 		return perun.ChInfo{}, apiErr
 	}
 
@@ -825,18 +827,26 @@ func (s *Session) HandleUpdateWInterface(
 }
 
 // Close implements sessionAPI.Close.
-func (s *Session) Close(force bool) ([]perun.ChInfo, error) {
+func (s *Session) Close(force bool) ([]perun.ChInfo, perun.APIErrorV2) {
+	s.WithField("method", "Close").Infof("\nReceived request with params %+v", force)
 	s.Debug("Received request: session.Close")
 	s.Lock()
 	defer s.Unlock()
 
+	var apiErr perun.APIErrorV2
+	defer func() {
+		if apiErr != nil {
+			s.WithFields(perun.APIErrV2AsMap("Close", apiErr)).Error(apiErr.Message())
+		}
+	}()
+
 	if !s.isOpen {
-		return nil, perun.ErrSessionClosed
+		apiErr = perun.NewAPIErrV2FailedPreCondition(ErrSessionClosed.Error(), nil)
+		return nil, apiErr
 	}
 
 	openChsInfo := []perun.ChInfo{}
-	unexpectedPhaseChIDs := []string{}
-
+	unexpectedPhaseChIDs := []perun.ChInfo{}
 	s.chs.forEach(func(i int, ch *Channel) {
 		// Acquire channel mutex to ensure any ongoing operation on the channel is finished.
 		ch.Lock()
@@ -853,7 +863,7 @@ func (s *Session) Close(force bool) ([]perun.ChInfo, error) {
 		// stable phases known to perun node (see state diagram in the docs for details) : Acting or Withdrawn.
 		phase := ch.pch.Phase()
 		if phase != pchannel.Acting && phase != pchannel.Withdrawn {
-			unexpectedPhaseChIDs = append(unexpectedPhaseChIDs, ch.ID())
+			unexpectedPhaseChIDs = append(unexpectedPhaseChIDs, ch.getChInfo())
 		}
 		if ch.status == open {
 			openChsInfo = append(openChsInfo, ch.getChInfo())
@@ -861,20 +871,23 @@ func (s *Session) Close(force bool) ([]perun.ChInfo, error) {
 	})
 
 	if len(unexpectedPhaseChIDs) != 0 {
-		err := fmt.Errorf("chs in unexpected phase during session close: %v", unexpectedPhaseChIDs)
-		s.Error(err.Error())
+		err := errors.WithStack(ErrUnexpectedPhaseChs)
 		s.unlockAllChs()
-		return nil, perun.GetAPIError(errors.WithStack(err))
+		addInfo := perun.NewAPIErrInfoFailedPreConditionUnclosedChs(unexpectedPhaseChIDs)
+		apiErr = perun.NewAPIErrV2FailedPreCondition(err.Error(), addInfo)
+		return nil, apiErr
 	}
 	if !force && len(openChsInfo) != 0 {
-		err := fmt.Errorf("%w: %v", perun.ErrOpenCh, openChsInfo)
-		s.Error(err.Error())
+		err := errors.WithStack(ErrOpenChsExist)
 		s.unlockAllChs()
-		return openChsInfo, perun.GetAPIError(errors.WithStack(err))
+		addInfo := perun.NewAPIErrInfoFailedPreConditionUnclosedChs(openChsInfo)
+		apiErr = perun.NewAPIErrV2FailedPreCondition(err.Error(), addInfo)
+		return nil, apiErr
 	}
 
 	s.isOpen = false
-	return openChsInfo, s.close()
+	apiErr = s.close()
+	return openChsInfo, apiErr
 }
 
 func (s *Session) unlockAllChs() {
@@ -883,10 +896,14 @@ func (s *Session) unlockAllChs() {
 	})
 }
 
-func (s *Session) close() error {
+func (s *Session) close() perun.APIErrorV2 {
 	s.user.OnChain.Wallet.LockAll()
 	s.user.OffChain.Wallet.LockAll()
-	return errors.WithMessage(s.chClient.Close(), "closing session")
+	err := errors.WithMessage(s.chClient.Close(), "closing session")
+	if err != nil {
+		return perun.NewAPIErrV2UnknownInternal(err)
+	}
+	return nil
 }
 
 // handleFundingTimeoutError inspects if the passed error is an funding timeout error.

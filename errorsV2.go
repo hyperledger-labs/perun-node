@@ -54,6 +54,20 @@ func (e apiErrorV2) Error() string {
 		e.Category(), e.Code(), e.Message(), e.AddInfo())
 }
 
+// NewAPIErrV2 returns an APIErrV2 with given parameters.
+//
+// For most use cases, call the error code specific constructor functions.
+// This function is intended for use in places only where an APIErrV2 is to be modified.
+// Copy each field, modify and create a new one using this function.
+func NewAPIErrV2(category ErrorCategory, code ErrorCode, message string, addInfo interface{}) APIErrorV2 {
+	return apiErrorV2{
+		category: category,
+		code:     code,
+		message:  message,
+		addInfo:  addInfo,
+	}
+}
+
 // NewAPIErrV2PeerRequestTimedOut returns an ErrV2PeerRequestTimedOut API Error
 // with the given peer alias and response timeout.
 func NewAPIErrV2PeerRequestTimedOut(peerAlias, timeout, message string) APIErrorV2 {
@@ -154,11 +168,25 @@ func NewAPIErrV2InvalidArgument(name, value, requirement, message string) APIErr
 
 // NewAPIErrV2FailedPreCondition returns an ErrV2FailedPreCondition API Error with the given
 // error message.
-func NewAPIErrV2FailedPreCondition(message string) APIErrorV2 {
+//
+// AddInfo is taken as interface because for this error, the callers can
+// provide different type of additional info, as defined in the corresponding
+// APIs.
+func NewAPIErrV2FailedPreCondition(message string, addInfo interface{}) APIErrorV2 {
 	return apiErrorV2{
 		category: ClientError,
 		code:     ErrV2FailedPreCondition,
 		message:  message,
+		addInfo:  addInfo,
+	}
+}
+
+// NewAPIErrInfoFailedPreConditionUnclosedChs returns additional info for a
+// specific case of ErrV2FailedPreCondition when Session.Close API is called
+// without force option and there are one or more unclosed channels in it.
+func NewAPIErrInfoFailedPreConditionUnclosedChs(chs []ChInfo) interface{} {
+	return ErrV2InfoFailedPreCondUnclosedChs{
+		ChInfos: chs,
 	}
 }
 

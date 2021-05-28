@@ -362,24 +362,21 @@ func (a *payChAPIServer) RespondPayChProposal(ctx context.Context, req *pb.Respo
 
 // CloseSession wraps session.CloseSession. For now, this is a stub.
 func (a *payChAPIServer) CloseSession(ctx context.Context, req *pb.CloseSessionReq) (*pb.CloseSessionResp, error) {
-	errResponse := func(openPayChsInfo []*pb.PayChInfo, err error) *pb.CloseSessionResp {
+	errResponse := func(err perun.APIErrorV2) *pb.CloseSessionResp {
 		return &pb.CloseSessionResp{
 			Response: &pb.CloseSessionResp_Error{
-				Error: &pb.CloseSessionResp_MsgError{
-					OpenPayChsInfo: openPayChsInfo,
-					Error:          err.Error(),
-				},
+				Error: toGrpcError(err),
 			},
 		}
 	}
 
-	sess, err := a.n.GetSession(req.SessionID)
+	sess, err := a.n.GetSessionV2(req.SessionID)
 	if err != nil {
-		return errResponse(nil, err), nil
+		return errResponse(err), nil
 	}
 	openPayChsInfo, err := payment.CloseSession(sess, req.Force)
 	if err != nil {
-		return errResponse(toGrpcPayChsInfo(openPayChsInfo), err), nil
+		return errResponse(err), nil
 	}
 
 	return &pb.CloseSessionResp{
@@ -713,6 +710,12 @@ func toGrpcError(err perun.APIErrorV2) *pb.MsgErrorV2 { //nolint: funlen
 				Name:        info.Name,
 				Value:       info.Value,
 				Requirement: info.Requirement,
+			},
+		}
+	case payment.ErrV2InfoFailedPreCondUnclosedPayChs:
+		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoFailedPreCondUnclosedChs{
+			ErrV2InfoFailedPreCondUnclosedChs: &pb.ErrV2InfoFailedPreCondUnclosedChs{
+				Chs: toGrpcPayChsInfo(info.PayChs),
 			},
 		}
 	case perun.ErrV2InfoTxTimedOut:

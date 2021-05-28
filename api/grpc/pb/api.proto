@@ -71,8 +71,9 @@ message MsgErrorV2 {
         ErrV2InfoResourceNotFound ErrV2InfoResourceNotFound = 8;
         ErrV2InfoResourceExists ErrV2InfoResourceExists = 9;
         ErrV2InfoInvalidArgument ErrV2InfoInvalidArgument = 10;
-        ErrV2InfoTxTimedOut ErrV2InfoTxTimedOut = 11;
-        ErrV2InfoChainNotReachable ErrV2InfoChainNotReachable = 12;
+        ErrV2InfoFailedPreCondUnclosedChs  ErrV2InfoFailedPreCondUnclosedChs = 11;
+        ErrV2InfoTxTimedOut ErrV2InfoTxTimedOut = 12;
+        ErrV2InfoChainNotReachable ErrV2InfoChainNotReachable = 13;
     }
 }
 
@@ -139,6 +140,10 @@ message ErrV2InfoInvalidArgument {
     string name = 1;
     string value = 2;
     string requirement = 3;
+}
+
+message ErrV2InfoFailedPreCondUnclosedChs {
+    repeated PayChInfo chs = 1;
 }
 
 message ErrV2InfoTxTimedOut {
@@ -331,14 +336,10 @@ message CloseSessionReq {
 message CloseSessionResp {
     oneof response {
         MsgSuccess msgSuccess = 1;
-        MsgError error = 2;
+        MsgErrorV2 error = 2;
     }
     message MsgSuccess {
         repeated PayChInfo openPayChsInfo = 1;
-    }
-    message MsgError {
-        repeated PayChInfo openPayChsInfo = 1;
-        string error = 2;
     }
 }
 
