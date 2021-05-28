@@ -368,6 +368,15 @@ type (
 		Requirement string
 	}
 
+	// ErrV2InfoFailedPreCondUnclosedChs represents the fields in the
+	// additional info for the ErrFailedPreCondition when session closed is
+	// called without force option and the session has unclosed channels.
+	//
+	// This additional info should not be used in any other context.
+	ErrV2InfoFailedPreCondUnclosedChs struct {
+		ChInfos []ChInfo
+	}
+
 	// ErrV2InfoTxTimedOut represents the fields in the additional info
 	// for ErrTxTimedOut.
 	ErrV2InfoTxTimedOut struct {
@@ -425,7 +434,7 @@ type SessionAPI interface {
 	SubChProposals(ChProposalNotifier) APIErrorV2
 	UnsubChProposals() APIErrorV2
 	RespondChProposal(context.Context, string, bool) (ChInfo, APIErrorV2)
-	Close(force bool) ([]ChInfo, error)
+	Close(force bool) ([]ChInfo, APIErrorV2)
 
 	// This function is used internally to get a ChAPI instance.
 	// Should not be exposed via user API.
