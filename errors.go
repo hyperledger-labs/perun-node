@@ -17,59 +17,235 @@
 package perun
 
 import (
-	"errors"
+	"fmt"
 )
 
-// APIError represents the errors that will be communicated via the user API.
-type APIError string
-
-func (e APIError) Error() string {
-	return string(e)
+// APIError represents the error that will be returned by the API of perun node.
+type apiError struct {
+	category ErrorCategory
+	code     ErrorCode
+	message  string
+	addInfo  interface{}
 }
 
-// GetAPIError returns the APIError contained in err if err is an APIError.
-// If not, it returns ErrInternalServer API error.
-func GetAPIError(err error) error {
-	if err == nil {
-		return nil
-	}
-	var apiErr APIError
-	if !errors.As(err, &apiErr) {
-		return ErrInternalServer
-	}
-	return apiErr
+// Category returns the error category for this API Error.
+func (e apiError) Category() ErrorCategory {
+	return e.category
 }
 
-// Sentinal Error values that are relevant for the end user of the node.
-var (
-	ErrUnknownSessionID  = APIError("No session corresponding to the specified ID")
-	ErrUnknownProposalID = APIError("No channel proposal corresponding to the specified ID")
-	ErrUnknownChID       = APIError("No channel corresponding to the specified ID")
-	ErrUnknownAlias      = APIError("No peer corresponding to the specified ID was found in ID Provider")
-	ErrUnknownUpdateID   = APIError("No response was expected for the given channel update ID")
+// Code returns the error code for this API Error.
+func (e apiError) Code() ErrorCode {
+	return e.code
+}
 
-	ErrUnsupportedCurrency       = APIError("Currency not supported by this node instance")
-	ErrUnsupportedIDProviderType = APIError("ID Provider type not supported by this node instance")
-	ErrUnsupportedCommType       = APIError("Communication protocol not supported by this node instance")
+// Message returns the error message for this API Error.
+func (e apiError) Message() string {
+	return e.message
+}
 
-	ErrInsufficientBal     = APIError("Insufficient balance in sender account")
-	ErrInvalidAmount       = APIError("Invalid amount string")
-	ErrMissingBalance      = APIError("Missing balance")
-	ErrInvalidConfig       = APIError("Invalid configuration detected")
-	ErrInvalidOffChainAddr = APIError("Invalid off-chain address string")
-	ErrInvalidPayee        = APIError("Invalid payee, no such participant in the channel")
+// AddInfo returns the additional info for this API Error.
+func (e apiError) AddInfo() interface{} {
+	return e.addInfo
+}
 
-	ErrNoActiveSub      = APIError("No active subscription was found")
-	ErrSubAlreadyExists = APIError("A subscription for this context already exists")
+// Error implement the error interface for API error.
+func (e apiError) Error() string {
+	return fmt.Sprintf("Category: %s, Code: %d, Message: %s, AddInfo: %+v",
+		e.Category(), e.Code(), e.Message(), e.AddInfo())
+}
 
-	ErrSessionClosed      = APIError("Session is closed")
-	ErrChFinalized        = APIError("Channel is finalized")
-	ErrChClosed           = APIError("Channel is closed")
-	ErrPeerAliasInUse     = APIError("Alias already used by another peer in the ID Provider")
-	ErrPeerExists         = APIError("Peer ID already available in the ID provider")
-	ErrRespTimeoutExpired = APIError("Response to the notification was sent after the timeout has expired")
-	ErrPeerRejected       = APIError("The request was rejected by peer")
+// NewAPIErr returns an APIErr with given parameters.
+//
+// For most use cases, call the error code specific constructor functions.
+// This function is intended for use in places only where an APIErr is to be modified.
+// Copy each field, modify and create a new one using this function.
+func NewAPIErr(category ErrorCategory, code ErrorCode, message string, addInfo interface{}) APIError {
+	return apiError{
+		category: category,
+		code:     code,
+		message:  message,
+		addInfo:  addInfo,
+	}
+}
 
-	ErrOpenCh         = APIError("Session cannot be closed (without force option) as there are open channels")
-	ErrInternalServer = APIError("Internal Server Error")
-)
+// NewAPIErrPeerRequestTimedOut returns an ErrPeerRequestTimedOut API Error
+// with the given peer alias and response timeout.
+func NewAPIErrPeerRequestTimedOut(peerAlias, timeout, message string) APIError {
+	return apiError{
+		category: ParticipantError,
+		code:     ErrPeerRequestTimedOut,
+		message:  message,
+		addInfo: ErrInfoPeerRequestTimedOut{
+			PeerAlias: peerAlias,
+			Timeout:   timeout,
+		},
+	}
+}
+
+// NewAPIErrPeerRejected returns an ErrPeerRejected API Error with the
+// given peer alias and reason.
+func NewAPIErrPeerRejected(peerAlias, reason, message string) APIError {
+	return apiError{
+		category: ParticipantError,
+		code:     ErrPeerRejected,
+		message:  message,
+		addInfo: ErrInfoPeerRejected{
+			PeerAlias: peerAlias,
+			Reason:    reason,
+		},
+	}
+}
+
+// NewAPIErrPeerNotFunded returns an ErrPeerNotFunded API Error with the
+// given peer alias.
+func NewAPIErrPeerNotFunded(peerAlias, message string) APIError {
+	return apiError{
+		category: ParticipantError,
+		code:     ErrPeerNotFunded,
+		message:  message,
+		addInfo: ErrInfoPeerNotFunded{
+			PeerAlias: peerAlias,
+		},
+	}
+}
+
+// NewAPIErrUserResponseTimedOut returns an ErrUserResponseTimedOut API Error
+// with the given expiry.
+func NewAPIErrUserResponseTimedOut(expiry, receivedAt int64) APIError {
+	return apiError{
+		category: ParticipantError,
+		code:     ErrUserResponseTimedOut,
+		message:  "user response timed out",
+		addInfo: ErrInfoUserResponseTimedOut{
+			Expiry:     expiry,
+			ReceivedAt: receivedAt,
+		},
+	}
+}
+
+// NewAPIErrResourceNotFound returns an ErrResourceNotFound API Error with
+// the given resource type, ID and error message.
+func NewAPIErrResourceNotFound(resourceType, resourceID, message string) APIError {
+	return apiError{
+		category: ClientError,
+		code:     ErrResourceNotFound,
+		message:  message,
+		addInfo: ErrInfoResourceNotFound{
+			Type: resourceType,
+			ID:   resourceID,
+		},
+	}
+}
+
+// NewAPIErrResourceExists returns an ErrResourceExists API Error with
+// the given resource type, ID and error message.
+func NewAPIErrResourceExists(resourceType, resourceID, message string) APIError {
+	return apiError{
+		category: ClientError,
+		code:     ErrResourceExists,
+		message:  message,
+		addInfo: ErrInfoResourceExists{
+			Type: resourceType,
+			ID:   resourceID,
+		},
+	}
+}
+
+// NewAPIErrInvalidArgument returns an ErrInvalidArgument API Error with the given
+// argument name, value, requirement for the argument and the error message.
+func NewAPIErrInvalidArgument(name, value, requirement, message string) APIError {
+	return apiError{
+		category: ClientError,
+		code:     ErrInvalidArgument,
+		message:  message,
+		addInfo: ErrInfoInvalidArgument{
+			Name:        name,
+			Value:       value,
+			Requirement: requirement,
+		},
+	}
+}
+
+// NewAPIErrFailedPreCondition returns an ErrFailedPreCondition API Error with the given
+// error message.
+//
+// AddInfo is taken as interface because for this error, the callers can
+// provide different type of additional info, as defined in the corresponding
+// APIs.
+func NewAPIErrFailedPreCondition(message string, addInfo interface{}) APIError {
+	return apiError{
+		category: ClientError,
+		code:     ErrFailedPreCondition,
+		message:  message,
+		addInfo:  addInfo,
+	}
+}
+
+// NewAPIErrInvalidConfig returns an ErrInvalidConfig, API Error with the
+// given error message.
+func NewAPIErrInvalidConfig(message string) APIError {
+	return apiError{
+		category: ClientError,
+		code:     ErrInvalidConfig,
+		message:  message,
+	}
+}
+
+// NewAPIErrInfoFailedPreConditionUnclosedChs returns additional info for a
+// specific case of ErrFailedPreCondition when Session.Close API is called
+// without force option and there are one or more unclosed channels in it.
+func NewAPIErrInfoFailedPreConditionUnclosedChs(chs []ChInfo) interface{} {
+	return ErrInfoFailedPreCondUnclosedChs{
+		ChInfos: chs,
+	}
+}
+
+// NewAPIErrTxTimedOut returns an ErrTxTimedOut API Error with the given
+// error message.
+func NewAPIErrTxTimedOut(txType, txID, txTimeout, message string) APIError {
+	return apiError{
+		category: ProtocolFatalError,
+		code:     ErrTxTimedOut,
+		message:  message,
+		addInfo: ErrInfoTxTimedOut{
+			TxType:    txType,
+			TxID:      txID,
+			TxTimeout: txTimeout,
+		},
+	}
+}
+
+// NewAPIErrChainNotReachable returns an ErrChainNotReachable API Error
+// with the given error message.
+func NewAPIErrChainNotReachable(chainURL, message string) APIError {
+	return apiError{
+		category: ProtocolFatalError,
+		code:     ErrChainNotReachable,
+		message:  message,
+		addInfo: ErrInfoChainNotReachable{
+			ChainURL: chainURL,
+		},
+	}
+}
+
+// NewAPIErrUnknownInternal returns an ErrUnknownInternal API Error with the given
+// error message.
+func NewAPIErrUnknownInternal(err error) APIError {
+	return apiError{
+		category: InternalError,
+		code:     ErrUnknownInternal,
+		message:  err.Error(),
+	}
+}
+
+// APIErrAsMap returns a map containing entries for the method and each of
+// the fields in the api error (except message). The map can be directly passed
+// to the logger for logging the data in a structured format.
+func APIErrAsMap(method string, err APIError) map[string]interface{} {
+	return map[string]interface{}{
+		"method":   method,
+		"category": err.Category().String(),
+		"code":     err.Code(),
+		"add info": fmt.Sprintf("%+v", err.AddInfo()),
+	}
+}

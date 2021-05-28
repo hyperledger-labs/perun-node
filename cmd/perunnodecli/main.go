@@ -110,7 +110,7 @@ func printNoPaymentNotifError(c ishell.Actions, chAlias string) {
 }
 
 // apiErrorString formats the error message returned by the API into pretty strings.
-func apiErrorString(e *pb.MsgErrorV2) string {
+func apiErrorString(e *pb.MsgError) string {
 	return fmt.Sprintf("category: %s, code: %d, message: %s, additional info: %+v",
 		e.Category, e.Code, e.Message, e.AddInfo)
 }

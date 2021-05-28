@@ -228,20 +228,14 @@ type NodeConfig struct {
 
 }
 
-// APIErrorV2 represents the newer version of error returned by node, session
+// APIError represents the newer version of error returned by node, session
 // and channel APIs.
 //
-// Along with the error message, this error type assigns to each error an
-// error category (that describes how the error should be handled by the
-// client), error code (that identifies specific types of error), additional
-// info (that contains additional data related to the error as key value
-// pairs).
-//
-// TODO: (mano) Once all usage of APIError is replaced with APIErrorV2, the
-// older type needs to be removed and this one to be renamed as APIError.
-// Also, the usage of the string "V2" in the variables and types related to the
-// new error type should be removed.
-type APIErrorV2 interface {
+// Along with the error message, this error type assigns to each error
+// an error category that describes how the error should be handled,
+// an error code that identifies specific types of error and
+// additional info that contains data related to the error as key value pairs.
+type APIError interface {
 	Category() ErrorCategory
 	Code() ErrorCode
 	Message() string
@@ -288,8 +282,8 @@ const (
 // String implements the stringer interface for ErrorCategory.
 func (c ErrorCategory) String() string {
 	return [...]string{
-		"Client",
 		"Participant",
+		"Client",
 		"Protocol Fatal",
 		"Internal",
 	}[c]
@@ -301,93 +295,93 @@ type ErrorCode int
 
 // Error code definitions.
 const (
-	ErrV2PeerRequestTimedOut  ErrorCode = 101
-	ErrV2PeerRejected         ErrorCode = 102
-	ErrV2PeerNotFunded        ErrorCode = 103
-	ErrV2UserResponseTimedOut ErrorCode = 104
-	ErrV2ResourceNotFound     ErrorCode = 201
-	ErrV2ResourceExists       ErrorCode = 202
-	ErrV2InvalidArgument      ErrorCode = 203
-	ErrV2FailedPreCondition   ErrorCode = 204
-	ErrV2InvalidConfig        ErrorCode = 205
-	ErrV2CannotConnectToChain ErrorCode = 206
-	ErrV2InvalidContracts     ErrorCode = 207
-	ErrV2TxTimedOut           ErrorCode = 301
-	ErrV2ChainNotReachable    ErrorCode = 302
-	ErrV2UnknownInternal      ErrorCode = 401
-	ErrV2OffChainComm         ErrorCode = 402
+	ErrPeerRequestTimedOut  ErrorCode = 101
+	ErrPeerRejected         ErrorCode = 102
+	ErrPeerNotFunded        ErrorCode = 103
+	ErrUserResponseTimedOut ErrorCode = 104
+	ErrResourceNotFound     ErrorCode = 201
+	ErrResourceExists       ErrorCode = 202
+	ErrInvalidArgument      ErrorCode = 203
+	ErrFailedPreCondition   ErrorCode = 204
+	ErrInvalidConfig        ErrorCode = 205
+	ErrCannotConnectToChain ErrorCode = 206
+	ErrInvalidContracts     ErrorCode = 207
+	ErrTxTimedOut           ErrorCode = 301
+	ErrChainNotReachable    ErrorCode = 302
+	ErrUnknownInternal      ErrorCode = 401
+	ErrOffChainComm         ErrorCode = 402
 )
 
 type (
-	// ErrV2InfoPeerRequestTimedOut represents the fields in the additional
+	// ErrInfoPeerRequestTimedOut represents the fields in the additional
 	// info for ErrPeerRequestTimedOut.
-	ErrV2InfoPeerRequestTimedOut struct {
+	ErrInfoPeerRequestTimedOut struct {
 		PeerAlias string
 		Timeout   string
 	}
 
-	// ErrV2InfoPeerRejected represents the fields in the additional info for
+	// ErrInfoPeerRejected represents the fields in the additional info for
 	// ErrRejectedByPeer.
-	ErrV2InfoPeerRejected struct {
+	ErrInfoPeerRejected struct {
 		PeerAlias string
 		Reason    string
 	}
 
-	// ErrV2InfoPeerNotFunded represents the fields in the additional info for
+	// ErrInfoPeerNotFunded represents the fields in the additional info for
 	// ErrPeerNotFunded.
-	ErrV2InfoPeerNotFunded struct {
+	ErrInfoPeerNotFunded struct {
 		PeerAlias string
 	}
 
-	// ErrV2InfoUserResponseTimedOut represents the fields in the additional info for
+	// ErrInfoUserResponseTimedOut represents the fields in the additional info for
 	// ErrUserResponseTimedOut.
-	ErrV2InfoUserResponseTimedOut struct {
+	ErrInfoUserResponseTimedOut struct {
 		Expiry     int64
 		ReceivedAt int64
 	}
 
-	// ErrV2InfoResourceNotFound represents the fields in the additional info for
+	// ErrInfoResourceNotFound represents the fields in the additional info for
 	// ErrResourceNotFound.
-	ErrV2InfoResourceNotFound struct {
+	ErrInfoResourceNotFound struct {
 		Type string
 		ID   string
 	}
 
-	// ErrV2InfoResourceExists represents the fields in the additional info for
+	// ErrInfoResourceExists represents the fields in the additional info for
 	// ErrResourceExists.
-	ErrV2InfoResourceExists struct {
+	ErrInfoResourceExists struct {
 		Type string
 		ID   string
 	}
 
-	// ErrV2InfoInvalidArgument represents the fields in the additional info for
+	// ErrInfoInvalidArgument represents the fields in the additional info for
 	// ErrInvalidArgument.
-	ErrV2InfoInvalidArgument struct {
+	ErrInfoInvalidArgument struct {
 		Name        string
 		Value       string
 		Requirement string
 	}
 
-	// ErrV2InfoFailedPreCondUnclosedChs represents the fields in the
+	// ErrInfoFailedPreCondUnclosedChs represents the fields in the
 	// additional info for the ErrFailedPreCondition when session closed is
 	// called without force option and the session has unclosed channels.
 	//
 	// This additional info should not be used in any other context.
-	ErrV2InfoFailedPreCondUnclosedChs struct {
+	ErrInfoFailedPreCondUnclosedChs struct {
 		ChInfos []ChInfo
 	}
 
-	// ErrV2InfoTxTimedOut represents the fields in the additional info
+	// ErrInfoTxTimedOut represents the fields in the additional info
 	// for ErrTxTimedOut.
-	ErrV2InfoTxTimedOut struct {
+	ErrInfoTxTimedOut struct {
 		TxType    string
 		TxID      string
 		TxTimeout string
 	}
 
-	// ErrV2InfoChainNotReachable represents the fields in the additional info
+	// ErrInfoChainNotReachable represents the fields in the additional info
 	// for ErrChainNotReachable.
-	ErrV2InfoChainNotReachable struct {
+	ErrInfoChainNotReachable struct {
 		ChainURL string
 	}
 )
@@ -399,25 +393,11 @@ type NodeAPI interface {
 	Time() int64
 	GetConfig() NodeConfig
 	Help() []string
-	OpenSession(configFile string) (string, []ChInfo, APIErrorV2)
+	OpenSession(configFile string) (string, []ChInfo, APIError)
 
 	// This function is used internally to get a SessionAPI instance.
 	// Should not be exposed via user API.
-	GetSession(string) (SessionAPI, error)
-
-	// GetSessionV2 is a wrapper over GetSession that returns the error in the
-	// newly defined APIErrorV2 format instead of the standard error.
-	//
-	// This is introduced temporarily to facilitate refactoring all the APIs to
-	// return a newly defined API Error type instead of the standard error.
-	// Since this API is used across all the api calls, two versions are
-	// simulataneously required until all the APIs are updated to use the newly
-	// defined API Error (APIErrorV2).
-	//
-	// TODO (mano): Once all the APIs are updated to use the new newly defined API
-	// Error, remove the other version of GetSession API that returns standard
-	// error type and rename this to GetSession.
-	GetSessionV2(string) (SessionAPI, APIErrorV2)
+	GetSession(string) (SessionAPI, APIError)
 }
 
 //go:generate mockery --name SessionAPI --output ./internal/mocks
@@ -427,32 +407,18 @@ type NodeAPI interface {
 // open channels and accept channel proposals.
 type SessionAPI interface {
 	ID() string
-	AddPeerID(PeerID) APIErrorV2
-	GetPeerID(alias string) (PeerID, APIErrorV2)
-	OpenCh(context.Context, BalInfo, App, uint64) (ChInfo, APIErrorV2)
+	AddPeerID(PeerID) APIError
+	GetPeerID(alias string) (PeerID, APIError)
+	OpenCh(context.Context, BalInfo, App, uint64) (ChInfo, APIError)
 	GetChsInfo() []ChInfo
-	SubChProposals(ChProposalNotifier) APIErrorV2
-	UnsubChProposals() APIErrorV2
-	RespondChProposal(context.Context, string, bool) (ChInfo, APIErrorV2)
-	Close(force bool) ([]ChInfo, APIErrorV2)
+	SubChProposals(ChProposalNotifier) APIError
+	UnsubChProposals() APIError
+	RespondChProposal(context.Context, string, bool) (ChInfo, APIError)
+	Close(force bool) ([]ChInfo, APIError)
 
 	// This function is used internally to get a ChAPI instance.
 	// Should not be exposed via user API.
-	GetCh(string) (ChAPI, error)
-
-	// GetChV2 is a wrapper over GetCh that returns the error in the
-	// newly defined APIErrorV2 format instead of the standard error.
-	//
-	// This is introduced temporarily to facilitate refactoring all the APIs to
-	// return a newly defined API Error type instead of the standard error.
-	// Since this API is used across all the api calls, two versions are
-	// simulataneously required until all the APIs are updated to use the newly
-	// defined API Error (APIErrorV2).
-	//
-	// TODO: Once all the APIs are updated to use the new newly defined API
-	// Error, remove the other version of GetCh API that returns standard
-	// error type and rename this to GetCh.
-	GetChV2(string) (ChAPI, APIErrorV2)
+	GetCh(string) (ChAPI, APIError)
 }
 
 type (
@@ -484,12 +450,12 @@ type ChAPI interface {
 
 	// Methods to transact on, close the channel and read its state.
 	// These APIs use a mutex lock.
-	SendChUpdate(context.Context, StateUpdater) (ChInfo, APIErrorV2)
-	SubChUpdates(ChUpdateNotifier) APIErrorV2
-	UnsubChUpdates() APIErrorV2
-	RespondChUpdate(context.Context, string, bool) (ChInfo, APIErrorV2)
+	SendChUpdate(context.Context, StateUpdater) (ChInfo, APIError)
+	SubChUpdates(ChUpdateNotifier) APIError
+	UnsubChUpdates() APIError
+	RespondChUpdate(context.Context, string, bool) (ChInfo, APIError)
 	GetChInfo() ChInfo
-	Close(context.Context) (ChInfo, APIErrorV2)
+	Close(context.Context) (ChInfo, APIError)
 }
 
 // Enumeration of values for ChUpdateType:

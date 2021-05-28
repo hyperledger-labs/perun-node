@@ -191,14 +191,14 @@ func Test_Integ_Role(t *testing.T) {
 		bobChInfos := bob.GetChsInfo()
 		require.Lenf(t, bobChInfos, 2, "bob session should have exactly two channels")
 
-		aliceChs[0], err = alice.GetChV2(aliceChInfos[0].ChID)
+		aliceChs[0], err = alice.GetCh(aliceChInfos[0].ChID)
 		require.NoError(t, err, "getting alice ChAPI instance")
-		aliceChs[1], err = alice.GetChV2(aliceChInfos[1].ChID)
+		aliceChs[1], err = alice.GetCh(aliceChInfos[1].ChID)
 		require.NoError(t, err, "getting alice ChAPI instance")
 
-		bobChs[0], err = bob.GetChV2(bobChInfos[0].ChID)
+		bobChs[0], err = bob.GetCh(bobChInfos[0].ChID)
 		require.NoError(t, err, "getting bob ChAPI instance")
-		bobChs[1], err = bob.GetChV2(bobChInfos[1].ChID)
+		bobChs[1], err = bob.GetCh(bobChInfos[1].ChID)
 		require.NoError(t, err, "getting bob ChAPI instance")
 	})
 	require.True(t, passed)
@@ -353,14 +353,6 @@ func Test_Integ_Role(t *testing.T) {
 		err = bobChs[chIndex].UnsubChUpdates()
 		assert.Error(t, err, "bob unsubscribing from channel updates after closing notification should error")
 		t.Log(err)
-
-		apiError := perun.NewAPIErrV2FailedPreCondition(session.ErrChClosed.Error(), nil)
-		require.Equal(t, err, apiError)
-		wantMessage := session.ErrChClosed.Error()
-		assert.Equal(t, perun.ClientError, apiError.Category())
-		assert.Equal(t, perun.ErrV2FailedPreCondition, apiError.Code())
-		assert.Equal(t, wantMessage, apiError.Message())
-		assert.Nil(t, apiError.AddInfo())
 
 		// Read channel (closing) update for alice.
 		notif = <-aliceChUpdateNotif

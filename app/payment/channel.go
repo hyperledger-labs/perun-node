@@ -67,15 +67,15 @@ type (
 
 // SendPayChUpdate send the given amount to the payee. Payee should be one of the channel participants.
 // Use "self" to request payments.
-func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string) (PayChInfo, perun.APIErrorV2) {
+func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string) (PayChInfo, perun.APIError) {
 	parsedAmount, err := currency.NewParser(ch.Currency()).Parse(amount)
 	if err != nil {
 		err = errors.WithMessage(err, ErrInvalidAmount.Error())
-		return PayChInfo{}, perun.NewAPIErrV2InvalidArgument("amount", amount, "", err.Error())
+		return PayChInfo{}, perun.NewAPIErrInvalidArgument("amount", amount, "", err.Error())
 	}
 	payerIdx, payeeIdx, err := getPayerPayeeIdx(ch.Parts(), payee)
 	if err != nil {
-		return PayChInfo{}, perun.NewAPIErrV2InvalidArgument("payee", payee, "", err.Error())
+		return PayChInfo{}, perun.NewAPIErrInvalidArgument("payee", payee, "", err.Error())
 	}
 	chInfo, apiErr := ch.SendChUpdate(pctx, newUpdate(payerIdx, payeeIdx, parsedAmount))
 	return toPayChInfo(chInfo), apiErr
@@ -107,7 +107,7 @@ func GetPayChInfo(ch perun.ChAPI) PayChInfo {
 }
 
 // SubPayChUpdates sets up a subscription for updates on this channel.
-func SubPayChUpdates(ch perun.ChAPI, notifier PayChUpdateNotifier) perun.APIErrorV2 {
+func SubPayChUpdates(ch perun.ChAPI, notifier PayChUpdateNotifier) perun.APIError {
 	return ch.SubChUpdates(func(notif perun.ChUpdateNotif) {
 		var ProposedPayChInfo PayChInfo
 		if notif.Type == perun.ChUpdateTypeClosed {
@@ -126,19 +126,19 @@ func SubPayChUpdates(ch perun.ChAPI, notifier PayChUpdateNotifier) perun.APIErro
 }
 
 // UnsubPayChUpdates deletes the existing subscription for updates on this channel.
-func UnsubPayChUpdates(ch perun.ChAPI) perun.APIErrorV2 {
+func UnsubPayChUpdates(ch perun.ChAPI) perun.APIError {
 	return ch.UnsubChUpdates()
 }
 
 // RespondPayChUpdate sends a response for a channel update notification.
 func RespondPayChUpdate(pctx context.Context, ch perun.ChAPI, updateID string, accept bool) (
-	PayChInfo, perun.APIErrorV2) {
+	PayChInfo, perun.APIError) {
 	chInfo, err := ch.RespondChUpdate(pctx, updateID, accept)
 	return toPayChInfo(chInfo), err
 }
 
 // ClosePayCh closes the payment channel.
-func ClosePayCh(pctx context.Context, ch perun.ChAPI) (PayChInfo, perun.APIErrorV2) {
+func ClosePayCh(pctx context.Context, ch perun.ChAPI) (PayChInfo, perun.APIError) {
 	chInfo, err := ch.Close(pctx)
 	return toPayChInfo(chInfo), err
 }

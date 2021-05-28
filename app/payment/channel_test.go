@@ -73,8 +73,8 @@ func Test_SendPayChUpdate(t *testing.T) {
 
 		invalidAmount := "abc"
 		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, invalidAmount)
-		assertAPIError(t, gotErr, perun.ClientError, perun.ErrV2InvalidArgument, payment.ErrInvalidAmount.Error())
-		assertErrV2InfoInvalidArgument(t, gotErr.AddInfo(), "amount", invalidAmount)
+		assertAPIError(t, gotErr, perun.ClientError, perun.ErrInvalidArgument, payment.ErrInvalidAmount.Error())
+		assertErrInfoInvalidArgument(t, gotErr.AddInfo(), "amount", invalidAmount)
 	})
 
 	t.Run("error_InvalidPayee", func(t *testing.T) {
@@ -83,14 +83,14 @@ func Test_SendPayChUpdate(t *testing.T) {
 
 		invalidPayee := "invalid-payee"
 		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, invalidPayee, amountToSend)
-		assertAPIError(t, gotErr, perun.ClientError, perun.ErrV2InvalidArgument, payment.ErrInvalidPayee.Error())
-		assertErrV2InfoInvalidArgument(t, gotErr.AddInfo(), "payee", invalidPayee)
+		assertAPIError(t, gotErr, perun.ClientError, perun.ErrInvalidArgument, payment.ErrInvalidPayee.Error())
+		assertErrInfoInvalidArgument(t, gotErr.AddInfo(), "payee", invalidPayee)
 	})
 
 	t.Run("error_SendChUpdate", func(t *testing.T) {
 		chAPI := newChAPIMock()
 		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(
-			perun.ChInfo{}, perun.NewAPIErrV2UnknownInternal(assert.AnError))
+			perun.ChInfo{}, perun.NewAPIErrUnknownInternal(assert.AnError))
 
 		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, amountToSend)
 		require.Error(t, gotErr)
@@ -171,7 +171,7 @@ func Test_SubPayChUpdates(t *testing.T) {
 	})
 	t.Run("error", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("SubChUpdates", mock.Anything).Return(perun.NewAPIErrV2UnknownInternal(assert.AnError))
+		chAPI.On("SubChUpdates", mock.Anything).Return(perun.NewAPIErrUnknownInternal(assert.AnError))
 
 		dummyNotifier := func(notif payment.PayChUpdateNotif) {}
 		gotErr := payment.SubPayChUpdates(chAPI, dummyNotifier)
@@ -190,7 +190,7 @@ func Test_UnsubPayChUpdates(t *testing.T) {
 	})
 	t.Run("error", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("UnsubChUpdates").Return(perun.NewAPIErrV2UnknownInternal(assert.AnError))
+		chAPI.On("UnsubChUpdates").Return(perun.NewAPIErrUnknownInternal(assert.AnError))
 
 		gotErr := payment.UnsubPayChUpdates(chAPI)
 		assert.Error(t, gotErr)
@@ -219,7 +219,7 @@ func Test_RespondPayChUpdate(t *testing.T) {
 	t.Run("error", func(t *testing.T) {
 		accept := true
 		chAPI := &mocks.ChAPI{}
-		err := perun.NewAPIErrV2UnknownInternal(assert.AnError)
+		err := perun.NewAPIErrUnknownInternal(assert.AnError)
 		chAPI.On("RespondChUpdate", context.Background(), updateID, accept).Return(perun.ChInfo{}, err)
 
 		_, gotErr := payment.RespondPayChUpdate(context.Background(), chAPI, updateID, accept)
@@ -239,7 +239,7 @@ func Test_ClosePayCh(t *testing.T) {
 	})
 	t.Run("error", func(t *testing.T) {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("Close", context.Background()).Return(updatedChInfo, perun.NewAPIErrV2UnknownInternal(assert.AnError))
+		chAPI.On("Close", context.Background()).Return(updatedChInfo, perun.NewAPIErrUnknownInternal(assert.AnError))
 
 		_, gotErr := payment.ClosePayCh(context.Background(), chAPI)
 		require.Error(t, gotErr)
@@ -247,7 +247,7 @@ func Test_ClosePayCh(t *testing.T) {
 	})
 }
 
-func assertAPIError(t *testing.T, e perun.APIErrorV2, category perun.ErrorCategory, code perun.ErrorCode, msg string) {
+func assertAPIError(t *testing.T, e perun.APIError, category perun.ErrorCategory, code perun.ErrorCode, msg string) {
 	t.Helper()
 
 	assert.Equal(t, category, e.Category())
@@ -255,10 +255,10 @@ func assertAPIError(t *testing.T, e perun.APIErrorV2, category perun.ErrorCatego
 	assert.Contains(t, e.Message(), msg)
 }
 
-func assertErrV2InfoInvalidArgument(t *testing.T, info interface{}, name, value string) {
+func assertErrInfoInvalidArgument(t *testing.T, info interface{}, name, value string) {
 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrV2InfoInvalidArgument)
+	addInfo, ok := info.(perun.ErrInfoInvalidArgument)
 	require.True(t, ok)
 	assert.Equal(t, name, addInfo.Name)
 	assert.Equal(t, value, addInfo.Value)
