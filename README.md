@@ -70,7 +70,8 @@ This project currently contains two executable packages located in the `cmd` dir
 For detailed information on the features offered by these two applications and
 steps on how to try them out, see the
 [tutorial section](https://labs.hyperledger.org/perun-doc/node/introduction.html#user-guide)
-on the project documentation website.
+on the project documentation website. For a tutorial using for `perunnodetui`, see
+[this section](cmd/perunnodetui/Readme.md).
 
 ## Getting Started
 
