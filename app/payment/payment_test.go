@@ -75,11 +75,11 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 
 	aliceSess, err := session.New(aliceCfg)
 	handleError(err, "alice: initializing session")
-	fmt.Printf("alice: initialized session. session ID: %s\n", aliceSess.ID())
+	fmt.Printf("alice: initialized session, session ID: %s\n", aliceSess.ID())
 
 	bobSess, err := session.New(bobCfg)
 	handleError(err, "initializing session for bob")
-	fmt.Printf("bob: initialized session. session ID: %s\n\n", bobSess.ID())
+	fmt.Printf("bob: initialized session, session ID: %s\n\n", bobSess.ID())
 
 	alicePeerID, err := aliceSess.GetPeerID(perun.OwnAlias)
 	handleError(err, "alice: getting own peer ID")
@@ -161,7 +161,7 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 
 	aliceUpdateChInfo, err := payment.SendPayChUpdate(ctx, aliceCh, bobAlias, "0.1")
 	handleError(err, "sending payment")
-	fmt.Printf("alice: sent payment to bob. updated version: %s\n", aliceUpdateChInfo.Version)
+	fmt.Printf("alice: sent payment to bob, updated version: %s\n", aliceUpdateChInfo.Version)
 
 	bobUpdatedChInfo := <-bobUpdatedChInfos
 	fmt.Printf("updated balance:%+v\n\n", bobUpdatedChInfo.BalInfo)
