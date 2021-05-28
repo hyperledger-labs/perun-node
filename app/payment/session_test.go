@@ -128,7 +128,7 @@ func Test_OpenPayCh(t *testing.T) {
 	t.Run("error", func(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
 		sessionAPI.On("OpenCh", context.Background(), openingBalInfoInput, app, challengeDurSecs).Return(
-			perun.ChInfo{}, perun.NewAPIErrV2UnknownInternal(assert.AnError))
+			perun.ChInfo{}, perun.NewAPIErrUnknownInternal(assert.AnError))
 
 		_, gotErr := payment.OpenPayCh(context.Background(), sessionAPI, openingBalInfoInput, challengeDurSecs)
 		require.Error(t, gotErr)
@@ -170,7 +170,7 @@ func Test_SubPayChProposals(t *testing.T) {
 	})
 	t.Run("error", func(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("SubChProposals", mock.Anything).Return(perun.NewAPIErrV2UnknownInternal(assert.AnError))
+		sessionAPI.On("SubChProposals", mock.Anything).Return(perun.NewAPIErrUnknownInternal(assert.AnError))
 
 		dummyNotifier := func(notif payment.PayChProposalNotif) {}
 		gotErr := payment.SubPayChProposals(sessionAPI, dummyNotifier)
@@ -189,7 +189,7 @@ func Test_UnsubPayChProposals(t *testing.T) {
 	})
 	t.Run("error", func(t *testing.T) {
 		sessionAPI := &mocks.SessionAPI{}
-		sessionAPI.On("UnsubChProposals", mock.Anything).Return(perun.NewAPIErrV2UnknownInternal(assert.AnError))
+		sessionAPI.On("UnsubChProposals", mock.Anything).Return(perun.NewAPIErrUnknownInternal(assert.AnError))
 
 		gotErr := payment.UnsubPayChProposals(sessionAPI)
 		assert.Error(t, gotErr)
@@ -220,7 +220,7 @@ func Test_RespondPayChProposal(t *testing.T) {
 		accept := true
 		sessionAPI := &mocks.SessionAPI{}
 		sessionAPI.On("RespondChProposal", context.Background(), proposalID, accept).Return(perun.ChInfo{},
-			perun.NewAPIErrV2UnknownInternal(assert.AnError))
+			perun.NewAPIErrUnknownInternal(assert.AnError))
 
 		_, gotErr := payment.RespondPayChProposal(context.Background(), sessionAPI, proposalID, accept)
 		assert.Error(t, gotErr)
@@ -250,12 +250,12 @@ func Test_CloseSession(t *testing.T) {
 		force := false
 		sessionAPI := &mocks.SessionAPI{}
 		unclosedChsErrAddInfo := perun.NewAPIErrInfoFailedPreConditionUnclosedChs([]perun.ChInfo{updatedChInfo})
-		unclosedChsErr := perun.NewAPIErrV2FailedPreCondition(assert.AnError.Error(), unclosedChsErrAddInfo)
+		unclosedChsErr := perun.NewAPIErrFailedPreCondition(assert.AnError.Error(), unclosedChsErrAddInfo)
 		sessionAPI.On("Close", force).Return(nil, unclosedChsErr)
 
 		_, err := payment.CloseSession(sessionAPI, force)
 		assert.Error(t, err)
-		paymentAddInfo, ok := err.AddInfo().(payment.ErrV2InfoFailedPreCondUnclosedPayChs)
+		paymentAddInfo, ok := err.AddInfo().(payment.ErrInfoFailedPreCondUnclosedPayChs)
 		require.True(t, ok)
 		assert.Equal(t, 1, len(paymentAddInfo.PayChs))
 		assert.Equal(t, paymentAddInfo.PayChs[0], wantUpdatedPayChInfo)

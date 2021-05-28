@@ -31,13 +31,13 @@ func Test_NewErrResourceNotFound(t *testing.T) {
 	resourceID := "any-id"
 	message := "any-message"
 
-	err := perun.NewAPIErrV2ResourceNotFound(resourceType, resourceID, message)
+	err := perun.NewAPIErrResourceNotFound(resourceType, resourceID, message)
 	require.NotNil(t, err)
 
 	assert.Equal(t, perun.ClientError, err.Category())
-	assert.Equal(t, perun.ErrV2ResourceNotFound, err.Code())
+	assert.Equal(t, perun.ErrResourceNotFound, err.Code())
 	assert.Equal(t, message, err.Message())
-	addInfo, ok := err.AddInfo().(perun.ErrV2InfoResourceNotFound)
+	addInfo, ok := err.AddInfo().(perun.ErrInfoResourceNotFound)
 	require.True(t, ok)
 	assert.Equal(t, addInfo.Type, resourceType)
 	assert.Equal(t, addInfo.ID, resourceID)
@@ -50,13 +50,13 @@ func Test_NewErrResourceExists(t *testing.T) {
 	resourceID := "any-id"
 	message := "any-message"
 
-	err := perun.NewAPIErrV2ResourceExists(resourceType, resourceID, message)
+	err := perun.NewAPIErrResourceExists(resourceType, resourceID, message)
 	require.NotNil(t, err)
 
 	assert.Equal(t, perun.ClientError, err.Category())
-	assert.Equal(t, perun.ErrV2ResourceExists, err.Code())
+	assert.Equal(t, perun.ErrResourceExists, err.Code())
 	assert.Equal(t, message, err.Message())
-	addInfo, ok := err.AddInfo().(perun.ErrV2InfoResourceExists)
+	addInfo, ok := err.AddInfo().(perun.ErrInfoResourceExists)
 	require.True(t, ok)
 	assert.Equal(t, addInfo.Type, resourceType)
 	assert.Equal(t, addInfo.ID, resourceID)
@@ -69,13 +69,13 @@ func Test_NewErrInvalidArgument(t *testing.T) {
 	requirement := "any-requirement"
 	message := "any-message"
 
-	err := perun.NewAPIErrV2InvalidArgument(resourceType, resourceID, requirement, message)
+	err := perun.NewAPIErrInvalidArgument(resourceType, resourceID, requirement, message)
 	require.NotNil(t, err)
 
 	assert.Equal(t, perun.ClientError, err.Category())
-	assert.Equal(t, perun.ErrV2InvalidArgument, err.Code())
+	assert.Equal(t, perun.ErrInvalidArgument, err.Code())
 	assert.Equal(t, message, err.Message())
-	addInfo, ok := err.AddInfo().(perun.ErrV2InfoInvalidArgument)
+	addInfo, ok := err.AddInfo().(perun.ErrInfoInvalidArgument)
 	require.True(t, ok)
 	assert.Equal(t, addInfo.Name, resourceType)
 	assert.Equal(t, addInfo.Value, resourceID)

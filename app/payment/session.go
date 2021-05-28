@@ -38,14 +38,14 @@ type (
 )
 
 // OpenSession opens a session and interprets the restored channels as payment channels.
-func OpenSession(n perun.NodeAPI, configFile string) (string, []PayChInfo, perun.APIErrorV2) {
+func OpenSession(n perun.NodeAPI, configFile string) (string, []PayChInfo, perun.APIError) {
 	sessionID, restoredChsInfo, err := n.OpenSession(configFile)
 	return sessionID, toPayChsInfo(restoredChsInfo), err
 }
 
 // OpenPayCh opens a payment channel using the given sessionAPI instance with the specified parameters.
 func OpenPayCh(pctx context.Context, s perun.SessionAPI, openingBalInfo perun.BalInfo, challengeDurSecs uint64) (
-	PayChInfo, perun.APIErrorV2) {
+	PayChInfo, perun.APIError) {
 	paymentApp := perun.App{
 		Def:  pchannel.NoApp(),
 		Data: pchannel.NoData(),
@@ -67,7 +67,7 @@ func GetPayChsInfo(s perun.SessionAPI) []PayChInfo {
 }
 
 // SubPayChProposals sets up a subscription for payment channel proposals.
-func SubPayChProposals(s perun.SessionAPI, notifier PayChProposalNotifier) perun.APIErrorV2 {
+func SubPayChProposals(s perun.SessionAPI, notifier PayChProposalNotifier) perun.APIError {
 	return s.SubChProposals(func(notif perun.ChProposalNotif) {
 		notifier(PayChProposalNotif{
 			ProposalID:       notif.ProposalID,
@@ -79,40 +79,40 @@ func SubPayChProposals(s perun.SessionAPI, notifier PayChProposalNotifier) perun
 }
 
 // UnsubPayChProposals deletes the existing subscription for payment channel proposals.
-func UnsubPayChProposals(s perun.SessionAPI) perun.APIErrorV2 {
+func UnsubPayChProposals(s perun.SessionAPI) perun.APIError {
 	return s.UnsubChProposals()
 }
 
 // RespondPayChProposal sends the response to a payment channel proposal notification.
 func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID string, accept bool) (PayChInfo,
-	perun.APIErrorV2) {
+	perun.APIError) {
 	chInfo, apiErr := s.RespondChProposal(pctx, proposalID, accept)
 	return toPayChInfo(chInfo), apiErr
 }
 
-// ErrV2InfoFailedPreCondUnclosedPayChs is the interpretation of
-// ErrV2InfoFailedPreCondUnclosedChs for payment application.
-type ErrV2InfoFailedPreCondUnclosedPayChs struct {
+// ErrInfoFailedPreCondUnclosedPayChs is the interpretation of
+// ErrInfoFailedPreCondUnclosedChs for payment application.
+type ErrInfoFailedPreCondUnclosedPayChs struct {
 	PayChs []PayChInfo
 }
 
 // CloseSession closes the current session.
-func CloseSession(s perun.SessionAPI, force bool) ([]PayChInfo, perun.APIErrorV2) {
+func CloseSession(s perun.SessionAPI, force bool) ([]PayChInfo, perun.APIError) {
 	openChsInfo, err := s.Close(force)
 	err = toPayChsCloseSessionErr(err)
 	return toPayChsInfo(openChsInfo), err
 }
 
-func toPayChsCloseSessionErr(err perun.APIErrorV2) perun.APIErrorV2 {
+func toPayChsCloseSessionErr(err perun.APIError) perun.APIError {
 	if err == nil {
 		return err
 	}
-	addInfo, ok := err.AddInfo().(perun.ErrV2InfoFailedPreCondUnclosedChs)
+	addInfo, ok := err.AddInfo().(perun.ErrInfoFailedPreCondUnclosedChs)
 	if !ok {
 		return err
 	}
-	paymentAddInfo := ErrV2InfoFailedPreCondUnclosedPayChs{
+	paymentAddInfo := ErrInfoFailedPreCondUnclosedPayChs{
 		PayChs: toPayChsInfo(addInfo.ChInfos),
 	}
-	return perun.NewAPIErrV2(err.Category(), err.Code(), err.Message(), paymentAddInfo)
+	return perun.NewAPIErr(err.Category(), err.Code(), err.Message(), paymentAddInfo)
 }

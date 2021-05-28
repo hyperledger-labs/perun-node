@@ -15,15 +15,15 @@ type SessionAPI struct {
 }
 
 // AddPeerID provides a mock function with given fields: _a0
-func (_m *SessionAPI) AddPeerID(_a0 perun.PeerID) perun.APIErrorV2 {
+func (_m *SessionAPI) AddPeerID(_a0 perun.PeerID) perun.APIError {
 	ret := _m.Called(_a0)
 
-	var r0 perun.APIErrorV2
-	if rf, ok := ret.Get(0).(func(perun.PeerID) perun.APIErrorV2); ok {
+	var r0 perun.APIError
+	if rf, ok := ret.Get(0).(func(perun.PeerID) perun.APIError); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(perun.APIErrorV2)
+			r0 = ret.Get(0).(perun.APIError)
 		}
 	}
 
@@ -31,7 +31,7 @@ func (_m *SessionAPI) AddPeerID(_a0 perun.PeerID) perun.APIErrorV2 {
 }
 
 // Close provides a mock function with given fields: force
-func (_m *SessionAPI) Close(force bool) ([]perun.ChInfo, perun.APIErrorV2) {
+func (_m *SessionAPI) Close(force bool) ([]perun.ChInfo, perun.APIError) {
 	ret := _m.Called(force)
 
 	var r0 []perun.ChInfo
@@ -43,12 +43,12 @@ func (_m *SessionAPI) Close(force bool) ([]perun.ChInfo, perun.APIErrorV2) {
 		}
 	}
 
-	var r1 perun.APIErrorV2
-	if rf, ok := ret.Get(1).(func(bool) perun.APIErrorV2); ok {
+	var r1 perun.APIError
+	if rf, ok := ret.Get(1).(func(bool) perun.APIError); ok {
 		r1 = rf(force)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(perun.APIErrorV2)
+			r1 = ret.Get(1).(perun.APIError)
 		}
 	}
 
@@ -56,7 +56,7 @@ func (_m *SessionAPI) Close(force bool) ([]perun.ChInfo, perun.APIErrorV2) {
 }
 
 // GetCh provides a mock function with given fields: _a0
-func (_m *SessionAPI) GetCh(_a0 string) (perun.ChAPI, error) {
+func (_m *SessionAPI) GetCh(_a0 string) (perun.ChAPI, perun.APIError) {
 	ret := _m.Called(_a0)
 
 	var r0 perun.ChAPI
@@ -68,35 +68,12 @@ func (_m *SessionAPI) GetCh(_a0 string) (perun.ChAPI, error) {
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(_a0)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetChV2 provides a mock function with given fields: _a0
-func (_m *SessionAPI) GetChV2(_a0 string) (perun.ChAPI, perun.APIErrorV2) {
-	ret := _m.Called(_a0)
-
-	var r0 perun.ChAPI
-	if rf, ok := ret.Get(0).(func(string) perun.ChAPI); ok {
-		r0 = rf(_a0)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(perun.ChAPI)
-		}
-	}
-
-	var r1 perun.APIErrorV2
-	if rf, ok := ret.Get(1).(func(string) perun.APIErrorV2); ok {
+	var r1 perun.APIError
+	if rf, ok := ret.Get(1).(func(string) perun.APIError); ok {
 		r1 = rf(_a0)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(perun.APIErrorV2)
+			r1 = ret.Get(1).(perun.APIError)
 		}
 	}
 
@@ -120,7 +97,7 @@ func (_m *SessionAPI) GetChsInfo() []perun.ChInfo {
 }
 
 // GetPeerID provides a mock function with given fields: alias
-func (_m *SessionAPI) GetPeerID(alias string) (perun.PeerID, perun.APIErrorV2) {
+func (_m *SessionAPI) GetPeerID(alias string) (perun.PeerID, perun.APIError) {
 	ret := _m.Called(alias)
 
 	var r0 perun.PeerID
@@ -130,12 +107,12 @@ func (_m *SessionAPI) GetPeerID(alias string) (perun.PeerID, perun.APIErrorV2) {
 		r0 = ret.Get(0).(perun.PeerID)
 	}
 
-	var r1 perun.APIErrorV2
-	if rf, ok := ret.Get(1).(func(string) perun.APIErrorV2); ok {
+	var r1 perun.APIError
+	if rf, ok := ret.Get(1).(func(string) perun.APIError); ok {
 		r1 = rf(alias)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(perun.APIErrorV2)
+			r1 = ret.Get(1).(perun.APIError)
 		}
 	}
 
@@ -157,7 +134,7 @@ func (_m *SessionAPI) ID() string {
 }
 
 // OpenCh provides a mock function with given fields: _a0, _a1, _a2, _a3
-func (_m *SessionAPI) OpenCh(_a0 context.Context, _a1 perun.BalInfo, _a2 perun.App, _a3 uint64) (perun.ChInfo, perun.APIErrorV2) {
+func (_m *SessionAPI) OpenCh(_a0 context.Context, _a1 perun.BalInfo, _a2 perun.App, _a3 uint64) (perun.ChInfo, perun.APIError) {
 	ret := _m.Called(_a0, _a1, _a2, _a3)
 
 	var r0 perun.ChInfo
@@ -167,12 +144,12 @@ func (_m *SessionAPI) OpenCh(_a0 context.Context, _a1 perun.BalInfo, _a2 perun.A
 		r0 = ret.Get(0).(perun.ChInfo)
 	}
 
-	var r1 perun.APIErrorV2
-	if rf, ok := ret.Get(1).(func(context.Context, perun.BalInfo, perun.App, uint64) perun.APIErrorV2); ok {
+	var r1 perun.APIError
+	if rf, ok := ret.Get(1).(func(context.Context, perun.BalInfo, perun.App, uint64) perun.APIError); ok {
 		r1 = rf(_a0, _a1, _a2, _a3)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(perun.APIErrorV2)
+			r1 = ret.Get(1).(perun.APIError)
 		}
 	}
 
@@ -180,7 +157,7 @@ func (_m *SessionAPI) OpenCh(_a0 context.Context, _a1 perun.BalInfo, _a2 perun.A
 }
 
 // RespondChProposal provides a mock function with given fields: _a0, _a1, _a2
-func (_m *SessionAPI) RespondChProposal(_a0 context.Context, _a1 string, _a2 bool) (perun.ChInfo, perun.APIErrorV2) {
+func (_m *SessionAPI) RespondChProposal(_a0 context.Context, _a1 string, _a2 bool) (perun.ChInfo, perun.APIError) {
 	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 perun.ChInfo
@@ -190,12 +167,12 @@ func (_m *SessionAPI) RespondChProposal(_a0 context.Context, _a1 string, _a2 boo
 		r0 = ret.Get(0).(perun.ChInfo)
 	}
 
-	var r1 perun.APIErrorV2
-	if rf, ok := ret.Get(1).(func(context.Context, string, bool) perun.APIErrorV2); ok {
+	var r1 perun.APIError
+	if rf, ok := ret.Get(1).(func(context.Context, string, bool) perun.APIError); ok {
 		r1 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(perun.APIErrorV2)
+			r1 = ret.Get(1).(perun.APIError)
 		}
 	}
 
@@ -203,15 +180,15 @@ func (_m *SessionAPI) RespondChProposal(_a0 context.Context, _a1 string, _a2 boo
 }
 
 // SubChProposals provides a mock function with given fields: _a0
-func (_m *SessionAPI) SubChProposals(_a0 perun.ChProposalNotifier) perun.APIErrorV2 {
+func (_m *SessionAPI) SubChProposals(_a0 perun.ChProposalNotifier) perun.APIError {
 	ret := _m.Called(_a0)
 
-	var r0 perun.APIErrorV2
-	if rf, ok := ret.Get(0).(func(perun.ChProposalNotifier) perun.APIErrorV2); ok {
+	var r0 perun.APIError
+	if rf, ok := ret.Get(0).(func(perun.ChProposalNotifier) perun.APIError); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(perun.APIErrorV2)
+			r0 = ret.Get(0).(perun.APIError)
 		}
 	}
 
@@ -219,15 +196,15 @@ func (_m *SessionAPI) SubChProposals(_a0 perun.ChProposalNotifier) perun.APIErro
 }
 
 // UnsubChProposals provides a mock function with given fields:
-func (_m *SessionAPI) UnsubChProposals() perun.APIErrorV2 {
+func (_m *SessionAPI) UnsubChProposals() perun.APIError {
 	ret := _m.Called()
 
-	var r0 perun.APIErrorV2
-	if rf, ok := ret.Get(0).(func() perun.APIErrorV2); ok {
+	var r0 perun.APIError
+	if rf, ok := ret.Get(0).(func() perun.APIError); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(perun.APIErrorV2)
+			r0 = ret.Get(0).(perun.APIError)
 		}
 	}
 

@@ -54,26 +54,21 @@ message PayChInfo {
     string version=3;
 }
 
-
 message MsgError {
-    string error = 1;
-}
-
-message MsgErrorV2 {
     ErrorCategory category = 1;
     ErrorCode code = 2;
     string message = 3;
     oneof addInfo {
-        ErrV2InfoPeerRequestTimedOut ErrV2InfoPeerRequestTimedOut = 4;
-        ErrV2InfoPeerRejected ErrV2InfoPeerRejected = 5;
-        ErrV2InfoPeerNotFunded ErrV2InfoPeerNotFunded = 6;
-        ErrV2InfoUserResponseTimedOut ErrV2InfoUserResponseTimedOut = 7;
-        ErrV2InfoResourceNotFound ErrV2InfoResourceNotFound = 8;
-        ErrV2InfoResourceExists ErrV2InfoResourceExists = 9;
-        ErrV2InfoInvalidArgument ErrV2InfoInvalidArgument = 10;
-        ErrV2InfoFailedPreCondUnclosedChs  ErrV2InfoFailedPreCondUnclosedChs = 11;
-        ErrV2InfoTxTimedOut ErrV2InfoTxTimedOut = 12;
-        ErrV2InfoChainNotReachable ErrV2InfoChainNotReachable = 13;
+        ErrInfoPeerRequestTimedOut ErrInfoPeerRequestTimedOut = 4;
+        ErrInfoPeerRejected ErrInfoPeerRejected = 5;
+        ErrInfoPeerNotFunded ErrInfoPeerNotFunded = 6;
+        ErrInfoUserResponseTimedOut ErrInfoUserResponseTimedOut = 7;
+        ErrInfoResourceNotFound ErrInfoResourceNotFound = 8;
+        ErrInfoResourceExists ErrInfoResourceExists = 9;
+        ErrInfoInvalidArgument ErrInfoInvalidArgument = 10;
+        ErrInfoFailedPreCondUnclosedChs  ErrInfoFailedPreCondUnclosedChs = 11;
+        ErrInfoTxTimedOut ErrInfoTxTimedOut = 12;
+        ErrInfoChainNotReachable ErrInfoChainNotReachable = 13;
     }
 }
 
@@ -90,69 +85,69 @@ enum ErrorCode {
        atleast one constant. */
     DefaultInvalidCode             = 0;
 
-    ErrV2PeerRequestTimedOut       = 101;
-    ErrV2RejectedByPeer            = 102;
-    ErrV2PeerNotFunded             = 103;
-    ErrV2UserResponseTimedOut      = 104;
-    ErrV2ResourceNotFound          = 201;
-    ErrV2ResourceExists            = 202;
-    ErrV2InvalidArgument           = 203;
-    ErrV2FailedPreCondition        = 204;
-    ErrV2InvalidConfig             = 205;
-    ErrV2CannotConnectToChain      = 206;
-    ErrV2InvalidContracts          = 207;
-    ErrV2TxTimedOut                = 301;
-    ErrV2ChainNotReachable         = 302;
-    ErrV2UnknownInternal           = 401;
-    ErrV2OffChainComm              = 402;
+    ErrPeerRequestTimedOut       = 101;
+    ErrPeerRejected              = 102;
+    ErrPeerNotFunded             = 103;
+    ErrUserResponseTimedOut      = 104;
+    ErrResourceNotFound          = 201;
+    ErrResourceExists            = 202;
+    ErrInvalidArgument           = 203;
+    ErrFailedPreCondition        = 204;
+    ErrInvalidConfig             = 205;
+    ErrCannotConnectToChain      = 206;
+    ErrInvalidContracts          = 207;
+    ErrTxTimedOut                = 301;
+    ErrChainNotReachable         = 302;
+    ErrUnknownInternal           = 401;
+    ErrOffChainComm              = 402;
 }
 
-message ErrV2InfoPeerRequestTimedOut {
+message ErrInfoPeerRequestTimedOut {
     string peerAlias = 1;
     string timeout = 2;
 }
 
-message ErrV2InfoPeerRejected {
+message ErrInfoPeerRejected {
     string peerAlias = 1;
     string reason = 2;
 }
 
-message ErrV2InfoPeerNotFunded {
+message ErrInfoPeerNotFunded {
     string peerAlias = 1;
 }
 
-message ErrV2InfoUserResponseTimedOut {
+message ErrInfoUserResponseTimedOut {
     int64 expiry = 1;
     int64 receivedAt = 2;
 }
 
-message ErrV2InfoResourceNotFound {
+message ErrInfoResourceNotFound {
     string type = 1;
     string id = 2;
 }
 
-message ErrV2InfoResourceExists {
+message ErrInfoResourceExists {
     string type = 1;
     string id = 2;
 }
 
-message ErrV2InfoInvalidArgument {
+message ErrInfoInvalidArgument {
     string name = 1;
     string value = 2;
     string requirement = 3;
 }
 
-message ErrV2InfoFailedPreCondUnclosedChs {
+message ErrInfoFailedPreCondUnclosedChs {
     repeated PayChInfo chs = 1;
 }
 
-message ErrV2InfoTxTimedOut {
+message ErrInfoTxTimedOut {
     string txType = 1;
     string txID = 2;
     string txTimeout = 3;
 }
 
-message ErrV2InfoChainNotReachable {
+message ErrInfoChainNotReachable {
     string chainURL = 1;
 }
 
@@ -199,7 +194,7 @@ message OpenSessionReq {
 message OpenSessionResp {
     oneof response {
         MsgSuccess msgSuccess = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         string sessionID = 1;
@@ -229,7 +224,7 @@ message AddPeerIDReq {
 message AddPeerIDResp {
     oneof response {
         MsgSuccess msgSuccess = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         bool success=1;
@@ -244,7 +239,7 @@ message GetPeerIDReq {
 message  GetPeerIDResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         PeerID peerID = 1;
@@ -260,7 +255,7 @@ message OpenPayChReq {
 message OpenPayChResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         PayChInfo openedPayChInfo = 1;
@@ -274,7 +269,7 @@ message GetPayChsInfoReq {
 message GetPayChsInfoResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         repeated PayChInfo openPayChsInfo = 1;
@@ -288,7 +283,7 @@ message SubPayChProposalsReq {
 message SubPayChProposalsResp {
     oneof response{
         Notify notify = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message Notify {
         string proposalID = 2;
@@ -305,7 +300,7 @@ message UnsubPayChProposalsReq {
 message UnsubPayChProposalsResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         bool success=1;
@@ -321,7 +316,7 @@ message RespondPayChProposalReq{
 message RespondPayChProposalResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         PayChInfo openedPayChInfo=2;
@@ -336,7 +331,7 @@ message CloseSessionReq {
 message CloseSessionResp {
     oneof response {
         MsgSuccess msgSuccess = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         repeated PayChInfo openPayChsInfo = 1;
@@ -353,7 +348,7 @@ message SendPayChUpdateReq {
 message SendPayChUpdateResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         PayChInfo updatedPayChInfo = 1;
@@ -368,7 +363,7 @@ message SubpayChUpdatesReq {
 message SubPayChUpdatesResp {
     oneof response{
         Notify notify = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message Notify {
         enum ChUpdateType {
@@ -392,7 +387,7 @@ message UnsubPayChUpdatesReq {
 message UnsubPayChUpdatesResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         bool success=1;
@@ -409,7 +404,7 @@ message RespondPayChUpdateReq{
 message RespondPayChUpdateResp {
     oneof response{
         MsgSuccess msgSuccess=1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         PayChInfo updatedPayChInfo = 1;
@@ -424,7 +419,7 @@ message GetPayChInfoReq {
 message GetPayChInfoResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         PayChInfo payChInfo = 1;
@@ -439,7 +434,7 @@ message ClosePayChReq {
 message ClosePayChResp {
     oneof response{
         MsgSuccess msgSuccess = 1;
-        MsgErrorV2 error = 2;
+        MsgError error = 2;
     }
     message MsgSuccess {
         PayChInfo closedPayChInfo = 1;

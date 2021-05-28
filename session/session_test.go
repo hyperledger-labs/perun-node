@@ -81,8 +81,8 @@ func Test_Session_AddPeerID(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := idprovider.ErrPeerAliasAlreadyUsed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2InvalidArgument, wantMessage)
-		assertErrV2InfoInvalidArgument(t, err.AddInfo(), "peer alias", peer1WithAlias0.Alias)
+		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidArgument, wantMessage)
+		assertErrInfoInvalidArgument(t, err.AddInfo(), "peer alias", peer1WithAlias0.Alias)
 	})
 
 	t.Run("peerID_already_registered", func(t *testing.T) {
@@ -90,8 +90,8 @@ func Test_Session_AddPeerID(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := idprovider.ErrPeerIDAlreadyRegistered.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceExists, wantMessage)
-		assertErrV2InfoResourceExists(t, err.AddInfo(), "peer alias", peerIDs[0].Alias)
+		assertAPIError(t, err, perun.ClientError, perun.ErrResourceExists, wantMessage)
+		assertErrInfoResourceExists(t, err.AddInfo(), "peer alias", peerIDs[0].Alias)
 	})
 
 	t.Run("peerID_address_string_too_long", func(t *testing.T) {
@@ -101,9 +101,9 @@ func Test_Session_AddPeerID(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := idprovider.ErrParsingOffChainAddress.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2InvalidArgument, wantMessage)
+		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidArgument, wantMessage)
 		argumentValue := peer1WithInvalidAddrString.OffChainAddrString
-		assertErrV2InfoInvalidArgument(t, err.AddInfo(), "off-chain address string", argumentValue)
+		assertErrInfoInvalidArgument(t, err.AddInfo(), "off-chain address string", argumentValue)
 	})
 
 	t.Run("session_closed", func(t *testing.T) {
@@ -111,7 +111,7 @@ func Test_Session_AddPeerID(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := session.ErrSessionClosed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
+		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 }
@@ -134,8 +134,8 @@ func Test_Session_GetPeerID(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := session.ErrUnknownPeerAlias.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceNotFound, wantMessage)
-		assertErrV2InfoResourceNotFound(t, err.AddInfo(), "peer alias", unknownAlias)
+		assertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound, wantMessage)
+		assertErrInfoResourceNotFound(t, err.AddInfo(), "peer alias", unknownAlias)
 	})
 
 	t.Run("session_closed", func(t *testing.T) {
@@ -143,7 +143,7 @@ func Test_Session_GetPeerID(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := session.ErrSessionClosed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
+		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 }
@@ -220,7 +220,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := session.ErrSessionClosed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
+		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 
@@ -234,8 +234,8 @@ func Test_Session_OpenCh(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := session.ErrUnknownPeerAlias.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceNotFound, wantMessage)
-		assertErrV2InfoResourceNotFound(t, err.AddInfo(), "peer alias", unknownAlias)
+		assertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound, wantMessage)
+		assertErrInfoResourceNotFound(t, err.AddInfo(), "peer alias", unknownAlias)
 	})
 
 	t.Run("two_unknown_peer_aliases", func(t *testing.T) {
@@ -249,10 +249,10 @@ func Test_Session_OpenCh(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := session.ErrUnknownPeerAlias.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceNotFound, wantMessage)
+		assertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound, wantMessage)
 		resourceType := "peer alias"
 		resourceID := fmt.Sprintf("%s,%s", unknownAlias1, unknownAlias2)
-		assertErrV2InfoResourceNotFound(t, err.AddInfo(), resourceType, resourceID)
+		assertErrInfoResourceNotFound(t, err.AddInfo(), resourceType, resourceID)
 	})
 
 	t.Run("repeated_peer_aliases", func(t *testing.T) {
@@ -264,9 +264,9 @@ func Test_Session_OpenCh(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := session.ErrRepeatedPeerAlias.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2InvalidArgument, wantMessage)
+		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidArgument, wantMessage)
 		resourceType := "peer alias"
-		assertErrV2InfoInvalidArgument(t, err.AddInfo(), resourceType, peerIDs[0].Alias)
+		assertErrInfoInvalidArgument(t, err.AddInfo(), resourceType, peerIDs[0].Alias)
 	})
 
 	t.Run("missing_own_alias", func(t *testing.T) {
@@ -278,10 +278,10 @@ func Test_Session_OpenCh(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := session.ErrNoEntryForSelf.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2InvalidArgument, wantMessage)
+		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidArgument, wantMessage)
 		argumentName := "peer alias"
 		argumentValue := fmt.Sprintf("%s,%s", peerIDs[0].Alias, peerIDs[1].Alias)
-		assertErrV2InfoInvalidArgument(t, err.AddInfo(), argumentName, argumentValue)
+		assertErrInfoInvalidArgument(t, err.AddInfo(), argumentName, argumentValue)
 	})
 
 	t.Run("unsupported_currency", func(t *testing.T) {
@@ -295,8 +295,8 @@ func Test_Session_OpenCh(t *testing.T) {
 
 		wantMessage := session.ErrUnknownCurrency.Error()
 		argumentName := "currency"
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2InvalidArgument, wantMessage)
-		assertErrV2InfoInvalidArgument(t, err.AddInfo(), argumentName, invalidOpeningBalInfo.Currency)
+		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidArgument, wantMessage)
+		assertErrInfoInvalidArgument(t, err.AddInfo(), argumentName, invalidOpeningBalInfo.Currency)
 	})
 
 	t.Run("invalid_amount", func(t *testing.T) {
@@ -310,8 +310,8 @@ func Test_Session_OpenCh(t *testing.T) {
 
 		wantMessage := session.ErrInvalidAmountInBalance.Error()
 		argumentName := "amount"
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2InvalidArgument, wantMessage)
-		assertErrV2InfoInvalidArgument(t, err.AddInfo(), argumentName, invalidOpeningBalInfo.Bal[0])
+		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidArgument, wantMessage)
+		assertErrInfoInvalidArgument(t, err.AddInfo(), argumentName, invalidOpeningBalInfo.Bal[0])
 	})
 
 	t.Run("chClient_proposeChannel_AnError", func(t *testing.T) {
@@ -325,7 +325,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := "proposing channel"
-		assertAPIError(t, err, perun.InternalError, perun.ErrV2UnknownInternal, wantMessage)
+		assertAPIError(t, err, perun.InternalError, perun.ErrUnknownInternal, wantMessage)
 	})
 
 	t.Run("chClient_proposeChannel_PeerRequestTimedOut", func(t *testing.T) {
@@ -341,8 +341,8 @@ func Test_Session_OpenCh(t *testing.T) {
 
 		wantMessage := peerRequestTimedOutError.Error()
 		peerAlias := peerIDs[0].Alias // peer in validOpeningBal is peerIDs[0].
-		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerRequestTimedOut, wantMessage)
-		assertErrV2InfoPeerRequestTimedOut(t, err.AddInfo(), peerAlias, timeout)
+		assertAPIError(t, err, perun.ParticipantError, perun.ErrPeerRequestTimedOut, wantMessage)
+		assertErrInfoPeerRequestTimedOut(t, err.AddInfo(), peerAlias, timeout)
 		assert.Contains(t, err.Message(), "proposing channel")
 	})
 
@@ -362,8 +362,8 @@ func Test_Session_OpenCh(t *testing.T) {
 
 		wantMessage := peerRejectedError.Error()
 		peerAlias := peerIDs[0].Alias // peer in validOpeningBal is peerIDs[0].
-		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerRejected, wantMessage)
-		assertErrV2InfoPeerRejected(t, err.AddInfo(), peerAlias, reason)
+		assertAPIError(t, err, perun.ParticipantError, perun.ErrPeerRejected, wantMessage)
+		assertErrInfoPeerRejected(t, err.AddInfo(), peerAlias, reason)
 		assert.Contains(t, err.Message(), "proposing channel")
 	})
 
@@ -386,8 +386,8 @@ func Test_Session_OpenCh(t *testing.T) {
 
 		wantMessage := fundingTimeoutError.Error()
 		peerAlias := peerIDs[0].Alias // peer in validOpeningBal is peerIDs[0].
-		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerNotFunded, wantMessage)
-		assertErrV2InfoPeerNotFunded(t, err.AddInfo(), peerAlias)
+		assertAPIError(t, err, perun.ParticipantError, perun.ErrPeerNotFunded, wantMessage)
+		assertErrInfoPeerNotFunded(t, err.AddInfo(), peerAlias)
 		assert.Contains(t, err.Message(), "proposing channel")
 	})
 
@@ -405,11 +405,11 @@ func Test_Session_OpenCh(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := fundingTxTimedoutError.Error()
-		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2TxTimedOut, wantMessage)
+		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrTxTimedOut, wantMessage)
 		txType := fundingTxTimedoutError.TxType
 		txID := fundingTxTimedoutError.TxID
 		txTimeout := ethereumtest.OnChainTxTimeout.String()
-		assertErrV2InfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
+		assertErrInfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
 		assert.Contains(t, err.Message(), "proposing channel")
 	})
 
@@ -425,8 +425,8 @@ func Test_Session_OpenCh(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := chainNotReachableError.Error()
-		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2ChainNotReachable, wantMessage)
-		assertErrV2InfoChainNotReachable(t, err.AddInfo(), chainURL)
+		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrChainNotReachable, wantMessage)
+		assertErrInfoChainNotReachable(t, err.AddInfo(), chainURL)
 		assert.Contains(t, err.Message(), "proposing channel")
 	})
 }
@@ -507,8 +507,8 @@ func Test_SubUnsubChProposal(t *testing.T) {
 	err = openSession.SubChProposals(dummyNotifier)
 	require.Error(t, err)
 	wantMessage := session.ErrSubAlreadyExists.Error()
-	assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceExists, wantMessage)
-	assertErrV2InfoResourceExists(t, err.AddInfo(), "subscription to channel proposals", openSession.ID())
+	assertAPIError(t, err, perun.ClientError, perun.ErrResourceExists, wantMessage)
+	assertErrInfoResourceExists(t, err.AddInfo(), "subscription to channel proposals", openSession.ID())
 
 	// == SubTest 3: Unsub successfully ==
 	err = openSession.UnsubChProposals()
@@ -518,14 +518,14 @@ func Test_SubUnsubChProposal(t *testing.T) {
 	err = openSession.UnsubChProposals()
 	require.Error(t, err)
 	wantMessage = session.ErrNoActiveSub.Error()
-	assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceNotFound, wantMessage)
-	assertErrV2InfoResourceNotFound(t, err.AddInfo(), "subscription to channel proposals", openSession.ID())
+	assertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound, wantMessage)
+	assertErrInfoResourceNotFound(t, err.AddInfo(), "subscription to channel proposals", openSession.ID())
 
 	t.Run("Sub_sessionClosed", func(t *testing.T) {
 		err = closedSession.SubChProposals(dummyNotifier)
 		require.Error(t, err)
 		wantMessage := session.ErrSessionClosed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
+		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 
@@ -533,7 +533,7 @@ func Test_SubUnsubChProposal(t *testing.T) {
 		err = closedSession.UnsubChProposals()
 		require.Error(t, err)
 		wantMessage := session.ErrSessionClosed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
+		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 }
@@ -619,7 +619,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := session.ErrSessionClosed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, wantMessage)
+		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 
@@ -630,8 +630,8 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		_, err := session.RespondChProposal(context.Background(), unknownProposalID, true)
 		require.Error(t, err)
 
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2ResourceNotFound, "proposal")
-		assertErrV2InfoResourceNotFound(t, err.AddInfo(), "proposal", unknownProposalID)
+		assertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound, "proposal")
+		assertErrInfoResourceNotFound(t, err.AddInfo(), "proposal", unknownProposalID)
 	})
 
 	t.Run("response_timeout_expired", func(t *testing.T) {
@@ -654,8 +654,8 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		_, apiErr := session.RespondChProposal(context.Background(), chProposalID, true)
 		require.Error(t, apiErr)
 
-		assertAPIError(t, apiErr, perun.ParticipantError, perun.ErrV2UserResponseTimedOut, "")
-		assertErrV2InfoUserResponseTimedout(t, apiErr.AddInfo())
+		assertAPIError(t, apiErr, perun.ParticipantError, perun.ErrUserResponseTimedOut, "")
+		assertErrInfoUserResponseTimedout(t, apiErr.AddInfo())
 	})
 
 	t.Run("respond_accept_AnError", func(t *testing.T) {
@@ -667,7 +667,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		session.HandleProposalWInterface(chProposal, responder)
 
 		_, err := session.RespondChProposal(context.Background(), chProposalID, true)
-		assertAPIError(t, err, perun.InternalError, perun.ErrV2UnknownInternal, assert.AnError.Error())
+		assertAPIError(t, err, perun.InternalError, perun.ErrUnknownInternal, assert.AnError.Error())
 	})
 
 	t.Run("respond_reject_AnError", func(t *testing.T) {
@@ -678,7 +678,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		session.HandleProposalWInterface(chProposal, responder)
 
 		_, err := session.RespondChProposal(context.Background(), chProposalID, false)
-		assertAPIError(t, err, perun.InternalError, perun.ErrV2UnknownInternal, assert.AnError.Error())
+		assertAPIError(t, err, perun.InternalError, perun.ErrUnknownInternal, assert.AnError.Error())
 	})
 
 	t.Run("respond_accept_PeerNotFunded", func(t *testing.T) {
@@ -699,8 +699,8 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 
 		_, err := session.RespondChProposal(context.Background(), chProposalID, true)
 		peerAlias := peerIDs[0].Alias // peer in validOpeningBal is peerIDs[0].
-		assertAPIError(t, err, perun.ParticipantError, perun.ErrV2PeerNotFunded, fundingTimeoutError.Error())
-		assertErrV2InfoPeerNotFunded(t, err.AddInfo(), peerAlias)
+		assertAPIError(t, err, perun.ParticipantError, perun.ErrPeerNotFunded, fundingTimeoutError.Error())
+		assertErrInfoPeerNotFunded(t, err.AddInfo(), peerAlias)
 	})
 
 	t.Run("respond_accept_FundingTxTimedOut", func(t *testing.T) {
@@ -716,11 +716,11 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		session.HandleProposalWInterface(chProposal, responder)
 
 		_, err := session.RespondChProposal(context.Background(), chProposalID, true)
-		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2TxTimedOut, fundingTxTimedoutError.Error())
+		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrTxTimedOut, fundingTxTimedoutError.Error())
 		txType := fundingTxTimedoutError.TxType
 		txID := fundingTxTimedoutError.TxID
 		txTimeout := ethereumtest.OnChainTxTimeout.String()
-		assertErrV2InfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
+		assertErrInfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
 	})
 
 	t.Run("respond_accept_ChainNotReachable", func(t *testing.T) {
@@ -735,8 +735,8 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 
 		_, err := session.RespondChProposal(context.Background(), chProposalID, true)
 		wantMessage := chainNotReachableError.Error()
-		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrV2ChainNotReachable, wantMessage)
-		assertErrV2InfoChainNotReachable(t, err.AddInfo(), chainURL)
+		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrChainNotReachable, wantMessage)
+		assertErrInfoChainNotReachable(t, err.AddInfo(), chainURL)
 	})
 }
 
@@ -898,8 +898,8 @@ func Test_ProposeCh_CloseSession(t *testing.T) {
 
 		_, err := sess.Close(false)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, session.ErrOpenChsExist.Error())
-		assertErrV2InfoFailedPreCondUnclosedChs(t, err.AddInfo(), chsInfo)
+		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, session.ErrOpenChsExist.Error())
+		assertErrInfoFailedPreCondUnclosedChs(t, err.AddInfo(), chsInfo)
 	})
 	t.Run("force_unexpectedPhaseChs", func(t *testing.T) {
 		ch, _ := newMockPCh(t, validOpeningBalInfo)
@@ -909,15 +909,15 @@ func Test_ProposeCh_CloseSession(t *testing.T) {
 
 		_, err := sess.Close(false)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, session.ErrUnexpectedPhaseChs.Error())
-		assertErrV2InfoFailedPreCondUnclosedChs(t, err.AddInfo(), chsInfo)
+		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, session.ErrUnexpectedPhaseChs.Error())
+		assertErrInfoFailedPreCondUnclosedChs(t, err.AddInfo(), chsInfo)
 	})
 	t.Run("session_closed", func(t *testing.T) {
 		sess, _ := newSessionWMockChClient(t, false)
 
 		_, err := sess.Close(false)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrV2FailedPreCondition, session.ErrSessionClosed.Error())
+		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, session.ErrSessionClosed.Error())
 		assert.Nil(t, err.AddInfo())
 	})
 }
@@ -968,7 +968,7 @@ func newPeerIDs(t *testing.T, n uint) []perun.PeerID {
 	return peerIDs
 }
 
-func assertAPIError(t *testing.T, e perun.APIErrorV2, category perun.ErrorCategory, code perun.ErrorCode, msg string) {
+func assertAPIError(t *testing.T, e perun.APIError, category perun.ErrorCategory, code perun.ErrorCode, msg string) {
 	t.Helper()
 
 	assert.Equal(t, category, e.Category())
@@ -976,80 +976,80 @@ func assertAPIError(t *testing.T, e perun.APIErrorV2, category perun.ErrorCatego
 	assert.Contains(t, e.Message(), msg)
 }
 
-func assertErrV2InfoPeerRequestTimedOut(t *testing.T, info interface{}, peerAlias, timeout string) {
+func assertErrInfoPeerRequestTimedOut(t *testing.T, info interface{}, peerAlias, timeout string) {
 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrV2InfoPeerRequestTimedOut)
+	addInfo, ok := info.(perun.ErrInfoPeerRequestTimedOut)
 	require.True(t, ok)
 	assert.Equal(t, peerAlias, addInfo.PeerAlias)
 	assert.Equal(t, timeout, addInfo.Timeout)
 }
 
-func assertErrV2InfoPeerRejected(t *testing.T, info interface{}, peerAlias, reason string) {
+func assertErrInfoPeerRejected(t *testing.T, info interface{}, peerAlias, reason string) {
 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrV2InfoPeerRejected)
+	addInfo, ok := info.(perun.ErrInfoPeerRejected)
 	require.True(t, ok)
 	assert.Equal(t, peerAlias, addInfo.PeerAlias)
 	assert.Equal(t, reason, addInfo.Reason)
 }
 
-func assertErrV2InfoPeerNotFunded(t *testing.T, info interface{}, peerAlias string) {
+func assertErrInfoPeerNotFunded(t *testing.T, info interface{}, peerAlias string) {
 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrV2InfoPeerNotFunded)
+	addInfo, ok := info.(perun.ErrInfoPeerNotFunded)
 	require.True(t, ok)
 	assert.Equal(t, peerAlias, addInfo.PeerAlias)
 }
 
-func assertErrV2InfoUserResponseTimedout(t *testing.T, info interface{}) {
+func assertErrInfoUserResponseTimedout(t *testing.T, info interface{}) {
 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrV2InfoUserResponseTimedOut)
+	addInfo, ok := info.(perun.ErrInfoUserResponseTimedOut)
 	require.True(t, ok)
 	assert.Less(t, addInfo.Expiry, time.Now().Unix())
 }
 
-func assertErrV2InfoResourceNotFound(t *testing.T, info interface{}, resourceType, resourceID string) {
+func assertErrInfoResourceNotFound(t *testing.T, info interface{}, resourceType, resourceID string) {
 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrV2InfoResourceNotFound)
+	addInfo, ok := info.(perun.ErrInfoResourceNotFound)
 	require.True(t, ok)
 	assert.Equal(t, resourceType, addInfo.Type)
 	assert.Equal(t, resourceID, addInfo.ID)
 }
 
-func assertErrV2InfoResourceExists(t *testing.T, info interface{}, resourceType, resourceID string) {
+func assertErrInfoResourceExists(t *testing.T, info interface{}, resourceType, resourceID string) {
 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrV2InfoResourceExists)
+	addInfo, ok := info.(perun.ErrInfoResourceExists)
 	require.True(t, ok)
 	assert.Equal(t, resourceType, addInfo.Type)
 	assert.Equal(t, resourceID, addInfo.ID)
 }
 
-func assertErrV2InfoInvalidArgument(t *testing.T, info interface{}, name, value string) {
+func assertErrInfoInvalidArgument(t *testing.T, info interface{}, name, value string) {
 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrV2InfoInvalidArgument)
+	addInfo, ok := info.(perun.ErrInfoInvalidArgument)
 	require.True(t, ok)
 	assert.Equal(t, name, addInfo.Name)
 	assert.Equal(t, value, addInfo.Value)
 	t.Log("requirement:", addInfo.Requirement)
 }
 
-func assertErrV2InfoFailedPreCondUnclosedChs(t *testing.T, info interface{}, chInfos []perun.ChInfo) {
+func assertErrInfoFailedPreCondUnclosedChs(t *testing.T, info interface{}, chInfos []perun.ChInfo) {
 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrV2InfoFailedPreCondUnclosedChs)
+	addInfo, ok := info.(perun.ErrInfoFailedPreCondUnclosedChs)
 	require.True(t, ok)
 	assert.Equal(t, chInfos, addInfo.ChInfos)
 }
 
-func assertErrV2InfoTxTimedOut(t *testing.T, info interface{}, txType, txID, txTimeout string) {
+func assertErrInfoTxTimedOut(t *testing.T, info interface{}, txType, txID, txTimeout string) {
 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrV2InfoTxTimedOut)
+	addInfo, ok := info.(perun.ErrInfoTxTimedOut)
 	require.True(t, ok)
 	assert.Equal(t, txType, addInfo.TxType)
 	assert.Equal(t, txID, addInfo.TxID)
@@ -1057,10 +1057,10 @@ func assertErrV2InfoTxTimedOut(t *testing.T, info interface{}, txType, txID, txT
 }
 
 // nolint: unparam	// to fix chainURL always receives same value warning.
-func assertErrV2InfoChainNotReachable(t *testing.T, info interface{}, chainURL string) {
+func assertErrInfoChainNotReachable(t *testing.T, info interface{}, chainURL string) {
 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrV2InfoChainNotReachable)
+	addInfo, ok := info.(perun.ErrInfoChainNotReachable)
 	require.True(t, ok)
 	assert.Equal(t, chainURL, addInfo.ChainURL)
 }

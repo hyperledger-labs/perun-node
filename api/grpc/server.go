@@ -98,7 +98,7 @@ func (a *payChAPIServer) Help(context.Context, *pb.HelpReq) (*pb.HelpResp, error
 
 // OpenSession wraps node.OpenSession.
 func (a *payChAPIServer) OpenSession(ctx context.Context, req *pb.OpenSessionReq) (*pb.OpenSessionResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.OpenSessionResp {
+	errResponse := func(err perun.APIError) *pb.OpenSessionResp {
 		return &pb.OpenSessionResp{
 			Response: &pb.OpenSessionResp_Error{
 				Error: toGrpcError(err),
@@ -127,7 +127,7 @@ func (a *payChAPIServer) OpenSession(ctx context.Context, req *pb.OpenSessionReq
 
 // AddPeerID wraps session.AddPeerID.
 func (a *payChAPIServer) AddPeerID(ctx context.Context, req *pb.AddPeerIDReq) (*pb.AddPeerIDResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.AddPeerIDResp {
+	errResponse := func(err perun.APIError) *pb.AddPeerIDResp {
 		return &pb.AddPeerIDResp{
 			Response: &pb.AddPeerIDResp_Error{
 				Error: toGrpcError(err),
@@ -135,7 +135,7 @@ func (a *payChAPIServer) AddPeerID(ctx context.Context, req *pb.AddPeerIDReq) (*
 		}
 	}
 
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -160,7 +160,7 @@ func (a *payChAPIServer) AddPeerID(ctx context.Context, req *pb.AddPeerIDReq) (*
 
 // GetPeerID wraps session.GetPeerID.
 func (a *payChAPIServer) GetPeerID(ctx context.Context, req *pb.GetPeerIDReq) (*pb.GetPeerIDResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.GetPeerIDResp {
+	errResponse := func(err perun.APIError) *pb.GetPeerIDResp {
 		return &pb.GetPeerIDResp{
 			Response: &pb.GetPeerIDResp_Error{
 				Error: toGrpcError(err),
@@ -168,7 +168,7 @@ func (a *payChAPIServer) GetPeerID(ctx context.Context, req *pb.GetPeerIDReq) (*
 		}
 	}
 
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -193,7 +193,7 @@ func (a *payChAPIServer) GetPeerID(ctx context.Context, req *pb.GetPeerIDReq) (*
 
 // OpenPayCh wraps session.OpenPayCh.
 func (a *payChAPIServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*pb.OpenPayChResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.OpenPayChResp {
+	errResponse := func(err perun.APIError) *pb.OpenPayChResp {
 		return &pb.OpenPayChResp{
 			Response: &pb.OpenPayChResp_Error{
 				Error: toGrpcError(err),
@@ -201,7 +201,7 @@ func (a *payChAPIServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*
 		}
 	}
 
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -226,7 +226,7 @@ func (a *payChAPIServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*
 
 // GetPayChsInfo wraps session.GetPayChs.
 func (a *payChAPIServer) GetPayChsInfo(ctx context.Context, req *pb.GetPayChsInfoReq) (*pb.GetPayChsInfoResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.GetPayChsInfoResp {
+	errResponse := func(err perun.APIError) *pb.GetPayChsInfoResp {
 		return &pb.GetPayChsInfoResp{
 			Response: &pb.GetPayChsInfoResp_Error{
 				Error: toGrpcError(err),
@@ -234,7 +234,7 @@ func (a *payChAPIServer) GetPayChsInfo(ctx context.Context, req *pb.GetPayChsInf
 		}
 	}
 
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -255,7 +255,7 @@ func (a *payChAPIServer) GetPayChsInfo(ctx context.Context, req *pb.GetPayChsInf
 // SubPayChProposals wraps session.SubPayChProposals.
 func (a *payChAPIServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
 	srv pb.Payment_API_SubPayChProposalsServer) error {
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		// TODO: (mano) Return a error response and not a protocol error
 		return errors.WithMessage(err, "cannot register subscription")
@@ -293,7 +293,7 @@ func (a *payChAPIServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
 // UnsubPayChProposals wraps session.UnsubPayChProposals.
 func (a *payChAPIServer) UnsubPayChProposals(ctx context.Context, req *pb.UnsubPayChProposalsReq) (
 	*pb.UnsubPayChProposalsResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.UnsubPayChProposalsResp {
+	errResponse := func(err perun.APIError) *pb.UnsubPayChProposalsResp {
 		return &pb.UnsubPayChProposalsResp{
 			Response: &pb.UnsubPayChProposalsResp_Error{
 				Error: toGrpcError(err),
@@ -301,7 +301,7 @@ func (a *payChAPIServer) UnsubPayChProposals(ctx context.Context, req *pb.UnsubP
 		}
 	}
 
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -332,7 +332,7 @@ func (a *payChAPIServer) closeGrpcPayChProposalSub(sessionID string) {
 // RespondPayChProposal wraps session.RespondPayChProposal.
 func (a *payChAPIServer) RespondPayChProposal(ctx context.Context, req *pb.RespondPayChProposalReq) (
 	*pb.RespondPayChProposalResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.RespondPayChProposalResp {
+	errResponse := func(err perun.APIError) *pb.RespondPayChProposalResp {
 		return &pb.RespondPayChProposalResp{
 			Response: &pb.RespondPayChProposalResp_Error{
 				Error: toGrpcError(err),
@@ -340,7 +340,7 @@ func (a *payChAPIServer) RespondPayChProposal(ctx context.Context, req *pb.Respo
 		}
 	}
 
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -360,7 +360,7 @@ func (a *payChAPIServer) RespondPayChProposal(ctx context.Context, req *pb.Respo
 
 // CloseSession wraps session.CloseSession. For now, this is a stub.
 func (a *payChAPIServer) CloseSession(ctx context.Context, req *pb.CloseSessionReq) (*pb.CloseSessionResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.CloseSessionResp {
+	errResponse := func(err perun.APIError) *pb.CloseSessionResp {
 		return &pb.CloseSessionResp{
 			Response: &pb.CloseSessionResp_Error{
 				Error: toGrpcError(err),
@@ -368,7 +368,7 @@ func (a *payChAPIServer) CloseSession(ctx context.Context, req *pb.CloseSessionR
 		}
 	}
 
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -389,7 +389,7 @@ func (a *payChAPIServer) CloseSession(ctx context.Context, req *pb.CloseSessionR
 // SendPayChUpdate wraps ch.SendPayChUpdate.
 func (a *payChAPIServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpdateReq) (
 	*pb.SendPayChUpdateResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.SendPayChUpdateResp {
+	errResponse := func(err perun.APIError) *pb.SendPayChUpdateResp {
 		return &pb.SendPayChUpdateResp{
 			Response: &pb.SendPayChUpdateResp_Error{
 				Error: toGrpcError(err),
@@ -397,11 +397,11 @@ func (a *payChAPIServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChU
 		}
 	}
 
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	ch, err := sess.GetChV2(req.ChID)
+	ch, err := sess.GetCh(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -421,12 +421,12 @@ func (a *payChAPIServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChU
 
 // SubPayChUpdates wraps ch.SubPayChUpdates.
 func (a *payChAPIServer) SubPayChUpdates(req *pb.SubpayChUpdatesReq, srv pb.Payment_API_SubPayChUpdatesServer) error {
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		// TODO: (mano) Return a error response and not a protocol error.
 		return errors.WithMessage(err, "cannot register subscription")
 	}
-	ch, err := sess.GetChV2(req.ChID)
+	ch, err := sess.GetCh(req.ChID)
 	if err != nil {
 		return errors.WithMessage(err, "cannot register subscription")
 	}
@@ -477,18 +477,18 @@ var ToGrpcChUpdateType = map[perun.ChUpdateType]pb.SubPayChUpdatesResp_Notify_Ch
 // UnsubPayChUpdates wraps ch.UnsubPayChUpdates.
 func (a *payChAPIServer) UnsubPayChUpdates(ctx context.Context, req *pb.UnsubPayChUpdatesReq) (
 	*pb.UnsubPayChUpdatesResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.UnsubPayChUpdatesResp {
+	errResponse := func(err perun.APIError) *pb.UnsubPayChUpdatesResp {
 		return &pb.UnsubPayChUpdatesResp{
 			Response: &pb.UnsubPayChUpdatesResp_Error{
 				Error: toGrpcError(err),
 			},
 		}
 	}
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	ch, err := sess.GetChV2(req.ChID)
+	ch, err := sess.GetCh(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -518,7 +518,7 @@ func (a *payChAPIServer) closeGrpcPayChUpdateSub(sessionID, chID string) {
 // RespondPayChUpdate wraps ch.RespondPayChUpdate.
 func (a *payChAPIServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPayChUpdateReq) (
 	*pb.RespondPayChUpdateResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.RespondPayChUpdateResp {
+	errResponse := func(err perun.APIError) *pb.RespondPayChUpdateResp {
 		return &pb.RespondPayChUpdateResp{
 			Response: &pb.RespondPayChUpdateResp_Error{
 				Error: toGrpcError(err),
@@ -526,11 +526,11 @@ func (a *payChAPIServer) RespondPayChUpdate(ctx context.Context, req *pb.Respond
 		}
 	}
 
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	ch, err := sess.GetChV2(req.ChID)
+	ch, err := sess.GetCh(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -551,7 +551,7 @@ func (a *payChAPIServer) RespondPayChUpdate(ctx context.Context, req *pb.Respond
 // GetPayChInfo wraps ch.GetBalInfo.
 func (a *payChAPIServer) GetPayChInfo(ctx context.Context, req *pb.GetPayChInfoReq) (
 	*pb.GetPayChInfoResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.GetPayChInfoResp {
+	errResponse := func(err perun.APIError) *pb.GetPayChInfoResp {
 		return &pb.GetPayChInfoResp{
 			Response: &pb.GetPayChInfoResp_Error{
 				Error: toGrpcError(err),
@@ -559,11 +559,11 @@ func (a *payChAPIServer) GetPayChInfo(ctx context.Context, req *pb.GetPayChInfoR
 		}
 	}
 
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	ch, err := sess.GetChV2(req.ChID)
+	ch, err := sess.GetCh(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -583,7 +583,7 @@ func (a *payChAPIServer) GetPayChInfo(ctx context.Context, req *pb.GetPayChInfoR
 
 // ClosePayCh wraps ch.ClosePayCh.
 func (a *payChAPIServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*pb.ClosePayChResp, error) {
-	errResponse := func(err perun.APIErrorV2) *pb.ClosePayChResp {
+	errResponse := func(err perun.APIError) *pb.ClosePayChResp {
 		return &pb.ClosePayChResp{
 			Response: &pb.ClosePayChResp_Error{
 				Error: toGrpcError(err),
@@ -591,11 +591,11 @@ func (a *payChAPIServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) 
 		}
 	}
 
-	sess, err := a.n.GetSessionV2(req.SessionID)
+	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
 		return errResponse(err), nil
 	}
-	ch, err := sess.GetChV2(req.ChID)
+	ch, err := sess.GetCh(req.ChID)
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -653,80 +653,80 @@ func toGrpcBalInfo(src perun.BalInfo) *pb.BalInfo {
 	}
 }
 
-// toGrpcError is a helper function to convert APIErrorV2 struct defined in perun-node
-// to APIErrorV2 struct defined in grpc package.
-func toGrpcError(err perun.APIErrorV2) *pb.MsgErrorV2 { //nolint: funlen
-	grpcErr := pb.MsgErrorV2{
+// toGrpcError is a helper function to convert APIError struct defined in perun-node
+// to APIError struct defined in grpc package.
+func toGrpcError(err perun.APIError) *pb.MsgError { //nolint: funlen
+	grpcErr := pb.MsgError{
 		Category: pb.ErrorCategory(err.Category()),
 		Code:     pb.ErrorCode(err.Code()),
 		Message:  err.Message(),
 	}
 	switch info := err.AddInfo().(type) {
-	case perun.ErrV2InfoPeerRequestTimedOut:
-		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoPeerRequestTimedOut{
-			ErrV2InfoPeerRequestTimedOut: &pb.ErrV2InfoPeerRequestTimedOut{
+	case perun.ErrInfoPeerRequestTimedOut:
+		grpcErr.AddInfo = &pb.MsgError_ErrInfoPeerRequestTimedOut{
+			ErrInfoPeerRequestTimedOut: &pb.ErrInfoPeerRequestTimedOut{
 				Timeout: info.Timeout,
 			},
 		}
-	case perun.ErrV2InfoPeerRejected:
-		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoPeerRejected{
-			ErrV2InfoPeerRejected: &pb.ErrV2InfoPeerRejected{
+	case perun.ErrInfoPeerRejected:
+		grpcErr.AddInfo = &pb.MsgError_ErrInfoPeerRejected{
+			ErrInfoPeerRejected: &pb.ErrInfoPeerRejected{
 				PeerAlias: info.PeerAlias,
 				Reason:    info.Reason,
 			},
 		}
-	case perun.ErrV2InfoPeerNotFunded:
-		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoPeerNotFunded{
-			ErrV2InfoPeerNotFunded: &pb.ErrV2InfoPeerNotFunded{
+	case perun.ErrInfoPeerNotFunded:
+		grpcErr.AddInfo = &pb.MsgError_ErrInfoPeerNotFunded{
+			ErrInfoPeerNotFunded: &pb.ErrInfoPeerNotFunded{
 				PeerAlias: info.PeerAlias,
 			},
 		}
-	case perun.ErrV2InfoUserResponseTimedOut:
-		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoUserResponseTimedOut{
-			ErrV2InfoUserResponseTimedOut: &pb.ErrV2InfoUserResponseTimedOut{
+	case perun.ErrInfoUserResponseTimedOut:
+		grpcErr.AddInfo = &pb.MsgError_ErrInfoUserResponseTimedOut{
+			ErrInfoUserResponseTimedOut: &pb.ErrInfoUserResponseTimedOut{
 				Expiry:     info.Expiry,
 				ReceivedAt: info.ReceivedAt,
 			},
 		}
-	case perun.ErrV2InfoResourceNotFound:
-		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoResourceNotFound{
-			ErrV2InfoResourceNotFound: &pb.ErrV2InfoResourceNotFound{
+	case perun.ErrInfoResourceNotFound:
+		grpcErr.AddInfo = &pb.MsgError_ErrInfoResourceNotFound{
+			ErrInfoResourceNotFound: &pb.ErrInfoResourceNotFound{
 				Type: info.Type,
 				Id:   info.ID,
 			},
 		}
-	case perun.ErrV2InfoResourceExists:
-		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoResourceExists{
-			ErrV2InfoResourceExists: &pb.ErrV2InfoResourceExists{
+	case perun.ErrInfoResourceExists:
+		grpcErr.AddInfo = &pb.MsgError_ErrInfoResourceExists{
+			ErrInfoResourceExists: &pb.ErrInfoResourceExists{
 				Type: info.Type,
 				Id:   info.ID,
 			},
 		}
-	case perun.ErrV2InfoInvalidArgument:
-		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoInvalidArgument{
-			ErrV2InfoInvalidArgument: &pb.ErrV2InfoInvalidArgument{
+	case perun.ErrInfoInvalidArgument:
+		grpcErr.AddInfo = &pb.MsgError_ErrInfoInvalidArgument{
+			ErrInfoInvalidArgument: &pb.ErrInfoInvalidArgument{
 				Name:        info.Name,
 				Value:       info.Value,
 				Requirement: info.Requirement,
 			},
 		}
-	case payment.ErrV2InfoFailedPreCondUnclosedPayChs:
-		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoFailedPreCondUnclosedChs{
-			ErrV2InfoFailedPreCondUnclosedChs: &pb.ErrV2InfoFailedPreCondUnclosedChs{
+	case payment.ErrInfoFailedPreCondUnclosedPayChs:
+		grpcErr.AddInfo = &pb.MsgError_ErrInfoFailedPreCondUnclosedChs{
+			ErrInfoFailedPreCondUnclosedChs: &pb.ErrInfoFailedPreCondUnclosedChs{
 				Chs: toGrpcPayChsInfo(info.PayChs),
 			},
 		}
-	case perun.ErrV2InfoTxTimedOut:
-		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoTxTimedOut{
-			ErrV2InfoTxTimedOut: &pb.ErrV2InfoTxTimedOut{
+	case perun.ErrInfoTxTimedOut:
+		grpcErr.AddInfo = &pb.MsgError_ErrInfoTxTimedOut{
+			ErrInfoTxTimedOut: &pb.ErrInfoTxTimedOut{
 				TxType:    info.TxType,
 				TxID:      info.TxID,
 				TxTimeout: info.TxTimeout,
 			},
 		}
-	case perun.ErrV2InfoChainNotReachable:
-		grpcErr.AddInfo = &pb.MsgErrorV2_ErrV2InfoChainNotReachable{
-			ErrV2InfoChainNotReachable: &pb.ErrV2InfoChainNotReachable{
+	case perun.ErrInfoChainNotReachable:
+		grpcErr.AddInfo = &pb.MsgError_ErrInfoChainNotReachable{
+			ErrInfoChainNotReachable: &pb.ErrInfoChainNotReachable{
 				ChainURL: info.ChainURL,
 			},
 		}

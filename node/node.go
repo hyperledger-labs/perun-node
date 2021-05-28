@@ -98,22 +98,22 @@ func (n *node) Help() []string {
 
 // OpenSession opens a session on this node using the given config file and returns the
 // session id, which can be used to retrieve a SessionAPI instance from this node instance.
-func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.APIErrorV2) {
+func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.APIError) {
 	n.WithField("method", "OpenSession").Infof("\nReceived request with params %+v", configFile)
 	n.Lock()
 	defer n.Unlock()
 
-	var apiErr perun.APIErrorV2
+	var apiErr perun.APIError
 	defer func() {
 		if apiErr != nil {
-			n.WithFields(perun.APIErrV2AsMap("OpenSession", apiErr)).Error(apiErr.Message())
+			n.WithFields(perun.APIErrAsMap("OpenSession", apiErr)).Error(apiErr.Message())
 		}
 	}()
 
 	sessionConfig, err := session.ParseConfig(configFile)
 	if err != nil {
 		err = errors.WithMessage(err, "parsing config")
-		return "", nil, perun.NewAPIErrV2InvalidConfig(err.Error())
+		return "", nil, perun.NewAPIErrInvalidConfig(err.Error())
 	}
 	sess, apiErr := session.New(sessionConfig)
 	if apiErr != nil {
@@ -125,32 +125,18 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 	return sess.ID(), sess.GetChsInfo(), nil
 }
 
-// GetSessionV2 is a wrapper over GetSession that returns the error in the
-// newly defined APIErrorV2 format introduced for the purpose of refactoring.
-//
-// See doc comments on the NodeAPI interface for more details.
-// TODO: (mano) merge this with GetSession api once GetSessionV2 is removed from nodeAPI.
-func (n *node) GetSessionV2(sessionID string) (perun.SessionAPI, perun.APIErrorV2) {
-	sess, err := n.GetSession(sessionID)
-	var apiErr perun.APIErrorV2
-	if err != nil {
-		// The only type of error returned by GetSession is "unknown session ID".
-		apiErr = perun.NewAPIErrV2ResourceNotFound("session id", sessionID, err.Error())
-		n.WithFields(perun.APIErrV2AsMap("GetSessionV2 (internal)", apiErr)).Error(apiErr.Message())
-	}
-	return sess, apiErr
-}
+// GetSession implements node.GetSession.
+func (n *node) GetSession(sessionID string) (perun.SessionAPI, perun.APIError) {
+	n.WithField("method", "GetSession").Info("Received request with params:", sessionID)
 
-// GetSession is a special call that should be used internally to retrieve a SessionAPI
-// instance to access its methods. This should not be exposed to the user.
-func (n *node) GetSession(sessionID string) (perun.SessionAPI, error) {
-	n.Debug("Internal call: GetSession", sessionID)
 	n.Lock()
-	defer n.Unlock()
-
 	sess, ok := n.sessions[sessionID]
+	n.Unlock()
 	if !ok {
-		return nil, ErrUnknownSessionID
+		apiErr := perun.NewAPIErrResourceNotFound("session id", sessionID, ErrUnknownSessionID.Error())
+		n.WithFields(perun.APIErrAsMap("GetSession (internal)", apiErr)).Error(apiErr.Message())
+		return nil, apiErr
 	}
+	n.WithField("method", "GetSession").Info("Session retrieved:")
 	return sess, nil
 }
