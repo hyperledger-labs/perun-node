@@ -399,7 +399,7 @@ type NodeAPI interface {
 	Time() int64
 	GetConfig() NodeConfig
 	Help() []string
-	OpenSession(configFile string) (string, []ChInfo, error)
+	OpenSession(configFile string) (string, []ChInfo, APIErrorV2)
 
 	// This function is used internally to get a SessionAPI instance.
 	// Should not be exposed via user API.

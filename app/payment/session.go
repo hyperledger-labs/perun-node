@@ -38,7 +38,7 @@ type (
 )
 
 // OpenSession opens a session and interprets the restored channels as payment channels.
-func OpenSession(n perun.NodeAPI, configFile string) (string, []PayChInfo, error) {
+func OpenSession(n perun.NodeAPI, configFile string) (string, []PayChInfo, perun.APIErrorV2) {
 	sessionID, restoredChsInfo, err := n.OpenSession(configFile)
 	return sessionID, toPayChsInfo(restoredChsInfo), err
 }
