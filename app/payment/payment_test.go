@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sync"
 	"testing"
 
 	"github.com/hyperledger-labs/perun-node"
@@ -42,6 +43,7 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 			t.FailNow()
 		}
 	}
+	wg := &sync.WaitGroup{}
 
 	ctx := context.Background()
 
@@ -104,7 +106,9 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 	fmt.Println("\n=== Open phase: Alice opens a channel with bob ===")
 
 	var aliceChInfo payment.PayChInfo
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		openingBalInfo := perun.BalInfo{
 			Currency: currency.ETH,
 			Parts:    []string{perun.OwnAlias, bobAlias},
@@ -130,6 +134,7 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 	handleError(err, "bob: responding to channel proposal")
 	fmt.Printf("bob: accepted channel proposal\n")
 	fmt.Printf("opening Balance:%+v\n\n", bobChInfo.BalInfo)
+	wg.Wait()
 
 	// Transact phase: Alice sends payment to bob
 	// ******************************************
@@ -150,6 +155,7 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 
 	bobUpdatedChInfos := make(chan payment.PayChInfo, 2)
 	bobAcceptIncomingUpdate := func() {
+		defer wg.Done()
 		notif := <-incomingChUpdateNotifsBob
 		fmt.Printf("bob: received channel update notification\n")
 		updatedPayChInfo, err := payment.RespondPayChUpdate(ctx, bobCh, notif.UpdateID, true)
@@ -157,6 +163,7 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 		fmt.Printf("bob: accepted payment from alice\n")
 		bobUpdatedChInfos <- updatedPayChInfo
 	}
+	wg.Add(1)
 	go bobAcceptIncomingUpdate()
 
 	aliceUpdateChInfo, err := payment.SendPayChUpdate(ctx, aliceCh, bobAlias, "0.1")
@@ -165,6 +172,7 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 
 	bobUpdatedChInfo := <-bobUpdatedChInfos
 	fmt.Printf("updated balance:%+v\n\n", bobUpdatedChInfo.BalInfo)
+	wg.Wait()
 
 	// Register and Close phase: Alice closes the channel
 	// **************************************************
@@ -173,6 +181,7 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 	// Since a subscription to channel updates already exists for bob,
 	// we make a new one only for alice.
 	fmt.Printf("bob: subscription to channel update notifications already exists\n")
+	wg.Add(1)
 	go bobAcceptIncomingUpdate() // Accept the finalizing notification.
 
 	incomingChUpdateNotifsAlice := make(chan payment.PayChUpdateNotif, 2)
@@ -198,4 +207,5 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 	}
 	fmt.Printf("bob: channel close notification received\n")
 	fmt.Printf("closing balance:%+v\n\n", updateNotif.ProposedPayChInfo.BalInfo)
+	wg.Wait()
 }
