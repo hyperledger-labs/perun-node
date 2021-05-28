@@ -181,6 +181,16 @@ func NewAPIErrV2FailedPreCondition(message string, addInfo interface{}) APIError
 	}
 }
 
+// NewAPIErrV2InvalidConfig returns an ErrV2InvalidConfig, API Error with the
+// given error message.
+func NewAPIErrV2InvalidConfig(message string) APIErrorV2 {
+	return apiErrorV2{
+		category: ClientError,
+		code:     ErrV2InvalidConfig,
+		message:  message,
+	}
+}
+
 // NewAPIErrInfoFailedPreConditionUnclosedChs returns additional info for a
 // specific case of ErrV2FailedPreCondition when Session.Close API is called
 // without force option and there are one or more unclosed channels in it.

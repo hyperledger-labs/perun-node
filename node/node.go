@@ -98,22 +98,30 @@ func (n *node) Help() []string {
 
 // OpenSession opens a session on this node using the given config file and returns the
 // session id, which can be used to retrieve a SessionAPI instance from this node instance.
-func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, error) {
-	n.Debug("Received request: node.OpenSession", configFile)
+func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.APIErrorV2) {
+	n.WithField("method", "OpenSession").Infof("\nReceived request with params %+v", configFile)
 	n.Lock()
 	defer n.Unlock()
 
+	var apiErr perun.APIErrorV2
+	defer func() {
+		if apiErr != nil {
+			n.WithFields(perun.APIErrV2AsMap("OpenSession", apiErr)).Error(apiErr.Message())
+		}
+	}()
+
 	sessionConfig, err := session.ParseConfig(configFile)
 	if err != nil {
-		n.Error(err, "parsing session config")
-		return "", nil, perun.ErrInvalidConfig
+		err = errors.WithMessage(err, "parsing config")
+		return "", nil, perun.NewAPIErrV2InvalidConfig(err.Error())
 	}
-	sess, err := session.New(sessionConfig)
-	if err != nil {
-		n.Error(err, "initializing session")
-		return "", nil, perun.GetAPIError(err)
+	sess, apiErr := session.New(sessionConfig)
+	if apiErr != nil {
+		return "", nil, apiErr
 	}
 	n.sessions[sess.ID()] = sess
+
+	n.WithFields(log.Fields{"method": "OpenSession", "sessionID": sess.ID()}).Info("Session opened successfully")
 	return sess.ID(), sess.GetChsInfo(), nil
 }
 

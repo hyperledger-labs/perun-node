@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -72,7 +73,7 @@ func ParseConfig(configFile string) (Config, error) {
 	var cfg Config
 	err := v.ReadInConfig()
 	if err != nil {
-		return Config{}, err
+		return Config{}, errors.Wrap(err, "reading from source")
 	}
-	return cfg, v.Unmarshal(&cfg)
+	return cfg, errors.Wrap(v.Unmarshal(&cfg), "unmarshalling")
 }
