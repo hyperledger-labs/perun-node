@@ -70,11 +70,23 @@ func InitLogger(levelStr, logFile string) error {
 	return nil
 }
 
-// NewLoggerWithField returns a logger that logs with the given fields.
-// It is derived from the internal logger instance of this package and uses the same log level and log file.
+// NewLogger returns the package level logger.
 //
-// If the internal logger instance is not initialized before this call, it is initialized to "debug" level
-// and logs to the standard output (stdout).
+// If the internal logger instance is not initialized before this call, it is
+// initialized to "debug" level and logs to the standard output (stdout).
+func NewLogger() Logger {
+	if logger == nil {
+		InitLogger("debug", "") // nolint: errcheck, gosec	// err will always be nil in this case.
+	}
+	return logger
+}
+
+// NewLoggerWithField returns a logger that logs with the given fields.
+// It is derived from the internal logger instance of this package and uses the
+// same log level and log file.
+//
+// If the internal logger instance is not initialized before this call, it is
+// initialized to "debug" level and logs to the standard output (stdout).
 func NewLoggerWithField(key string, value interface{}) Logger {
 	if logger == nil {
 		InitLogger("debug", "") // nolint: errcheck, gosec	// err will always be nil in this case.
