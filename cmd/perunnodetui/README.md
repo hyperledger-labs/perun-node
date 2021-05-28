@@ -1,4 +1,4 @@
-# Perun Node TUI - Client Implementation in Go [![join the chat][rocketchat-image]][rocketchat-url]
+# Perun Node TUI Client [![join the chat][rocketchat-image]][rocketchat-url]
 
 [rocketchat-url]: https://chat.hyperledger.org/channel/perun
 [rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
