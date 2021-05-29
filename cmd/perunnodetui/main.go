@@ -108,7 +108,6 @@ func main() {
 	keyboardEvents := make(chan *terminalapi.Keyboard, 5)
 	keyboardEventsHandler := func(k *terminalapi.Keyboard) { keyboardEvents <- k }
 	errHandler := func(e error) { errs <- e }
-	eventLoop := contructEventLoop(keyboardEvents, errs, quitter)
 
 	// Initialize and render connect screen.
 	connectScreen, err := newConnectScreen(userName)
@@ -134,7 +133,7 @@ func main() {
 	}
 	defer controller.Close()
 
-	eventLoop()
+	runEventLoop(controller, keyboardEvents, errs, quitter)
 }
 
 func parseFlags() (bool, string) {
@@ -175,29 +174,34 @@ func initLoggers(logLevel, logFile string) {
 	}
 }
 
-func contructEventLoop(keyboardEvents chan *terminalapi.Keyboard, errs chan error, quitter chan bool) func() {
-	return func() {
-		for {
-			select {
-			case e := <-errs:
-				if e != nil {
-					logError(e)
-				}
+func runEventLoop(c *termdash.Controller, keyEvents chan *terminalapi.Keyboard, errs chan error, quit chan bool) {
+	ticker := time.NewTicker(500 * time.Millisecond)
+	for {
+		select {
+		case <-ticker.C:
+			err := c.Redraw()
+			if err != nil {
+				logError(err)
+			}
 
-			case k := <-keyboardEvents:
-				if k.Key == keyboard.KeyEsc || k.Key == keyboard.KeyCtrlC {
-					logErrorf("Received %s. Closing the client.", k.Key)
-					close(quitter) // signal other go-routines to shut down.
-					time.Sleep(1 * time.Second)
-					return
-				}
+		case e := <-errs:
+			if e != nil {
+				logError(e)
+			}
 
-			case <-quitter:
-				logError("User pressed quit button. Closing the client.")
-				close(quitter) // signal other go-routines to shut down.
+		case k := <-keyEvents:
+			if k.Key == keyboard.KeyEsc || k.Key == keyboard.KeyCtrlC {
+				logErrorf("Received %s. Closing the client.", k.Key)
+				close(quit) // signal other go-routines to shut down.
 				time.Sleep(1 * time.Second)
 				return
 			}
+
+		case <-quit:
+			logError("User pressed quit button. Closing the client.")
+			close(quit) // signal other go-routines to shut down.
+			time.Sleep(1 * time.Second)
+			return
 		}
 	}
 }
