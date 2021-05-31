@@ -26,7 +26,7 @@ import (
 	plogrus "perun.network/go-perun/log/logrus"
 )
 
-var logger *logrus.Logger = nil
+var logger *logrus.Logger
 
 // Logger is for now, a type alias of Logrus.FieldLogger that defines a broad interface for logging.
 type Logger = logrus.FieldLogger

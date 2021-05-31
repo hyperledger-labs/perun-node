@@ -80,7 +80,7 @@ func newOutgoingChannelProposalFn(peer, ours, theirs string) proposerFn {
 			if msgErr.Error.Code == pb.ErrorCode_ErrPeerRejected {
 				return false, "", balInfo{}, nil
 			}
-			return false, "", balInfo{}, errors.New(fmt.Sprintf("open request failed: %v", printAPIError(msgErr.Error)))
+			return false, "", balInfo{}, fmt.Errorf("open request failed: %v", printAPIError(msgErr.Error))
 		}
 
 		payChInfo := resp.Response.(*pb.OpenPayChResp_MsgSuccess_).MsgSuccess.OpenedPayChInfo
@@ -259,7 +259,7 @@ func sendUpdate(chID, peer, amount string) (bool, balInfo, error) {
 			msgErr.Error.Code == pb.ErrorCode_ErrPeerRequestTimedOut {
 			return false, balInfo{}, nil
 		}
-		return false, balInfo{}, errors.New(fmt.Sprintf("send update request failed: %v", printAPIError(msgErr.Error)))
+		return false, balInfo{}, fmt.Errorf("send update request failed: %v", printAPIError(msgErr.Error))
 	}
 
 	payChInfo := resp.Response.(*pb.SendPayChUpdateResp_MsgSuccess_).MsgSuccess.UpdatedPayChInfo

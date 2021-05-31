@@ -3,7 +3,7 @@ version: 2.1
 executors:
   perun-node-executor:
     docker:
-      - image: cimg/go:1.14.1-node
+      - image: cimg/go:1.16.4-node
     environment:
       RESULTS: /tmp/results
       ARTIFACTS: /tmp/artifacts
@@ -58,7 +58,7 @@ jobs:
       - make-results-artifacts-dir
       - run:
           name: Install linter
-          command: curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.28.2
+          command: curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.40.1
       - install-txt-to-html-coverter-aha
       - run:
           name: Run linter

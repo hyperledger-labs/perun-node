@@ -728,7 +728,7 @@ func (s *Session) acceptChProposal(pctx context.Context, entry chProposalRespond
 //
 // Passed error must be non-nil.
 func (s *Session) handleChProposalAcceptError(parts []string, err error) perun.APIError {
-	var peerIdx uint16 = 0 // In a sanitized openingBalInfo, peer (proposer) is at index 0.
+	var peerIdx uint16 // In a sanitized openingBalInfo, peer (proposer) is at index 0.
 
 	var apiErr perun.APIError
 	if apiErr = handleChainError(s.chainURL, s.timeoutCfg.onChainTx.String(), err); apiErr != nil {
