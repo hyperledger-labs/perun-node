@@ -537,4 +537,4 @@ type (
 
 	// StateUpdater function is the function that will be used for applying state updates.
 	StateUpdater func(*pchannel.State) error
-) // nolint:gofumpt // unknown error, maybe a false positive
+)

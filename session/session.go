@@ -224,8 +224,8 @@ func initIDProvider(idProviderType, idProviderURL string, wb perun.WalletBackend
 // with the same node and have unique session id for each.
 func calcSessionID(userOffChainAddr []byte) string {
 	h := sha256.New()
-	_, _ = h.Write(userOffChainAddr)                  // nolint:errcheck		// this func does not err
-	_, _ = h.Write([]byte(time.Now().UTC().String())) // nolint:errcheck		// this func does not err
+	_, _ = h.Write(userOffChainAddr)
+	_, _ = h.Write([]byte(time.Now().UTC().String()))
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
