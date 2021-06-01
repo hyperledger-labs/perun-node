@@ -901,7 +901,7 @@ func (s *Session) close() perun.APIError {
 //
 // Passed error must be non-nil.
 func handleFundingTimeoutError(peerAlias string, peerIdx uint16, err error) perun.APIError {
-	fundingTimeoutError := &pchannel.FundingTimeoutError{} // go-perun returns pointer to error.
+	fundingTimeoutError := pchannel.FundingTimeoutError{}
 	ok := errors.As(err, &fundingTimeoutError)
 	if !ok {
 		return nil

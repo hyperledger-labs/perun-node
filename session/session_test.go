@@ -369,8 +369,7 @@ func Test_Session_OpenCh(t *testing.T) {
 
 	t.Run("chClient_proposeChannel_PeerNotFunded", func(t *testing.T) {
 		var peerIdx uint16 = 1 // Index of peer (proposee) is always 1.
-		// pointer to the error is used as go-perun returns this error as pointer.
-		fundingTimeoutError := &pchannel.FundingTimeoutError{
+		fundingTimeoutError := pchannel.FundingTimeoutError{
 			Errors: []*pchannel.AssetFundingError{{
 				Asset:         pchannel.Index(0),
 				TimedOutPeers: []pchannel.Index{peerIdx},
@@ -683,8 +682,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 
 	t.Run("respond_accept_PeerNotFunded", func(t *testing.T) {
 		var peerIdx uint16 = 0 // Index of peer (proposer) is always 0.
-		// pointer to the error is used as go-perun returns this error as pointer.
-		fundingTimeoutError := &pchannel.FundingTimeoutError{
+		fundingTimeoutError := pchannel.FundingTimeoutError{
 			Errors: []*pchannel.AssetFundingError{{
 				Asset:         pchannel.Index(0),
 				TimedOutPeers: []pchannel.Index{peerIdx},
