@@ -21,7 +21,7 @@ linters:
     - gofmt
     - gofumpt
     - goimports
-    - golint
+    - revive
     - gosec
     - gosimple
     - govet
@@ -51,7 +51,6 @@ linters:
     - godot
     - misspell
       # detect possible optimizations
-    - maligned
   fast: false
 
 # all available settings of specific linters
