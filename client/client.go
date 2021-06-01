@@ -44,6 +44,7 @@ type Closer interface {
 
 // client is a wrapper type around the state channel client implementation from go-perun.
 // It also manages the lifecycle of a message bus that is used for off-chain communication.
+// It impplements peurun.ChClient interface.
 type client struct {
 	pClient
 	msgBus perun.WireBus
@@ -100,7 +101,7 @@ func (c *pclientWrapped) OnNewChannel(handler func(perun.Channel)) {
 // NewEthereumPaymentClient initializes a two party, ethereum payment channel client for the given user.
 // It establishes a connection to the blockchain and verifies the integrity of contracts at the given address.
 // It uses the comm backend to initialize adapters for off-chain communication network.
-func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBackend) (*client, error) {
+func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBackend) (perun.ChClient, error) {
 	funder, adjudicator, err := connectToChain(cfg.Chain, user.OnChain)
 	if err != nil {
 		return nil, err

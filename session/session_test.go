@@ -681,7 +681,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 	})
 
 	t.Run("respond_accept_PeerNotFunded", func(t *testing.T) {
-		var peerIdx uint16 = 0 // Index of peer (proposer) is always 0.
+		var peerIdx uint16 // Index of peer (proposer) is always 0.
 		fundingTimeoutError := pchannel.FundingTimeoutError{
 			Errors: []*pchannel.AssetFundingError{{
 				Asset:         pchannel.Index(0),

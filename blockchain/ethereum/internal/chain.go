@@ -85,4 +85,4 @@ func (cb *ChainBackend) DeployAsset(adjAddr, onChainAddr pwallet.Address) (pwall
 	onChainAcc := accounts.Account{Address: pethwallet.AsEthAddr(onChainAddr)}
 	addr, err := pethchannel.DeployETHAssetholder(ctx, *cb.Cb, pethwallet.AsEthAddr(adjAddr), onChainAcc)
 	return pethwallet.AsWalletAddr(addr), errors.Wrap(err, "deploying asset contract")
-} // nolint:gofumpt // unknown error, maybe a false positive
+}

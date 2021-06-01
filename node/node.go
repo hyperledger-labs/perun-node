@@ -51,7 +51,7 @@ const (
 // New returns a perun NodeAPI instance initialized using the given config.
 // This should be called only once, subsequent calls after the first non error
 // response will return an error.
-func New(cfg perun.NodeConfig) (*node, error) {
+func New(cfg perun.NodeConfig) (perun.NodeAPI, error) {
 	// Currently, credentials are required for initializing a blockchain backend that
 	// can validate the deployed contracts. Only a session has credentials and not a node.
 	// So for now, check only if the addresses can be parsed.
