@@ -13,7 +13,7 @@ import (
 
 	persistence "perun.network/go-perun/channel/persistence"
 
-	perun "github.com/hyperledger-labs/perun-node"
+	session "github.com/hyperledger-labs/perun-node/session"
 
 	wire "perun.network/go-perun/wire"
 )
@@ -24,15 +24,15 @@ type ChClient struct {
 }
 
 // Channel provides a mock function with given fields: _a0
-func (_m *ChClient) Channel(_a0 [32]byte) (perun.Channel, error) {
+func (_m *ChClient) Channel(_a0 [32]byte) (session.PChannel, error) {
 	ret := _m.Called(_a0)
 
-	var r0 perun.Channel
-	if rf, ok := ret.Get(0).(func([32]byte) perun.Channel); ok {
+	var r0 session.PChannel
+	if rf, ok := ret.Get(0).(func([32]byte) session.PChannel); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(perun.Channel)
+			r0 = ret.Get(0).(session.PChannel)
 		}
 	}
 
@@ -87,20 +87,20 @@ func (_m *ChClient) Log() log.Logger {
 }
 
 // OnNewChannel provides a mock function with given fields: handler
-func (_m *ChClient) OnNewChannel(handler func(perun.Channel)) {
+func (_m *ChClient) OnNewChannel(handler func(session.PChannel)) {
 	_m.Called(handler)
 }
 
 // ProposeChannel provides a mock function with given fields: _a0, _a1
-func (_m *ChClient) ProposeChannel(_a0 context.Context, _a1 client.ChannelProposal) (perun.Channel, error) {
+func (_m *ChClient) ProposeChannel(_a0 context.Context, _a1 client.ChannelProposal) (session.PChannel, error) {
 	ret := _m.Called(_a0, _a1)
 
-	var r0 perun.Channel
-	if rf, ok := ret.Get(0).(func(context.Context, client.ChannelProposal) perun.Channel); ok {
+	var r0 session.PChannel
+	if rf, ok := ret.Get(0).(func(context.Context, client.ChannelProposal) session.PChannel); ok {
 		r0 = rf(_a0, _a1)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(perun.Channel)
+			r0 = ret.Get(0).(session.PChannel)
 		}
 	}
 
@@ -134,11 +134,11 @@ func (_m *ChClient) Restore(_a0 context.Context) error {
 }
 
 // RestoreChs provides a mock function with given fields: _a0
-func (_m *ChClient) RestoreChs(_a0 func(perun.Channel)) error {
+func (_m *ChClient) RestoreChs(_a0 func(session.PChannel)) error {
 	ret := _m.Called(_a0)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(func(perun.Channel)) error); ok {
+	if rf, ok := ret.Get(0).(func(func(session.PChannel)) error); ok {
 		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)

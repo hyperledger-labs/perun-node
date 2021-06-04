@@ -50,7 +50,7 @@ func Test_New_Happy(t *testing.T) {
 	})
 }
 
-func compareUserWithCfg(t *testing.T, gotUser perun.User, userCfg session.UserConfig) {
+func compareUserWithCfg(t *testing.T, gotUser session.User, userCfg session.UserConfig) {
 	require.NotZero(t, gotUser)
 
 	assert.Equal(t, perun.OwnAlias, gotUser.Alias)
