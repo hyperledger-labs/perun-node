@@ -104,14 +104,14 @@ var (
 		ProposedChInfo: updatedChInfo,
 		Type:           perun.ChUpdateTypeOpen,
 		Expiry:         expiry,
-		Error:          "",
+		Error:          nil,
 	}
 	wantPayChUpdateNotif = payment.PayChUpdateNotif{
 		UpdateID:          updateID,
 		ProposedPayChInfo: wantUpdatedPayChInfo,
 		Type:              perun.ChUpdateTypeOpen,
 		Expiry:            expiry,
-		Error:             "",
+		Error:             nil,
 	}
 )
 

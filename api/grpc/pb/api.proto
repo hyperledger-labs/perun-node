@@ -375,7 +375,7 @@ message SubPayChUpdatesResp {
         PayChInfo proposedPayChInfo = 2;
         ChUpdateType Type = 3;
         int64 expiry = 4;
-        string error = 5;
+        MsgError error = 5;
     }
 }
 

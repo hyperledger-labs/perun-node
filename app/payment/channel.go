@@ -61,7 +61,7 @@ type (
 		ProposedPayChInfo PayChInfo
 		Type              perun.ChUpdateType
 		Expiry            int64
-		Error             string
+		Error             perun.APIError
 	}
 )
 

@@ -162,25 +162,29 @@ func (ch *Channel) HandleAdjudicatorEvent(e pchannel.AdjudicatorEvent) {
 			ch.Info("Timeout passed, initiating settle")
 		}
 
-		err = ch.settle()
-		ch.closeAndNotify(err)
+		apiErr := ch.settle()
+		ch.closeAndNotify(apiErr)
 		return
 
 	// For collaborative close, this type of event will be received after one
-	// of the parties registered the final state on the chain.  Call Settle for
-	// both the parties.
+	// of the parties registered the final state on the chain. The channel is
+	// settled on this event.
 	//
 	// For non-collaborative close, both parties receive this event after the
 	// channel is closed. The channel will be marked as closed.
 	case *pchannel.ConcludedEvent:
+		var apiErr perun.APIError
 		if ch.pch.State().IsFinal {
-			err := ch.settle()
-			ch.closeAndNotify(err)
+			apiErr = ch.settle()
+			ch.closeAndNotify(apiErr)
 			return
 		}
 
 		err := ch.checkIfWithdrawn()
-		ch.closeAndNotify(err)
+		if err != nil {
+			apiErr = perun.NewAPIErrUnknownInternal(err)
+		}
+		ch.closeAndNotify(apiErr)
 		return
 
 	default:
@@ -189,7 +193,7 @@ func (ch *Channel) HandleAdjudicatorEvent(e pchannel.AdjudicatorEvent) {
 }
 
 // settle concludes the channel on-chain and ensures the funds are withdrawn.
-func (ch *Channel) settle() error {
+func (ch *Channel) settle() perun.APIError {
 	ctx, cancel := context.WithTimeout(context.Background(), ch.timeoutCfg.settle(ch.challengeDurSecs))
 	defer cancel()
 	// Settle with secondary = true doesn't seem to work in go-perun. So wait
@@ -198,12 +202,11 @@ func (ch *Channel) settle() error {
 		time.Sleep(2 * blocktime) // Wait for 2 blocks before calling register when close was not initated.
 	}
 
-	err := errors.WithMessage(ch.pch.Settle(ctx, !ch.wasCloseInitiated), "settling channel")
-	// TODO (mano): Document what happens when a Settle fails, should channel close be called again ?
-	if err == nil {
-		err = ch.checkIfWithdrawn()
+	err := ch.pch.Settle(ctx, !ch.wasCloseInitiated)
+	if err != nil {
+		return ch.handleChSettleError(errors.WithMessage(err, "settling channel"))
 	}
-	return err
+	return nil
 }
 
 func (ch *Channel) checkIfWithdrawn() error {
@@ -216,11 +219,21 @@ func (ch *Channel) checkIfWithdrawn() error {
 	return err
 }
 
+// handleChSettleError inspects the passed error, constructs an
+// appropriate APIError and returns it.
+func (ch *Channel) handleChSettleError(err error) perun.APIError {
+	var apiErr perun.APIError
+	if apiErr = handleChainError(ch.chainURL, ch.timeoutCfg.onChainTx.String(), err); apiErr != nil {
+		return apiErr
+	}
+	return perun.NewAPIErrUnknownInternal(err)
+}
+
 // closeAndNotify marks the channel as closed and sends a channel close
 // notification if an active subscription for channel update already exists.
 // The notification is dropped otherwise. Because the user will not able to
 // subscribe to update notifications for a channel after it is closed.
-func (ch *Channel) closeAndNotify(err error) {
+func (ch *Channel) closeAndNotify(err perun.APIError) {
 	ch.close()
 	ch.Info("Channel closed")
 
@@ -234,18 +247,14 @@ func (ch *Channel) closeAndNotify(err error) {
 	ch.Debug("Channel close notification sent")
 }
 
-func makeChCloseNotif(currChInfo perun.ChInfo, err error) perun.ChUpdateNotif {
-	var errMsg string
-	if err != nil {
-		errMsg = err.Error()
-	}
+func makeChCloseNotif(currChInfo perun.ChInfo, err perun.APIError) perun.ChUpdateNotif {
 	return perun.ChUpdateNotif{
 		UpdateID:       fmt.Sprintf("%s_%s_%s", currChInfo.ChID, currChInfo.Version, "closed"),
 		CurrChInfo:     currChInfo,
 		ProposedChInfo: perun.ChInfo{},
 		Type:           perun.ChUpdateTypeClosed,
 		Expiry:         0,
-		Error:          errMsg,
+		Error:          err,
 	}
 }
 
@@ -373,7 +382,7 @@ func makeChUpdateNotif(currChInfo perun.ChInfo, proposedState *pchannel.State, e
 		ProposedChInfo: makeChInfo(currChInfo.ChID, currChInfo.BalInfo.Parts, currChInfo.BalInfo.Currency, proposedState),
 		Type:           chUpdateType,
 		Expiry:         expiry,
-		Error:          "",
+		Error:          nil,
 	}
 }
 
@@ -506,16 +515,6 @@ func (ch *Channel) rejectChUpdate(pctx context.Context, entry chUpdateResponderE
 	return nil
 }
 
-// handleChRegisterError inspects the passed error, constructs an
-// appropriate APIError and returns it.
-func (ch *Channel) handleChRegisterError(err error) perun.APIError {
-	var apiErr perun.APIError
-	if apiErr = handleChainError(ch.chainURL, ch.timeoutCfg.onChainTx.String(), err); apiErr != nil {
-		return apiErr
-	}
-	return perun.NewAPIErrUnknownInternal(err)
-}
-
 // GetChInfo implements chAPI.GetChInfo.
 func (ch *Channel) GetChInfo() perun.ChInfo {
 	ch.WithField("method", "GetChInfo").Info("Received request")
@@ -613,8 +612,11 @@ func (ch *Channel) finalize(pctx context.Context) {
 	if err != nil {
 		apiErr := ch.handleSendChUpdateError(err)
 		ch.WithFields(perun.APIErrAsMap("ChClose", apiErr)).Error(apiErr.Message())
-		ch.Info("Channel not finalized. Proceeding with register and close")
+		ch.Info("Channel not finalized. Proceeding with non-collaborative close")
+		return
 	}
+
+	ch.Info("Channel finalized. Proceeding with collaborative close")
 }
 
 // register registers the latest state of the channel on-chain.
@@ -626,6 +628,16 @@ func (ch *Channel) register(pctx context.Context) perun.APIError {
 		return ch.handleChRegisterError(errors.WithMessage(err, "registering channel state"))
 	}
 	return nil
+}
+
+// handleChRegisterError inspects the passed error, constructs an
+// appropriate APIError and returns it.
+func (ch *Channel) handleChRegisterError(err error) perun.APIError {
+	var apiErr perun.APIError
+	if apiErr = handleChainError(ch.chainURL, ch.timeoutCfg.onChainTx.String(), err); apiErr != nil {
+		return apiErr
+	}
+	return perun.NewAPIErrUnknownInternal(err)
 }
 
 // Close the computing resources (listeners, subscriptions etc.,) of the channel.

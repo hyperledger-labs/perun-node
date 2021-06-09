@@ -432,13 +432,18 @@ func (a *payChAPIServer) SubPayChUpdates(req *pb.SubpayChUpdatesReq, srv pb.Paym
 	}
 
 	notifier := func(notif payment.PayChUpdateNotif) {
+		var notifErr *pb.MsgError
+		if notif.Error != nil {
+			notifErr = toGrpcError(notif.Error)
+		}
+
 		err := srv.Send(&pb.SubPayChUpdatesResp{Response: &pb.SubPayChUpdatesResp_Notify_{
 			Notify: &pb.SubPayChUpdatesResp_Notify{
 				UpdateID:          notif.UpdateID,
 				ProposedPayChInfo: toGrpcPayChInfo(notif.ProposedPayChInfo),
 				Type:              ToGrpcChUpdateType[notif.Type],
 				Expiry:            notif.Expiry,
-				Error:             notif.Error,
+				Error:             notifErr,
 			},
 		}})
 		_ = err

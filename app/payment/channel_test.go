@@ -160,10 +160,10 @@ func Test_SubPayChUpdates(t *testing.T) {
 			chUpdateNotifClosed := chUpdateNotif
 			chUpdateNotifClosed.Type = perun.ChUpdateTypeClosed
 			chUpdateNotifClosed.CurrChInfo = chUpdateNotif.ProposedChInfo
-			chUpdateNotifClosed.Error = assert.AnError.Error()
+			chUpdateNotifClosed.Error = perun.NewAPIErrUnknownInternal(assert.AnError)
 			wantPayChUpdateNotifClosed := wantPayChUpdateNotif
 			wantPayChUpdateNotifClosed.Type = perun.ChUpdateTypeClosed
-			wantPayChUpdateNotifClosed.Error = assert.AnError.Error()
+			wantPayChUpdateNotifClosed.Error = perun.NewAPIErrUnknownInternal(assert.AnError)
 
 			notifier(chUpdateNotifClosed)
 			require.Equal(t, wantPayChUpdateNotifClosed, notif)
