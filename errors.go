@@ -183,11 +183,15 @@ func NewAPIErrFailedPreCondition(message string, addInfo interface{}) APIError {
 
 // NewAPIErrInvalidConfig returns an ErrInvalidConfig, API Error with the
 // given error message.
-func NewAPIErrInvalidConfig(message string) APIError {
+func NewAPIErrInvalidConfig(name, value, message string) APIError {
 	return apiError{
 		category: ClientError,
 		code:     ErrInvalidConfig,
 		message:  message,
+		addInfo: ErrInfoInvalidConfig{
+			Name:  name,
+			Value: value,
+		},
 	}
 }
 
@@ -197,6 +201,19 @@ func NewAPIErrInvalidConfig(message string) APIError {
 func NewAPIErrInfoFailedPreConditionUnclosedChs(chs []ChInfo) interface{} {
 	return ErrInfoFailedPreCondUnclosedChs{
 		ChInfos: chs,
+	}
+}
+
+// NewAPIErrInvalidContracts returns an ErrInvalidContracts API Error with the
+// given error message.
+func NewAPIErrInvalidContracts(contractsInfo []ContractErrInfo) APIError {
+	return apiError{
+		category: ClientError,
+		code:     ErrInvalidContracts,
+		message:  "error in contract validation",
+		addInfo: ErrInfoInvalidContracts{
+			ContractErrInfos: contractsInfo,
+		},
 	}
 }
 

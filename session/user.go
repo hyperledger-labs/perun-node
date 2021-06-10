@@ -17,7 +17,8 @@
 package session
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+
 	pwallet "perun.network/go-perun/wallet"
 
 	"github.com/hyperledger-labs/perun-node"
@@ -35,20 +36,26 @@ type User struct {
 	PartAddrs []pwallet.Address
 }
 
-// NewUnlockedUser initializes a user and unlocks all the accounts,
-// those corresponding to on-chain address, off-chain address and all participant addresses.
-func NewUnlockedUser(wb perun.WalletBackend, cfg UserConfig) (User, error) {
+// NewUnlockedUser initializes a user and unlocks onChaina and offChain accounts.
+func NewUnlockedUser(wb perun.WalletBackend, cfg UserConfig) (User, perun.APIError) {
 	var err error
 	u := User{}
 
-	if u.OnChain, err = newCred(wb, cfg.OnChainWallet, cfg.OnChainAddr); err != nil {
-		return User{}, errors.WithMessage(err, "on-chain wallet")
+	onChainAddr, err := wb.ParseAddr(cfg.OnChainAddr)
+	if err != nil {
+		return User{}, perun.NewAPIErrInvalidConfig("onChainAddr", cfg.OnChainAddr, err.Error())
 	}
-	if u.OffChain, err = newCred(wb, cfg.OffChainWallet, cfg.OffChainAddr); err != nil {
-		return User{}, errors.WithMessage(err, "off-chain wallet")
+	offChainAddr, err := wb.ParseAddr(cfg.OffChainAddr)
+	if err != nil {
+		return User{}, perun.NewAPIErrInvalidConfig("offChainAddr", cfg.OffChainAddr, err.Error())
 	}
-	if u.PartAddrs, err = parseUnlock(wb, u.OffChain.Wallet, cfg.PartAddrs...); err != nil {
-		return User{}, errors.WithMessage(err, "participant addresses")
+	if u.OnChain, err = newCred(wb, cfg.OnChainWallet, onChainAddr); err != nil {
+		value := fmt.Sprintf("%s, %s", cfg.OnChainWallet.KeystorePath, cfg.OnChainWallet.Password)
+		return User{}, perun.NewAPIErrInvalidConfig("onChainWallet", value, err.Error())
+	}
+	if u.OffChain, err = newCred(wb, cfg.OffChainWallet, offChainAddr); err != nil {
+		value := fmt.Sprintf("%s, %s", cfg.OffChainWallet.KeystorePath, cfg.OffChainWallet.Password)
+		return User{}, perun.NewAPIErrInvalidConfig("offChainWallet", value, err.Error())
 	}
 
 	u.PeerID.Alias = perun.OwnAlias
@@ -60,37 +67,20 @@ func NewUnlockedUser(wb perun.WalletBackend, cfg UserConfig) (User, error) {
 	return u, nil
 }
 
-// newCred initializes the wallet using the wallet backend, unlocks the accounts and
-// returns the credential to access the account specified in the config.
-func newCred(wb perun.WalletBackend, cfg WalletConfig, addr string) (perun.Credential, error) {
+// newCred initilizes the wallet and unlocks the account.
+func newCred(wb perun.WalletBackend, cfg WalletConfig, addr pwallet.Address) (perun.Credential, error) {
 	w, err := wb.NewWallet(cfg.KeystorePath, cfg.Password)
 	if err != nil {
 		return perun.Credential{}, err
 	}
-	addrs, err := parseUnlock(wb, w, addr)
+	_, err = wb.UnlockAccount(w, addr)
 	if err != nil {
 		return perun.Credential{}, err
 	}
 	return perun.Credential{
-		Addr:     addrs[0],
+		Addr:     addr,
 		Wallet:   w,
 		Keystore: cfg.KeystorePath,
 		Password: cfg.Password,
 	}, nil
-}
-
-// parseUnlock parses the given addresses string using the wallet backend and unlock accounts
-// corresponding to each of the given addresses.
-func parseUnlock(wb perun.WalletBackend, w pwallet.Wallet, addrs ...string) ([]pwallet.Address, error) {
-	var err error
-	parsedAddrs := make([]pwallet.Address, len(addrs))
-	for i, addr := range addrs {
-		if parsedAddrs[i], err = wb.ParseAddr(addr); err != nil {
-			return nil, err
-		}
-		if _, err = w.Unlock(parsedAddrs[i]); err != nil {
-			return nil, err
-		}
-	}
-	return parsedAddrs, nil
 }

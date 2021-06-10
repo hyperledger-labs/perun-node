@@ -26,6 +26,8 @@ import (
 	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	pchannel "perun.network/go-perun/channel"
 	pwallet "perun.network/go-perun/wallet"
+
+	"github.com/hyperledger-labs/perun-node/blockchain"
 )
 
 // ChainBackend provides ethereum specific contract backend functionality.
@@ -54,17 +56,39 @@ func (cb *ChainBackend) NewAdjudicator(adjAddr, onChainAddr pwallet.Address) pch
 		pethwallet.AsEthAddr(onChainAddr), onChainAcc)
 }
 
-// ValidateContracts validates the integrity of given adjudicator and asset holder contracts.
-func (cb *ChainBackend) ValidateContracts(adjAddr, assetAddr pwallet.Address) error {
+// ValidateAdjudicator validates the integrity of adjudicator contract at the
+// given address.
+func (cb *ChainBackend) ValidateAdjudicator(adjAddr pwallet.Address) error {
 	ctx, cancel := context.WithTimeout(context.Background(), cb.TxTimeout)
 	defer cancel()
-
-	// Integrity of Adjudicator is implicitly done during validation of asset holder contract.
-	err := pethchannel.ValidateAssetHolderETH(ctx, *cb.Cb, pethwallet.AsEthAddr(assetAddr), pethwallet.AsEthAddr(adjAddr))
+	err := pethchannel.ValidateAdjudicator(ctx, *cb.Cb, pethwallet.AsEthAddr(adjAddr))
 	if pethchannel.IsErrInvalidContractCode(err) {
-		return errors.Wrap(err, "invalid contracts at given addresses")
+		return blockchain.NewInvalidContractError(blockchain.Adjudicator, adjAddr.String(), err)
 	}
-	return errors.Wrap(err, "validating contracts")
+	return errors.Wrap(err, "validating adjudicator contract")
+}
+
+// ValidateAssetHolderETH validates the integrity of adjudicator and asset
+// holder contracts at the given addresses.
+//
+// TODO: Submit a suggestion to go-perun to not validate the adjudicator contract in ValidateAssetHolder.
+// If accepted, then update this function to
+// validate only the asset holder contract.
+func (cb *ChainBackend) ValidateAssetHolderETH(adjAddr, assetAddr pwallet.Address) error {
+	ctx, cancel := context.WithTimeout(context.Background(), cb.TxTimeout)
+	defer cancel()
+	// Though integrity of adjudicator is implicitly checked by ValidateAssetHolderETH,
+	// we do it before that call to identify this type of error.
+	err := pethchannel.ValidateAdjudicator(ctx, *cb.Cb, pethwallet.AsEthAddr(adjAddr))
+	if pethchannel.IsErrInvalidContractCode(err) {
+		return blockchain.NewInvalidContractError(blockchain.Adjudicator, adjAddr.String(), err)
+	}
+
+	err = pethchannel.ValidateAssetHolderETH(ctx, *cb.Cb, pethwallet.AsEthAddr(assetAddr), pethwallet.AsEthAddr(adjAddr))
+	if pethchannel.IsErrInvalidContractCode(err) {
+		return blockchain.NewInvalidContractError(blockchain.AssetHolderETH, assetAddr.String(), err)
+	}
+	return errors.Wrap(err, "validating asset holder ETH contract")
 }
 
 // DeployAdjudicator deploys the adjudicator contract.

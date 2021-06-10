@@ -113,7 +113,7 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 	sessionConfig, err := session.ParseConfig(configFile)
 	if err != nil {
 		err = errors.WithMessage(err, "parsing config")
-		return "", nil, perun.NewAPIErrInvalidConfig(err.Error())
+		return "", nil, perun.NewAPIErrInvalidArgument("configFile", configFile, "", err.Error())
 	}
 	sess, apiErr := session.New(sessionConfig)
 	if apiErr != nil {
