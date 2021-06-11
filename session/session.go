@@ -32,7 +32,6 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
-	"github.com/hyperledger-labs/perun-node/client"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
 	"github.com/hyperledger-labs/perun-node/comm/tcp/tcptest"
 	"github.com/hyperledger-labs/perun-node/currency"
@@ -86,16 +85,20 @@ const (
 )
 
 type (
-	// Session implements perun.SessionAPI.
+	// Session provides a context for the user to interact with a node. It manages
+	// user data (such as keys, peer IDs), and channel client.
+	//
+	// It implements the perun.SessionAPI interface. Once established, a user can
+	// establish and transact on state channels.
 	Session struct {
 		log.Logger
 		psync.Mutex
 
 		id         string
 		isOpen     bool
-		user       perun.User
+		user       User
 		chAsset    pchannel.Asset
-		chClient   perun.ChClient
+		chClient   ChClient
 		idProvider perun.IDProvider
 
 		timeoutCfg timeoutConfig
@@ -116,7 +119,7 @@ type (
 
 	// ChProposalResponder defines the methods on proposal responder that will be used by the perun node.
 	ChProposalResponder interface {
-		Accept(context.Context, *pclient.LedgerChannelProposalAcc) (perun.Channel, error)
+		Accept(context.Context, *pclient.LedgerChannelProposalAcc) (PChannel, error)
 		Reject(ctx context.Context, reason string) error
 	}
 )
@@ -131,7 +134,7 @@ type chProposalResponderWrapped struct {
 
 // Accept is a wrapper around the original function, that returns a channel of interface type instead of struct type.
 func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pclient.LedgerChannelProposalAcc) (
-	perun.Channel, error) {
+	PChannel, error) {
 	return r.ProposalResponder.Accept(ctx, proposalAcc)
 }
 
@@ -156,8 +159,8 @@ func New(cfg Config) (*Session, perun.APIError) {
 		return nil, perun.NewAPIErrInvalidConfig(errors.WithMessage(err, "initializing id provider").Error())
 	}
 
-	chClientCfg := client.Config{
-		Chain: client.ChainConfig{
+	chClientCfg := clientConfig{
+		Chain: chainConfig{
 			Adjudicator:      cfg.Adjudicator,
 			Asset:            cfg.Asset,
 			URL:              cfg.ChainURL,
@@ -168,7 +171,7 @@ func New(cfg Config) (*Session, perun.APIError) {
 		DatabaseDir:       cfg.DatabaseDir,
 		PeerReconnTimeout: cfg.PeerReconnTimeout,
 	}
-	chClient, err := client.NewEthereumPaymentClient(chClientCfg, user, commBackend)
+	chClient, err := newEthereumPaymentClient(chClientCfg, user, commBackend)
 	if err != nil {
 		return nil, perun.NewAPIErrInvalidConfig(errors.WithMessage(err, "initializing payment client").Error())
 	}
@@ -234,7 +237,7 @@ func (s *Session) ID() string {
 	return s.id
 }
 
-func (s *Session) handleRestoredCh(pch perun.Channel) {
+func (s *Session) handleRestoredCh(pch PChannel) {
 	s.Debugf("found channel in persistence: 0x%x", pch.ID())
 
 	// Restore only those channels that are in acting phase.

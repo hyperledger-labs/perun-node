@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package session
 
 import (
 	"context"
@@ -35,73 +35,107 @@ import (
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 )
 
+type (
+
+	// ChClient allows the user to establish off-chain channels and transact on
+	// these channels. The channel data are continuously persisted and hence it can
+	// be shutdown and restarted without loosing any data.
+	//
+	// However, care should be taken when shutting down the client when it has open
+	// channels.Because if any channel the user was participating in was closed
+	// with a wrong state when the channel client was not running, dispute
+	// resolution process will not be triggered.
+	//
+	// This interface is defined for isolating the client type from session.
+	ChClient interface {
+		perun.Registerer
+		ProposeChannel(context.Context, pclient.ChannelProposal) (PChannel, error)
+		Handle(pclient.ProposalHandler, pclient.UpdateHandler)
+		Channel(pchannel.ID) (PChannel, error)
+		Close() error
+
+		EnablePersistence(ppersistence.PersistRestorer)
+		OnNewChannel(handler func(PChannel))
+		Restore(context.Context) error
+		RestoreChs(func(PChannel)) error
+
+		Log() plog.Logger
+	}
+
+	// Closer is used to call close on database.
+	Closer interface {
+		Close() error
+	}
+
+	// client is a wrapper type around the state channel client implementation from go-perun that
+	// also manages the lifecycle of a message bus that is used for off-chain communication.
+	//
+	// It implements ChClient interface.
+	client struct {
+		pClient
+		msgBus perun.WireBus
+
+		// Registry that is used by the channel client for resolving off-chain address to comm address.
+		msgBusRegistry perun.Registerer
+
+		dbPath        string        // Database path, because restore will be called later.
+		reconnTimeout time.Duration // Reconn Timeout, because restore will be called later.
+		dbConn        Closer        // Database connection for closing it during client.Close.
+
+		wg *sync.WaitGroup
+	}
+
+	// pClient represents the methods on client.Client that are used by client.
+	// This interface is defined for abstracting the client.Client from the
+	// client instance for the pupose of mocking in tests.
+	pClient interface {
+		ProposeChannel(context.Context, pclient.ChannelProposal) (PChannel, error)
+		Handle(pclient.ProposalHandler, pclient.UpdateHandler)
+		Channel(pchannel.ID) (PChannel, error)
+		Close() error
+
+		EnablePersistence(ppersistence.PersistRestorer)
+		OnNewChannel(handler func(PChannel))
+		Restore(context.Context) error
+
+		Log() plog.Logger
+	}
+
+	// pclientWrapped is a wrapper around pclient.Client that returns a channel of interface type
+	// instead of struct type. This enables easier mocking of the returned value in tests.
+	pclientWrapped struct {
+		*pclient.Client
+	}
+)
+
+//go:generate mockery --name ChClient --output ../internal/mocks
+
 //go:generate mockery --name Closer --output ../internal/mocks
-
-// Closer is used to call close on database.
-type Closer interface {
-	Close() error
-}
-
-// client is a wrapper type around the state channel client implementation from go-perun.
-// It also manages the lifecycle of a message bus that is used for off-chain communication.
-// It impplements peurun.ChClient interface.
-type client struct {
-	pClient
-	msgBus perun.WireBus
-
-	// Registry that is used by the channel client for resolving off-chain address to comm address.
-	msgBusRegistry perun.Registerer
-
-	dbPath        string        // Database path, because restore will be called later.
-	reconnTimeout time.Duration // Reconn Timeout, because restore will be called later.
-	dbConn        Closer        // Database connection for closing it during client.Close.
-
-	wg *sync.WaitGroup
-}
-
-// pClient represents the methods on client.Client that are used by client.
-type pClient interface {
-	ProposeChannel(context.Context, pclient.ChannelProposal) (perun.Channel, error)
-	Handle(pclient.ProposalHandler, pclient.UpdateHandler)
-	Channel(pchannel.ID) (perun.Channel, error)
-	Close() error
-
-	EnablePersistence(ppersistence.PersistRestorer)
-	OnNewChannel(handler func(perun.Channel))
-	Restore(context.Context) error
-
-	Log() plog.Logger
-}
-
-// pclientWrapped is a wrapper around pclient.Client that returns a channel of interface type
-// instead of struct type. This enables easier mocking of the returned value in tests.
-type pclientWrapped struct {
-	*pclient.Client
-}
 
 // ProposeChannel is a wrapper around the original function, that returns a channel of interface type instead of
 // struct type.
-func (c *pclientWrapped) ProposeChannel(ctx context.Context, proposal pclient.ChannelProposal) (perun.Channel, error) {
+func (c *pclientWrapped) ProposeChannel(ctx context.Context, proposal pclient.ChannelProposal) (PChannel, error) {
 	return c.Client.ProposeChannel(ctx, proposal)
 }
 
 // Channel is a wrapper around the original function, that returns a channel of interface type instead of struct type.
-func (c *pclientWrapped) Channel(id pchannel.ID) (perun.Channel, error) {
+func (c *pclientWrapped) Channel(id pchannel.ID) (PChannel, error) {
 	return c.Client.Channel(id)
 }
 
 // OnNewChannel is a wrapper around the original function, that takes a handler that takes channel of interface type as
 // argument instead of the handler in original function that takes channel of struct type as argument.
-func (c *pclientWrapped) OnNewChannel(handler func(perun.Channel)) {
+func (c *pclientWrapped) OnNewChannel(handler func(PChannel)) {
 	c.Client.OnNewChannel(func(ch *pclient.Channel) {
 		handler(ch)
 	})
 }
 
-// NewEthereumPaymentClient initializes a two party, ethereum payment channel client for the given user.
+// newEthereumPaymentClient initializes a two party, ethereum payment channel client for the given user.
 // It establishes a connection to the blockchain and verifies the integrity of contracts at the given address.
 // It uses the comm backend to initialize adapters for off-chain communication network.
-func NewEthereumPaymentClient(cfg Config, user perun.User, comm perun.CommBackend) (perun.ChClient, error) {
+func newEthereumPaymentClient(cfg clientConfig, user User, comm perun.CommBackend) (
+	ChClient, error) {
 	funder, adjudicator, err := connectToChain(cfg.Chain, user.OnChain)
 	if err != nil {
 		return nil, err
@@ -149,7 +183,7 @@ func (c *client) Handle(ph pclient.ProposalHandler, ch pclient.UpdateHandler) {
 
 // RestoreChs will restore the persisted channels. Register OnNewChannel Callback
 // before calling this function.
-func (c *client) RestoreChs(handler func(perun.Channel)) error {
+func (c *client) RestoreChs(handler func(PChannel)) error {
 	c.OnNewChannel(handler)
 	db, err := pleveldb.LoadDatabase(c.dbPath)
 	if err != nil {
@@ -165,7 +199,7 @@ func (c *client) RestoreChs(handler func(perun.Channel)) error {
 	// Set the OnNewChannel call back to a dummy function, so it does not
 	// process the channels that are created as a result of `ProposeChannel` or
 	// `Accept` on a channel proposal.
-	c.OnNewChannel(func(perun.Channel) {})
+	c.OnNewChannel(func(PChannel) {})
 	return err
 }
 
@@ -186,8 +220,7 @@ func (c *client) Close() error {
 	return errors.Wrap(c.dbConn.Close(), "closing persistence database")
 }
 
-func connectToChain(cfg ChainConfig, cred perun.Credential) (pchannel.Funder,
-	pchannel.Adjudicator, error) {
+func connectToChain(cfg chainConfig, cred perun.Credential) (pchannel.Funder, pchannel.Adjudicator, error) {
 	walletBackend := ethereum.NewWalletBackend()
 	assetAddr, err := walletBackend.ParseAddr(cfg.Asset)
 	if err != nil {
@@ -203,8 +236,7 @@ func connectToChain(cfg ChainConfig, cred perun.Credential) (pchannel.Funder,
 		return nil, nil, err
 	}
 	err = chain.ValidateContracts(adjudicatorAddr, assetAddr)
-	return chain.NewFunder(assetAddr, cred.Addr),
-		chain.NewAdjudicator(adjudicatorAddr, cred.Addr), err
+	return chain.NewFunder(assetAddr, cred.Addr), chain.NewAdjudicator(adjudicatorAddr, cred.Addr), err
 }
 
 func (c *client) runAsGoRoutine(f func()) {

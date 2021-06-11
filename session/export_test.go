@@ -31,7 +31,17 @@ func SetWalletBackend(wb perun.WalletBackend) {
 	walletBackend = wb
 }
 
-func NewSessionForTest(cfg Config, isOpen bool, chClient perun.ChClient) (*Session, error) {
+func NewClientForTest(pClient pClient,
+	bus perun.WireBus, msgBusRegistry perun.Registerer, dbConn Closer) ChClient {
+	return &client{
+		pClient:        pClient,
+		msgBus:         bus,
+		msgBusRegistry: msgBusRegistry,
+		dbConn:         dbConn,
+	}
+}
+
+func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient) (*Session, error) {
 	user, err := NewUnlockedUser(walletBackend, cfg.User)
 	if err != nil {
 		return nil, err
@@ -68,7 +78,7 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient perun.ChClient) (*Sessi
 	}, nil
 }
 
-func NewChForTest(pch perun.Channel,
+func NewChForTest(pch PChannel,
 	currency string, parts []string, responseTimeout time.Duration, challengeDurSecs uint64, isOpen bool) *Channel {
 	chainURL := ethereumtest.ChainURL
 	onChainTxTimeout := ethereumtest.OnChainTxTimeout

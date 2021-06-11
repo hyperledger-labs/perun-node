@@ -22,9 +22,6 @@ import (
 	"time"
 
 	pchannel "perun.network/go-perun/channel"
-	ppersistence "perun.network/go-perun/channel/persistence"
-	pclient "perun.network/go-perun/client"
-	pLog "perun.network/go-perun/log"
 	pwallet "perun.network/go-perun/wallet"
 	pwire "perun.network/go-perun/wire"
 	pnet "perun.network/go-perun/wire/net"
@@ -94,83 +91,6 @@ type Registerer interface {
 	Register(offChainAddr pwire.Address, commAddr string)
 }
 
-// Credential represents the parameters required to access the keys and make signatures for a given address.
-type Credential struct {
-	Addr     pwallet.Address
-	Wallet   pwallet.Wallet
-	Keystore string
-	Password string
-}
-
-// User represents a participant in the off-chain network that uses a session on this node for sending transactions.
-type User struct {
-	PeerID
-
-	OnChain  Credential // Account for funding the channel and the on-chain transactions.
-	OffChain Credential // Account (corresponding to off-chain address) used for signing authentication messages.
-
-	// List of participant addresses for this user in each open channel.
-	// OffChain credential is used for managing all these accounts.
-	PartAddrs []pwallet.Address
-}
-
-// Session provides a context for the user to interact with a node. It manages user data (such as keys, peer IDs),
-// and channel client.
-//
-// Once established, a user can establish and transact on state channels. All the channels within a session will use
-// the same type and version of communication and state channel protocol. If a user desires to use multiple types or
-// versions of any protocol, it should request a separate session for each combination of type and version of those.
-type Session struct {
-	ID   string // ID uniquely identifies a session instance.
-	User User
-
-	ChClient ChClient
-}
-
-//go:generate mockery --name Channel --output ./internal/mocks
-
-// Channel represents  state channel established among the participants of the off-chain network.
-type Channel interface {
-	Close() error
-	ID() pchannel.ID
-	Idx() pchannel.Index
-	IsClosed() bool
-	Params() *pchannel.Params
-	Peers() []pwire.Address
-	Phase() pchannel.Phase
-	State() *pchannel.State
-	OnUpdate(cb func(from, to *pchannel.State))
-	UpdateBy(ctx context.Context, update func(*pchannel.State) error) error
-	Register(ctx context.Context) error
-	Settle(ctx context.Context, isSecondary bool) error
-	Watch(pclient.AdjudicatorEventHandler) error
-}
-
-//go:generate mockery --name ChClient --output ./internal/mocks
-
-// ChClient allows the user to establish off-chain channels and transact on these channels.
-//
-// It allows the user to enable persistence, where all data pertaining to the lifecycle of a channel is
-// persisted continuously. When it is enabled, the channel client can be stopped at any point of time and resumed later.
-//
-// However, the channel client is not responsible if any channel the user was participating in was closed
-// with a wrong state when the channel client was not running.
-// Hence it is highly recommended not to stop the channel client if there are open channels.
-type ChClient interface {
-	Registerer
-	ProposeChannel(context.Context, pclient.ChannelProposal) (Channel, error)
-	Handle(pclient.ProposalHandler, pclient.UpdateHandler)
-	Channel(pchannel.ID) (Channel, error)
-	Close() error
-
-	EnablePersistence(ppersistence.PersistRestorer)
-	OnNewChannel(handler func(Channel))
-	Restore(context.Context) error
-	RestoreChs(func(Channel)) error
-
-	Log() pLog.Logger
-}
-
 //go:generate mockery --name WireBus --output ./internal/mocks
 
 // WireBus is an extension of the wire.Bus interface in go-perun to include a "Close" method.
@@ -179,6 +99,14 @@ type ChClient interface {
 type WireBus interface {
 	pwire.Bus
 	Close() error
+}
+
+// Credential represents the parameters required to access the keys and make signatures for a given address.
+type Credential struct {
+	Addr     pwallet.Address
+	Wallet   pwallet.Wallet
+	Keystore string
+	Password string
 }
 
 // ChainBackend wraps the methods required for instantiating and using components for

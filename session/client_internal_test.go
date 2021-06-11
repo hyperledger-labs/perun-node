@@ -14,16 +14,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package session
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/hyperledger-labs/perun-node"
 )
 
 func Test_ChannelClient_Interface(t *testing.T) {
-	assert.Implements(t, (*perun.ChClient)(nil), new(client))
+	assert.Implements(t, (*ChClient)(nil), new(client))
 }
