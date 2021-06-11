@@ -249,34 +249,47 @@ func makeChCloseNotif(currChInfo perun.ChInfo, err perun.APIError) perun.ChUpdat
 
 // ID returns the ID of the channel.
 //
-// Does not require a mutex lock, as the data will remain unchanged throughout the lifecycle of the channel.
+// Does not require a mutex lock, as the data will remain unchanged throughout
+// the lifecycle of the channel.
 func (ch *Channel) ID() string {
 	return ch.id
 }
 
 // Currency returns the currency interpreter used in the channel.
 //
-// Does not require a mutex lock, as the data will remain unchanged throughout the lifecycle of the channel.
+// Does not require a mutex lock, as the data will remain unchanged throughout
+// the lifecycle of the channel.
 func (ch *Channel) Currency() string {
 	return ch.currency
 }
 
 // Parts returns the list of aliases of the channel participants.
 //
-// Does not require a mutex lock, as the data will remain unchanged throughout the lifecycle of the channel.
+// Does not require a mutex lock, as the data will remain unchanged throughout
+// the lifecycle of the channel.
 func (ch *Channel) Parts() []string {
 	return ch.parts
 }
 
-// ChallengeDurSecs returns the challenge duration for the channel (in seconds) for refuting when
-// an invalid/older state is registered on the blockchain closing the channel.
+// ChallengeDurSecs returns the challenge duration for the channel (in seconds)
+// for refuting when an invalid/older state is registered on the blockchain
+// closing the channel.
 //
-// Does not require a mutex lock, as the data will remain unchanged throughout the lifecycle of the channel.
+// Does not require a mutex lock, as the data will remain unchanged throughout
+// the lifecycle of the channel.
 func (ch *Channel) ChallengeDurSecs() uint64 {
 	return ch.challengeDurSecs
 }
 
-// SendChUpdate implements chAPI.SendChUpdate.
+// SendChUpdate sends an update on the channel. The state will be passed to the
+// updater function which can update it. The updated state will then be
+// validated and then sent to other participants for their signature.
+//
+// If there is an error, it will be one of the following codes:
+// - ErrInvalidArgument with Name:"Amount" when any of the amounts is invalid.
+// - ErrPeerRequestTimedOut when peer request times out.
+// - ErrPeerRejected when peer rejects the request.
+// - ErrUnknownInternal
 func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater) (perun.ChInfo, perun.APIError) {
 	ch.WithField("method", "SendChUpdate").Infof("\nReceived request with params %+v", updater)
 	ch.Lock()
@@ -290,7 +303,7 @@ func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 	}()
 
 	if ch.status == closed {
-		apiErr = perun.NewAPIErrFailedPreCondition(ErrChClosed.Error(), nil)
+		apiErr = perun.NewAPIErrFailedPreCondition(ErrChClosed)
 		return ch.getChInfo(), apiErr
 	}
 
@@ -315,9 +328,10 @@ func (ch *Channel) handleSendChUpdateError(err error) perun.APIError {
 	return perun.NewAPIErrUnknownInternal(err)
 }
 
-// HandleUpdate handles the incoming updates on an open channel. All updates are sent to a centralized
-// update handler defined on the session. The centrazlied handler identifies the channel and then
-// invokes this function to process the update.
+// HandleUpdate handles the incoming updates on an open channel. All updates
+// are sent to a centralized update handler defined on the session. The
+// centrazlied handler identifies the channel and then invokes this function to
+// process the update.
 func (ch *Channel) HandleUpdate(
 	currState *pchannel.State, chUpdate pclient.ChannelUpdate, responder ChUpdateResponder) {
 	ch.Lock()
@@ -375,20 +389,36 @@ func makeChUpdateNotif(currChInfo perun.ChInfo, proposedState *pchannel.State, e
 	}
 }
 
-// SubChUpdates implements chAPI.SubChUpdates.
+// SubChUpdates subscribes to notifications on new incoming channel updates for
+// the specified channel in the session. Only one subscription can be made at a
+// time. Making a new subscription without canceling the previous one will
+// return an error.
+//
+// See perun.ChUpateNotif for the format of notification.
+//
+// The incoming channel update received when there was no subscription will
+// have been cached by the node. Once a new subscription is made, node will
+// send these cached requests (if any), as individual notifications. It will
+// then continue to send a notification for each new incoming channel update.
+//
+// Response to the notifications can be sent using the RespondChUpdate API
+// before the notification expires.
+//
+// If there is an error, it will be one of the following codes:
+// - ErrResourceExists with ResourceType: "updatesSub" when a subscription already exists.
 func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) perun.APIError {
 	ch.WithField("method", "SubChUpdates").Info("Received request with params:", notifier)
 	ch.Lock()
 	defer ch.Unlock()
 
 	if ch.status == closed {
-		apiErr := perun.NewAPIErrFailedPreCondition(ErrChClosed.Error(), nil)
+		apiErr := perun.NewAPIErrFailedPreCondition(ErrChClosed)
 		ch.WithFields(perun.APIErrAsMap("SubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
 
 	if ch.chUpdateNotifier != nil {
-		apiErr := perun.NewAPIErrResourceExists("subscription to channel updates", ch.ID(), ErrSubAlreadyExists.Error())
+		apiErr := perun.NewAPIErrResourceExists(ResTypeUpdateSub, ch.ID())
 		ch.WithFields(perun.APIErrAsMap("SubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
@@ -402,20 +432,24 @@ func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) perun.APIError 
 	return nil
 }
 
-// UnsubChUpdates implements chAPI.UnsubChUpdates.
+// UnsubChUpdates unsubscribes from notifications on new incoming channel
+// updates for the specified channel in the specified session.
+//
+// If there is an error, it will be one of the following codes:
+// - ErrResourceNotFound with ResourceType: "updatesSub" when a subscription does not exist.
 func (ch *Channel) UnsubChUpdates() perun.APIError {
 	ch.WithField("method", "UnsubChUpdates").Info("Received request")
 	ch.Lock()
 	defer ch.Unlock()
 
 	if ch.status == closed {
-		apiErr := perun.NewAPIErrFailedPreCondition(ErrChClosed.Error(), nil)
+		apiErr := perun.NewAPIErrFailedPreCondition(ErrChClosed)
 		ch.WithFields(perun.APIErrAsMap("UnsubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
 
 	if ch.chUpdateNotifier == nil {
-		apiErr := perun.NewAPIErrResourceNotFound("subscription to channel updates", ch.ID(), ErrNoActiveSub.Error())
+		apiErr := perun.NewAPIErrResourceNotFound(ResTypeUpdateSub, ch.ID())
 		ch.WithFields(perun.APIErrAsMap("UnsubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
@@ -427,7 +461,15 @@ func (ch *Channel) unsubChUpdates() {
 	ch.chUpdateNotifier = nil
 }
 
-// RespondChUpdate implements chAPI.RespondChUpdate.
+// Responds to an incoming channel update for which a notification had been
+// received. Response should be sent before the notification expires. Use the
+// `Time` API to fetch current time of the perun node for checking notification
+// expiry.
+//
+// If there is an error, it will be one of the following codes:
+// - ErrResourceNotFound with ResourceType: "update" when update ID is not known.
+// - ErrUserResponseTimedOut when user responded after time out expired.
+// - ErrUnknownInternal
 func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) (
 	perun.ChInfo, perun.APIError) {
 	ch.WithField("method", "RespondChUpdate").Infof("\nReceived request with params %+v,%+v", updateID, accept)
@@ -442,13 +484,13 @@ func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept
 	}()
 
 	if ch.status == closed {
-		apiErr = perun.NewAPIErrFailedPreCondition(ErrChClosed.Error(), nil)
+		apiErr = perun.NewAPIErrFailedPreCondition(ErrChClosed)
 		return ch.getChInfo(), apiErr
 	}
 
 	entry, ok := ch.chUpdateResponders[updateID]
 	if !ok {
-		apiErr = perun.NewAPIErrResourceNotFound("update", updateID, ErrUnknownUpdateID.Error())
+		apiErr = perun.NewAPIErrResourceNotFound(ResTypeUpdate, updateID)
 		return ch.getChInfo(), apiErr
 	}
 	delete(ch.chUpdateResponders, updateID)
@@ -504,7 +546,7 @@ func (ch *Channel) rejectChUpdate(pctx context.Context, entry chUpdateResponderE
 	return nil
 }
 
-// GetChInfo implements chAPI.GetChInfo.
+// GetChInfo gets the last agreed state of the specified payment channel.
 func (ch *Channel) GetChInfo() perun.ChInfo {
 	ch.WithField("method", "GetChInfo").Info("Received request")
 	ch.Lock()
@@ -558,7 +600,27 @@ func makeBalInfoFromRawBal(parts []string, curr string, rawBal []*big.Int) perun
 	return balInfo
 }
 
-// Close implements chAPI.Close.
+// Closes the channel. First it tries to finalize the last agreed state of the
+// payment channel off-chain (by sending a finalizing update) and then settling it
+// on the blockchan. If the channel participants reject/not respond to the
+// finalizing update, the last agreed state will be finalized directly on the
+// blockchain. The call will return after this.
+//
+// The node will then wait for the challenge duration to pass (if the channel was
+// directly settled on the blockchain) and the withdraw the balance as per the
+// settled state to the user's account. It then sends a channel update
+// notification with update types as `Closed`.
+//
+// If there is an error in the closing update, it will be one of the following codes:
+// - ErrTxTimedOut with TxType: "Conclude" or "ConcludeFinal" when on-chain finalizing tx times out.
+// - ErrTxTimedOut with TxType: "Withdraw"  when withdrawing tx times out.
+// - ErrChainNotReachable when connection to blockchain drops while finalizing on-chain or withdrawing.
+// - ErrUnknownInternal
+//
+// If there is an error returned by this API, it will be one of the following codes:
+// - ErrTxTimedOut with TxType: "Register" when register tx times out.
+// - ErrChainNotReachable when connection to blockchain drops while register.
+// - ErrUnknownInternal
 func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, perun.APIError) {
 	ch.WithField("method", "ChClose").Infof("\nReceived request")
 	ch.Lock()
@@ -572,7 +634,7 @@ func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, perun.APIError) {
 	}()
 
 	if ch.status == closed {
-		apiErr = perun.NewAPIErrFailedPreCondition(ErrChClosed.Error(), nil)
+		apiErr = perun.NewAPIErrFailedPreCondition(ErrChClosed)
 		return ch.getChInfo(), apiErr
 	}
 

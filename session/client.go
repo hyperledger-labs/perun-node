@@ -163,7 +163,7 @@ func newEthereumPaymentClient(cfg clientConfig, user User, comm perun.CommBacken
 
 	listener, err := comm.NewListener(user.CommAddr)
 	if err != nil {
-		return nil, perun.NewAPIErrInvalidConfig("commAddr", user.CommAddr, err.Error())
+		return nil, perun.NewAPIErrInvalidConfig(err, "commAddr", user.CommAddr)
 	}
 	c.runAsGoRoutine(func() { msgBus.Listen(listener) })
 
@@ -224,17 +224,17 @@ func connectToChain(cfg chainConfig, cred perun.Credential) (pchannel.Funder, pc
 	walletBackend := ethereum.NewWalletBackend()
 	assetAddr, err := walletBackend.ParseAddr(cfg.Asset)
 	if err != nil {
-		return nil, nil, perun.NewAPIErrInvalidConfig("asset", cfg.Asset, err.Error())
+		return nil, nil, perun.NewAPIErrInvalidConfig(err, "asset", cfg.Asset)
 	}
 	adjudicatorAddr, err := walletBackend.ParseAddr(cfg.Adjudicator)
 	if err != nil {
-		return nil, nil, perun.NewAPIErrInvalidConfig("adjudicator", cfg.Adjudicator, err.Error())
+		return nil, nil, perun.NewAPIErrInvalidConfig(err, "adjudicator", cfg.Adjudicator)
 	}
 
 	chain, err := ethereum.NewChainBackend(cfg.URL, cfg.ChainID, cfg.ConnTimeout, cfg.OnChainTxTimeout, cred)
 	if err != nil {
 		err = errors.WithMessage(err, "connecting to blockchain")
-		return nil, nil, perun.NewAPIErrInvalidConfig("chainURL", cfg.URL, err.Error())
+		return nil, nil, perun.NewAPIErrInvalidConfig(err, "chainURL", cfg.URL)
 	}
 	adjErr := chain.ValidateAdjudicator(adjudicatorAddr)
 	assetHolderErr := chain.ValidateAssetHolderETH(adjudicatorAddr, assetAddr)

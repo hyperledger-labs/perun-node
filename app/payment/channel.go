@@ -26,6 +26,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/currency"
+	"github.com/hyperledger-labs/perun-node/session"
 )
 
 // Error type is used to define error constants for this package.
@@ -65,17 +66,23 @@ type (
 	}
 )
 
-// SendPayChUpdate send the given amount to the payee. Payee should be one of the channel participants.
-// Use "self" to request payments.
+// SendPayChUpdate sends a payment update on the channel that can send or
+// request funds. Use `self` in the `payee` field to pay the user itself and
+// "alias of the peer" to pay the peer.
+//
+// If there is an error, it will be one of the following codes:
+// - ErrResourceNotFound with ResourceType: "peerID" when any of the peer aliases are not known.
+// - ErrInvalidArgument with Name:"Amount" when the amount is invalid.
+// or any of the errors returned by the session.SendChUpdate API.
 func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string) (PayChInfo, perun.APIError) {
 	parsedAmount, err := currency.NewParser(ch.Currency()).Parse(amount)
 	if err != nil {
 		err = errors.WithMessage(err, ErrInvalidAmount.Error())
-		return PayChInfo{}, perun.NewAPIErrInvalidArgument("amount", amount, "", err.Error())
+		return PayChInfo{}, perun.NewAPIErrInvalidArgument(err, session.ArgNameAmount, amount)
 	}
 	payerIdx, payeeIdx, err := getPayerPayeeIdx(ch.Parts(), payee)
 	if err != nil {
-		return PayChInfo{}, perun.NewAPIErrInvalidArgument("payee", payee, "", err.Error())
+		return PayChInfo{}, perun.NewAPIErrInvalidArgument(err, session.ArgNamePayee, payee)
 	}
 	chInfo, apiErr := ch.SendChUpdate(pctx, newUpdate(payerIdx, payeeIdx, parsedAmount))
 	return toPayChInfo(chInfo), apiErr
@@ -101,12 +108,16 @@ func newUpdate(payerIdx, payeeIdx int, parsedAmount *big.Int) perun.StateUpdater
 	}
 }
 
-// GetPayChInfo returns the balance information for this channel.
+// GetPayChInfo fetches the channel info for this channel and interprets it as
+// payment channel info.
 func GetPayChInfo(ch perun.ChAPI) PayChInfo {
 	return toPayChInfo(ch.GetChInfo())
 }
 
-// SubPayChUpdates sets up a subscription for updates on this channel.
+// SubPayChUpdates sets up a subscription for incoming channel updates and
+// interprets the notifications as payment update notifiations.
+//
+// See session.SubChUpdates for the list of errors returned by this API.
 func SubPayChUpdates(ch perun.ChAPI, notifier PayChUpdateNotifier) perun.APIError {
 	return ch.SubChUpdates(func(notif perun.ChUpdateNotif) {
 		var ProposedPayChInfo PayChInfo
@@ -126,18 +137,26 @@ func SubPayChUpdates(ch perun.ChAPI, notifier PayChUpdateNotifier) perun.APIErro
 }
 
 // UnsubPayChUpdates deletes the existing subscription for updates on this channel.
+//
+// See session.UnsubChUpdates for the list of errors returned by this API.
 func UnsubPayChUpdates(ch perun.ChAPI) perun.APIError {
 	return ch.UnsubChUpdates()
 }
 
-// RespondPayChUpdate sends a response for a channel update notification.
+// RespondPayChUpdate sends a response for a channel update notification and
+// interprets the updated channel info as payment channel info.
+//
+// See session.RespondChUpdate for the list of errors returned by this API.
 func RespondPayChUpdate(pctx context.Context, ch perun.ChAPI, updateID string, accept bool) (
 	PayChInfo, perun.APIError) {
 	chInfo, err := ch.RespondChUpdate(pctx, updateID, accept)
 	return toPayChInfo(chInfo), err
 }
 
-// ClosePayCh closes the payment channel.
+// ClosePayCh closes the channel and interprets the closing channel info as
+// payment channel info.
+//
+// See session.CloseCh for the list of errors returned by this API.
 func ClosePayCh(pctx context.Context, ch perun.ChAPI) (PayChInfo, perun.APIError) {
 	chInfo, err := ch.Close(pctx)
 	return toPayChInfo(chInfo), err
