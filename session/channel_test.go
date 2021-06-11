@@ -53,7 +53,7 @@ func Test_Getters(t *testing.T) {
 		Bal:      []string{"1", "2"},
 	}
 
-	pch, _ := newMockPCh(t, validOpeningBalInfo)
+	pch, _ := newMockPCh()
 	ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 	assert.Equal(t, ch.ID(), fmt.Sprintf("%x", pch.ID()))
@@ -71,7 +71,8 @@ func Test_GetChInfo(t *testing.T) {
 	}
 
 	t.Run("happy", func(t *testing.T) {
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 		chInfo := ch.GetChInfo()
 		assert.Equal(t, chInfo.ChID, fmt.Sprintf("%x", pch.ID()))
@@ -80,11 +81,8 @@ func Test_GetChInfo(t *testing.T) {
 	})
 
 	t.Run("nil_state", func(t *testing.T) {
-		pch := &mocks.PChannel{}
-		pch.On("ID").Return([32]byte{0, 1, 2})
+		pch, _ := newMockPCh()
 		pch.On("State").Return(nil)
-		watcherSignal := make(chan time.Time)
-		pch.On("Watch", mock.Anything).WaitUntil(watcherSignal).Return(nil)
 
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 		chInfo := ch.GetChInfo()
@@ -106,10 +104,11 @@ func Test_SendChUpdate(t *testing.T) {
 	}
 
 	t.Run("happy", func(t *testing.T) {
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		pch.On("Idx").Return(pchannel.Index(1))
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
 		gotChInfo, err := ch.SendChUpdate(context.Background(), noopUpdater)
 		require.NoError(t, err)
@@ -117,7 +116,8 @@ func Test_SendChUpdate(t *testing.T) {
 	})
 
 	t.Run("channel_closed", func(t *testing.T) {
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
 
 		_, err := ch.SendChUpdate(context.Background(), noopUpdater)
@@ -131,10 +131,11 @@ func Test_SendChUpdate(t *testing.T) {
 	t.Run("UpdateBy_PeerRequestTimedOut", func(t *testing.T) {
 		timeout := responseTimeout.String()
 		peerRequestTimedOutError := pclient.RequestTimedOutError("some-error")
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		pch.On("Idx").Return(pchannel.Index(ourIdx))
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(peerRequestTimedOutError)
 		_, err := ch.SendChUpdate(context.Background(), noopUpdater)
 
@@ -149,10 +150,11 @@ func Test_SendChUpdate(t *testing.T) {
 			ItemType: "channel update",
 			Reason:   reason,
 		}
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		pch.On("Idx").Return(pchannel.Index(ourIdx))
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(peerRejectedError)
 		_, err := ch.SendChUpdate(context.Background(), noopUpdater)
 
@@ -171,7 +173,7 @@ func Test_HandleUpdate(t *testing.T) {
 	}
 	updatedBalInfo := validOpeningBalInfo
 	updatedBalInfo.Bal = []string{"0.5", "2.5"}
-	pch, _ := newMockPCh(t, validOpeningBalInfo)
+	pch, _ := newMockPCh()
 
 	currState := makeState(t, validOpeningBalInfo, false)
 	nonFinalState := makeState(t, updatedBalInfo, false)
@@ -211,7 +213,7 @@ func Test_SubUnsubChUpdate(t *testing.T) {
 	}
 
 	dummyNotifier := func(notif perun.ChUpdateNotif) {}
-	pch, _ := newMockPCh(t, validOpeningBalInfo)
+	pch, _ := newMockPCh()
 	ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 	// SubTest 1: Sub successfully ==
@@ -265,7 +267,7 @@ func Test_HandleUpdate_Sub(t *testing.T) {
 	}
 	updatedBalInfo := validOpeningBalInfo
 	updatedBalInfo.Bal = []string{"0.5", "2.5"}
-	pch, _ := newMockPCh(t, validOpeningBalInfo)
+	pch, _ := newMockPCh()
 
 	currState := makeState(t, validOpeningBalInfo, false)
 	nonFinalState := makeState(t, updatedBalInfo, false)
@@ -318,11 +320,14 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 	}
 	updatedBalInfo := validOpeningBalInfo
 	updatedBalInfo.Bal = []string{"0.5", "2.5"}
-	pch, _ := newMockPCh(t, validOpeningBalInfo)
+	pch, _ := newMockPCh()
+	pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 
 	currState := makeState(t, validOpeningBalInfo, false)
 	nonFinalState := makeState(t, updatedBalInfo, false)
+	nonFinalState.Version++
 	finalState := makeState(t, updatedBalInfo, true)
+	finalState.Version++
 
 	t.Run("happy_accept", func(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
@@ -435,7 +440,8 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: finalState,
 		}
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
+		pch.On("State").Return(finalState)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Accept", mock.Anything).Return(nil)
@@ -453,7 +459,8 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: finalState,
 		}
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
+		pch.On("State").Return(finalState)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Accept", mock.Anything).Return(nil)
@@ -475,7 +482,8 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: finalState,
 		}
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
+		pch.On("State").Return(finalState)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Accept", mock.Anything).Return(nil)
@@ -499,7 +507,8 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: finalState,
 		}
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
+		pch.On("State").Return(finalState)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Accept", mock.Anything).Return(nil)
@@ -526,11 +535,12 @@ func Test_Close(t *testing.T) {
 	peerIdx := 1
 
 	t.Run("happy_finalizeNoError_settle", func(t *testing.T) {
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		var finalizer perun.StateUpdater
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false)).Once()
 		pch.On("UpdateBy", mock.Anything, mock.MatchedBy(func(gotFinalizer perun.StateUpdater) bool {
 			finalizer = gotFinalizer
 			return true
@@ -546,11 +556,12 @@ func Test_Close(t *testing.T) {
 		assert.True(t, emptyState.IsFinal)
 	})
 
-	t.Run("happy_finalizeError_settle", func(t *testing.T) {
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+	t.Run("happy_finalizeError_settle", func(t *testing.T) { //nolint: dupl		// not duplicate of 573-585.
+		pch, _ := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(assert.AnError)
 		pch.On("Register", mock.Anything).Return(nil)
 
@@ -559,12 +570,13 @@ func Test_Close(t *testing.T) {
 		assert.NotZero(t, gotChInfo)
 	})
 
-	t.Run("happy_closeError", func(t *testing.T) {
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+	t.Run("happy_closeError", func(t *testing.T) { //nolint: dupl		// not duplicate of 559-571.
+		pch, _ := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
-		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(assert.AnError)
 		pch.On("Register", mock.Anything).Return(nil)
 
 		gotChInfo, err := ch.Close(context.Background())
@@ -573,7 +585,8 @@ func Test_Close(t *testing.T) {
 	})
 
 	t.Run("channel_closed", func(t *testing.T) {
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
 
 		_, err := ch.Close(context.Background())
@@ -585,10 +598,11 @@ func Test_Close(t *testing.T) {
 	})
 
 	t.Run("finalized_settle_AnError", func(t *testing.T) {
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
 		pch.On("Register", mock.Anything).Return(assert.AnError)
 
@@ -602,10 +616,11 @@ func Test_Close(t *testing.T) {
 			TxType: pethchannel.Register.String(),
 			TxID:   "0xabcd",
 		}
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
 		pch.On("Register", mock.Anything).Return(txTimedoutError)
 
@@ -621,10 +636,11 @@ func Test_Close(t *testing.T) {
 	t.Run("finalized_settle_ChainNotReachable", func(t *testing.T) {
 		chainURL := ethereumtest.ChainURL
 		chainNotReachableError := pclient.ChainNotReachableError{}
-		pch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
 		pch.On("Register", mock.Anything).Return(chainNotReachableError)
 
@@ -645,21 +661,21 @@ func Test_HandleWatcherReturned(t *testing.T) {
 	}
 
 	t.Run("happy_openCh_dropNotif", func(t *testing.T) {
-		pch, watcherSignal := newMockPCh(t, validOpeningBalInfo)
+		pch, watcherSignal := newMockPCh()
 		pch.On("Close").Return(nil)
 		_ = session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 		watcherSignal <- time.Now()
 	})
 
 	t.Run("happy_closedCh_dropNotif", func(t *testing.T) {
-		pch, watcherSignal := newMockPCh(t, validOpeningBalInfo)
+		pch, watcherSignal := newMockPCh()
 		pch.On("Close").Return(nil)
 		_ = session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
 		watcherSignal <- time.Now()
 	})
 
 	t.Run("happy_openCh_hasSub_WatchNoError", func(t *testing.T) {
-		pch, watcherSignal := newMockPCh(t, validOpeningBalInfo)
+		pch, watcherSignal := newMockPCh()
 		pch.On("Close").Return(nil)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 		notifs := make([]perun.ChUpdateNotif, 0, 2)

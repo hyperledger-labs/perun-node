@@ -161,13 +161,11 @@ func makeState(t *testing.T, balInfo perun.BalInfo, isFinal bool) *pchannel.Stat
 	}
 }
 
-func newMockPCh(t *testing.T, openingBalInfo perun.BalInfo) (
-	*mocks.PChannel, chan time.Time) {
+func newMockPCh() (*mocks.PChannel, chan time.Time) {
 	var chID [32]byte
 	rand.Read(chID[:])
 	ch := &mocks.PChannel{}
 	ch.On("ID").Return(chID)
-	ch.On("State").Return(makeState(t, openingBalInfo, false))
 	watcherSignal := make(chan time.Time)
 	ch.On("Watch", mock.Anything).WaitUntil(watcherSignal).Return(nil)
 	return ch, watcherSignal
@@ -186,9 +184,10 @@ func Test_Session_OpenCh(t *testing.T) {
 	}
 
 	t.Run("happy_1_own_alias_first", func(t *testing.T) {
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		pch, _ := newMockPCh()
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		session, chClient := newSessionWMockChClient(t, true, peerIDs...)
-		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, nil)
+		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(pch, nil)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 
 		chInfo, err := session.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
@@ -200,9 +199,10 @@ func Test_Session_OpenCh(t *testing.T) {
 		validOpeningBalInfo2 := validOpeningBalInfo
 		validOpeningBalInfo2.Parts = []string{peerIDs[0].Alias, perun.OwnAlias}
 
-		ch, _ := newMockPCh(t, validOpeningBalInfo2)
+		pch, _ := newMockPCh()
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		session, chClient := newSessionWMockChClient(t, true, peerIDs...)
-		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, nil)
+		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(pch, nil)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 
 		chInfo, err := session.OpenCh(context.Background(), validOpeningBalInfo2, app, 10)
@@ -211,7 +211,7 @@ func Test_Session_OpenCh(t *testing.T) {
 	})
 
 	t.Run("session_closed", func(t *testing.T) {
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch, _ := newMockPCh()
 		sess, chClient := newSessionWMockChClient(t, false, peerIDs...)
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, nil)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
@@ -316,7 +316,7 @@ func Test_Session_OpenCh(t *testing.T) {
 
 	t.Run("chClient_proposeChannel_AnError", func(t *testing.T) {
 		anError := assert.AnError
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch, _ := newMockPCh()
 		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, anError)
@@ -331,7 +331,7 @@ func Test_Session_OpenCh(t *testing.T) {
 	t.Run("chClient_proposeChannel_PeerRequestTimedOut", func(t *testing.T) {
 		timeout := sessiontest.ResponseTimeout.String()
 		peerRequestTimedOutError := pclient.RequestTimedOutError("some-error")
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch, _ := newMockPCh()
 		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, peerRequestTimedOutError)
@@ -352,7 +352,7 @@ func Test_Session_OpenCh(t *testing.T) {
 			ItemType: "channel proposal",
 			Reason:   reason,
 		}
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch, _ := newMockPCh()
 		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, peerRejectedError)
@@ -375,7 +375,7 @@ func Test_Session_OpenCh(t *testing.T) {
 				TimedOutPeers: []pchannel.Index{peerIdx},
 			}},
 		}
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch, _ := newMockPCh()
 		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, fundingTimeoutError)
@@ -395,7 +395,7 @@ func Test_Session_OpenCh(t *testing.T) {
 			TxType: pethchannel.Fund.String(),
 			TxID:   "0xabcd",
 		}
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch, _ := newMockPCh()
 		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, fundingTxTimedoutError)
@@ -415,7 +415,7 @@ func Test_Session_OpenCh(t *testing.T) {
 	t.Run("chClient_proposeChannel_ChainNotReachable", func(t *testing.T) {
 		chainURL := ethereumtest.ChainURL
 		chainNotReachableError := pclient.ChainNotReachableError{}
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch, _ := newMockPCh()
 		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, chainNotReachableError)
@@ -580,7 +580,7 @@ func Test_HandleProposalWInterface_Sub(t *testing.T) {
 func Test_HandleProposalWInterface_Respond(t *testing.T) {
 	peerIDs := newPeerIDs(t, uint(1)) // Aliases of peerIDs are their respective indices in the array.
 
-	openingBalInfo := perun.BalInfo{
+	validOpeningBalInfo := perun.BalInfo{
 		Currency: currency.ETH,
 		Parts:    []string{peerIDs[0].Alias, perun.OwnAlias},
 		Bal:      []string{"1", "2"},
@@ -589,14 +589,15 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 	t.Run("happy_accept", func(t *testing.T) {
 		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
 
-		ch, _ := newMockPCh(t, openingBalInfo)
+		pch, _ := newMockPCh()
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		responder := &mocks.ChProposalResponder{}
-		responder.On("Accept", mock.Anything, mock.Anything).Return(ch, nil)
+		responder.On("Accept", mock.Anything, mock.Anything).Return(pch, nil)
 		session.HandleProposalWInterface(chProposal, responder)
 
 		gotChInfo, err := session.RespondChProposal(context.Background(), chProposalID, true)
 		require.NoError(t, err)
-		assert.Equal(t, gotChInfo.ChID, fmt.Sprintf("%x", ch.ID()))
+		assert.Equal(t, gotChInfo.ChID, fmt.Sprintf("%x", pch.ID()))
 	})
 
 	t.Run("happy_reject", func(t *testing.T) {
@@ -660,7 +661,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 	t.Run("respond_accept_AnError", func(t *testing.T) {
 		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
 
-		ch, _ := newMockPCh(t, openingBalInfo)
+		ch, _ := newMockPCh()
 		responder := &mocks.ChProposalResponder{}
 		responder.On("Accept", mock.Anything, mock.Anything).Return(ch, assert.AnError)
 		session.HandleProposalWInterface(chProposal, responder)
@@ -690,7 +691,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		}
 		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
 
-		ch, _ := newMockPCh(t, openingBalInfo)
+		ch, _ := newMockPCh()
 		responder := &mocks.ChProposalResponder{}
 		responder.On("Accept", mock.Anything, mock.Anything).Return(ch, fundingTimeoutError)
 		session.HandleProposalWInterface(chProposal, responder)
@@ -708,7 +709,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		}
 		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
 
-		ch, _ := newMockPCh(t, openingBalInfo)
+		ch, _ := newMockPCh()
 		responder := &mocks.ChProposalResponder{}
 		responder.On("Accept", mock.Anything, mock.Anything).Return(ch, fundingTxTimedoutError)
 		session.HandleProposalWInterface(chProposal, responder)
@@ -726,7 +727,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		chainNotReachableError := pclient.ChainNotReachableError{}
 		session, chProposal, chProposalID := newSessionWChProposal(t, peerIDs)
 
-		ch, _ := newMockPCh(t, openingBalInfo)
+		ch, _ := newMockPCh()
 		responder := &mocks.ChProposalResponder{}
 		responder.On("Accept", mock.Anything, mock.Anything).Return(ch, chainNotReachableError)
 		session.HandleProposalWInterface(chProposal, responder)
@@ -760,8 +761,9 @@ func Test_ProposeCh_GetChsInfo(t *testing.T) {
 			Def:  pchannel.NoApp(),
 			Data: pchannel.NoData(),
 		}
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
-		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, nil).Once()
+		pch, _ := newMockPCh()
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(pch, nil).Once()
 		chClient.On("Register", mock.Anything, mock.Anything).Return().Once()
 
 		chInfo, err := session.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
@@ -817,9 +819,10 @@ func Test_ProposeCh_GetCh(t *testing.T) {
 		Def:  pchannel.NoApp(),
 		Data: pchannel.NoData(),
 	}
-	ch, _ := newMockPCh(t, validOpeningBalInfo)
+	pch, _ := newMockPCh()
+	pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 	chClient := &mocks.ChClient{}
-	chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, nil)
+	chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(pch, nil)
 	chClient.On("Register", mock.Anything, mock.Anything).Return()
 	session, err := session.NewSessionForTest(cfg, true, chClient)
 	require.NoError(t, err)
@@ -830,7 +833,7 @@ func Test_ProposeCh_GetCh(t *testing.T) {
 	require.NotZero(t, chInfo)
 
 	t.Run("happy", func(t *testing.T) {
-		chID := fmt.Sprintf("%x", ch.ID())
+		chID := fmt.Sprintf("%x", pch.ID())
 		gotCh, err := session.GetCh(chID)
 		require.NoError(t, err)
 		assert.Equal(t, gotCh.ID(), chID)
@@ -868,7 +871,7 @@ func Test_ProposeCh_CloseSession(t *testing.T) {
 		Bal:      []string{"1", "2"},
 	}
 	t.Run("happy_no_force", func(t *testing.T) {
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
+		ch, _ := newMockPCh()
 		ch.On("Phase").Return(pchannel.Acting)
 		session, chClient := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, nil)
@@ -880,18 +883,20 @@ func Test_ProposeCh_CloseSession(t *testing.T) {
 		assert.Len(t, persistedChs, 0)
 	})
 	t.Run("happy_force", func(t *testing.T) {
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
-		ch.On("Phase").Return(pchannel.Acting)
-		session := newSessionWCh(t, peerIDs, validOpeningBalInfo, ch)
+		pch, _ := newMockPCh()
+		pch.On("Phase").Return(pchannel.Acting)
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		session := newSessionWCh(t, peerIDs, validOpeningBalInfo, pch)
 
 		persistedChs, err := session.Close(true)
 		require.NoError(t, err)
 		assert.Len(t, persistedChs, 1)
 	})
-	t.Run("no_force_openChs", func(t *testing.T) {
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
-		ch.On("Phase").Return(pchannel.Acting)
-		sess := newSessionWCh(t, peerIDs, validOpeningBalInfo, ch)
+	t.Run("no_force_openChs", func(t *testing.T) { //nolint: dupl	// not duplicate of 908-919.
+		pch, _ := newMockPCh()
+		pch.On("Phase").Return(pchannel.Acting)
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		sess := newSessionWCh(t, peerIDs, validOpeningBalInfo, pch)
 		chsInfo := sess.GetChsInfo()
 
 		_, err := sess.Close(false)
@@ -899,10 +904,11 @@ func Test_ProposeCh_CloseSession(t *testing.T) {
 		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, session.ErrOpenChsExist.Error())
 		assertErrInfoFailedPreCondUnclosedChs(t, err.AddInfo(), chsInfo)
 	})
-	t.Run("force_unexpectedPhaseChs", func(t *testing.T) {
-		ch, _ := newMockPCh(t, validOpeningBalInfo)
-		ch.On("Phase").Return(pchannel.Registering)
-		sess := newSessionWCh(t, peerIDs, validOpeningBalInfo, ch)
+	t.Run("force_unexpectedPhaseChs", func(t *testing.T) { //nolint: dupl	// not duplicate of 896-907.
+		pch, _ := newMockPCh()
+		pch.On("Phase").Return(pchannel.Registering)
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		sess := newSessionWCh(t, peerIDs, validOpeningBalInfo, pch)
 		chsInfo := sess.GetChsInfo()
 
 		_, err := sess.Close(false)
