@@ -33,6 +33,7 @@ import (
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/internal/mocks"
+	"github.com/hyperledger-labs/perun-node/peruntest"
 	"github.com/hyperledger-labs/perun-node/session"
 )
 
@@ -121,10 +122,9 @@ func Test_SendChUpdate(t *testing.T) {
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
 
 		_, err := ch.SendChUpdate(context.Background(), noopUpdater)
-		require.Error(t, err)
 
 		wantMessage := session.ErrChClosed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 
@@ -139,9 +139,8 @@ func Test_SendChUpdate(t *testing.T) {
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(peerRequestTimedOutError)
 		_, err := ch.SendChUpdate(context.Background(), noopUpdater)
 
-		wantMessage := peerRequestTimedOutError.Error()
-		assertAPIError(t, err, perun.ParticipantError, perun.ErrPeerRequestTimedOut, wantMessage)
-		assertErrInfoPeerRequestTimedOut(t, err.AddInfo(), peerAlias, timeout)
+		peruntest.AssertAPIError(t, err, perun.ParticipantError, perun.ErrPeerRequestTimedOut)
+		peruntest.AssertErrInfoPeerRequestTimedOut(t, err.AddInfo(), peerAlias, timeout)
 	})
 
 	t.Run("UpdateBy_RejectedByPeer", func(t *testing.T) {
@@ -158,9 +157,8 @@ func Test_SendChUpdate(t *testing.T) {
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(peerRejectedError)
 		_, err := ch.SendChUpdate(context.Background(), noopUpdater)
 
-		wantMessage := peerRejectedError.Error()
-		assertAPIError(t, err, perun.ParticipantError, perun.ErrPeerRejected, wantMessage)
-		assertErrInfoPeerRejected(t, err.AddInfo(), peerAlias, reason)
+		peruntest.AssertAPIError(t, err, perun.ParticipantError, perun.ErrPeerRejected)
+		peruntest.AssertErrInfoPeerRejected(t, err.AddInfo(), peerAlias, reason)
 	})
 }
 
@@ -177,31 +175,15 @@ func Test_HandleUpdate(t *testing.T) {
 
 	currState := makeState(t, validOpeningBalInfo, false)
 	nonFinalState := makeState(t, updatedBalInfo, false)
-	finalState := makeState(t, updatedBalInfo, true)
 
-	t.Run("happy_nonFinal", func(t *testing.T) {
-		chUpdate := &pclient.ChannelUpdate{
-			State: nonFinalState,
-		}
-		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
-		ch.HandleUpdate(currState, *chUpdate, &mocks.ChUpdateResponder{})
-	})
-
-	t.Run("happy_final", func(t *testing.T) {
-		chUpdate := &pclient.ChannelUpdate{
-			State: finalState,
-		}
-		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
-		ch.HandleUpdate(currState, *chUpdate, &mocks.ChUpdateResponder{})
-	})
-
-	t.Run("happy_unexpected_chUpdate", func(t *testing.T) {
+	t.Run("happy_ignore_chUpdate_when_closed", func(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: nonFinalState,
 		}
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
 		ch.HandleUpdate(currState, *chUpdate, &mocks.ChUpdateResponder{})
 	})
+	// Tests if handler does not panic on receiving update when channel is closed.
 }
 
 func Test_SubUnsubChUpdate(t *testing.T) {
@@ -224,9 +206,8 @@ func Test_SubUnsubChUpdate(t *testing.T) {
 	err = ch.SubChUpdates(dummyNotifier)
 	require.Error(t, err)
 
-	wantMessage := session.ErrSubAlreadyExists.Error()
-	assertAPIError(t, err, perun.ClientError, perun.ErrResourceExists, wantMessage)
-	assertErrInfoResourceExists(t, err.AddInfo(), "subscription to channel updates", ch.ID())
+	peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceExists)
+	peruntest.AssertErrInfoResourceExists(t, err.AddInfo(), session.ResTypeUpdateSub, ch.ID())
 
 	// SubTest 3: UnSub successfully ==
 	err = ch.UnsubChUpdates()
@@ -236,24 +217,23 @@ func Test_SubUnsubChUpdate(t *testing.T) {
 	err = ch.UnsubChUpdates()
 	require.Error(t, err)
 
-	wantMessage = session.ErrNoActiveSub.Error()
-	assertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound, wantMessage)
-	assertErrInfoResourceNotFound(t, err.AddInfo(), "subscription to channel updates", ch.ID())
+	peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound)
+	peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypeUpdateSub, ch.ID())
 
 	t.Run("Sub_channelClosed", func(t *testing.T) {
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
 		err = ch.SubChUpdates(dummyNotifier)
-		require.Error(t, err)
+
 		wantMessage := session.ErrChClosed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 	t.Run("Unsub_channelClosed", func(t *testing.T) {
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
 		err = ch.UnsubChUpdates()
-		require.Error(t, err)
+
 		wantMessage := session.ErrChClosed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 }
@@ -271,7 +251,9 @@ func Test_HandleUpdate_Sub(t *testing.T) {
 
 	currState := makeState(t, validOpeningBalInfo, false)
 	nonFinalState := makeState(t, updatedBalInfo, false)
-	t.Run("happy_HandleSub", func(t *testing.T) {
+	finalState := makeState(t, updatedBalInfo, true)
+
+	t.Run("happy_HandleSub_nonFinal", func(t *testing.T) { //nolint: dupl
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		chUpdate := &pclient.ChannelUpdate{
@@ -286,10 +268,37 @@ func Test_HandleUpdate_Sub(t *testing.T) {
 		err := ch.SubChUpdates(notifier)
 		require.NoError(t, err)
 		notifRecieved := func() bool {
-			return len(notifs) == 1
+			if len(notifs) != 1 {
+				return false
+			}
+			return notifs[0].Type == perun.ChUpdateTypeOpen
 		}
 		assert.Eventually(t, notifRecieved, 2*time.Second, 100*time.Millisecond)
 	})
+
+	t.Run("happy_HandleSub_Final", func(t *testing.T) { //nolint: dupl
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+
+		chUpdate := &pclient.ChannelUpdate{
+			State: finalState,
+		}
+		ch.HandleUpdate(currState, *chUpdate, &mocks.ChUpdateResponder{})
+
+		notifs := make([]perun.ChUpdateNotif, 0, 2)
+		notifier := func(notif perun.ChUpdateNotif) {
+			notifs = append(notifs, notif)
+		}
+		err := ch.SubChUpdates(notifier)
+		require.NoError(t, err)
+		notifRecieved := func() bool {
+			if len(notifs) != 1 {
+				return false
+			}
+			return notifs[0].Type == perun.ChUpdateTypeFinal
+		}
+		assert.Eventually(t, notifRecieved, 2*time.Second, 100*time.Millisecond)
+	})
+
 	t.Run("happy_SubHandle", func(t *testing.T) {
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
@@ -300,7 +309,10 @@ func Test_HandleUpdate_Sub(t *testing.T) {
 		err := ch.SubChUpdates(notifier)
 		require.NoError(t, err)
 		notifRecieved := func() bool {
-			return len(notifs) == 1
+			if len(notifs) != 1 {
+				return false
+			}
+			return notifs[0].Type == perun.ChUpdateTypeOpen
 		}
 
 		chUpdate := &pclient.ChannelUpdate{
@@ -344,6 +356,25 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		assert.NotZero(t, chInfo)
 	})
 
+	t.Run("happy_accept_Final", func(t *testing.T) {
+		chUpdate := &pclient.ChannelUpdate{
+			State: finalState,
+		}
+		pch, _ := newMockPCh() //nolint: govet		// this does not shadow prev decl. declared in same name on purpose.
+		pch.On("State").Return(finalState)
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+		responder := &mocks.ChUpdateResponder{}
+		responder.On("Accept", mock.Anything).Return(nil)
+		pch.On("Register", mock.Anything).Return(nil)
+
+		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
+		ch.HandleUpdate(currState, *chUpdate, responder)
+
+		chInfo, err := ch.RespondChUpdate(context.Background(), updateID, true)
+		require.NoError(t, err)
+		assert.NotZero(t, chInfo)
+	})
+
 	t.Run("happy_reject", func(t *testing.T) {
 		chUpdate := &pclient.ChannelUpdate{
 			State: nonFinalState,
@@ -364,10 +395,9 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		updateID := "any-update-id" // A closed channel returns error irrespective of update id.
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
-		require.Error(t, err)
 
 		wantMessage := session.ErrChClosed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 
@@ -382,10 +412,9 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		_, err := ch.RespondChUpdate(context.Background(), unknownUpdateID, true)
-		require.Error(t, err)
 
-		assertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound, "update")
-		assertErrInfoResourceNotFound(t, err.AddInfo(), "update", unknownUpdateID)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound)
+		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypeUpdate, unknownUpdateID)
 	})
 
 	t.Run("response_timeout_expired", func(t *testing.T) {
@@ -400,10 +429,9 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 
 		time.Sleep(2 * time.Second)
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
-		require.Error(t, err)
 
-		assertAPIError(t, err, perun.ParticipantError, perun.ErrUserResponseTimedOut, "")
-		assertErrInfoUserResponseTimedout(t, err.AddInfo())
+		peruntest.AssertAPIError(t, err, perun.ParticipantError, perun.ErrUserResponseTimedOut)
+		peruntest.AssertErrInfoUserResponseTimedOut(t, err.AddInfo())
 	})
 
 	t.Run("respond_accept_Error", func(t *testing.T) {
@@ -417,8 +445,8 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
-		require.Error(t, err)
-		assertAPIError(t, err, perun.InternalError, perun.ErrUnknownInternal, assert.AnError.Error())
+
+		peruntest.AssertAPIError(t, err, perun.InternalError, perun.ErrUnknownInternal)
 	})
 
 	t.Run("respond_reject_Error", func(t *testing.T) {
@@ -432,27 +460,8 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, false)
-		require.Error(t, err)
-		assertAPIError(t, err, perun.InternalError, perun.ErrUnknownInternal, assert.AnError.Error())
-	})
 
-	t.Run("happy_accept_Final", func(t *testing.T) {
-		chUpdate := &pclient.ChannelUpdate{
-			State: finalState,
-		}
-		pch, _ := newMockPCh()
-		pch.On("State").Return(finalState)
-		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
-		responder := &mocks.ChUpdateResponder{}
-		responder.On("Accept", mock.Anything).Return(nil)
-		pch.On("Register", mock.Anything).Return(nil)
-
-		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
-		ch.HandleUpdate(currState, *chUpdate, responder)
-
-		chInfo, err := ch.RespondChUpdate(context.Background(), updateID, true)
-		require.NoError(t, err)
-		assert.NotZero(t, chInfo)
+		peruntest.AssertAPIError(t, err, perun.InternalError, perun.ErrUnknownInternal)
 	})
 
 	t.Run("Handle_accept_register_AnError", func(t *testing.T) {
@@ -470,12 +479,12 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
-		require.Error(t, err)
-		assertAPIError(t, err, perun.InternalError, perun.ErrUnknownInternal, assert.AnError.Error())
+
+		peruntest.AssertAPIError(t, err, perun.InternalError, perun.ErrUnknownInternal)
 	})
 
 	t.Run("Handle_accept_register_TxTimeoutError", func(t *testing.T) {
-		txTimedoutError := pclient.TxTimedoutError{
+		txTimedOutError := pclient.TxTimedoutError{
 			TxType: pethchannel.Register.String(),
 			TxID:   "0xabcd",
 		}
@@ -487,18 +496,18 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Accept", mock.Anything).Return(nil)
-		pch.On("Register", mock.Anything).Return(txTimedoutError)
+		pch.On("Register", mock.Anything).Return(txTimedOutError)
 
 		updateID := fmt.Sprintf("%s_%d", ch.ID(), chUpdate.State.Version)
 		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
-		require.Error(t, err)
-		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrTxTimedOut, txTimedoutError.Error())
-		txType := txTimedoutError.TxType
-		txID := txTimedoutError.TxID
+
+		txType := txTimedOutError.TxType
+		txID := txTimedOutError.TxID
 		txTimeout := ethereumtest.OnChainTxTimeout.String()
-		assertErrInfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
+		peruntest.AssertAPIError(t, err, perun.ProtocolFatalError, perun.ErrTxTimedOut, txTimedOutError.Error())
+		peruntest.AssertErrInfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
 	})
 
 	t.Run("Handle_accept_register_ChainNotReachable", func(t *testing.T) {
@@ -518,10 +527,9 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		ch.HandleUpdate(currState, *chUpdate, responder)
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
-		require.Error(t, err)
-		wantMessage := chainNotReachableError.Error()
-		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrChainNotReachable, wantMessage)
-		assertErrInfoChainNotReachable(t, err.AddInfo(), chainURL)
+
+		peruntest.AssertAPIError(t, err, perun.ProtocolFatalError, perun.ErrChainNotReachable)
+		peruntest.AssertErrInfoChainNotReachable(t, err.AddInfo(), chainURL)
 	})
 }
 
@@ -692,12 +700,12 @@ func Test_Close(t *testing.T) {
 		pch.On("Register", mock.Anything).Return(assert.AnError)
 
 		_, err := ch.Close(context.Background())
-		require.Error(t, err)
-		assertAPIError(t, err, perun.InternalError, perun.ErrUnknownInternal, assert.AnError.Error())
+
+		peruntest.AssertAPIError(t, err, perun.InternalError, perun.ErrUnknownInternal)
 	})
 
 	t.Run("forInitiator_finalized_register_TxTimeoutError", func(t *testing.T) {
-		txTimedoutError := pclient.TxTimedoutError{
+		txTimedOutError := pclient.TxTimedoutError{
 			TxType: pethchannel.Register.String(),
 			TxID:   "0xabcd",
 		}
@@ -707,15 +715,15 @@ func Test_Close(t *testing.T) {
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
-		pch.On("Register", mock.Anything).Return(txTimedoutError)
+		pch.On("Register", mock.Anything).Return(txTimedOutError)
 
 		_, err := ch.Close(context.Background())
-		require.Error(t, err)
-		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrTxTimedOut, txTimedoutError.Error())
-		txType := txTimedoutError.TxType
-		txID := txTimedoutError.TxID
+
+		txType := txTimedOutError.TxType
+		txID := txTimedOutError.TxID
 		txTimeout := ethereumtest.OnChainTxTimeout.String()
-		assertErrInfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
+		peruntest.AssertAPIError(t, err, perun.ProtocolFatalError, perun.ErrTxTimedOut)
+		peruntest.AssertErrInfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
 	})
 
 	t.Run("forInitiator_finalized_register_ChainNotReachable", func(t *testing.T) {
@@ -730,10 +738,9 @@ func Test_Close(t *testing.T) {
 		pch.On("Register", mock.Anything).Return(chainNotReachableError)
 
 		_, err := ch.Close(context.Background())
-		require.Error(t, err)
-		wantMessage := chainNotReachableError.Error()
-		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrChainNotReachable, wantMessage)
-		assertErrInfoChainNotReachable(t, err.AddInfo(), chainURL)
+
+		peruntest.AssertAPIError(t, err, perun.ProtocolFatalError, perun.ErrChainNotReachable)
+		peruntest.AssertErrInfoChainNotReachable(t, err.AddInfo(), chainURL)
 	})
 
 	// While on-chain errors can occur on all cases,
@@ -762,12 +769,12 @@ func Test_Close(t *testing.T) {
 
 		ch.HandleAdjudicatorEvent(registeredEvent)
 		assertNotif(t, notifs, registeredVersion, wantExpiry)
-		require.Error(t, notifs[0].Error)
-		assertAPIError(t, notifs[0].Error, perun.InternalError, perun.ErrUnknownInternal, assert.AnError.Error())
+
+		peruntest.AssertAPIError(t, notifs[0].Error, perun.InternalError, perun.ErrUnknownInternal)
 	})
 
 	t.Run("notFinalized_settle_TxTimedout", func(t *testing.T) {
-		txTimedoutError := pclient.TxTimedoutError{
+		txTimedOutError := pclient.TxTimedoutError{
 			TxType: pethchannel.Withdraw.String(),
 			TxID:   "0xabcd",
 		}
@@ -778,7 +785,7 @@ func Test_Close(t *testing.T) {
 		var registeredVersion uint64
 		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion)
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-		pch.On("Settle", mock.Anything, mock.Anything).Return(txTimedoutError)
+		pch.On("Settle", mock.Anything, mock.Anything).Return(txTimedOutError)
 		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
 			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
 		})
@@ -792,12 +799,12 @@ func Test_Close(t *testing.T) {
 
 		ch.HandleAdjudicatorEvent(registeredEvent)
 		assertNotif(t, notifs, registeredVersion, wantExpiry)
-		require.Error(t, notifs[0].Error)
-		assertAPIError(t, notifs[0].Error, perun.ProtocolFatalError, perun.ErrTxTimedOut, txTimedoutError.Error())
-		txType := txTimedoutError.TxType
-		txID := txTimedoutError.TxID
+
+		txType := txTimedOutError.TxType
+		txID := txTimedOutError.TxID
 		txTimeout := ethereumtest.OnChainTxTimeout.String()
-		assertErrInfoTxTimedOut(t, notifs[0].Error.AddInfo(), txType, txID, txTimeout)
+		peruntest.AssertAPIError(t, notifs[0].Error, perun.ProtocolFatalError, perun.ErrTxTimedOut, txTimedOutError.Error())
+		peruntest.AssertErrInfoTxTimedOut(t, notifs[0].Error.AddInfo(), txType, txID, txTimeout)
 	})
 
 	t.Run("notFinalized_settle_ChainNotReachable", func(t *testing.T) {
@@ -824,11 +831,11 @@ func Test_Close(t *testing.T) {
 
 		ch.HandleAdjudicatorEvent(registeredEvent)
 		assertNotif(t, notifs, registeredVersion, wantExpiry)
-		require.Error(t, notifs[0].Error)
-		wantMessage := chainNotReachableError.Error()
-		assertAPIError(t, notifs[0].Error, perun.ProtocolFatalError, perun.ErrChainNotReachable, wantMessage)
-		assertErrInfoChainNotReachable(t, notifs[0].Error.AddInfo(), chainURL)
+
+		peruntest.AssertAPIError(t, notifs[0].Error, perun.ProtocolFatalError, perun.ErrChainNotReachable)
+		peruntest.AssertErrInfoChainNotReachable(t, notifs[0].Error.AddInfo(), chainURL)
 	})
+
 	t.Run("channel_closed", func(t *testing.T) {
 		pch, _ := newMockPCh()
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
@@ -838,7 +845,7 @@ func Test_Close(t *testing.T) {
 		require.Error(t, err)
 
 		wantMessage := session.ErrChClosed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
 }

@@ -28,6 +28,8 @@ import (
 	"github.com/hyperledger-labs/perun-node/app/payment"
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/internal/mocks"
+	"github.com/hyperledger-labs/perun-node/peruntest"
+	"github.com/hyperledger-labs/perun-node/session"
 )
 
 func Test_SendPayChUpdate(t *testing.T) {
@@ -73,8 +75,8 @@ func Test_SendPayChUpdate(t *testing.T) {
 
 		invalidAmount := "abc"
 		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, invalidAmount)
-		assertAPIError(t, gotErr, perun.ClientError, perun.ErrInvalidArgument, payment.ErrInvalidAmount.Error())
-		assertErrInfoInvalidArgument(t, gotErr.AddInfo(), "amount", invalidAmount)
+		peruntest.AssertAPIError(t, gotErr, perun.ClientError, perun.ErrInvalidArgument, payment.ErrInvalidAmount.Error())
+		peruntest.AssertErrInfoInvalidArgument(t, gotErr.AddInfo(), session.ArgNameAmount, invalidAmount)
 	})
 
 	t.Run("error_InvalidPayee", func(t *testing.T) {
@@ -83,8 +85,8 @@ func Test_SendPayChUpdate(t *testing.T) {
 
 		invalidPayee := "invalid-payee"
 		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, invalidPayee, amountToSend)
-		assertAPIError(t, gotErr, perun.ClientError, perun.ErrInvalidArgument, payment.ErrInvalidPayee.Error())
-		assertErrInfoInvalidArgument(t, gotErr.AddInfo(), "payee", invalidPayee)
+		peruntest.AssertAPIError(t, gotErr, perun.ClientError, perun.ErrInvalidArgument, payment.ErrInvalidPayee.Error())
+		peruntest.AssertErrInfoInvalidArgument(t, gotErr.AddInfo(), "payee", invalidPayee)
 	})
 
 	t.Run("error_SendChUpdate", func(t *testing.T) {
@@ -245,22 +247,4 @@ func Test_ClosePayCh(t *testing.T) {
 		require.Error(t, gotErr)
 		t.Log(gotErr)
 	})
-}
-
-func assertAPIError(t *testing.T, e perun.APIError, category perun.ErrorCategory, code perun.ErrorCode, msg string) {
-	t.Helper()
-
-	assert.Equal(t, category, e.Category())
-	assert.Equal(t, code, e.Code())
-	assert.Contains(t, e.Message(), msg)
-}
-
-func assertErrInfoInvalidArgument(t *testing.T, info interface{}, name, value string) {
-	t.Helper()
-
-	addInfo, ok := info.(perun.ErrInfoInvalidArgument)
-	require.True(t, ok)
-	assert.Equal(t, name, addInfo.Name)
-	assert.Equal(t, value, addInfo.Value)
-	t.Log("requirement:", addInfo.Requirement)
 }

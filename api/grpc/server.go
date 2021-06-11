@@ -191,7 +191,7 @@ func (a *payChAPIServer) GetPeerID(ctx context.Context, req *pb.GetPeerIDReq) (*
 	}, nil
 }
 
-// OpenPayCh wraps session.OpenPayCh.
+// OpenPayCh wraps payment.OpenPayCh.
 func (a *payChAPIServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*pb.OpenPayChResp, error) {
 	errResponse := func(err perun.APIError) *pb.OpenPayChResp {
 		return &pb.OpenPayChResp{
@@ -224,7 +224,7 @@ func (a *payChAPIServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*
 	}, nil
 }
 
-// GetPayChsInfo wraps session.GetPayChs.
+// GetPayChsInfo wraps payment.GetPayChs.
 func (a *payChAPIServer) GetPayChsInfo(ctx context.Context, req *pb.GetPayChsInfoReq) (*pb.GetPayChsInfoResp, error) {
 	errResponse := func(err perun.APIError) *pb.GetPayChsInfoResp {
 		return &pb.GetPayChsInfoResp{
@@ -252,7 +252,7 @@ func (a *payChAPIServer) GetPayChsInfo(ctx context.Context, req *pb.GetPayChsInf
 	}, nil
 }
 
-// SubPayChProposals wraps session.SubPayChProposals.
+// SubPayChProposals wraps payment.SubPayChProposals.
 func (a *payChAPIServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
 	srv pb.Payment_API_SubPayChProposalsServer) error {
 	sess, err := a.n.GetSession(req.SessionID)
@@ -290,7 +290,7 @@ func (a *payChAPIServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
 	return nil
 }
 
-// UnsubPayChProposals wraps session.UnsubPayChProposals.
+// UnsubPayChProposals wraps payment.UnsubPayChProposals.
 func (a *payChAPIServer) UnsubPayChProposals(ctx context.Context, req *pb.UnsubPayChProposalsReq) (
 	*pb.UnsubPayChProposalsResp, error) {
 	errResponse := func(err perun.APIError) *pb.UnsubPayChProposalsResp {
@@ -329,7 +329,7 @@ func (a *payChAPIServer) closeGrpcPayChProposalSub(sessionID string) {
 	close(signal)
 }
 
-// RespondPayChProposal wraps session.RespondPayChProposal.
+// RespondPayChProposal wraps payment.RespondPayChProposal.
 func (a *payChAPIServer) RespondPayChProposal(ctx context.Context, req *pb.RespondPayChProposalReq) (
 	*pb.RespondPayChProposalResp, error) {
 	errResponse := func(err perun.APIError) *pb.RespondPayChProposalResp {
@@ -358,7 +358,7 @@ func (a *payChAPIServer) RespondPayChProposal(ctx context.Context, req *pb.Respo
 	}, nil
 }
 
-// CloseSession wraps session.CloseSession. For now, this is a stub.
+// CloseSession wraps payment.CloseSession. For now, this is a stub.
 func (a *payChAPIServer) CloseSession(ctx context.Context, req *pb.CloseSessionReq) (*pb.CloseSessionResp, error) {
 	errResponse := func(err perun.APIError) *pb.CloseSessionResp {
 		return &pb.CloseSessionResp{
@@ -386,7 +386,7 @@ func (a *payChAPIServer) CloseSession(ctx context.Context, req *pb.CloseSessionR
 	}, nil
 }
 
-// SendPayChUpdate wraps ch.SendPayChUpdate.
+// SendPayChUpdate wraps payment.SendPayChUpdate.
 func (a *payChAPIServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChUpdateReq) (
 	*pb.SendPayChUpdateResp, error) {
 	errResponse := func(err perun.APIError) *pb.SendPayChUpdateResp {
@@ -419,7 +419,7 @@ func (a *payChAPIServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChU
 	}, nil
 }
 
-// SubPayChUpdates wraps ch.SubPayChUpdates.
+// SubPayChUpdates wraps payment.SubPayChUpdates.
 func (a *payChAPIServer) SubPayChUpdates(req *pb.SubpayChUpdatesReq, srv pb.Payment_API_SubPayChUpdatesServer) error {
 	sess, err := a.n.GetSession(req.SessionID)
 	if err != nil {
@@ -479,7 +479,7 @@ var ToGrpcChUpdateType = map[perun.ChUpdateType]pb.SubPayChUpdatesResp_Notify_Ch
 	perun.ChUpdateTypeClosed: pb.SubPayChUpdatesResp_Notify_closed,
 }
 
-// UnsubPayChUpdates wraps ch.UnsubPayChUpdates.
+// UnsubPayChUpdates wraps payment.UnsubPayChUpdates.
 func (a *payChAPIServer) UnsubPayChUpdates(ctx context.Context, req *pb.UnsubPayChUpdatesReq) (
 	*pb.UnsubPayChUpdatesResp, error) {
 	errResponse := func(err perun.APIError) *pb.UnsubPayChUpdatesResp {
@@ -520,7 +520,7 @@ func (a *payChAPIServer) closeGrpcPayChUpdateSub(sessionID, chID string) {
 	close(signal)
 }
 
-// RespondPayChUpdate wraps ch.RespondPayChUpdate.
+// RespondPayChUpdate wraps payment.RespondPayChUpdate.
 func (a *payChAPIServer) RespondPayChUpdate(ctx context.Context, req *pb.RespondPayChUpdateReq) (
 	*pb.RespondPayChUpdateResp, error) {
 	errResponse := func(err perun.APIError) *pb.RespondPayChUpdateResp {
@@ -553,7 +553,7 @@ func (a *payChAPIServer) RespondPayChUpdate(ctx context.Context, req *pb.Respond
 	}, nil
 }
 
-// GetPayChInfo wraps ch.GetBalInfo.
+// GetPayChInfo wraps payment.GetBalInfo.
 func (a *payChAPIServer) GetPayChInfo(ctx context.Context, req *pb.GetPayChInfoReq) (
 	*pb.GetPayChInfoResp, error) {
 	errResponse := func(err perun.APIError) *pb.GetPayChInfoResp {
@@ -586,7 +586,7 @@ func (a *payChAPIServer) GetPayChInfo(ctx context.Context, req *pb.GetPayChInfoR
 	}, nil
 }
 
-// ClosePayCh wraps ch.ClosePayCh.
+// ClosePayCh wraps payment.ClosePayCh.
 func (a *payChAPIServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) (*pb.ClosePayChResp, error) {
 	errResponse := func(err perun.APIError) *pb.ClosePayChResp {
 		return &pb.ClosePayChResp{

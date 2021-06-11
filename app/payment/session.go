@@ -37,13 +37,19 @@ type (
 	PayChProposalNotifier func(PayChProposalNotif)
 )
 
-// OpenSession opens a session and interprets the restored channels as payment channels.
+// OpenSession opens a session and interprets the restored channels info as
+// payment channels info.
+//
+// See node.OpenSession for the list of errors returned by this API.
 func OpenSession(n perun.NodeAPI, configFile string) (string, []PayChInfo, perun.APIError) {
 	sessionID, restoredChsInfo, err := n.OpenSession(configFile)
 	return sessionID, toPayChsInfo(restoredChsInfo), err
 }
 
-// OpenPayCh opens a payment channel using the given sessionAPI instance with the specified parameters.
+// OpenPayCh opens a channel with payment app with the specified parameters. It
+// interprets the returned channel info as payment channel info.
+//
+// See session.OpenCh for the list of errors returned by this API.
 func OpenPayCh(pctx context.Context, s perun.SessionAPI, openingBalInfo perun.BalInfo, challengeDurSecs uint64) (
 	PayChInfo, perun.APIError) {
 	paymentApp := perun.App{
@@ -55,7 +61,8 @@ func OpenPayCh(pctx context.Context, s perun.SessionAPI, openingBalInfo perun.Ba
 	return toPayChInfo(chInfo), err
 }
 
-// GetPayChsInfo returns a list of payment channel info for all the channels in this session.
+// GetPayChsInfo fetches the list of all channels info in the session and
+// interprets them as payment channel info.
 func GetPayChsInfo(s perun.SessionAPI) []PayChInfo {
 	chsInfo := s.GetChsInfo()
 
@@ -66,7 +73,10 @@ func GetPayChsInfo(s perun.SessionAPI) []PayChInfo {
 	return payChsInfo
 }
 
-// SubPayChProposals sets up a subscription for payment channel proposals.
+// SubPayChProposals sets up a subscription for incoming channel proposals and
+// interprets the notifications as payment channel notifiations.
+//
+// See session.SubChProposals for the list of errors returned by this API.
 func SubPayChProposals(s perun.SessionAPI, notifier PayChProposalNotifier) perun.APIError {
 	return s.SubChProposals(func(notif perun.ChProposalNotif) {
 		notifier(PayChProposalNotif{
@@ -78,12 +88,17 @@ func SubPayChProposals(s perun.SessionAPI, notifier PayChProposalNotifier) perun
 	})
 }
 
-// UnsubPayChProposals deletes the existing subscription for payment channel proposals.
+// UnsubPayChProposals deletes the existing subscription for channel proposals.
+//
+// See session.UnsubChProposals for the list of errors returned by this API.
 func UnsubPayChProposals(s perun.SessionAPI) perun.APIError {
 	return s.UnsubChProposals()
 }
 
-// RespondPayChProposal sends the response to a payment channel proposal notification.
+// RespondPayChProposal sends the response to a payment channel proposal
+// notification and interprets the opening channel info as payment channel info.
+//
+// See session.RespondChProposal for the list of errors returned by this API.
 func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID string, accept bool) (PayChInfo,
 	perun.APIError) {
 	chInfo, apiErr := s.RespondChProposal(pctx, proposalID, accept)
@@ -97,6 +112,8 @@ type ErrInfoFailedPreCondUnclosedPayChs struct {
 }
 
 // CloseSession closes the current session.
+//
+// See session.CloseSession for the list of errors returned by this API.
 func CloseSession(s perun.SessionAPI, force bool) ([]PayChInfo, perun.APIError) {
 	openChsInfo, err := s.Close(force)
 	err = toPayChsCloseSessionErr(err)
@@ -114,5 +131,5 @@ func toPayChsCloseSessionErr(err perun.APIError) perun.APIError {
 	paymentAddInfo := ErrInfoFailedPreCondUnclosedPayChs{
 		PayChs: toPayChsInfo(addInfo.ChInfos),
 	}
-	return perun.NewAPIErr(err.Category(), err.Code(), err.Message(), paymentAddInfo)
+	return perun.NewAPIErr(err.Category(), err.Code(), err, paymentAddInfo)
 }
