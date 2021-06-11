@@ -19,17 +19,21 @@
 package session_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	copyutil "github.com/otiai10/copy"
+	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
+	"github.com/hyperledger-labs/perun-node/comm/tcp"
 	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
 	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
@@ -40,7 +44,18 @@ func Test_Integ_New(t *testing.T) {
 	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	cfg := sessiontest.NewConfigT(t, prng, peerIDs...)
 
+	// // TODO: (mano) Test if handle and listener are running as expected.
+
 	t.Run("happy", func(t *testing.T) {
+		cfgCopy := cfg
+		cfgCopy.DatabaseDir = newDatabaseDir(t)
+
+		// Listener will start listening on this port.
+		// Use a different port number to not affect other tests.
+		port, err := freeport.GetFreePort()
+		require.NoError(t, err)
+		cfg.User.CommAddr = fmt.Sprintf("127.0.0.1:%d", port)
+
 		sess, err := session.New(cfg)
 		require.NoError(t, err)
 		assert.NotNil(t, sess)
@@ -66,10 +81,44 @@ func Test_Integ_New(t *testing.T) {
 		assert.Error(t, err)
 		t.Log(err)
 	})
-	t.Run("invalid_user_onchain_addr", func(t *testing.T) {
+
+	t.Run("invalid_user_onChain_addr", func(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.User.OnChainAddr = ethereumtest.NewRandomAddress(prng).String()
+		cfgCopy.User.OnChainAddr = "invalid-addr" //nolint: goconst	// it's okay to repeat this phrase.
+		_, err := session.New(cfgCopy)
+		assert.Error(t, err)
+		t.Log(err)
+	})
+	t.Run("invalid_user_offChain_addr", func(t *testing.T) {
+		cfgCopy := cfg
+		cfgCopy.DatabaseDir = newDatabaseDir(t)
+		cfgCopy.User.OffChainAddr = "invalid-addr"
+		_, err := session.New(cfgCopy)
+		assert.Error(t, err)
+		t.Log(err)
+	})
+	t.Run("invalid_user_onChain_password", func(t *testing.T) {
+		cfgCopy := cfg
+		cfgCopy.DatabaseDir = newDatabaseDir(t)
+		cfgCopy.User.OnChainWallet.Password = "invalid-password"
+		_, err := session.New(cfgCopy)
+		assert.Error(t, err)
+		t.Log(err)
+	})
+	t.Run("invalid_user_offChain_password", func(t *testing.T) {
+		cfgCopy := cfg
+		cfgCopy.DatabaseDir = newDatabaseDir(t)
+		cfgCopy.User.OffChainWallet.Password = "invalid-password"
+		_, err := session.New(cfgCopy)
+		assert.Error(t, err)
+		t.Log(err)
+	})
+
+	t.Run("invalid_adjudicator_address", func(t *testing.T) {
+		cfgCopy := cfg
+		cfgCopy.DatabaseDir = newDatabaseDir(t)
+		cfgCopy.Adjudicator = "invalid-addr"
 		_, err := session.New(cfgCopy)
 		assert.Error(t, err)
 		t.Log(err)
@@ -77,7 +126,7 @@ func Test_Integ_New(t *testing.T) {
 	t.Run("invalid_asset_address", func(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.Asset = "invalid_addr"
+		cfgCopy.Asset = "invalid-addr"
 		_, err := session.New(cfgCopy)
 		assert.Error(t, err)
 		t.Log(err)
@@ -98,6 +147,15 @@ func Test_Integ_New(t *testing.T) {
 		assert.Error(t, err)
 		t.Log(err)
 	})
+
+	t.Run("invalid_comm_addr", func(t *testing.T) {
+		cfgCopy := cfg
+		cfgCopy.DatabaseDir = newDatabaseDir(t)
+		cfgCopy.User.CommAddr = "invalid-addr"
+		_, err := session.New(cfgCopy)
+		assert.Error(t, err)
+		t.Log(err)
+	})
 	t.Run("unsupported_comm_backend", func(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
@@ -106,6 +164,28 @@ func Test_Integ_New(t *testing.T) {
 		assert.Error(t, err)
 		t.Log(err)
 	})
+
+	t.Run("invalid_listener", func(t *testing.T) {
+		cfgCopy := cfg
+		cfgCopy.DatabaseDir = newDatabaseDir(t)
+
+		// Start listening on the port already so that session.Init fails.
+		// Use a different port number to not affect other tests.
+		port, err := freeport.GetFreePort()
+		require.NoError(t, err)
+		cfgCopy.User.CommAddr = fmt.Sprintf("127.0.0.1:%d", port)
+		listener, err := tcp.NewTCPBackend(1 * time.Second).NewListener(cfgCopy.User.CommAddr)
+		require.NoError(t, err)
+		go func() {
+			_, _ = listener.Accept() //nolint: errcheck		// no need to check error.
+		}()
+		defer listener.Close() //nolint: errcheck		// no need to check error.
+
+		_, err = session.New(cfgCopy)
+		assert.Error(t, err)
+		t.Log(err)
+	})
+
 	t.Run("unsupported_idprovider_type", func(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)

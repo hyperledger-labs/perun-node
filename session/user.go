@@ -23,20 +23,32 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 )
 
+// User represents a participant in the off-chain network that uses a session on this node for sending transactions.
+type User struct {
+	perun.PeerID
+
+	OnChain  perun.Credential // Account for funding the channel and the on-chain transactions.
+	OffChain perun.Credential // Account (corresponding to off-chain address) used for signing authentication messages.
+
+	// List of participant addresses for this user in each open channel.
+	// OffChain credential is used for managing all these accounts.
+	PartAddrs []pwallet.Address
+}
+
 // NewUnlockedUser initializes a user and unlocks all the accounts,
 // those corresponding to on-chain address, off-chain address and all participant addresses.
-func NewUnlockedUser(wb perun.WalletBackend, cfg UserConfig) (perun.User, error) {
+func NewUnlockedUser(wb perun.WalletBackend, cfg UserConfig) (User, error) {
 	var err error
-	u := perun.User{}
+	u := User{}
 
 	if u.OnChain, err = newCred(wb, cfg.OnChainWallet, cfg.OnChainAddr); err != nil {
-		return perun.User{}, errors.WithMessage(err, "on-chain wallet")
+		return User{}, errors.WithMessage(err, "on-chain wallet")
 	}
 	if u.OffChain, err = newCred(wb, cfg.OffChainWallet, cfg.OffChainAddr); err != nil {
-		return perun.User{}, errors.WithMessage(err, "off-chain wallet")
+		return User{}, errors.WithMessage(err, "off-chain wallet")
 	}
 	if u.PartAddrs, err = parseUnlock(wb, u.OffChain.Wallet, cfg.PartAddrs...); err != nil {
-		return perun.User{}, errors.WithMessage(err, "participant addresses")
+		return User{}, errors.WithMessage(err, "participant addresses")
 	}
 
 	u.PeerID.Alias = perun.OwnAlias

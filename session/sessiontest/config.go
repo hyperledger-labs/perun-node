@@ -31,10 +31,13 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
-	"github.com/hyperledger-labs/perun-node/client/clienttest"
 	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
 	"github.com/hyperledger-labs/perun-node/session"
 )
+
+// PeerReconnTimeout is the suggested value for peer reconnection timeout for
+// use in test environments.
+const PeerReconnTimeout = 20 * time.Second
 
 // ResponseTimeout is the suggested value for peer response timeout for use in tests.
 const ResponseTimeout = 10 * time.Second
@@ -125,7 +128,7 @@ func NewConfig(rng *rand.Rand, peerIDs ...perun.PeerID) (session.Config, error) 
 		ResponseTimeout:   ResponseTimeout,
 		OnChainTxTimeout:  ethereumtest.OnChainTxTimeout,
 		DatabaseDir:       databaseDir,
-		PeerReconnTimeout: clienttest.PeerReconnTimeout,
+		PeerReconnTimeout: PeerReconnTimeout,
 
 		IDProviderType: "local",
 		IDProviderURL:  idProviderURL,

@@ -26,6 +26,7 @@ import (
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
 	psync "perun.network/go-perun/pkg/sync"
+	pwire "perun.network/go-perun/wire"
 
 	"github.com/pkg/errors"
 
@@ -48,12 +49,15 @@ const (
 )
 
 type (
-	// Channel implements perun.ChAPI.
+	// Channel represents the perun channel established between different
+	// parties.
+	//
+	// It implements the perun.ChAPI interface.
 	Channel struct {
 		log.Logger
 
 		id                string
-		pch               perun.Channel
+		pch               PChannel
 		status            chStatus
 		wasCloseInitiated bool
 
@@ -71,6 +75,25 @@ type (
 		psync.Mutex
 	}
 
+	// PChannel represents the methods on the state channel controller defined
+	// in go-perun used by the perun node. This interface is introduced for the
+	// purpose of mocking during tests.
+	PChannel interface {
+		Close() error
+		ID() pchannel.ID
+		Idx() pchannel.Index
+		IsClosed() bool
+		Params() *pchannel.Params
+		Peers() []pwire.Address
+		Phase() pchannel.Phase
+		State() *pchannel.State
+		OnUpdate(cb func(from, to *pchannel.State))
+		UpdateBy(ctx context.Context, update func(*pchannel.State) error) error
+		Register(ctx context.Context) error
+		Settle(ctx context.Context, isSecondary bool) error
+		Watch(pclient.AdjudicatorEventHandler) error
+	}
+
 	chStatus uint8
 
 	chUpdateResponderEntry struct {
@@ -86,10 +109,13 @@ type (
 	}
 )
 
+//go:generate mockery --name PChannel --output ../internal/mocks
+
 //go:generate mockery --name ChUpdateResponder --output ../internal/mocks
 
-// newCh sets up a channel object from the passed pchannel.
-func newCh(pch perun.Channel, chainURL, currency string, parts []string, timeoutCfg timeoutConfig,
+// newCh initializes  a channel instance using the passed pchannel (controller)
+// and other channel parameters.
+func newCh(pch PChannel, chainURL, currency string, parts []string, timeoutCfg timeoutConfig,
 	challengeDurSecs uint64) *Channel {
 	ch := &Channel{
 		id:                 fmt.Sprintf("%x", pch.ID()),

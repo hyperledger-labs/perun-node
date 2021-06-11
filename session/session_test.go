@@ -162,10 +162,10 @@ func makeState(t *testing.T, balInfo perun.BalInfo, isFinal bool) *pchannel.Stat
 }
 
 func newMockPCh(t *testing.T, openingBalInfo perun.BalInfo) (
-	*mocks.Channel, chan time.Time) {
+	*mocks.PChannel, chan time.Time) {
 	var chID [32]byte
 	rand.Read(chID[:])
-	ch := &mocks.Channel{}
+	ch := &mocks.PChannel{}
 	ch.On("ID").Return(chID)
 	ch.On("State").Return(makeState(t, openingBalInfo, false))
 	watcherSignal := make(chan time.Time)
@@ -843,7 +843,7 @@ func Test_ProposeCh_GetCh(t *testing.T) {
 }
 
 func newSessionWCh(t *testing.T, peerIDs []perun.PeerID, openingBalInfo perun.BalInfo,
-	ch perun.Channel) *session.Session {
+	ch session.PChannel) *session.Session {
 	app := perun.App{
 		Def:  pchannel.NoApp(),
 		Data: pchannel.NoData(),

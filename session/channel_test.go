@@ -80,7 +80,7 @@ func Test_GetChInfo(t *testing.T) {
 	})
 
 	t.Run("nil_state", func(t *testing.T) {
-		pch := &mocks.Channel{}
+		pch := &mocks.PChannel{}
 		pch.On("ID").Return([32]byte{0, 1, 2})
 		pch.On("State").Return(nil)
 		watcherSignal := make(chan time.Time)
@@ -671,7 +671,7 @@ func Test_HandleWatcherReturned(t *testing.T) {
 	})
 
 	t.Run("happy_openCh_hasSub_WatchError", func(t *testing.T) {
-		pch := &mocks.Channel{}
+		pch := &mocks.PChannel{}
 		pch.On("ID").Return([32]byte{0, 1, 2})
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 		watcherSignal := make(chan time.Time)
