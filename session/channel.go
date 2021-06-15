@@ -289,7 +289,7 @@ func (ch *Channel) ChallengeDurSecs() uint64 {
 // - ErrInvalidArgument with Name:"Amount" when any of the amounts is invalid.
 // - ErrPeerRequestTimedOut when peer request times out.
 // - ErrPeerRejected when peer rejects the request.
-// - ErrUnknownInternal
+// - ErrUnknownInternal.
 func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater) (perun.ChInfo, perun.APIError) {
 	ch.WithField("method", "SendChUpdate").Infof("\nReceived request with params %+v", updater)
 	ch.Lock()
@@ -461,15 +461,15 @@ func (ch *Channel) unsubChUpdates() {
 	ch.chUpdateNotifier = nil
 }
 
-// Responds to an incoming channel update for which a notification had been
-// received. Response should be sent before the notification expires. Use the
-// `Time` API to fetch current time of the perun node for checking notification
-// expiry.
+// RespondChUpdate responds to an incoming channel update for which a
+// notification had been received. Response should be sent before the
+// notification expires. Use the `Time` API to fetch current time of the perun
+// node for checking notification expiry.
 //
 // If there is an error, it will be one of the following codes:
 // - ErrResourceNotFound with ResourceType: "update" when update ID is not known.
 // - ErrUserResponseTimedOut when user responded after time out expired.
-// - ErrUnknownInternal
+// - ErrUnknownInternal.
 func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) (
 	perun.ChInfo, perun.APIError) {
 	ch.WithField("method", "RespondChUpdate").Infof("\nReceived request with params %+v,%+v", updateID, accept)
@@ -600,11 +600,11 @@ func makeBalInfoFromRawBal(parts []string, curr string, rawBal []*big.Int) perun
 	return balInfo
 }
 
-// Closes the channel. First it tries to finalize the last agreed state of the
-// payment channel off-chain (by sending a finalizing update) and then settling it
-// on the blockchan. If the channel participants reject/not respond to the
-// finalizing update, the last agreed state will be finalized directly on the
-// blockchain. The call will return after this.
+// Close closes the channel. First it tries to finalize the last agreed state
+// of the payment channel off-chain (by sending a finalizing update) and then
+// settling it on the blockchain. If the channel participants reject/not
+// respond to the finalizing update, the last agreed state will be finalized
+// directly on the blockchain. The call will return after this.
 //
 // The node will then wait for the challenge duration to pass (if the channel was
 // directly settled on the blockchain) and the withdraw the balance as per the
@@ -620,7 +620,7 @@ func makeBalInfoFromRawBal(parts []string, curr string, rawBal []*big.Int) perun
 // If there is an error returned by this API, it will be one of the following codes:
 // - ErrTxTimedOut with TxType: "Register" when register tx times out.
 // - ErrChainNotReachable when connection to blockchain drops while register.
-// - ErrUnknownInternal
+// - ErrUnknownInternal.
 func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, perun.APIError) {
 	ch.WithField("method", "ChClose").Infof("\nReceived request")
 	ch.Lock()
