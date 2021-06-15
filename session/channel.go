@@ -149,43 +149,42 @@ func (ch *Channel) HandleAdjudicatorEvent(e pchannel.AdjudicatorEvent) {
 	defer ch.Unlock()
 
 	switch e.(type) {
-	// For collaborative close, this type of event will not be received.
-	//
-	// For non-collaborative close, both the parties receive a registered
-	// event. The channel is settled on this event.
+
 	case *pchannel.RegisteredEvent:
-		ch.Infof("Waiting for timeout to pass")
-		err := e.Timeout().Wait(context.Background())
-		if err != nil {
-			ch.Errorf("Wait for timeout returned error:%v. Trying to settle anyways", err)
-		} else {
-			ch.Info("Timeout passed, initiating settle")
-		}
+		// For collaborative close, this type of event will NOT BE RECEIVED as the
+		// channel will be directly concluded.
+		//
+		// For non-collaborative close, both the parties receive a registered
+		// event. The channel is settled on this event.
+		if !ch.pch.State().IsFinal {
+			ch.Infof("Waiting for timeout to pass")
+			err := e.Timeout().Wait(context.Background())
+			if err != nil {
+				ch.Errorf("Wait for timeout returned error:%v. Trying to settle anyways", err)
+			} else {
+				ch.Info("Timeout passed, initiating settle")
+			}
 
-		apiErr := ch.settle()
-		ch.closeAndNotify(apiErr)
-		return
-
-	// For collaborative close, this type of event will be received after one
-	// of the parties registered the final state on the chain. The channel is
-	// settled on this event.
-	//
-	// For non-collaborative close, both parties receive this event after the
-	// channel is closed. The channel will be marked as closed.
-	case *pchannel.ConcludedEvent:
-		var apiErr perun.APIError
-		if ch.pch.State().IsFinal {
-			apiErr = ch.settle()
+			apiErr := ch.settle()
 			ch.closeAndNotify(apiErr)
 			return
 		}
 
-		err := ch.checkIfWithdrawn()
-		if err != nil {
-			apiErr = perun.NewAPIErrUnknownInternal(err)
+	case *pchannel.ConcludedEvent:
+		// For collaborative close, this type of event will be received after one
+		// of the parties registered the final state on the chain. The channel is
+		// settled on this event.
+		//
+		// For non-collaborative close, both parties receive this event after
+		// channel is concluded. But it should BE IGNORED, as it will be handled by
+		// go-perun framework itself.
+		// For details, see the ensureConcluded call in adjudicator.Withdraw
+		// implementation in go-perun/backend/ethereum/channel package.
+		if ch.pch.State().IsFinal {
+			apiErr := ch.settle()
+			ch.closeAndNotify(apiErr)
+			return
 		}
-		ch.closeAndNotify(apiErr)
-		return
 
 	default:
 		ch.Infof("Ignoring adjudicator event that is not of type RegisteredEvent or ConcludedEvent")
@@ -207,16 +206,6 @@ func (ch *Channel) settle() perun.APIError {
 		return ch.handleChSettleError(errors.WithMessage(err, "settling channel"))
 	}
 	return nil
-}
-
-func (ch *Channel) checkIfWithdrawn() error {
-	var err error
-	phase := ch.pch.Phase()
-	// TODO (mano): Explore the possibilities for the channel to not be in Withdrawn?
-	if phase != pchannel.Withdrawn {
-		err = errors.New("Expected channel phase withdraw, got " + phase.String())
-	}
-	return err
 }
 
 // handleChSettleError inspects the passed error, constructs an
