@@ -283,7 +283,7 @@ func handleUpdateTypeFinalNotif(chAlias string, notif *pb.SubPayChUpdatesResp_No
 
 	sh.Printf("%s\n", greenf("Finalizing payment notification received on channel %s. (ID:%s)",
 		chAlias, notif.Notify.ProposedPayChInfo.ChID))
-	sh.Printf("%s\n", greenf("Channel will closed if this payment update is responded to."))
+	sh.Printf("%s\n", greenf("Channel will be closed if this payment update is responded to."))
 	sh.Printf("%s\n\n", greenf("Current:\t%s.\nProposed:\t%s.\nExpires in %ds.",
 		prettifyBalanceInfo(currPayChInfo.BalInfo, currPayChInfo.Version),
 		prettifyBalanceInfo(notif.Notify.ProposedPayChInfo.BalInfo, notif.Notify.ProposedPayChInfo.Version),
@@ -297,10 +297,18 @@ func handleUpdateTypeFinalNotif(chAlias string, notif *pb.SubPayChUpdatesResp_No
 }
 
 func handleUpdateTypeClosedNotif(chAlias string, notif *pb.SubPayChUpdatesResp_Notify_) {
-	sh.Printf("%s", greenf("Payment channel close notification received on channel %s (ID: %s)\n",
-		chAlias, notif.Notify.ProposedPayChInfo.ChID))
-	sh.Printf("%s\n\n", greenf("%s.",
-		prettifyBalanceInfo(notif.Notify.ProposedPayChInfo.BalInfo, notif.Notify.ProposedPayChInfo.Version)))
+	if notif.Notify.Error == nil {
+		sh.Printf("%s", greenf("Payment channel close notification received on channel %s (ID: %s)\n",
+			chAlias, notif.Notify.ProposedPayChInfo.ChID))
+		sh.Printf("%s\n\n", greenf("%s.",
+			prettifyBalanceInfo(notif.Notify.ProposedPayChInfo.BalInfo, notif.Notify.ProposedPayChInfo.Version)))
+	} else {
+		sh.Printf("%s", greenf("Payment channel close notification received on channel %s (ID: %s)\n",
+			chAlias, notif.Notify.ProposedPayChInfo.ChID))
+		sh.Printf("%s\n\n", redf("Error settling the state:\n%s\non the blockchain:%s\n..",
+			prettifyBalanceInfo(notif.Notify.ProposedPayChInfo.BalInfo, notif.Notify.ProposedPayChInfo.Version),
+			apiErrorString(notif.Notify.Error)))
+	}
 
 	removeOpenChannelID(chAlias)
 }

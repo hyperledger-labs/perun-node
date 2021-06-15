@@ -534,8 +534,16 @@ func Test_Close(t *testing.T) {
 	}
 	peerIdx := 1
 
-	t.Run("happy_finalizeNoError_settle", func(t *testing.T) {
-		pch, _ := newMockPCh()
+	assertNotif := func(t *testing.T, notifs []perun.ChUpdateNotif, wantVersion uint64, wantExpiry int64) {
+		t.Helper()
+		require.Len(t, notifs, 1)
+		require.Equal(t, perun.ChUpdateTypeClosed, notifs[0].Type)
+		require.Equal(t, fmt.Sprintf("%d", wantVersion), notifs[0].CurrChInfo.Version)
+		require.Equal(t, wantExpiry, notifs[0].Expiry)
+	}
+
+	t.Run("happy_forInitiator_finalized_settle_notify", func(t *testing.T) {
+		pch, watcherSignal := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		var finalizer perun.StateUpdater
@@ -547,17 +555,71 @@ func Test_Close(t *testing.T) {
 		})).Return(nil)
 		pch.On("Register", mock.Anything).Return(nil)
 
+		// == Part 1: Check if channel close was initialized correctly.
 		gotChInfo, err := ch.Close(context.Background())
 		require.NoError(t, err)
 		assert.NotZero(t, gotChInfo)
 
+		// == Part 2: Check if finalizer sent to UpdateBy marks the channel as final.
 		emptyState := pchannel.State{}
 		assert.NoError(t, finalizer(&emptyState))
 		assert.True(t, emptyState.IsFinal)
+
+		// == Part 3: Simulate concluded event and test check if channel close notification is sent.
+		var concludedVersion uint64 = 1 // will have been incremented in finalizing update.
+		concludedEvent := &pchannel.ConcludedEvent{
+			AdjudicatorEventBase: *pchannel.NewAdjudicatorEventBase(
+				pch.ID(), &pchannel.ElapsedTimeout{}, concludedVersion),
+		}
+		finalizedState := makeState(t, validOpeningBalInfo, true)
+		finalizedState.Version++
+		pch.On("State").Return(finalizedState)
+		pch.On("Settle", mock.Anything, mock.Anything).Return(nil)
+		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
+			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
+		})
+
+		wantExpiry := int64(0)
+		notifs := make([]perun.ChUpdateNotif, 0, 1) // Subscribe to channel close notification.
+		notifer := func(notif perun.ChUpdateNotif) {
+			notifs = append(notifs, notif)
+		}
+		require.NoError(t, ch.SubChUpdates(notifer))
+
+		ch.HandleAdjudicatorEvent(concludedEvent)
+		assertNotif(t, notifs, concludedVersion, wantExpiry)
 	})
 
-	t.Run("happy_finalizeError_settle", func(t *testing.T) { //nolint: dupl		// not duplicate of 573-585.
-		pch, _ := newMockPCh()
+	t.Run("happy_forNonInitiator_finalized_settle_notify", func(t *testing.T) {
+		pch, watcherSignal := newMockPCh()
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+
+		// Simulate concluded event and test check if channel close notification is sent.
+		var concludedVersion uint64 = 1 // will have been incremented in finalizing update.
+		concludedEvent := &pchannel.ConcludedEvent{
+			AdjudicatorEventBase: *pchannel.NewAdjudicatorEventBase(pch.ID(), &pchannel.ElapsedTimeout{}, concludedVersion),
+		}
+		finalizedState := makeState(t, validOpeningBalInfo, true)
+		finalizedState.Version++
+		pch.On("State").Return(finalizedState)
+		pch.On("Settle", mock.Anything, mock.Anything).Return(nil)
+		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
+			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
+		})
+
+		wantExpiry := int64(0)
+		notifs := make([]perun.ChUpdateNotif, 0, 1) // Subscribe to channel close notification.
+		notifer := func(notif perun.ChUpdateNotif) {
+			notifs = append(notifs, notif)
+		}
+		require.NoError(t, ch.SubChUpdates(notifer))
+
+		ch.HandleAdjudicatorEvent(concludedEvent)
+		assertNotif(t, notifs, concludedVersion, wantExpiry)
+	})
+
+	t.Run("happy_ForInitiator_notFinalized_settle_notify", func(t *testing.T) {
+		pch, watcherSignal := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
@@ -565,39 +627,62 @@ func Test_Close(t *testing.T) {
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(assert.AnError)
 		pch.On("Register", mock.Anything).Return(nil)
 
+		// == Part 1: Check if channel close was initialized correctly.
 		gotChInfo, err := ch.Close(context.Background())
 		require.NoError(t, err)
 		assert.NotZero(t, gotChInfo)
+
+		// == Part 2: Simulate registered event and test check if channel close notification is sent.
+		var registeredVersion uint64
+		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion)
+		pch.On("Settle", mock.Anything, mock.Anything).Return(nil)
+		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
+			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
+		})
+
+		wantExpiry := int64(0)
+		notifs := make([]perun.ChUpdateNotif, 0, 1) // Subscribe to channel close notification.
+		notifer := func(notif perun.ChUpdateNotif) {
+			notifs = append(notifs, notif)
+		}
+		require.NoError(t, ch.SubChUpdates(notifer))
+
+		ch.HandleAdjudicatorEvent(registeredEvent)
+		assertNotif(t, notifs, registeredVersion, wantExpiry)
 	})
 
-	t.Run("happy_closeError", func(t *testing.T) { //nolint: dupl		// not duplicate of 559-571.
-		pch, _ := newMockPCh()
+	t.Run("happy_forNonInitiator_notFinalized_settle_notify", func(t *testing.T) {
+		pch, watcherSignal := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
-		pch.On("Idx").Return(pchannel.Index(peerIdx))
+		// Simulate registered event and test check if channel close notification is sent.
+		var registeredVersion uint64
+		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion)
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(assert.AnError)
-		pch.On("Register", mock.Anything).Return(nil)
+		pch.On("Settle", mock.Anything, mock.Anything).Return(nil)
+		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
+			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
+		})
 
-		gotChInfo, err := ch.Close(context.Background())
-		require.NoError(t, err)
-		assert.NotZero(t, gotChInfo)
+		wantExpiry := int64(0)
+		notifs := make([]perun.ChUpdateNotif, 0, 1) // Subscribe to channel close notification.
+		notifer := func(notif perun.ChUpdateNotif) {
+			notifs = append(notifs, notif)
+		}
+		require.NoError(t, ch.SubChUpdates(notifer))
+
+		ch.HandleAdjudicatorEvent(registeredEvent)
+		assertNotif(t, notifs, registeredVersion, wantExpiry)
 	})
 
-	t.Run("channel_closed", func(t *testing.T) {
-		pch, _ := newMockPCh()
-		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
-
-		_, err := ch.Close(context.Background())
-		require.Error(t, err)
-
-		wantMessage := session.ErrChClosed.Error()
-		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
-		assert.Nil(t, err.AddInfo())
-	})
-
-	t.Run("finalized_settle_AnError", func(t *testing.T) {
+	// Test for errors returned by register are implemented only for
+	// nonInitiator, because, for NonInitiator, register is called after
+	// accepting the final update in RespondChUpdate API.
+	//
+	// Also, we test only for the finalized case, because from the perspective
+	// of accessing the go-perun API, there is not difference between calling
+	// register on a finalized or non-finalized channel.
+	t.Run("forInitiator_finalized_register_AnError", func(t *testing.T) {
 		pch, _ := newMockPCh()
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
@@ -611,7 +696,7 @@ func Test_Close(t *testing.T) {
 		assertAPIError(t, err, perun.InternalError, perun.ErrUnknownInternal, assert.AnError.Error())
 	})
 
-	t.Run("finalized_settle_TxTimeoutError", func(t *testing.T) {
+	t.Run("forInitiator_finalized_register_TxTimeoutError", func(t *testing.T) {
 		txTimedoutError := pclient.TxTimedoutError{
 			TxType: pethchannel.Register.String(),
 			TxID:   "0xabcd",
@@ -633,7 +718,7 @@ func Test_Close(t *testing.T) {
 		assertErrInfoTxTimedOut(t, err.AddInfo(), txType, txID, txTimeout)
 	})
 
-	t.Run("finalized_settle_ChainNotReachable", func(t *testing.T) {
+	t.Run("forInitiator_finalized_register_ChainNotReachable", func(t *testing.T) {
 		chainURL := ethereumtest.ChainURL
 		chainNotReachableError := pclient.ChainNotReachableError{}
 		pch, _ := newMockPCh()
@@ -650,56 +735,110 @@ func Test_Close(t *testing.T) {
 		assertAPIError(t, err, perun.ProtocolFatalError, perun.ErrChainNotReachable, wantMessage)
 		assertErrInfoChainNotReachable(t, err.AddInfo(), chainURL)
 	})
-}
 
-func Test_HandleWatcherReturned(t *testing.T) {
-	peers := newPeerIDs(t, uint(2))
-	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETH,
-		Parts:    []string{perun.OwnAlias, peers[0].Alias},
-		Bal:      []string{"1", "2"},
-	}
-
-	t.Run("happy_openCh_dropNotif", func(t *testing.T) {
+	// While on-chain errors can occur on all cases,
+	// (finalzed/notFinalized) (forInitiator/forNonInitiator), all paths will
+	// use the same "ch.settle" function. So the tests are implemented in the
+	// notFinalized, forNonInitiator case, because this requires minimal setup.
+	t.Run("notFinalized_settle_AnError", func(t *testing.T) {
 		pch, watcherSignal := newMockPCh()
-		pch.On("Close").Return(nil)
-		_ = session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
-		watcherSignal <- time.Now()
-	})
-
-	t.Run("happy_closedCh_dropNotif", func(t *testing.T) {
-		pch, watcherSignal := newMockPCh()
-		pch.On("Close").Return(nil)
-		_ = session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
-		watcherSignal <- time.Now()
-	})
-
-	t.Run("happy_openCh_hasSub_WatchNoError", func(t *testing.T) {
-		pch, watcherSignal := newMockPCh()
-		pch.On("Close").Return(nil)
 		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
-		notifs := make([]perun.ChUpdateNotif, 0, 2)
-		notifer := func(notif perun.ChUpdateNotif) {
-			notifs = append(notifs, notif)
-		}
-		require.NoError(t, ch.SubChUpdates(notifer))
-		watcherSignal <- time.Now()
-	})
 
-	t.Run("happy_openCh_hasSub_WatchError", func(t *testing.T) {
-		pch := &mocks.PChannel{}
-		pch.On("ID").Return([32]byte{0, 1, 2})
+		// Simulate registered event and test check if channel close notification with error is sent.
+		var registeredVersion uint64
+		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion)
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-		watcherSignal := make(chan time.Time)
-		pch.On("Watch", mock.Anything).WaitUntil(watcherSignal).Return(assert.AnError)
+		pch.On("Settle", mock.Anything, mock.Anything).Return(assert.AnError)
+		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
+			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
+		})
 
-		pch.On("Close").Return(nil)
-		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
-		notifs := make([]perun.ChUpdateNotif, 0, 2)
+		wantExpiry := int64(0)
+		notifs := make([]perun.ChUpdateNotif, 0, 1) // Subscribe to channel close notification.
 		notifer := func(notif perun.ChUpdateNotif) {
 			notifs = append(notifs, notif)
 		}
 		require.NoError(t, ch.SubChUpdates(notifer))
-		watcherSignal <- time.Now()
+
+		ch.HandleAdjudicatorEvent(registeredEvent)
+		assertNotif(t, notifs, registeredVersion, wantExpiry)
+		require.Error(t, notifs[0].Error)
+		assertAPIError(t, notifs[0].Error, perun.InternalError, perun.ErrUnknownInternal, assert.AnError.Error())
+	})
+
+	t.Run("notFinalized_settle_TxTimedout", func(t *testing.T) {
+		txTimedoutError := pclient.TxTimedoutError{
+			TxType: pethchannel.Withdraw.String(),
+			TxID:   "0xabcd",
+		}
+		pch, watcherSignal := newMockPCh()
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+
+		// Simulate registered event and test check if channel close notification with error is sent.
+		var registeredVersion uint64
+		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion)
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		pch.On("Settle", mock.Anything, mock.Anything).Return(txTimedoutError)
+		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
+			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
+		})
+
+		wantExpiry := int64(0)
+		notifs := make([]perun.ChUpdateNotif, 0, 1) // Subscribe to channel close notification.
+		notifer := func(notif perun.ChUpdateNotif) {
+			notifs = append(notifs, notif)
+		}
+		require.NoError(t, ch.SubChUpdates(notifer))
+
+		ch.HandleAdjudicatorEvent(registeredEvent)
+		assertNotif(t, notifs, registeredVersion, wantExpiry)
+		require.Error(t, notifs[0].Error)
+		assertAPIError(t, notifs[0].Error, perun.ProtocolFatalError, perun.ErrTxTimedOut, txTimedoutError.Error())
+		txType := txTimedoutError.TxType
+		txID := txTimedoutError.TxID
+		txTimeout := ethereumtest.OnChainTxTimeout.String()
+		assertErrInfoTxTimedOut(t, notifs[0].Error.AddInfo(), txType, txID, txTimeout)
+	})
+
+	t.Run("notFinalized_settle_ChainNotReachable", func(t *testing.T) {
+		chainURL := ethereumtest.ChainURL
+		chainNotReachableError := pclient.ChainNotReachableError{}
+		pch, watcherSignal := newMockPCh()
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+
+		// Simulate registered event and test check if channel close notification with error is sent.
+		var registeredVersion uint64
+		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion)
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		pch.On("Settle", mock.Anything, mock.Anything).Return(chainNotReachableError)
+		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
+			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
+		})
+
+		wantExpiry := int64(0)
+		notifs := make([]perun.ChUpdateNotif, 0, 1) // Subscribe to channel close notification.
+		notifer := func(notif perun.ChUpdateNotif) {
+			notifs = append(notifs, notif)
+		}
+		require.NoError(t, ch.SubChUpdates(notifer))
+
+		ch.HandleAdjudicatorEvent(registeredEvent)
+		assertNotif(t, notifs, registeredVersion, wantExpiry)
+		require.Error(t, notifs[0].Error)
+		wantMessage := chainNotReachableError.Error()
+		assertAPIError(t, notifs[0].Error, perun.ProtocolFatalError, perun.ErrChainNotReachable, wantMessage)
+		assertErrInfoChainNotReachable(t, notifs[0].Error.AddInfo(), chainURL)
+	})
+	t.Run("channel_closed", func(t *testing.T) {
+		pch, _ := newMockPCh()
+		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		ch := session.NewChForTest(pch, currency.ETH, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
+
+		_, err := ch.Close(context.Background())
+		require.Error(t, err)
+
+		wantMessage := session.ErrChClosed.Error()
+		assertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
+		assert.Nil(t, err.AddInfo())
 	})
 }

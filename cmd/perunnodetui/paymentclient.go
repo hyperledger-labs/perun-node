@@ -204,7 +204,11 @@ func incomingUpdateHandler(sub pb.Payment_API_SubPayChUpdatesClient) {
 		}
 
 		if notif.Type == pb.SubPayChUpdatesResp_Notify_closed {
-			p.notifyClosingUpdate(grpcPayChInfotoBalInfo(notif.ProposedPayChInfo))
+			errMsg := ""
+			if notif.Error != nil {
+				errMsg = printAPIError(notif.Error)
+			}
+			p.notifyClosingUpdate(grpcPayChInfotoBalInfo(notif.ProposedPayChInfo), errMsg)
 			return
 		}
 

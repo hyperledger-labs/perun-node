@@ -427,9 +427,9 @@ type (
 		Expiry int64
 
 		// Error represents any error encountered while processing incoming updates or
-		// while a channel is closed by the watcher..
+		// while a channel is closed by the watcher.
 		// When this is non empty, expiry will also be zero and no response is expected
-		Error string
+		Error APIError
 	}
 
 	// App represents the app definition and the corresponding app data for a channel.

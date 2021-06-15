@@ -239,12 +239,17 @@ func (p *channel) toTransact(chID string, current balInfo) {
 	logInfo("subscribed to updates")
 }
 
-func (p *channel) notifyClosingUpdate(updated balInfo) {
+func (p *channel) notifyClosingUpdate(updated balInfo, errorMsg string) {
 	p.Lock()
-	p.phase = closed
-	if p.current.version != updated.version {
-		updated.version += " F"
-		p.current = updated
+	if errorMsg == "" {
+		p.phase = closed
+		if p.current.version != updated.version {
+			updated.version += " F"
+			p.current = updated
+		}
+	} else {
+		p.status = errorStatus
+		logErrorf("settling channel %d: %s", p.sNo, errorMsg)
 	}
 
 	p.clearUpdate()
