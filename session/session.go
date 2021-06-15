@@ -286,7 +286,7 @@ func (s *Session) handleRestoredCh(pch PChannel) {
 // - ErrResourceExists with ResourceType: "peerID" when peer ID is already registered
 // - ErrInvalidArgument with Name:"peerAlias" when peer alias is used for another peer,
 // - ErrInvalidArgument with Name:"offChainAddress" when off-chain address is invalid.
-// - ErrUnknownInternal
+// - ErrUnknownInternal.
 func (s *Session) AddPeerID(peerID perun.PeerID) perun.APIError {
 	s.WithField("method", "AddPeerID").Info("Received request with params:", peerID)
 	s.Lock()
@@ -323,7 +323,7 @@ func (s *Session) AddPeerID(peerID perun.PeerID) perun.APIError {
 // of the session.
 //
 // If there is errors, it will be one of the following codes:
-// - ErrResourceNotFound with ResourceType: "peerID" when peer alias is not known,
+// - ErrResourceNotFound with ResourceType: "peerID" when peer alias is not known.
 func (s *Session) GetPeerID(alias string) (perun.PeerID, perun.APIError) {
 	s.WithField("method", "GetPeerID").Info("Received request with params:", alias)
 	s.Lock()
@@ -362,7 +362,7 @@ func (s *Session) GetPeerID(alias string) (perun.PeerID, perun.APIError) {
 // - ErrPeerNotFunded when peer did not fund the channel in time.
 // - ErrTxTimedOut with TxType: "Fund" when funding tx times out.
 // - ErrChainNotReachable when connection to blockchain drops while funding.
-// - ErrUnknownInternal
+// - ErrUnknownInternal.
 func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app perun.App, challengeDurSecs uint64) (
 	perun.ChInfo, perun.APIError) {
 	s.WithField("method", "OpenCh").Infof(
@@ -732,7 +732,7 @@ func (s *Session) UnsubChProposals() perun.APIError {
 // - ErrUserResponseTimedOut when user responded after time out expired.
 // - ErrTxTimedOut with TxType: "Fund" when there is tx timed error while funding.
 // - ErrChainNotReachable when connection to blockchain drops while funding.
-// - ErrUnknownInternal
+// - ErrUnknownInternal.
 func (s *Session) RespondChProposal(pctx context.Context, chProposalID string, accept bool) (
 	perun.ChInfo, perun.APIError) {
 	s.WithField("method", "RespondChProposal").Infof("\nReceived request with Params %+v,%+v", chProposalID, accept)
@@ -921,7 +921,7 @@ func (s *Session) HandleUpdateWInterface(
 // - ErrFailedPreCondition when session is closed with force=false and unclosed channels
 //   exists. Additional Info will contain an extra field: OpenChannelsInfo
 //   that contains a list of Channel Info.
-// - ErrUnknownInternal
+// - ErrUnknownInternal.
 func (s *Session) Close(force bool) ([]perun.ChInfo, perun.APIError) {
 	s.WithField("method", "Close").Infof("\nReceived request with params %+v", force)
 	s.Debug("Received request: session.Close")

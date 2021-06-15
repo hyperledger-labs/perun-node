@@ -100,7 +100,7 @@ func (n *node) Help() []string {
 // - ErrInvalidArgument with Name:"configFile" when config file cannot be accessed.
 // - ErrInvalidConfig when any of the configuration is invalid.
 // - ErrInvalidContracts when the contracts at the addresses in config are invalid.
-// - ErrUnknownInternal
+// - ErrUnknownInternal.
 func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.APIError) {
 	n.WithField("method", "OpenSession").Infof("\nReceived request with params %+v", configFile)
 	n.Lock()
