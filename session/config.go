@@ -22,6 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	pwire "perun.network/go-perun/wire"
 )
 
 type (
@@ -29,19 +30,23 @@ type (
 	Config struct {
 		User UserConfig
 
-		IDProviderType     string        // Type of ID provider.
-		IDProviderURL      string        // URL for accessing the ID provider.
-		ChainURL           string        // URL of the blockchain node.
-		ChainID            int           // See client/config.go.
-		Asset, Adjudicator string        // Address of the Asset and Adjudicator contracts.
-		ChainConnTimeout   time.Duration // Timeout for connecting to blockchain node.
-		OnChainTxTimeout   time.Duration // Timeout to wait for confirmation of on-chain tx.
-		ResponseTimeout    time.Duration // Timeout to wait for a response from the peer / user.
+		IDProviderType   string        // Type of ID provider.
+		IDProviderURL    string        // URL for accessing the ID provider.
+		ChainURL         string        // URL of the blockchain node.
+		ChainID          int           // See chainconfig.
+		ChainConnTimeout time.Duration // Timeout for connecting to blockchain node.
+		OnChainTxTimeout time.Duration // Timeout to wait for confirmation of on-chain tx.
+		ResponseTimeout  time.Duration // Timeout to wait for a response from the peer / user.
 
 		DatabaseDir string // Path to directory containing persistence database.
 		// Timeout for re-establishing all open channels (if any) that was persisted during the
 		// previous running instance of the node.
 		PeerReconnTimeout time.Duration
+
+		// Address of the valid Asset and Adjudicator contracts.
+		// These values are set by the node and will not parsed from the user
+		// provided configuration.
+		Asset, Adjudicator pwire.Address `yaml:"-"`
 	}
 
 	// UserConfig defines the parameters required to configure a user.
@@ -68,7 +73,7 @@ type (
 
 	// clientConfig represents the configuration parameters for state channel client.
 	clientConfig struct {
-		Chain chainConfig
+		Chain ChainConfig
 
 		// Path to directory containing persistence database.
 		DatabaseDir string
@@ -77,12 +82,8 @@ type (
 		PeerReconnTimeout time.Duration
 	}
 
-	// chainConfig represents the configuration parameters for connecting to blockchain.
-	chainConfig struct {
-		// Addresses of on-chain contracts used for establishing state channel network.
-		Adjudicator string
-		Asset       string
-
+	// ChainConfig represents the configuration parameters for connecting to blockchain.
+	ChainConfig struct {
 		// URL for connecting to the blockchain node.
 		URL string
 		// ChainID is the unique identifier for different chains in the ethereum ecosystem.
@@ -91,6 +92,11 @@ type (
 		ConnTimeout time.Duration
 		// OnChainTxTimeout is the timeout to wait for a blockchain transaction to be finalized.
 		OnChainTxTimeout time.Duration
+
+		// Address of the valid Asset and Adjudicator contracts.
+		// These values are set by the node and will not parsed from the user
+		// provided configuration.
+		Asset, Adjudicator pwire.Address `yaml:"-"`
 	}
 )
 
