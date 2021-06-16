@@ -109,12 +109,12 @@ type Credential struct {
 	Password string
 }
 
-// ChainBackend wraps the methods required for instantiating and using components for
-// making on-chain transactions and reading on-chain values on a specific blockchain platform.
-// The timeout for on-chain transaction should be implemented by the corresponding backend. It is
-// up to the implementation to make the value user configurable.
+// ChainBackend wraps the methods required for deploy contracts, validating
+// them and instantiating funde, adjudicator instances.
 //
-// It defines methods for deploying contracts; validating deployed contracts and instantiating a funder, adjudicator.
+// The timeout for on-chain transaction should be implemented by the
+// corresponding backend. It is up to the implementation to make the value user
+// configurable.
 type ChainBackend interface {
 	DeployAdjudicator(onChainAddr pwallet.Address) (adjAddr pwallet.Address, _ error)
 	DeployAsset(adjAddr, onChainAddr pwallet.Address) (assetAddr pwallet.Address, _ error)
@@ -122,6 +122,16 @@ type ChainBackend interface {
 	ValidateAssetHolderETH(adjAddr, assetAddr pwallet.Address) error
 	NewFunder(assetAddr, onChainAddr pwallet.Address) pchannel.Funder
 	NewAdjudicator(adjAddr, receiverAddr pwallet.Address) pchannel.Adjudicator
+}
+
+// ROChainBackend wraps the methods required for validating contracts.
+//
+// The timeout for on-chain transaction should be implemented by the
+// corresponding backend. It is up to the implementation to make the value user
+// configurable.
+type ROChainBackend interface {
+	ValidateAdjudicator(adjAddr pwallet.Address) error
+	ValidateAssetHolderETH(adjAddr, assetAddr pwallet.Address) error
 }
 
 // WalletBackend wraps the methods for instantiating wallets and accounts that are specific to a blockchain platform.

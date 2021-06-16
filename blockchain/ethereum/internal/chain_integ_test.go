@@ -1,4 +1,4 @@
-// Copyright (c) 2020 - for information on the respective copyright owner
+// Copyright (c) 2021 - for information on the respective copyright owner
 // see the NOTICE file and/or the repository at
 // https://github.com/hyperledger-labs/perun-node
 //
@@ -14,6 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build integration
+
 package internal_test
 
 import (
@@ -26,37 +28,33 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/internal"
 )
 
-func Test_ChainBackend_Interface(t *testing.T) {
+func Test_ROChainBackend_Interface(t *testing.T) {
 	assert.Implements(t, (*perun.ChainBackend)(nil), new(internal.ChainBackend))
 }
 
-func Test_ChainBackend_Deploy(t *testing.T) {
+func Test_ROChainBackend_ValidateAdjudicator(t *testing.T) {
 	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-	setup := ethereumtest.NewSimChainBackendSetup(t, rng, 1)
-
-	onChainAddr := setup.Accs[0].Address()
-	adjAddr, err := setup.ChainBackend.DeployAdjudicator(onChainAddr)
+	// use a real chain backend instead of simulated because, multiple connections are to be made:
+	// 1. With a ChainBackend for deploying contracts.
+	// 2. Use a ROChainbackend for validating contracts.
+	adjudicator, _ := ethereumtest.SetupContractsT(t,
+		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
+	roChainBackend, err := ethereum.NewROChainBackend(
+		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.ChainConnTimeout)
 	require.NoError(t, err)
-	assetAddr, err := setup.ChainBackend.DeployAsset(adjAddr, onChainAddr)
-	require.NoError(t, err)
-	assert.NoError(t, setup.ChainBackend.ValidateAdjudicator(adjAddr))
-	assert.NoError(t, setup.ChainBackend.ValidateAssetHolderETH(adjAddr, assetAddr))
-}
-
-func Test_ChainBackend_ValidateAdjudicator(t *testing.T) {
-	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-	setup := ethereumtest.NewSimChainBackendSetup(t, rng, 1)
 
 	t.Run("happy", func(t *testing.T) {
-		assert.NoError(t, setup.ChainBackend.ValidateAdjudicator(setup.AdjAddr))
+		assert.NoError(t, roChainBackend.ValidateAdjudicator(adjudicator))
 	})
+
 	t.Run("invalid_adjudicator", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
-		err := setup.ChainBackend.ValidateAdjudicator(randomAddr1)
+		err := roChainBackend.ValidateAdjudicator(randomAddr1)
 
 		require.Error(t, err)
 		invalidContractError := blockchain.InvalidContractError{}
@@ -67,17 +65,24 @@ func Test_ChainBackend_ValidateAdjudicator(t *testing.T) {
 	})
 }
 
-func Test_ChainBackend_ValidateAssetHolderETH(t *testing.T) {
+func Test_Integ_ROChainBackend_ValidateAssetHolderETH(t *testing.T) {
 	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-	setup := ethereumtest.NewSimChainBackendSetup(t, rng, 1)
+	// use a real chain backend instead of simulated because, multiple connections are to be made:
+	// 1. With a ChainBackend for deploying contracts.
+	// 2. Use a ROChainbackend for validating contracts.
+	adjudicator, asset := ethereumtest.SetupContractsT(t,
+		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
+	roChainBackend, err := ethereum.NewROChainBackend(
+		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.ChainConnTimeout)
+	require.NoError(t, err)
 
 	t.Run("happy", func(t *testing.T) {
-		assert.NoError(t, setup.ChainBackend.ValidateAdjudicator(setup.AdjAddr))
-		assert.NoError(t, setup.ChainBackend.ValidateAssetHolderETH(setup.AdjAddr, setup.AssetAddr))
+		assert.NoError(t, roChainBackend.ValidateAdjudicator(adjudicator))
+		assert.NoError(t, roChainBackend.ValidateAssetHolderETH(adjudicator, asset))
 	})
 	t.Run("invalid_adjudicator", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
-		err := setup.ChainBackend.ValidateAssetHolderETH(randomAddr1, setup.AssetAddr)
+		err := roChainBackend.ValidateAssetHolderETH(randomAddr1, asset)
 
 		require.Error(t, err)
 		invalidContractError := blockchain.InvalidContractError{}
@@ -88,7 +93,7 @@ func Test_ChainBackend_ValidateAssetHolderETH(t *testing.T) {
 	})
 	t.Run("invalid_assetHolderETH", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
-		err := setup.ChainBackend.ValidateAssetHolderETH(setup.AdjAddr, randomAddr1)
+		err := roChainBackend.ValidateAssetHolderETH(adjudicator, randomAddr1)
 
 		require.Error(t, err)
 		invalidContractError := blockchain.InvalidContractError{}
@@ -97,22 +102,4 @@ func Test_ChainBackend_ValidateAssetHolderETH(t *testing.T) {
 		assert.Equal(t, blockchain.AssetHolderETH, invalidContractError.Name)
 		assert.Equal(t, randomAddr1.String(), invalidContractError.Address)
 	})
-}
-
-func Test_ChainBackend_NewFunder(t *testing.T) {
-	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-	setup := ethereumtest.NewSimChainBackendSetup(t, rng, 1)
-	randomAddr1 := ethereumtest.NewRandomAddress(rng)
-	randomAddr2 := ethereumtest.NewRandomAddress(rng)
-
-	assert.NotNil(t, setup.ChainBackend.NewFunder(randomAddr1, randomAddr2))
-}
-
-func Test_ChainBackend_NewAdjudicator(t *testing.T) {
-	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-	setup := ethereumtest.NewSimChainBackendSetup(t, rng, 1)
-	randomAddr1 := ethereumtest.NewRandomAddress(rng)
-	randomAddr2 := ethereumtest.NewRandomAddress(rng)
-
-	assert.NotNil(t, setup.ChainBackend.NewAdjudicator(randomAddr1, randomAddr2))
 }
