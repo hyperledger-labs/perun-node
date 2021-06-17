@@ -43,19 +43,19 @@ func NewUnlockedUser(wb perun.WalletBackend, cfg UserConfig) (User, perun.APIErr
 
 	onChainAddr, err := wb.ParseAddr(cfg.OnChainAddr)
 	if err != nil {
-		return User{}, perun.NewAPIErrInvalidConfig("onChainAddr", cfg.OnChainAddr, err.Error())
+		return User{}, perun.NewAPIErrInvalidConfig(err, "onChainAddr", cfg.OnChainAddr)
 	}
 	offChainAddr, err := wb.ParseAddr(cfg.OffChainAddr)
 	if err != nil {
-		return User{}, perun.NewAPIErrInvalidConfig("offChainAddr", cfg.OffChainAddr, err.Error())
+		return User{}, perun.NewAPIErrInvalidConfig(err, "offChainAddr", cfg.OffChainAddr)
 	}
 	if u.OnChain, err = newCred(wb, cfg.OnChainWallet, onChainAddr); err != nil {
 		value := fmt.Sprintf("%s, %s", cfg.OnChainWallet.KeystorePath, cfg.OnChainWallet.Password)
-		return User{}, perun.NewAPIErrInvalidConfig("onChainWallet", value, err.Error())
+		return User{}, perun.NewAPIErrInvalidConfig(err, "onChainWallet", value)
 	}
 	if u.OffChain, err = newCred(wb, cfg.OffChainWallet, offChainAddr); err != nil {
 		value := fmt.Sprintf("%s, %s", cfg.OffChainWallet.KeystorePath, cfg.OffChainWallet.Password)
-		return User{}, perun.NewAPIErrInvalidConfig("offChainWallet", value, err.Error())
+		return User{}, perun.NewAPIErrInvalidConfig(err, "offChainWallet", value)
 	}
 
 	u.PeerID.Alias = perun.OwnAlias

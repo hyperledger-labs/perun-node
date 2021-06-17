@@ -30,6 +30,8 @@ import (
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/node"
 	"github.com/hyperledger-labs/perun-node/node/nodetest"
+	"github.com/hyperledger-labs/perun-node/peruntest"
+	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
@@ -111,13 +113,8 @@ func Test_Integ_New(t *testing.T) {
 	t.Run("err_GetSession_not_found", func(t *testing.T) {
 		unknownSessID := "unknown session id"
 		_, err := n.GetSession(unknownSessID)
-		require.Error(t, err)
 
-		wantMessage := node.ErrUnknownSessionID.Error()
-		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrResourceNotFound, err.Code())
-		assert.Equal(t, wantMessage, err.Message())
-		assertErrInfoResourceNotFound(t, err.AddInfo(), "session id", unknownSessID)
+		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypeSession, unknownSessID)
 	})
 
 	// Simulate one error to fail session.New and check if err is not nil.
@@ -130,13 +127,4 @@ func Test_Integ_New(t *testing.T) {
 		_, _, err := n.OpenSession(sessionCfgFile)
 		require.Error(t, err)
 	})
-}
-
-func assertErrInfoResourceNotFound(t *testing.T, info interface{}, resourceType, resourceID string) {
-	t.Helper()
-
-	addInfo, ok := info.(perun.ErrInfoResourceNotFound)
-	require.True(t, ok)
-	assert.Equal(t, resourceType, addInfo.Type)
-	assert.Equal(t, resourceID, addInfo.ID)
 }
