@@ -38,14 +38,6 @@ import (
 const (
 	open   chStatus = iota // Open for off-chain tx.
 	closed                 // Closed for off-chain tx, settled on-chain and amount withdrawn.
-
-	// blocktime is the time taken to mine one block in ganache-cli node when
-	// using the command specified in the documentation to start ganache-cli.
-	// this is added as a temporary fix to wait before calling register/settle
-	// as a secondary user.
-	//
-	// TODO: (mano) remove the usage of this variable by adding a waitForNBlocks function in go-perun and using it.
-	blocktime = 2 * time.Second
 )
 
 type (
@@ -195,12 +187,11 @@ func (ch *Channel) HandleAdjudicatorEvent(e pchannel.AdjudicatorEvent) {
 func (ch *Channel) settle() perun.APIError {
 	ctx, cancel := context.WithTimeout(context.Background(), ch.timeoutCfg.settle(ch.challengeDurSecs))
 	defer cancel()
-	// Settle with secondary = true doesn't seem to work in go-perun. So wait
-	// for 2 block time until calling settle.
-	if !ch.wasCloseInitiated {
-		time.Sleep(2 * blocktime) // Wait for 2 blocks before calling register when close was not initated.
-	}
-
+	// Settle in go-perun does not implement secondary logic. So both users
+	// will have sent on-chain transactions, one of which will not reverted.
+	// As discussed in go-perun/issues/8, since real funds are not used, it is
+	// not planned to implement this now.
+	// TODO: remove this comment when secondary logic is implemented.
 	err := ch.pch.Settle(ctx, !ch.wasCloseInitiated)
 	if err != nil {
 		return ch.handleChSettleError(errors.WithMessage(err, "settling channel"))
@@ -509,7 +500,12 @@ func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept
 		}
 		if apiErr == nil && entry.notif.Type == perun.ChUpdateTypeFinal {
 			ch.Info("Responded to update successfully, registering the state as it was final update.")
-			time.Sleep(2 * blocktime) // Wait for 2 blocks before calling register when close was not initiated.
+			// Register in go-perun does not implement secondary logic. So both users
+			// will have sent on-chain transactions, one of which will not reverted.
+			// As discussed in go-perun/issues/8 similar to the case of Settle,
+			// since real funds are not used, it is not planned to implement
+			// this now.
+			// TODO: remove this comment when secondary logic is implemented.
 			apiErr = ch.register(pctx)
 			if apiErr == nil {
 				ch.WithField("method", "RespondChUpdate").Info("Finalized channel state registered successfully")
