@@ -53,10 +53,10 @@ type ChainBackendSetup struct {
 	AdjAddr, AssetAddr pwallet.Address
 }
 
-// NewChainBackendSetup returns a simulated contract backend with assetHolder and adjudicator contracts deployed.
+// NewSimChainBackendSetup returns a simulated contract backend with assetHolder and adjudicator contracts deployed.
 // It also generates the given number of accounts and funds them each with 10 ether.
 // and returns a test ChainBackend using the given randomness.
-func NewChainBackendSetup(t *testing.T, rng *rand.Rand, numAccs uint) *ChainBackendSetup {
+func NewSimChainBackendSetup(t *testing.T, rng *rand.Rand, numAccs uint) *ChainBackendSetup {
 	walletSetup := NewWalletSetupT(t, rng, numAccs)
 
 	cbEth := newSimContractBackend(t, walletSetup.Accs, walletSetup.Keystore)
