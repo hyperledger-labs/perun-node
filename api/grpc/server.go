@@ -721,6 +721,19 @@ func toGrpcError(err perun.APIError) *pb.MsgError { //nolint: funlen
 				Chs: toGrpcPayChsInfo(info.PayChs),
 			},
 		}
+	case perun.ErrInfoInvalidConfig:
+		grpcErr.AddInfo = &pb.MsgError_ErrInfoInvalidConfig{
+			ErrInfoInvalidConfig: &pb.ErrInfoInvalidConfig{
+				Name:  info.Name,
+				Value: info.Value,
+			},
+		}
+	case perun.ErrInfoInvalidContracts:
+		grpcErr.AddInfo = &pb.MsgError_ErrInfoInvalidContracts{
+			ErrInfoInvalidContracts: &pb.ErrInfoInvalidContracts{
+				ContractErrInfos: toGrpcContractErrInfos(info.ContractErrInfos),
+			},
+		}
 	case perun.ErrInfoTxTimedOut:
 		grpcErr.AddInfo = &pb.MsgError_ErrInfoTxTimedOut{
 			ErrInfoTxTimedOut: &pb.ErrInfoTxTimedOut{
@@ -740,4 +753,17 @@ func toGrpcError(err perun.APIError) *pb.MsgError { //nolint: funlen
 		grpcErr.AddInfo = nil
 	}
 	return &grpcErr
+}
+
+// toGrpcContractErrInfos is a helper function to convert a slice of
+// ContractErrInfo struct defined in perun-node to a slice of ContractErrInfo
+// struct defined in grpc package.
+func toGrpcContractErrInfos(src []perun.ContractErrInfo) []*pb.ContractErrInfo {
+	output := make([]*pb.ContractErrInfo, len(src))
+	for i := range src {
+		output[i].Name = src[i].Name
+		output[i].Address = src[i].Address
+		output[i].Error = src[i].Error
+	}
+	return output
 }

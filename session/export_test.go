@@ -42,9 +42,9 @@ func NewClientForTest(pClient pClient,
 }
 
 func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient) (*Session, error) {
-	user, err := NewUnlockedUser(walletBackend, cfg.User)
-	if err != nil {
-		return nil, err
+	user, apiErr := NewUnlockedUser(walletBackend, cfg.User)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 
 	chAsset, err := walletBackend.ParseAddr(cfg.Asset)
@@ -52,9 +52,9 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient) (*Session, er
 		return nil, err
 	}
 
-	idProvider, err := initIDProvider(cfg.IDProviderType, cfg.IDProviderURL, walletBackend, user.PeerID)
-	if err != nil {
-		return nil, err
+	idProvider, apiErr := initIDProvider(cfg.IDProviderType, cfg.IDProviderURL, walletBackend, user.PeerID)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 
 	sessionID := calcSessionID(user.OffChainAddr.Bytes())

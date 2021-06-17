@@ -120,7 +120,7 @@ func Test_Integ_New(t *testing.T) {
 		assertErrInfoResourceNotFound(t, err.AddInfo(), "session id", unknownSessID)
 	})
 
-	// Simulate one error to fail session.New
+	// Simulate one error to fail session.New and check if err is not nil.
 	// Complete test of session.New is done in the session package.
 	t.Run("err_OpenSession_init_error", func(t *testing.T) {
 		invalidChainURL := "invalid-url"
@@ -129,11 +129,6 @@ func Test_Integ_New(t *testing.T) {
 		sessionCfgFile := sessiontest.NewConfigFileT(t, sessionCfg)
 		_, _, err := n.OpenSession(sessionCfgFile)
 		require.Error(t, err)
-
-		assert.Equal(t, perun.ClientError, err.Category())
-		assert.Equal(t, perun.ErrInvalidConfig, err.Code())
-		assert.Contains(t, err.Message(), "")
-		require.Nil(t, err.AddInfo())
 	})
 }
 

@@ -17,6 +17,7 @@
 package internal_test
 
 import (
+	"errors"
 	"math/rand"
 	"testing"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/blockchain"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/internal"
 )
@@ -41,20 +43,59 @@ func Test_ChainBackend_Deploy(t *testing.T) {
 	require.NoError(t, err)
 	assetAddr, err := setup.ChainBackend.DeployAsset(adjAddr, onChainAddr)
 	require.NoError(t, err)
-	assert.NoError(t, setup.ChainBackend.ValidateContracts(adjAddr, assetAddr))
+	assert.NoError(t, setup.ChainBackend.ValidateAdjudicator(adjAddr))
+	assert.NoError(t, setup.ChainBackend.ValidateAssetHolderETH(adjAddr, assetAddr))
 }
 
-func Test_ChainBackend_ValidateContracts(t *testing.T) {
+func Test_ChainBackend_ValidateAdjudicator(t *testing.T) {
 	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	setup := ethereumtest.NewChainBackendSetup(t, rng, 1)
 
 	t.Run("happy", func(t *testing.T) {
-		assert.NoError(t, setup.ChainBackend.ValidateContracts(setup.AdjAddr, setup.AssetAddr))
+		assert.NoError(t, setup.ChainBackend.ValidateAdjudicator(setup.AdjAddr))
 	})
-	t.Run("invalid_random_addrs", func(t *testing.T) {
+	t.Run("invalid_adjudicator", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
-		randomAddr2 := ethereumtest.NewRandomAddress(rng)
-		assert.Error(t, setup.ChainBackend.ValidateContracts(randomAddr1, randomAddr2))
+		err := setup.ChainBackend.ValidateAdjudicator(randomAddr1)
+
+		require.Error(t, err)
+		invalidContractError := blockchain.InvalidContractError{}
+		ok := errors.As(err, &invalidContractError)
+		require.True(t, ok)
+		assert.Equal(t, blockchain.Adjudicator, invalidContractError.Name)
+		assert.Equal(t, randomAddr1.String(), invalidContractError.Address)
+	})
+}
+
+func Test_ChainBackend_ValidateAssetHolderETH(t *testing.T) {
+	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+	setup := ethereumtest.NewChainBackendSetup(t, rng, 1)
+
+	t.Run("happy", func(t *testing.T) {
+		assert.NoError(t, setup.ChainBackend.ValidateAdjudicator(setup.AdjAddr))
+		assert.NoError(t, setup.ChainBackend.ValidateAssetHolderETH(setup.AdjAddr, setup.AssetAddr))
+	})
+	t.Run("invalid_adjudicator", func(t *testing.T) {
+		randomAddr1 := ethereumtest.NewRandomAddress(rng)
+		err := setup.ChainBackend.ValidateAssetHolderETH(randomAddr1, setup.AssetAddr)
+
+		require.Error(t, err)
+		invalidContractError := blockchain.InvalidContractError{}
+		ok := errors.As(err, &invalidContractError)
+		require.True(t, ok)
+		assert.Equal(t, blockchain.Adjudicator, invalidContractError.Name)
+		assert.Equal(t, randomAddr1.String(), invalidContractError.Address)
+	})
+	t.Run("invalid_assetHolderETH", func(t *testing.T) {
+		randomAddr1 := ethereumtest.NewRandomAddress(rng)
+		err := setup.ChainBackend.ValidateAssetHolderETH(setup.AdjAddr, randomAddr1)
+
+		require.Error(t, err)
+		invalidContractError := blockchain.InvalidContractError{}
+		ok := errors.As(err, &invalidContractError)
+		require.True(t, ok)
+		assert.Equal(t, blockchain.AssetHolderETH, invalidContractError.Name)
+		assert.Equal(t, randomAddr1.String(), invalidContractError.Address)
 	})
 }
 

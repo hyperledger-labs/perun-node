@@ -118,7 +118,8 @@ type Credential struct {
 type ChainBackend interface {
 	DeployAdjudicator(onChainAddr pwallet.Address) (adjAddr pwallet.Address, _ error)
 	DeployAsset(adjAddr, onChainAddr pwallet.Address) (assetAddr pwallet.Address, _ error)
-	ValidateContracts(adjAddr, assetAddr pwallet.Address) error
+	ValidateAdjudicator(adjAddr pwallet.Address) error
+	ValidateAssetHolderETH(adjAddr, assetAddr pwallet.Address) error
 	NewFunder(assetAddr, onChainAddr pwallet.Address) pchannel.Funder
 	NewAdjudicator(adjAddr, receiverAddr pwallet.Address) pchannel.Adjudicator
 }
@@ -232,12 +233,10 @@ const (
 	ErrInvalidArgument      ErrorCode = 203
 	ErrFailedPreCondition   ErrorCode = 204
 	ErrInvalidConfig        ErrorCode = 205
-	ErrCannotConnectToChain ErrorCode = 206
-	ErrInvalidContracts     ErrorCode = 207
+	ErrInvalidContracts     ErrorCode = 206
 	ErrTxTimedOut           ErrorCode = 301
 	ErrChainNotReachable    ErrorCode = 302
 	ErrUnknownInternal      ErrorCode = 401
-	ErrOffChainComm         ErrorCode = 402
 )
 
 type (
@@ -297,6 +296,27 @@ type (
 	// This additional info should not be used in any other context.
 	ErrInfoFailedPreCondUnclosedChs struct {
 		ChInfos []ChInfo
+	}
+
+	// ErrInfoInvalidConfig represents the fields in the additional info for
+	// ErrInfoInvalidConfig.
+	ErrInfoInvalidConfig struct {
+		Name  string
+		Value string
+	}
+
+	// ContractErrInfo is used to pass the contract information (name, address,
+	// error message) encountered when validating a contract.
+	ContractErrInfo struct {
+		Name    string
+		Address string
+		Error   string
+	}
+
+	// ErrInfoInvalidContracts represents the fields in the additional info for
+	// ErrInvalidContracts.
+	ErrInfoInvalidContracts struct {
+		ContractErrInfos []ContractErrInfo
 	}
 
 	// ErrInfoTxTimedOut represents the fields in the additional info

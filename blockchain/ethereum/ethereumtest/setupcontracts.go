@@ -108,11 +108,17 @@ func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration
 		return nil, nil, errors.WithMessage(err, "initializaing chain backend")
 	}
 
-	err = chain.ValidateContracts(adjudicator, asset)
-	if err != nil {
-		// Contracts not yet deployed for this ganache-cli instance.
+	err = chain.ValidateAdjudicator(adjudicator)
+	if err == nil {
+		err = chain.ValidateAssetHolderETH(adjudicator, asset)
+		if err != nil {
+			// Contracts not yet deployed for this ganache-cli instance.
+			adjudicator, asset, err = deployContracts(chain, onChainCred)
+		}
+	} else {
 		adjudicator, asset, err = deployContracts(chain, onChainCred)
 	}
+
 	return adjudicator, asset, errors.WithMessage(err, "initializaing chain backend")
 }
 
