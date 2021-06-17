@@ -32,7 +32,6 @@ import (
 	pnet "perun.network/go-perun/wire/net"
 
 	"github.com/hyperledger-labs/perun-node"
-	"github.com/hyperledger-labs/perun-node/blockchain"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 )
 
@@ -220,50 +219,13 @@ func (c *client) Close() error {
 	return errors.Wrap(c.dbConn.Close(), "closing persistence database")
 }
 
-func connectToChain(cfg chainConfig, cred perun.Credential) (pchannel.Funder, pchannel.Adjudicator, perun.APIError) {
-	walletBackend := ethereum.NewWalletBackend()
-	assetAddr, err := walletBackend.ParseAddr(cfg.Asset)
-	if err != nil {
-		return nil, nil, perun.NewAPIErrInvalidConfig(err, "asset", cfg.Asset)
-	}
-	adjudicatorAddr, err := walletBackend.ParseAddr(cfg.Adjudicator)
-	if err != nil {
-		return nil, nil, perun.NewAPIErrInvalidConfig(err, "adjudicator", cfg.Adjudicator)
-	}
-
+func connectToChain(cfg ChainConfig, cred perun.Credential) (pchannel.Funder, pchannel.Adjudicator, perun.APIError) {
 	chain, err := ethereum.NewChainBackend(cfg.URL, cfg.ChainID, cfg.ConnTimeout, cfg.OnChainTxTimeout, cred)
 	if err != nil {
 		err = errors.WithMessage(err, "connecting to blockchain")
 		return nil, nil, perun.NewAPIErrInvalidConfig(err, "chainURL", cfg.URL)
 	}
-	adjErr := chain.ValidateAdjudicator(adjudicatorAddr)
-	assetHolderErr := chain.ValidateAssetHolderETH(adjudicatorAddr, assetAddr)
-	if adjErr != nil || assetHolderErr != nil {
-		return nil, nil, handleInvalidContractError(adjErr, assetHolderErr)
-	}
-	return chain.NewFunder(assetAddr, cred.Addr), chain.NewAdjudicator(adjudicatorAddr, cred.Addr), nil
-}
-
-func handleInvalidContractError(errs ...error) perun.APIError {
-	contractsInfo := make([]perun.ContractErrInfo, 0, len(errs))
-	unknownErr := errors.New("")
-	for i := range errs {
-		e := blockchain.InvalidContractError{}
-		ok := errors.As(errs[i], &e)
-		if ok {
-			contractsInfo = append(contractsInfo, perun.ContractErrInfo{
-				Name:    string(e.Name),
-				Address: e.Address,
-				Error:   e.Error(),
-			})
-		} else {
-			unknownErr = errors.WithMessage(errs[i], unknownErr.Error())
-		}
-	}
-	if len(contractsInfo) != 0 {
-		return perun.NewAPIErrInvalidContracts(contractsInfo)
-	}
-	return perun.NewAPIErrUnknownInternal(unknownErr)
+	return chain.NewFunder(cfg.Asset, cred.Addr), chain.NewAdjudicator(cfg.Adjudicator, cred.Addr), nil
 }
 
 func (c *client) runAsGoRoutine(f func()) {

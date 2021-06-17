@@ -47,11 +47,6 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient) (*Session, er
 		return nil, apiErr
 	}
 
-	chAsset, err := walletBackend.ParseAddr(cfg.Asset)
-	if err != nil {
-		return nil, err
-	}
-
 	idProvider, apiErr := initIDProvider(cfg.IDProviderType, cfg.IDProviderURL, walletBackend, user.PeerID)
 	if apiErr != nil {
 		return nil, apiErr
@@ -70,7 +65,7 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient) (*Session, er
 		chainURL:             cfg.ChainURL,
 		timeoutCfg:           timeoutCfg,
 		user:                 user,
-		chAsset:              chAsset,
+		chAsset:              cfg.Asset,
 		chClient:             chClient,
 		idProvider:           idProvider,
 		chs:                  newChRegistry(initialChRegistrySize),

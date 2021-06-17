@@ -52,8 +52,6 @@ var (
 		IDProviderType: "local",
 		IDProviderURL:  "./test-idprovider.yaml",
 		ChainURL:       "ws://127.0.0.1:8545",
-		Asset:          "0x5992089d61cE79B6CF90506F70DD42B8E42FB21d",
-		Adjudicator:    "0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63",
 		DatabaseDir:    "./test-db",
 	}
 )

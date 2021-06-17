@@ -17,12 +17,15 @@
 package node
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
 	psync "perun.network/go-perun/pkg/sync"
+	pwire "perun.network/go-perun/wire"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/blockchain"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/log"
 	"github.com/hyperledger-labs/perun-node/session"
@@ -30,8 +33,9 @@ import (
 
 type node struct {
 	log.Logger
-	cfg      perun.NodeConfig
-	sessions map[string]perun.SessionAPI
+	cfg       perun.NodeConfig
+	sessions  map[string]perun.SessionAPI
+	contracts map[blockchain.ContractName]pwire.Address
 	psync.Mutex
 }
 
@@ -47,30 +51,68 @@ func (e Error) Error() string {
 // This should be called only once, subsequent calls after the first non error
 // response will return an error.
 func New(cfg perun.NodeConfig) (perun.NodeAPI, error) {
-	// Currently, credentials are required for initializing a blockchain backend that
-	// can validate the deployed contracts. Only a session has credentials and not a node.
-	// So for now, check only if the addresses can be parsed.
-	// TODO: (mano) Implement a read-only blockchain backend that can be initialized without
-	// credentials and use it here.
-	wb := ethereum.NewWalletBackend()
-	_, err := wb.ParseAddr(cfg.Adjudicator)
+	chain, err := ethereum.NewROChainBackend(cfg.ChainURL, cfg.ChainID, cfg.ChainConnTimeout)
 	if err != nil {
-		return nil, errors.WithMessage(err, "default adjudicator address")
+		return nil, errors.WithMessage(err, "connecting to blockchain")
 	}
-	_, err = wb.ParseAddr(cfg.Asset)
+
+	contracts, err := validateContracts(chain, cfg.Adjudicator, cfg.Asset)
 	if err != nil {
-		return nil, errors.WithMessage(err, "default adjudicator address")
+		return nil, err
 	}
 
 	err = log.InitLogger(cfg.LogLevel, cfg.LogFile)
 	if err != nil {
 		return nil, errors.WithMessage(err, "initializing logger for node")
 	}
+
 	return &node{
-		Logger:   log.NewLoggerWithField("node", 1), // ID of the node is always 1.
-		cfg:      cfg,
-		sessions: make(map[string]perun.SessionAPI),
+		Logger:    log.NewLoggerWithField("node", 1), // ID of the node is always 1.
+		cfg:       cfg,
+		sessions:  make(map[string]perun.SessionAPI),
+		contracts: contracts,
 	}, nil
+}
+
+func validateContracts(chain perun.ROChainBackend, adjudicator, asset string) (
+	map[blockchain.ContractName]pwire.Address, error) {
+	walletBackend := ethereum.NewWalletBackend()
+	adjudicatorAddr, err := walletBackend.ParseAddr(adjudicator)
+	if err != nil {
+		return nil, errors.WithMessage(err, "parsing adjudicator address")
+	}
+	assetAddr, err := walletBackend.ParseAddr(asset)
+	if err != nil {
+		return nil, errors.WithMessage(err, "parsing asset address")
+	}
+
+	adjErr := chain.ValidateAdjudicator(adjudicatorAddr)
+	assetHolderErr := chain.ValidateAssetHolderETH(adjudicatorAddr, assetAddr)
+	if adjErr != nil || assetHolderErr != nil {
+		return nil, handleInvalidContractError(adjErr, assetHolderErr)
+	}
+	return map[blockchain.ContractName]pwire.Address{
+		blockchain.Adjudicator:    adjudicatorAddr,
+		blockchain.AssetHolderETH: assetAddr,
+	}, nil
+}
+
+func handleInvalidContractError(errs ...error) error {
+	contractsErr := make([]string, 0, len(errs))
+	unknownErr := errors.New("")
+	for i := range errs {
+		e := blockchain.InvalidContractError{}
+		ok := errors.As(errs[i], &e)
+		if ok {
+			contractsErr = append(contractsErr, e.Error())
+		} else {
+			unknownErr = errors.WithMessage(errs[i], unknownErr.Error())
+		}
+	}
+	if len(contractsErr) != 0 {
+		return fmt.Errorf("invalid contracts: %+v", contractsErr)
+	}
+	return fmt.Errorf("validating contracts: %+v", unknownErr)
 }
 
 // Time returns the time as per perun node's clock. It should be used to check
@@ -86,12 +128,6 @@ func (n *node) GetConfig() perun.NodeConfig {
 	return n.cfg
 }
 
-// Help returns the list of user APIs served by the node.
-func (n *node) Help() []string {
-	n.Debug("Received request: node.Help")
-	return []string{"payment"}
-}
-
 // Initializes a new session with the configuration in the given file. If
 // channels were persisted during the previous instance of the session, they
 // will be restored and their last known info will be returned.
@@ -99,7 +135,6 @@ func (n *node) Help() []string {
 // If there is an error, it will be one of the following codes:
 // - ErrInvalidArgument with Name:"configFile" when config file cannot be accessed.
 // - ErrInvalidConfig when any of the configuration is invalid.
-// - ErrInvalidContracts when the contracts at the addresses in config are invalid.
 // - ErrUnknownInternal.
 func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.APIError) {
 	n.WithField("method", "OpenSession").Infof("\nReceived request with params %+v", configFile)
@@ -118,6 +153,8 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 		err = errors.WithMessage(err, "parsing config")
 		return "", nil, perun.NewAPIErrInvalidArgument(err, session.ArgNameConfigFile, configFile)
 	}
+	sessionConfig.Adjudicator = n.contracts[blockchain.Adjudicator]
+	sessionConfig.Asset = n.contracts[blockchain.AssetHolderETH]
 	sess, apiErr := session.New(sessionConfig)
 	if apiErr != nil {
 		return "", nil, apiErr
@@ -126,6 +163,12 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 
 	n.WithFields(log.Fields{"method": "OpenSession", "sessionID": sess.ID()}).Info("Session opened successfully")
 	return sess.ID(), sess.GetChsInfo(), nil
+}
+
+// Help returns the list of user APIs served by the node.
+func (n *node) Help() []string {
+	n.Debug("Received request: node.Help")
+	return []string{"payment"}
 }
 
 // GetSession is an internal API that retreives the session API instance

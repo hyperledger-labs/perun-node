@@ -122,8 +122,6 @@ func NewConfig(rng *rand.Rand, peerIDs ...perun.PeerID) (session.Config, error) 
 		User:              userCfg,
 		ChainURL:          ethereumtest.ChainURL,
 		ChainID:           ethereumtest.ChainID,
-		Adjudicator:       adjudicator.String(),
-		Asset:             asset.String(),
 		ChainConnTimeout:  ethereumtest.ChainConnTimeout,
 		ResponseTimeout:   ResponseTimeout,
 		OnChainTxTimeout:  ethereumtest.OnChainTxTimeout,
@@ -132,6 +130,9 @@ func NewConfig(rng *rand.Rand, peerIDs ...perun.PeerID) (session.Config, error) 
 
 		IDProviderType: "local",
 		IDProviderURL:  idProviderURL,
+
+		Adjudicator: adjudicator,
+		Asset:       asset,
 	}, nil
 }
 

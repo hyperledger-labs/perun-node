@@ -35,18 +35,15 @@ import (
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
-var validConfig perun.NodeConfig
-
-func init() {
-	validConfig = nodetest.NewConfig()
-}
-
-// This NodeAPI instance will be set upon first happy test.
-// This will be used in the subsequent tests.
-var n perun.NodeAPI
-
 // Node can be initialized only once and hence run all the error cases before a happy test.
 func Test_Integ_New(t *testing.T) {
+	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+	validConfig := nodetest.NewConfig()
+
+	// This NodeAPI instance will be set upon first happy test.
+	// This will be used in the subsequent tests.
+	var n perun.NodeAPI
+
 	// Deploy contracts.
 	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
 
@@ -55,20 +52,48 @@ func Test_Integ_New(t *testing.T) {
 		cfg.LogLevel = ""
 		_, err := node.New(cfg)
 		require.Error(t, err)
+		t.Log(err)
 	})
 
-	t.Run("err_invalid_adjudicator", func(t *testing.T) {
+	t.Run("err_invalid_adjudicator_address", func(t *testing.T) {
 		cfg := validConfig
 		cfg.Adjudicator = "invalid-addr"
 		_, err := node.New(cfg)
 		require.Error(t, err)
+		t.Log(err)
 	})
 
-	t.Run("err_invalid_asset", func(t *testing.T) {
+	t.Run("err_invalid_asset_address", func(t *testing.T) {
 		cfg := validConfig
 		cfg.Asset = "invalid-addr"
 		_, err := node.New(cfg)
 		require.Error(t, err)
+		t.Log(err)
+	})
+
+	t.Run("err_invalid_adjudicator_contract", func(t *testing.T) {
+		cfg := validConfig
+		cfg.Adjudicator = ethereumtest.NewRandomAddress(prng).String()
+		_, err := node.New(cfg)
+		require.Error(t, err)
+		t.Log(err)
+	})
+
+	t.Run("err_invalid_asset_contract", func(t *testing.T) {
+		cfg := validConfig
+		cfg.Asset = ethereumtest.NewRandomAddress(prng).String()
+		_, err := node.New(cfg)
+		require.Error(t, err)
+		t.Log(err)
+	})
+
+	t.Run("err_invalid_adjudicator_asset_contract", func(t *testing.T) {
+		cfg := validConfig
+		cfg.Adjudicator = ethereumtest.NewRandomAddress(prng).String()
+		cfg.Asset = ethereumtest.NewRandomAddress(prng).String()
+		_, err := node.New(cfg)
+		require.Error(t, err)
+		t.Log(err)
 	})
 
 	t.Run("happy", func(t *testing.T) {
@@ -93,7 +118,6 @@ func Test_Integ_New(t *testing.T) {
 	})
 
 	var sessionID string
-	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 
 	t.Run("happy_OpenSession", func(t *testing.T) {
 		var err error
@@ -126,5 +150,6 @@ func Test_Integ_New(t *testing.T) {
 		sessionCfgFile := sessiontest.NewConfigFileT(t, sessionCfg)
 		_, _, err := n.OpenSession(sessionCfgFile)
 		require.Error(t, err)
+		t.Log(err)
 	})
 }
