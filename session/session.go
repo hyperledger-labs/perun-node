@@ -141,22 +141,22 @@ func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pc
 // New initializes a SessionAPI instance for the given configuration and returns an
 // instance of it. All methods on it are safe for concurrent use.
 func New(cfg Config) (*Session, perun.APIError) {
-	user, err := NewUnlockedUser(walletBackend, cfg.User)
-	if err != nil {
-		return nil, perun.NewAPIErrInvalidConfig(errors.WithMessage(err, "initializing user").Error())
+	user, apiErr := NewUnlockedUser(walletBackend, cfg.User)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 
 	if cfg.User.CommType != "tcp" {
-		return nil, perun.NewAPIErrUnknownInternal(ErrUnsupportedCommType)
+		return nil, perun.NewAPIErrInvalidConfig("commType", cfg.User.CommType, ErrUnsupportedCommType.Error())
 	}
 	commBackend := tcp.NewTCPBackend(tcptest.DialerTimeout)
 	chAsset, err := walletBackend.ParseAddr(cfg.Asset)
 	if err != nil {
-		return nil, perun.NewAPIErrInvalidConfig(errors.WithMessage(err, "parsing asset address").Error())
+		return nil, perun.NewAPIErrInvalidConfig("asset", cfg.Asset, err.Error())
 	}
-	idProvider, err := initIDProvider(cfg.IDProviderType, cfg.IDProviderURL, walletBackend, user.PeerID)
-	if err != nil {
-		return nil, perun.NewAPIErrInvalidConfig(errors.WithMessage(err, "initializing id provider").Error())
+	idProvider, apiErr := initIDProvider(cfg.IDProviderType, cfg.IDProviderURL, walletBackend, user.PeerID)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 
 	chClientCfg := clientConfig{
@@ -171,9 +171,9 @@ func New(cfg Config) (*Session, perun.APIError) {
 		DatabaseDir:       cfg.DatabaseDir,
 		PeerReconnTimeout: cfg.PeerReconnTimeout,
 	}
-	chClient, err := newEthereumPaymentClient(chClientCfg, user, commBackend)
-	if err != nil {
-		return nil, perun.NewAPIErrInvalidConfig(errors.WithMessage(err, "initializing payment client").Error())
+	chClient, apiErr := newEthereumPaymentClient(chClientCfg, user, commBackend)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 
 	sessionID := calcSessionID(user.OffChainAddr.Bytes())
@@ -196,26 +196,29 @@ func New(cfg Config) (*Session, perun.APIError) {
 	}
 	err = sess.chClient.RestoreChs(sess.handleRestoredCh)
 	if err != nil {
-		return nil, perun.NewAPIErrInvalidConfig(errors.WithMessage(err, "restoring channels").Error())
+		err = errors.WithMessage(err, "restoring channels")
+		return nil, perun.NewAPIErrInvalidConfig("databaseDir", cfg.DatabaseDir, err.Error())
 	}
 	chClient.Handle(sess, sess) // Init handlers
 	return sess, nil
 }
 
 func initIDProvider(idProviderType, idProviderURL string, wb perun.WalletBackend, own perun.PeerID) (
-	perun.IDProvider, error) {
+	perun.IDProvider, perun.APIError) {
 	if idProviderType != "local" {
-		return nil, ErrUnsupportedIDProviderType
+		err := ErrUnsupportedIDProviderType
+		return nil, perun.NewAPIErrInvalidConfig("idProviderType", idProviderType, err.Error())
 	}
 	idProvider, err := local.NewIDprovider(idProviderURL, wb)
 	if err != nil {
-		return nil, err
+		return nil, perun.NewAPIErrInvalidConfig("idProviderURL", idProviderURL, err.Error())
 	}
 
 	own.Alias = perun.OwnAlias
 	err = idProvider.Write(perun.OwnAlias, own)
 	if err != nil && !errors.Is(err, ErrPeerExists) {
-		return nil, errors.Wrap(err, "registering own user in ID Provider")
+		err = errors.Wrap(err, "registering own user in ID Provider")
+		return nil, perun.NewAPIErrInvalidConfig("idProviderURL", idProviderURL, err.Error())
 	}
 	return idProvider, nil
 }

@@ -34,20 +34,11 @@ func Test_New_Happy(t *testing.T) {
 	cntParts := uint(4)
 	wb, userCfg := sessiontest.NewUserConfigT(t, rng, cntParts)
 
-	t.Run("non_empty_parts", func(t *testing.T) {
-		userCfgCopy := userCfg
-		gotUser, err := session.NewUnlockedUser(wb, userCfgCopy)
-		require.NoError(t, err)
-		compareUserWithCfg(t, gotUser, userCfgCopy)
-	})
-
-	t.Run("empty_parts", func(t *testing.T) {
-		userCfgCopy := userCfg
-		userCfgCopy.PartAddrs = nil
-		gotUser, err := session.NewUnlockedUser(wb, userCfgCopy)
-		require.NoError(t, err)
-		compareUserWithCfg(t, gotUser, userCfgCopy)
-	})
+	userCfgCopy := userCfg
+	userCfgCopy.PartAddrs = nil
+	gotUser, err := session.NewUnlockedUser(wb, userCfgCopy)
+	require.NoError(t, err)
+	compareUserWithCfg(t, gotUser, userCfgCopy)
 }
 
 func compareUserWithCfg(t *testing.T, gotUser session.User, userCfg session.UserConfig) {
@@ -71,18 +62,6 @@ func Test_New_Unhappy(t *testing.T) {
 	cntParts := uint(1)
 	wb, userCfg := sessiontest.NewUserConfigT(t, rng, cntParts)
 
-	t.Run("invalid_parts_address", func(t *testing.T) {
-		userCfgCopy := userCfg
-		userCfgCopy.PartAddrs[0] = "invalid-address"
-		_, err := session.NewUnlockedUser(wb, userCfgCopy)
-		require.Error(t, err)
-	})
-	t.Run("missing_parts_address", func(t *testing.T) {
-		userCfgCopy := userCfg
-		userCfgCopy.PartAddrs[0] = ethereumtest.NewRandomAddress(rng).String()
-		_, err := session.NewUnlockedUser(wb, userCfgCopy)
-		require.Error(t, err)
-	})
 	t.Run("invalid_on-chain_address", func(t *testing.T) {
 		userCfgCopy := userCfg
 		userCfgCopy.OnChainAddr = "invalid-addr"

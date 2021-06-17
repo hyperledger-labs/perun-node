@@ -47,11 +47,9 @@ func Test_ErrorCode(t *testing.T) {
 	assert.Equal(t, pb.ErrorCode_ErrResourceExists, pb.ErrorCode(perun.ErrResourceExists))
 	assert.Equal(t, pb.ErrorCode_ErrInvalidArgument, pb.ErrorCode(perun.ErrInvalidArgument))
 	assert.Equal(t, pb.ErrorCode_ErrFailedPreCondition, pb.ErrorCode(perun.ErrFailedPreCondition))
-	assert.Equal(t, pb.ErrorCode_ErrCannotConnectToChain, pb.ErrorCode(perun.ErrCannotConnectToChain))
 	assert.Equal(t, pb.ErrorCode_ErrInvalidConfig, pb.ErrorCode(perun.ErrInvalidConfig))
 	assert.Equal(t, pb.ErrorCode_ErrInvalidContracts, pb.ErrorCode(perun.ErrInvalidContracts))
 	assert.Equal(t, pb.ErrorCode_ErrTxTimedOut, pb.ErrorCode(perun.ErrTxTimedOut))
 	assert.Equal(t, pb.ErrorCode_ErrChainNotReachable, pb.ErrorCode(perun.ErrChainNotReachable))
 	assert.Equal(t, pb.ErrorCode_ErrUnknownInternal, pb.ErrorCode(perun.ErrUnknownInternal))
-	assert.Equal(t, pb.ErrorCode_ErrOffChainComm, pb.ErrorCode(perun.ErrOffChainComm))
 }

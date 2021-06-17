@@ -32,11 +32,11 @@ import (
 	pnet "perun.network/go-perun/wire/net"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/blockchain"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 )
 
 type (
-
 	// ChClient allows the user to establish off-chain channels and transact on
 	// these channels. The channel data are continuously persisted and hence it can
 	// be shutdown and restarted without loosing any data.
@@ -135,21 +135,21 @@ func (c *pclientWrapped) OnNewChannel(handler func(PChannel)) {
 // It establishes a connection to the blockchain and verifies the integrity of contracts at the given address.
 // It uses the comm backend to initialize adapters for off-chain communication network.
 func newEthereumPaymentClient(cfg clientConfig, user User, comm perun.CommBackend) (
-	ChClient, error) {
-	funder, adjudicator, err := connectToChain(cfg.Chain, user.OnChain)
-	if err != nil {
-		return nil, err
+	ChClient, perun.APIError) {
+	funder, adjudicator, apiErr := connectToChain(cfg.Chain, user.OnChain)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 	offChainAcc, err := user.OffChain.Wallet.Unlock(user.OffChain.Addr)
 	if err != nil {
-		return nil, errors.WithMessage(err, "off-chain account")
+		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain account"))
 	}
 	dialer := comm.NewDialer()
 	msgBus := pnet.NewBus(offChainAcc, dialer)
 
 	pcClient, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, user.OffChain.Wallet)
 	if err != nil {
-		return nil, errors.Wrap(err, "initializing state channel client")
+		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain account"))
 	}
 
 	c := &client{
@@ -163,7 +163,7 @@ func newEthereumPaymentClient(cfg clientConfig, user User, comm perun.CommBacken
 
 	listener, err := comm.NewListener(user.CommAddr)
 	if err != nil {
-		return nil, err
+		return nil, perun.NewAPIErrInvalidConfig("commAddr", user.CommAddr, err.Error())
 	}
 	c.runAsGoRoutine(func() { msgBus.Listen(listener) })
 
@@ -220,23 +220,50 @@ func (c *client) Close() error {
 	return errors.Wrap(c.dbConn.Close(), "closing persistence database")
 }
 
-func connectToChain(cfg chainConfig, cred perun.Credential) (pchannel.Funder, pchannel.Adjudicator, error) {
+func connectToChain(cfg chainConfig, cred perun.Credential) (pchannel.Funder, pchannel.Adjudicator, perun.APIError) {
 	walletBackend := ethereum.NewWalletBackend()
 	assetAddr, err := walletBackend.ParseAddr(cfg.Asset)
 	if err != nil {
-		return nil, nil, errors.WithMessage(err, "asset address")
+		return nil, nil, perun.NewAPIErrInvalidConfig("asset", cfg.Asset, err.Error())
 	}
 	adjudicatorAddr, err := walletBackend.ParseAddr(cfg.Adjudicator)
 	if err != nil {
-		return nil, nil, errors.WithMessage(err, "adjudicator address")
+		return nil, nil, perun.NewAPIErrInvalidConfig("adjudicator", cfg.Adjudicator, err.Error())
 	}
 
 	chain, err := ethereum.NewChainBackend(cfg.URL, cfg.ChainID, cfg.ConnTimeout, cfg.OnChainTxTimeout, cred)
 	if err != nil {
-		return nil, nil, err
+		err = errors.WithMessage(err, "connecting to blockchain")
+		return nil, nil, perun.NewAPIErrInvalidConfig("chainURL", cfg.URL, err.Error())
 	}
-	err = chain.ValidateContracts(adjudicatorAddr, assetAddr)
-	return chain.NewFunder(assetAddr, cred.Addr), chain.NewAdjudicator(adjudicatorAddr, cred.Addr), err
+	adjErr := chain.ValidateAdjudicator(adjudicatorAddr)
+	assetHolderErr := chain.ValidateAssetHolderETH(adjudicatorAddr, assetAddr)
+	if adjErr != nil || assetHolderErr != nil {
+		return nil, nil, handleInvalidContractError(adjErr, assetHolderErr)
+	}
+	return chain.NewFunder(assetAddr, cred.Addr), chain.NewAdjudicator(adjudicatorAddr, cred.Addr), nil
+}
+
+func handleInvalidContractError(errs ...error) perun.APIError {
+	contractsInfo := make([]perun.ContractErrInfo, 0, len(errs))
+	unknownErr := errors.New("")
+	for i := range errs {
+		e := blockchain.InvalidContractError{}
+		ok := errors.As(errs[i], &e)
+		if ok {
+			contractsInfo = append(contractsInfo, perun.ContractErrInfo{
+				Name:    string(e.Name),
+				Address: e.Address,
+				Error:   e.Error(),
+			})
+		} else {
+			unknownErr = errors.WithMessage(errs[i], unknownErr.Error())
+		}
+	}
+	if len(contractsInfo) != 0 {
+		return perun.NewAPIErrInvalidContracts(contractsInfo)
+	}
+	return perun.NewAPIErrUnknownInternal(unknownErr)
 }
 
 func (c *client) runAsGoRoutine(f func()) {
