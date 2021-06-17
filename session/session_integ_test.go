@@ -32,7 +32,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hyperledger-labs/perun-node"
-	"github.com/hyperledger-labs/perun-node/blockchain"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
 	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
@@ -142,67 +141,6 @@ func Test_Integ_New(t *testing.T) {
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "offChainWallet", wantValue)
-	})
-
-	t.Run("invalidConfig_adjudicator", func(t *testing.T) {
-		cfgCopy := cfg
-		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.Adjudicator = "invalid-addr"
-		_, err := session.New(cfgCopy)
-		require.Error(t, err)
-		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "adjudicator", cfgCopy.Adjudicator)
-	})
-	t.Run("invalidConfig_asset", func(t *testing.T) {
-		cfgCopy := cfg
-		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.Asset = "invalid-addr"
-		_, err := session.New(cfgCopy)
-		require.Error(t, err)
-		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "asset", cfgCopy.Asset)
-	})
-	t.Run("invalid_adjudicator_contract", func(t *testing.T) {
-		cfgCopy := cfg
-		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.Adjudicator = ethereumtest.NewRandomAddress(prng).String()
-		_, err := session.New(cfgCopy)
-		require.Error(t, err)
-		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidContracts, "")
-		// Both contracts will be returned as invalid because, the asset holder
-		// validation function in go-perun passes only if both adjudicator and
-		// asset holder contracts are valid.
-		wantContractsInfo := []perun.ContractErrInfo{
-			{Name: string(blockchain.Adjudicator), Address: cfgCopy.Adjudicator},
-			{Name: string(blockchain.AssetHolderETH), Address: cfgCopy.Asset},
-		}
-		peruntest.AssertErrInfoInvalidContracts(t, err.AddInfo(), wantContractsInfo)
-	})
-	t.Run("invalid_asset_contract", func(t *testing.T) {
-		cfgCopy := cfg
-		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.Asset = ethereumtest.NewRandomAddress(prng).String()
-		_, err := session.New(cfgCopy)
-		require.Error(t, err)
-		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidContracts, "")
-		wantContractsInfo := []perun.ContractErrInfo{
-			{Name: string(blockchain.AssetHolderETH), Address: cfgCopy.Asset},
-		}
-		peruntest.AssertErrInfoInvalidContracts(t, err.AddInfo(), wantContractsInfo)
-	})
-	t.Run("invalid_adjudicator_asset_contract", func(t *testing.T) {
-		cfgCopy := cfg
-		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.Adjudicator = ethereumtest.NewRandomAddress(prng).String()
-		cfgCopy.Asset = ethereumtest.NewRandomAddress(prng).String()
-		_, err := session.New(cfgCopy)
-		require.Error(t, err)
-		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidContracts, "")
-		wantContractsInfo := []perun.ContractErrInfo{
-			{Name: string(blockchain.Adjudicator), Address: cfgCopy.Adjudicator},
-			{Name: string(blockchain.AssetHolderETH), Address: cfgCopy.Asset},
-		}
-		peruntest.AssertErrInfoInvalidContracts(t, err.AddInfo(), wantContractsInfo)
 	})
 
 	t.Run("invalidConfig_commType", func(t *testing.T) {

@@ -164,17 +164,13 @@ func New(cfg Config) (*Session, perun.APIError) {
 		return nil, perun.NewAPIErrInvalidConfig(ErrUnsupportedType, "commType", cfg.User.CommType)
 	}
 	commBackend := tcp.NewTCPBackend(tcptest.DialerTimeout)
-	chAsset, err := walletBackend.ParseAddr(cfg.Asset)
-	if err != nil {
-		return nil, perun.NewAPIErrInvalidConfig(err, "asset", cfg.Asset)
-	}
 	idProvider, apiErr := initIDProvider(cfg.IDProviderType, cfg.IDProviderURL, walletBackend, user.PeerID)
 	if apiErr != nil {
 		return nil, apiErr
 	}
 
 	chClientCfg := clientConfig{
-		Chain: chainConfig{
+		Chain: ChainConfig{
 			Adjudicator:      cfg.Adjudicator,
 			Asset:            cfg.Asset,
 			URL:              cfg.ChainURL,
@@ -202,13 +198,13 @@ func New(cfg Config) (*Session, perun.APIError) {
 		chainURL:             cfg.ChainURL,
 		timeoutCfg:           timeoutCfg,
 		user:                 user,
-		chAsset:              chAsset,
+		chAsset:              cfg.Asset,
 		chClient:             chClient,
 		idProvider:           idProvider,
 		chs:                  newChRegistry(initialChRegistrySize),
 		chProposalResponders: make(map[string]chProposalResponderEntry),
 	}
-	err = sess.chClient.RestoreChs(sess.handleRestoredCh)
+	err := sess.chClient.RestoreChs(sess.handleRestoredCh)
 	if err != nil {
 		err = errors.WithMessage(err, "restoring channels")
 		return nil, perun.NewAPIErrInvalidConfig(err, "databaseDir", cfg.DatabaseDir)
