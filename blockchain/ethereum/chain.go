@@ -35,13 +35,19 @@ import (
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/internal"
 )
 
-// NewChainBackend initializes a connection to blockchain node and sets up a wallet with given credentials
-// for funding on-chain transactions and channel balances.
+// roChainBackendTxTimeout is the tx timeout for roChainBackend used only for
+// reading on-chain data. So make it as a package level constant.
+const roChainBackendTxTimeout = 1 * time.Second
+
+// NewChainBackend initializes a connection to blockchain node and sets up a
+// wallet with given credentials for funding on-chain transactions and channel
+// balances.
 //
 // It uses the provided credentials to initialize a new keystore wallet.
 //
-// The function signature uses only types defined in the root package of this project and types from std lib.
-// This enables the function to be loaded as symbol without importing this package when it is compiled as plugin.
+// The function signature uses only types defined in the root package of this
+// project and types from std lib.  This enables the function to be loaded as
+// symbol without importing this package when it is compiled as plugin.
 func NewChainBackend(url string,
 	chainID int,
 	chainConnTimeout,
@@ -68,6 +74,25 @@ func NewChainBackend(url string,
 	tr := pkeystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(int64(chainID))))
 	cb := pethchannel.NewContractBackend(ethereumBackend, tr)
 	return &internal.ChainBackend{Cb: &cb, TxTimeout: onChainTxTimeout}, nil
+}
+
+// NewROChainBackend initializes a connection to blockchain node that can be
+// used only for validating contracts.
+//
+// The function signature uses only types defined in the root package of this
+// project and types from std lib.  This enables the function to be loaded as
+// symbol without importing this package when it is compiled as plugin.
+func NewROChainBackend(url string, chainID int, chainConnTimeout time.Duration) (
+	perun.ROChainBackend, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), chainConnTimeout)
+	defer cancel()
+	ethereumBackend, err := ethclient.DialContext(ctx, url)
+	if err != nil {
+		return nil, errors.Wrap(err, "connecting to ethereum node at "+url)
+	}
+
+	cb := pethchannel.NewContractBackend(ethereumBackend, nil)
+	return &internal.ChainBackend{Cb: &cb, TxTimeout: roChainBackendTxTimeout}, nil
 }
 
 // BalanceAt reads the on-chain balance of the given address.
