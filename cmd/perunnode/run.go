@@ -37,7 +37,7 @@ const (
 	logfileF          = "logfile"
 	chainurlF         = "chainurl"
 	adjudicatorF      = "adjudicator"
-	assetF            = "asset"
+	assetETHF         = "assetETH"
 	chainconntimeoutF = "chainconntimeout"
 	onchaintxtimeoutF = "onchaintxtimeout"
 	responsetimeoutF  = "responsetimeout"
@@ -64,7 +64,7 @@ var (
 		loglevelF,
 		chainurlF,
 		adjudicatorF,
-		assetF,
+		assetETHF,
 		chainconntimeoutF,
 		onchaintxtimeoutF,
 		responsetimeoutF,
@@ -105,7 +105,7 @@ func defineFlags() {
 	runCmd.Flags().String(logfileF, "", "Log file path. Use empty string for stdout")
 	runCmd.Flags().String(chainurlF, "", "URL of the blockchain node")
 	runCmd.Flags().String(adjudicatorF, "", "Address as of the adjudicator contract as hex string with 0x prefix")
-	runCmd.Flags().String(assetF, "", "Address as of the asset contract as hex string with 0x prefix")
+	runCmd.Flags().String(assetETHF, "", "Address as of the asset ETH contract as hex string with 0x prefix")
 	runCmd.Flags().Duration(chainconntimeoutF, time.Duration(0),
 		"Connection timeout for connecting to the blockchain node")
 	runCmd.Flags().Duration(onchaintxtimeoutF, time.Duration(0),

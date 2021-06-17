@@ -108,7 +108,7 @@ func NewConfig(rng *rand.Rand, peerIDs ...perun.PeerID) (session.Config, error) 
 	if err != nil {
 		return session.Config{}, errors.WithMessage(err, "new user config")
 	}
-	adjudicator, asset := ethereumtest.ContractAddrs()
+	adjudicator, assetETH := ethereumtest.ContractAddrs()
 	databaseDir, err := newDatabaseDir()
 	if err != nil {
 		return session.Config{}, err
@@ -132,7 +132,7 @@ func NewConfig(rng *rand.Rand, peerIDs ...perun.PeerID) (session.Config, error) 
 		IDProviderURL:  idProviderURL,
 
 		Adjudicator: adjudicator,
-		Asset:       asset,
+		AssetETH:    assetETH,
 	}, nil
 }
 

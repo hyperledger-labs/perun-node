@@ -56,7 +56,7 @@ func New(cfg perun.NodeConfig) (perun.NodeAPI, error) {
 		return nil, errors.WithMessage(err, "connecting to blockchain")
 	}
 
-	contracts, err := validateContracts(chain, cfg.Adjudicator, cfg.Asset)
+	contracts, err := validateContracts(chain, cfg.Adjudicator, cfg.AssetETH)
 	if err != nil {
 		return nil, err
 	}
@@ -74,26 +74,26 @@ func New(cfg perun.NodeConfig) (perun.NodeAPI, error) {
 	}, nil
 }
 
-func validateContracts(chain perun.ROChainBackend, adjudicator, asset string) (
+func validateContracts(chain perun.ROChainBackend, adjudicator, assetETH string) (
 	map[blockchain.ContractName]pwire.Address, error) {
 	walletBackend := ethereum.NewWalletBackend()
 	adjudicatorAddr, err := walletBackend.ParseAddr(adjudicator)
 	if err != nil {
 		return nil, errors.WithMessage(err, "parsing adjudicator address")
 	}
-	assetAddr, err := walletBackend.ParseAddr(asset)
+	assetETHAddr, err := walletBackend.ParseAddr(assetETH)
 	if err != nil {
-		return nil, errors.WithMessage(err, "parsing asset address")
+		return nil, errors.WithMessage(err, "parsing asset ETH address")
 	}
 
 	adjErr := chain.ValidateAdjudicator(adjudicatorAddr)
-	assetHolderErr := chain.ValidateAssetHolderETH(adjudicatorAddr, assetAddr)
-	if adjErr != nil || assetHolderErr != nil {
-		return nil, handleInvalidContractError(adjErr, assetHolderErr)
+	assetETHErr := chain.ValidateAssetETH(adjudicatorAddr, assetETHAddr)
+	if adjErr != nil || assetETHErr != nil {
+		return nil, handleInvalidContractError(adjErr, assetETHErr)
 	}
 	return map[blockchain.ContractName]pwire.Address{
-		blockchain.Adjudicator:    adjudicatorAddr,
-		blockchain.AssetHolderETH: assetAddr,
+		blockchain.Adjudicator: adjudicatorAddr,
+		blockchain.AssetETH:    assetETHAddr,
 	}, nil
 }
 
@@ -154,7 +154,7 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 		return "", nil, perun.NewAPIErrInvalidArgument(err, session.ArgNameConfigFile, configFile)
 	}
 	sessionConfig.Adjudicator = n.contracts[blockchain.Adjudicator]
-	sessionConfig.Asset = n.contracts[blockchain.AssetHolderETH]
+	sessionConfig.AssetETH = n.contracts[blockchain.AssetETH]
 	sess, apiErr := session.New(sessionConfig)
 	if apiErr != nil {
 		return "", nil, apiErr

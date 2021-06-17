@@ -27,8 +27,8 @@ type ContractName string
 
 // Enumeration of contract names for perun node.
 const (
-	Adjudicator    ContractName = "adjudicator"
-	AssetHolderETH ContractName = "assetHolderETH"
+	Adjudicator ContractName = "adjudicator"
+	AssetETH    ContractName = "assetETH"
 )
 
 // InvalidContractError indicates an error in validating the contract on the

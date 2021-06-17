@@ -49,13 +49,14 @@ const (
 // see go-ethereum) with required contracts deployed on it and a UserSetup.
 type ChainBackendSetup struct {
 	*WalletSetup
-	ChainBackend       perun.ChainBackend
-	AdjAddr, AssetAddr pwallet.Address
+	ChainBackend          perun.ChainBackend
+	AdjAddr, AssetETHAddr pwallet.Address
 }
 
-// NewSimChainBackendSetup returns a simulated contract backend with assetHolder and adjudicator contracts deployed.
-// It also generates the given number of accounts and funds them each with 10 ether.
-// and returns a test ChainBackend using the given randomness.
+// NewSimChainBackendSetup returns a simulated contract backend with asset ETH
+// and adjudicator contracts deployed.  It also generates the given number of
+// accounts and funds them each with 10 ether.  and returns a test ChainBackend
+// using the given randomness.
 func NewSimChainBackendSetup(t *testing.T, rng *rand.Rand, numAccs uint) *ChainBackendSetup {
 	walletSetup := NewWalletSetupT(t, rng, numAccs)
 
@@ -65,7 +66,7 @@ func NewSimChainBackendSetup(t *testing.T, rng *rand.Rand, numAccs uint) *ChainB
 	onChainAddr := walletSetup.Accs[0].Address()
 	adjudicator, err := cb.DeployAdjudicator(onChainAddr)
 	require.NoError(t, err)
-	asset, err := cb.DeployAsset(adjudicator, onChainAddr)
+	assetETH, err := cb.DeployAssetETH(adjudicator, onChainAddr)
 	require.NoError(t, err)
 
 	// No cleanup required.
@@ -73,7 +74,7 @@ func NewSimChainBackendSetup(t *testing.T, rng *rand.Rand, numAccs uint) *ChainB
 		WalletSetup:  walletSetup,
 		ChainBackend: cb,
 		AdjAddr:      adjudicator,
-		AssetAddr:    asset,
+		AssetETHAddr: assetETH,
 	}
 }
 

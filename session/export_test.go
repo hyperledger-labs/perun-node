@@ -65,7 +65,7 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient) (*Session, er
 		chainURL:             cfg.ChainURL,
 		timeoutCfg:           timeoutCfg,
 		user:                 user,
-		chAsset:              cfg.Asset,
+		chAsset:              cfg.AssetETH,
 		chClient:             chClient,
 		idProvider:           idProvider,
 		chs:                  newChRegistry(initialChRegistrySize),

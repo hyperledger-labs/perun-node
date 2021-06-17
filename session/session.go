@@ -172,7 +172,7 @@ func New(cfg Config) (*Session, perun.APIError) {
 	chClientCfg := clientConfig{
 		Chain: ChainConfig{
 			Adjudicator:      cfg.Adjudicator,
-			Asset:            cfg.Asset,
+			AssetETH:         cfg.AssetETH,
 			URL:              cfg.ChainURL,
 			ChainID:          cfg.ChainID,
 			ConnTimeout:      cfg.ChainConnTimeout,
@@ -198,7 +198,7 @@ func New(cfg Config) (*Session, perun.APIError) {
 		chainURL:             cfg.ChainURL,
 		timeoutCfg:           timeoutCfg,
 		user:                 user,
-		chAsset:              cfg.Asset,
+		chAsset:              cfg.AssetETH,
 		chClient:             chClient,
 		idProvider:           idProvider,
 		chs:                  newChRegistry(initialChRegistrySize),

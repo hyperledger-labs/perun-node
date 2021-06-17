@@ -58,9 +58,9 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 	chainID := ethereumtest.ChainID
 	chainURL := ethereumtest.ChainURL
 	onChainTxTimeout := ethereumtest.OnChainTxTimeout
-	adjudicator, assetHolder, err := ethereumtest.SetupContracts(chainURL, chainID, onChainTxTimeout)
+	adjudicator, assetETH, err := ethereumtest.SetupContracts(chainURL, chainID, onChainTxTimeout)
 	handleError(err, "deploying contracts")
-	fmt.Printf("contracts deployed at: adjudicator:%s, asset holder:%s\n", adjudicator, assetHolder)
+	fmt.Printf("contracts deployed at: adjudicator:%s, asset ETH:%s\n", adjudicator, assetETH)
 
 	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 

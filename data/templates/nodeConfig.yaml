@@ -1,6 +1,6 @@
-# idprovider.yaml - sample data
+# node.yaml - sample data
 #
-# This file contacts a contacts file with entries for two peers: Alice and Bob.
+# This file contacts a node configuration paramters.
 #
 # The first document is the simple representation that is intended for use as
 # template for users of the perun node and,
@@ -14,7 +14,7 @@ loglevel: debug
 logfile: Node.log
 chainurl: ws://127.0.0.1:8545
 adjudicator: 0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63
-asset: 0x5992089d61cE79B6CF90506F70DD42B8E42FB21d
+assetETH: 0x5992089d61cE79B6CF90506F70DD42B8E42FB21d
 chainconntimeout: 10s          
 onchaintxtimeout: 10s
 responsetimeout: 30s 
@@ -24,7 +24,7 @@ responsetimeout: 30s
 !!map {
   ? !!str "adjudicator"
   : !!int "900210940284552285579369706925971761077161942371",
-  ? !!str "asset"
+  ? !!str "assetETH"
   : !!int "511356837854933446704046452540296510558989955613",
   ? !!str "chainconntimeout"
   : !!str "10s",

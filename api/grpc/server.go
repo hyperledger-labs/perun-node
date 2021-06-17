@@ -74,11 +74,11 @@ func ListenAndServePayChAPI(n perun.NodeAPI, grpcPort string) error {
 func (a *payChAPIServer) GetConfig(context.Context, *pb.GetConfigReq) (*pb.GetConfigResp, error) {
 	cfg := a.n.GetConfig()
 	return &pb.GetConfigResp{
-		ChainAddress:       cfg.ChainURL,
-		AdjudicatorAddress: cfg.Adjudicator,
-		AssetAddress:       cfg.Asset,
-		CommTypes:          cfg.CommTypes,
-		IdProviderTypes:    cfg.IDProviderTypes,
+		ChainAddress:    cfg.ChainURL,
+		Adjudicator:     cfg.Adjudicator,
+		AssetETH:        cfg.AssetETH,
+		CommTypes:       cfg.CommTypes,
+		IdProviderTypes: cfg.IDProviderTypes,
 	}, nil
 }
 

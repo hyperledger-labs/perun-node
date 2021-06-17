@@ -40,44 +40,51 @@ import (
 // Ethereum address corresponding the above accounts: 0x8450c0055cB180C7C37A25866132A740b812937B and
 // 0xc4bA4815c82727554e4c12A07a139b74c6742322.
 //
-// The account in the command corresponds to the on-chain account of first two users when seeding the rand source
-// with "RandSeedForTestAccs" and passing numParts as 0. If numParts is not zero, then the on-chain account is funded
-// only for the first user. Hence DO NOT CHANGE THE RAND SEED for integration tests in this package.
+// The account in the command corresponds to the on-chain account of first two
+// users when seeding the rand source with "RandSeedForTestAccs" and passing
+// numParts as 0. If numParts is not zero, then the on-chain account is funded
+// only for the first user. Hence DO NOT CHANGE THE RAND SEED for integration
+// tests in this package.
 //
-// The contracts will be deployed only during the first run of tests and will be resused in subsequent runs. This
-// saves ~0.3s of setup time in each run. Hence when running tests on development machine, START THE NODE ONLY ONCE.
+// The contracts will be deployed only during the first run of tests and will
+// be resused in subsequent runs. This saves ~0.3s of setup time in each run.
+// Hence when running tests on development machine, START THE NODE ONLY ONCE.
 
-var adjudicatorAddr, assetAddr pwallet.Address
+var adjudicatorAddr, assetETHAddr pwallet.Address
 
 // SetupContractsT is the test friendly version of SetupContracts.
-// It uses the passed testing.T to handle the errors and registers the cleanup functions on it.
+// It uses the passed testing.T to handle the errors and registers the cleanup
+// functions on it.
 func SetupContractsT(t *testing.T, chainURL string, chainID int, onChainTxTimeout time.Duration) (
-	adjudicator, asset pwallet.Address) {
+	adjudicator, assetETH pwallet.Address) {
 	var err error
-	adjudicator, asset, err = SetupContracts(chainURL, chainID, onChainTxTimeout)
+	adjudicator, assetETH, err = SetupContracts(chainURL, chainID, onChainTxTimeout)
 	require.NoError(t, err)
-	return adjudicator, asset
+	return adjudicator, assetETH
 }
 
-// ContractAddrs returns the contract addresses of adjudicator and asset contracts used in test setups.
-// Address generation mechanism in ethereum is used to pre-compute the contract address.
+// ContractAddrs returns the contract addresses of adjudicator and asset ETH
+// contracts used in test setups.  Address generation mechanism in ethereum is
+// used to pre-compute the contract address.
 //
-// On a fresh ganache-cli node run the setup contracts helper function to deploy these contracts.
-func ContractAddrs() (adjudicator, asset pwallet.Address) {
+// On a fresh ganache-cli node run the setup contracts helper function to
+// deploy these contracts.
+func ContractAddrs() (adjudicator, assetETH pwallet.Address) {
 	prng := rand.New(rand.NewSource(RandSeedForTestAccs))
 	ws, err := NewWalletSetup(prng, 2)
 	if err != nil {
 		panic("Cannot setup test wallet")
 	}
 	adjudicator = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(ws.Accs[0].Address()), 0))
-	asset = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(ws.Accs[0].Address()), 1))
+	assetETH = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(ws.Accs[0].Address()), 1))
 	return
 }
 
-// SetupContracts checks if valid contracts are deployed in pre-computed addresses, if not it deployes them.
-// Address generation mechanism in ethereum is used to pre-compute the contract address.
+// SetupContracts checks if valid contracts are deployed in pre-computed
+// addresses, if not it deployes them.  Address generation mechanism in
+// ethereum is used to pre-compute the contract address.
 func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration) (
-	adjudicator, asset pwallet.Address, _ error) {
+	adjudicator, assetETH pwallet.Address, _ error) {
 	prng := rand.New(rand.NewSource(RandSeedForTestAccs))
 	ws, err := NewWalletSetup(prng, 2)
 	if err != nil {
@@ -93,14 +100,14 @@ func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration
 		return nil, nil, errors.New("cannot connect to ganache-cli node at " + chainURL)
 	}
 
-	if adjudicatorAddr == nil && assetAddr == nil {
+	if adjudicatorAddr == nil && assetETHAddr == nil {
 		adjudicator = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(onChainCred.Addr), 0))
-		asset = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(onChainCred.Addr), 1))
+		assetETH = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(onChainCred.Addr), 1))
 		adjudicatorAddr = adjudicator
-		assetAddr = asset
+		assetETHAddr = assetETH
 	} else {
 		adjudicator = adjudicatorAddr
-		asset = assetAddr
+		assetETH = assetETHAddr
 	}
 
 	chain, err := ethereum.NewChainBackend(chainURL, chainID, ChainConnTimeout, onChainTxTimeout, onChainCred)
@@ -110,16 +117,16 @@ func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration
 
 	err = chain.ValidateAdjudicator(adjudicator)
 	if err == nil {
-		err = chain.ValidateAssetHolderETH(adjudicator, asset)
+		err = chain.ValidateAssetETH(adjudicator, assetETH)
 		if err != nil {
 			// Contracts not yet deployed for this ganache-cli instance.
-			adjudicator, asset, err = deployContracts(chain, onChainCred)
+			adjudicator, assetETH, err = deployContracts(chain, onChainCred)
 		}
 	} else {
-		adjudicator, asset, err = deployContracts(chain, onChainCred)
+		adjudicator, assetETH, err = deployContracts(chain, onChainCred)
 	}
 
-	return adjudicator, asset, errors.WithMessage(err, "initializaing chain backend")
+	return adjudicator, assetETH, errors.WithMessage(err, "initializaing chain backend")
 }
 
 func isBlockchainRunning(url string) bool {
@@ -127,13 +134,13 @@ func isBlockchainRunning(url string) bool {
 	return err == nil
 }
 
-func deployContracts(chain perun.ChainBackend, onChainCred perun.Credential) (adjudicator, asset pwallet.Address,
+func deployContracts(chain perun.ChainBackend, onChainCred perun.Credential) (adjudicator, assetETH pwallet.Address,
 	_ error) {
 	var err error
 	adjudicator, err = chain.DeployAdjudicator(onChainCred.Addr)
 	if err != nil {
 		return nil, nil, err
 	}
-	asset, err = chain.DeployAsset(adjudicator, onChainCred.Addr)
-	return adjudicator, asset, err
+	assetETH, err = chain.DeployAssetETH(adjudicator, onChainCred.Addr)
+	return adjudicator, assetETH, err
 }

@@ -26,14 +26,14 @@ import (
 //
 // Contract addressses and chain parameters are fetched from the ethereumtest package.
 func NewConfig() perun.NodeConfig {
-	adjudicator, asset := ethereumtest.ContractAddrs()
+	adjudicator, assetETH := ethereumtest.ContractAddrs()
 
 	return perun.NodeConfig{
 		LogFile:              "",
 		LogLevel:             "debug",
 		ChainURL:             ethereumtest.ChainURL,
 		Adjudicator:          adjudicator.String(),
-		Asset:                asset.String(),
+		AssetETH:             assetETH.String(),
 		CommTypes:            []string{"tcp"},
 		IDProviderTypes:      []string{"local"},
 		CurrencyInterpreters: []string{"ETH"},

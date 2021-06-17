@@ -65,12 +65,12 @@ func Test_ROChainBackend_ValidateAdjudicator(t *testing.T) {
 	})
 }
 
-func Test_Integ_ROChainBackend_ValidateAssetHolderETH(t *testing.T) {
+func Test_Integ_ROChainBackend_ValidateAssetETH(t *testing.T) {
 	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	// use a real chain backend instead of simulated because, multiple connections are to be made:
 	// 1. With a ChainBackend for deploying contracts.
 	// 2. Use a ROChainbackend for validating contracts.
-	adjudicator, asset := ethereumtest.SetupContractsT(t,
+	adjudicator, assetETH := ethereumtest.SetupContractsT(t,
 		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
 	roChainBackend, err := ethereum.NewROChainBackend(
 		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.ChainConnTimeout)
@@ -78,11 +78,11 @@ func Test_Integ_ROChainBackend_ValidateAssetHolderETH(t *testing.T) {
 
 	t.Run("happy", func(t *testing.T) {
 		assert.NoError(t, roChainBackend.ValidateAdjudicator(adjudicator))
-		assert.NoError(t, roChainBackend.ValidateAssetHolderETH(adjudicator, asset))
+		assert.NoError(t, roChainBackend.ValidateAssetETH(adjudicator, assetETH))
 	})
 	t.Run("invalid_adjudicator", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
-		err := roChainBackend.ValidateAssetHolderETH(randomAddr1, asset)
+		err := roChainBackend.ValidateAssetETH(randomAddr1, assetETH)
 
 		require.Error(t, err)
 		invalidContractError := blockchain.InvalidContractError{}
@@ -93,13 +93,13 @@ func Test_Integ_ROChainBackend_ValidateAssetHolderETH(t *testing.T) {
 	})
 	t.Run("invalid_assetHolderETH", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
-		err := roChainBackend.ValidateAssetHolderETH(adjudicator, randomAddr1)
+		err := roChainBackend.ValidateAssetETH(adjudicator, randomAddr1)
 
 		require.Error(t, err)
 		invalidContractError := blockchain.InvalidContractError{}
 		ok := errors.As(err, &invalidContractError)
 		require.True(t, ok)
-		assert.Equal(t, blockchain.AssetHolderETH, invalidContractError.Name)
+		assert.Equal(t, blockchain.AssetETH, invalidContractError.Name)
 		assert.Equal(t, randomAddr1.String(), invalidContractError.Address)
 	})
 }
