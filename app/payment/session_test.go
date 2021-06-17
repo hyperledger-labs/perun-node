@@ -29,6 +29,7 @@ import (
 	"github.com/hyperledger-labs/perun-node/app/payment"
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/internal/mocks"
+	"github.com/hyperledger-labs/perun-node/peruntest"
 )
 
 var (
@@ -249,13 +250,14 @@ func Test_CloseSession(t *testing.T) {
 	t.Run("OpenChs_noForce", func(t *testing.T) {
 		force := false
 		sessionAPI := &mocks.SessionAPI{}
-		unclosedChsErrAddInfo := perun.NewAPIErrInfoFailedPreConditionUnclosedChs([]perun.ChInfo{updatedChInfo})
-		unclosedChsErr := perun.NewAPIErrFailedPreCondition(assert.AnError.Error(), unclosedChsErrAddInfo)
+		err := assert.AnError
+		unclosedChsErr := perun.NewAPIErrFailedPreConditionUnclosedChs(err, []perun.ChInfo{updatedChInfo})
 		sessionAPI.On("Close", force).Return(nil, unclosedChsErr)
 
-		_, err := payment.CloseSession(sessionAPI, force)
+		_, apiErr := payment.CloseSession(sessionAPI, force)
+		peruntest.AssertAPIError(t, apiErr, perun.ClientError, perun.ErrFailedPreCondition)
 		assert.Error(t, err)
-		paymentAddInfo, ok := err.AddInfo().(payment.ErrInfoFailedPreCondUnclosedPayChs)
+		paymentAddInfo, ok := apiErr.AddInfo().(payment.ErrInfoFailedPreCondUnclosedPayChs)
 		require.True(t, ok)
 		assert.Equal(t, 1, len(paymentAddInfo.PayChs))
 		assert.Equal(t, paymentAddInfo.PayChs[0], wantUpdatedPayChInfo)

@@ -36,6 +36,7 @@ import (
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
 	"github.com/hyperledger-labs/perun-node/idprovider/idprovidertest"
+	"github.com/hyperledger-labs/perun-node/peruntest"
 	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
@@ -82,8 +83,8 @@ func Test_Integ_New(t *testing.T) {
 
 		_, apiErr = session.New(cfgCopy)
 		require.Error(t, apiErr)
-		assertAPIError(t, apiErr, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, apiErr.AddInfo(), "databaseDir", cfgCopy.DatabaseDir)
+		peruntest.AssertAPIError(t, apiErr, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, apiErr.AddInfo(), "databaseDir", cfgCopy.DatabaseDir)
 	})
 	t.Run("invalidConfig_chainURL", func(t *testing.T) {
 		cfgCopy := cfg
@@ -91,8 +92,8 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.ChainURL = "invalid-url"
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "chainURL", cfgCopy.ChainURL)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "chainURL", cfgCopy.ChainURL)
 	})
 	t.Run("invalidConfig_chainURL_chainConnTimeout", func(t *testing.T) {
 		cfgCopy := cfg
@@ -100,8 +101,8 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.ChainConnTimeout = 0
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "chainURL", cfgCopy.ChainURL)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "chainURL", cfgCopy.ChainURL)
 	})
 
 	t.Run("invalidConfig_onChainAddr", func(t *testing.T) {
@@ -110,8 +111,8 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.User.OnChainAddr = "invalid-addr" //nolint: goconst	// it's okay to repeat this phrase.
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "onChainAddr", cfgCopy.User.OnChainAddr)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "onChainAddr", cfgCopy.User.OnChainAddr)
 	})
 	t.Run("invalidConfig_offChainAddr", func(t *testing.T) {
 		cfgCopy := cfg
@@ -119,8 +120,8 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.User.OffChainAddr = "invalid-addr"
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "offChainAddr", cfgCopy.User.OffChainAddr)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "offChainAddr", cfgCopy.User.OffChainAddr)
 	})
 	t.Run("invalidConfig_onChainWallet_password", func(t *testing.T) {
 		cfgCopy := cfg
@@ -129,8 +130,8 @@ func Test_Integ_New(t *testing.T) {
 		wantValue := fmt.Sprintf("%s, %s", cfgCopy.User.OnChainWallet.KeystorePath, cfgCopy.User.OnChainWallet.Password)
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "onChainWallet", wantValue)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "onChainWallet", wantValue)
 	})
 	t.Run("invalidConfig_offChainWallet_password", func(t *testing.T) {
 		cfgCopy := cfg
@@ -139,8 +140,8 @@ func Test_Integ_New(t *testing.T) {
 		wantValue := fmt.Sprintf("%s, %s", cfgCopy.User.OffChainWallet.KeystorePath, cfgCopy.User.OffChainWallet.Password)
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "offChainWallet", wantValue)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "offChainWallet", wantValue)
 	})
 
 	t.Run("invalidConfig_adjudicator", func(t *testing.T) {
@@ -149,8 +150,8 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.Adjudicator = "invalid-addr"
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "adjudicator", cfgCopy.Adjudicator)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "adjudicator", cfgCopy.Adjudicator)
 	})
 	t.Run("invalidConfig_asset", func(t *testing.T) {
 		cfgCopy := cfg
@@ -158,8 +159,8 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.Asset = "invalid-addr"
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "asset", cfgCopy.Asset)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "asset", cfgCopy.Asset)
 	})
 	t.Run("invalid_adjudicator_contract", func(t *testing.T) {
 		cfgCopy := cfg
@@ -167,15 +168,15 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.Adjudicator = ethereumtest.NewRandomAddress(prng).String()
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidContracts, "")
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidContracts, "")
 		// Both contracts will be returned as invalid because, the asset holder
 		// validation function in go-perun passes only if both adjudicator and
 		// asset holder contracts are valid.
-		wantContractsInfo := map[string]string{
-			string(blockchain.Adjudicator):    cfgCopy.Adjudicator,
-			string(blockchain.AssetHolderETH): cfgCopy.Asset,
+		wantContractsInfo := []perun.ContractErrInfo{
+			{Name: string(blockchain.Adjudicator), Address: cfgCopy.Adjudicator},
+			{Name: string(blockchain.AssetHolderETH), Address: cfgCopy.Asset},
 		}
-		assertErrInfoInvalidContracts(t, err.AddInfo(), 2, wantContractsInfo)
+		peruntest.AssertErrInfoInvalidContracts(t, err.AddInfo(), wantContractsInfo)
 	})
 	t.Run("invalid_asset_contract", func(t *testing.T) {
 		cfgCopy := cfg
@@ -183,11 +184,11 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.Asset = ethereumtest.NewRandomAddress(prng).String()
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidContracts, "")
-		wantContractsInfo := map[string]string{
-			string(blockchain.AssetHolderETH): cfgCopy.Asset,
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidContracts, "")
+		wantContractsInfo := []perun.ContractErrInfo{
+			{Name: string(blockchain.AssetHolderETH), Address: cfgCopy.Asset},
 		}
-		assertErrInfoInvalidContracts(t, err.AddInfo(), 1, wantContractsInfo)
+		peruntest.AssertErrInfoInvalidContracts(t, err.AddInfo(), wantContractsInfo)
 	})
 	t.Run("invalid_adjudicator_asset_contract", func(t *testing.T) {
 		cfgCopy := cfg
@@ -196,12 +197,12 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.Asset = ethereumtest.NewRandomAddress(prng).String()
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidContracts, "")
-		wantContractsInfo := map[string]string{
-			string(blockchain.Adjudicator):    cfgCopy.Adjudicator,
-			string(blockchain.AssetHolderETH): cfgCopy.Asset,
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidContracts, "")
+		wantContractsInfo := []perun.ContractErrInfo{
+			{Name: string(blockchain.Adjudicator), Address: cfgCopy.Adjudicator},
+			{Name: string(blockchain.AssetHolderETH), Address: cfgCopy.Asset},
 		}
-		assertErrInfoInvalidContracts(t, err.AddInfo(), 2, wantContractsInfo)
+		peruntest.AssertErrInfoInvalidContracts(t, err.AddInfo(), wantContractsInfo)
 	})
 
 	t.Run("invalidConfig_commType", func(t *testing.T) {
@@ -210,8 +211,8 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.User.CommType = "unsupported"
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "commType", cfgCopy.User.CommType)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "commType", cfgCopy.User.CommType)
 	})
 	t.Run("invalidConfig_commAddr", func(t *testing.T) {
 		cfgCopy := cfg
@@ -219,8 +220,8 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.User.CommAddr = "invalid-addr"
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "commAddr", cfgCopy.User.CommAddr)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "commAddr", cfgCopy.User.CommAddr)
 	})
 	t.Run("invalidConfig_commAddr_portInUse", func(t *testing.T) {
 		cfgCopy := cfg
@@ -240,8 +241,8 @@ func Test_Integ_New(t *testing.T) {
 
 		_, apiErr := session.New(cfgCopy)
 		require.Error(t, apiErr)
-		assertAPIError(t, apiErr, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, apiErr.AddInfo(), "commAddr", cfgCopy.User.CommAddr)
+		peruntest.AssertAPIError(t, apiErr, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, apiErr.AddInfo(), "commAddr", cfgCopy.User.CommAddr)
 	})
 
 	t.Run("invalidConfig_idProviderType", func(t *testing.T) {
@@ -250,8 +251,8 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.IDProviderType = "unsupported"
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "idProviderType", cfgCopy.IDProviderType)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "idProviderType", cfgCopy.IDProviderType)
 	})
 	t.Run("invalidConfig_idProviderURL", func(t *testing.T) {
 		cfgCopy := cfg
@@ -259,8 +260,8 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.IDProviderURL = newCorruptedYAMLFile(t)
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "idProviderURL", cfgCopy.IDProviderURL)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "idProviderURL", cfgCopy.IDProviderURL)
 	})
 	t.Run("invalidConfig_idProviderURL_hasEntryForSelf", func(t *testing.T) {
 		ownPeer := perun.PeerID{
@@ -271,8 +272,9 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.IDProviderURL = idprovidertest.NewIDProviderT(t, ownPeer)
 		_, err := session.New(cfgCopy)
 		require.Error(t, err)
-		assertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
-		assertErrInfoInvalidConfig(t, err.AddInfo(), "idProviderURL", cfgCopy.IDProviderURL)
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
+		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "idProviderURL", cfgCopy.IDProviderURL)
+		t.Logf("%+v", err)
 	})
 }
 
@@ -367,25 +369,25 @@ func newDatabaseDir(t *testing.T) (dir string) {
 	return databaseDir
 }
 
-func assertErrInfoInvalidConfig(t *testing.T, info interface{}, name, value string) {
-	t.Helper()
+// func peruntest.AssertErrInfoInvalidConfig(t *testing.T, info interface{}, name, value string) {
+// 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrInfoInvalidConfig)
-	require.True(t, ok)
-	assert.Equal(t, name, addInfo.Name)
-	assert.Equal(t, value, addInfo.Value)
-}
+// 	addInfo, ok := info.(perun.ErrInfoInvalidConfig)
+// 	require.True(t, ok)
+// 	assert.Equal(t, name, addInfo.Name)
+// 	assert.Equal(t, value, addInfo.Value)
+// }
 
-func assertErrInfoInvalidContracts(t *testing.T, info interface{}, cntContracts int, wantInfo map[string]string) {
-	t.Helper()
+// func .AssertErrInfoInvalidContracts(t *testing.T, info interface{}, cntContracts int, wantInfo map[string]string) {
+// 	t.Helper()
 
-	addInfo, ok := info.(perun.ErrInfoInvalidContracts)
-	require.True(t, ok)
-	assert.Len(t, addInfo.ContractErrInfos, cntContracts)
-	assert.Len(t, wantInfo, cntContracts, "length of wantInfo should be same as count of invalid contracts")
-	for i := range addInfo.ContractErrInfos {
-		addr, ok := wantInfo[addInfo.ContractErrInfos[i].Name]
-		require.True(t, ok)
-		assert.Equal(t, addr, addInfo.ContractErrInfos[i].Address)
-	}
-}
+// 	addInfo, ok := info.(perun.ErrInfoInvalidContracts)
+// 	require.True(t, ok)
+// 	assert.Len(t, addInfo.ContractErrInfos, cntContracts)
+// 	assert.Len(t, wantInfo, cntContracts, "length of wantInfo should be same as count of invalid contracts")
+// 	for i := range addInfo.ContractErrInfos {
+// 		addr, ok := wantInfo[addInfo.ContractErrInfos[i].Name]
+// 		require.True(t, ok)
+// 		assert.Equal(t, addr, addInfo.ContractErrInfos[i].Address)
+// 	}
+// }

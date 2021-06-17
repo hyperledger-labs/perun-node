@@ -43,11 +43,6 @@ func (e Error) Error() string {
 	return string(e)
 }
 
-// Definition of error constants for this package.
-const (
-	ErrUnknownSessionID Error = "unknown session id"
-)
-
 // New returns a perun NodeAPI instance initialized using the given config.
 // This should be called only once, subsequent calls after the first non error
 // response will return an error.
@@ -78,26 +73,34 @@ func New(cfg perun.NodeConfig) (perun.NodeAPI, error) {
 	}, nil
 }
 
-// Time returns the current UTC time as per the node's system clock in unix format.
+// Time returns the time as per perun node's clock. It should be used to check
+// the expiry of notifications.
 func (n *node) Time() int64 {
 	n.Debug("Received request: node.Time")
 	return time.Now().UTC().Unix()
 }
 
-// GetConfig returns the node level configuration parameters.
+// GetConfig returns the configuration parameters of the node.
 func (n *node) GetConfig() perun.NodeConfig {
 	n.Debug("Received request: node.GetConfig")
 	return n.cfg
 }
 
-// Help returns the set of APIs offered by the node.
+// Help returns the list of user APIs served by the node.
 func (n *node) Help() []string {
 	n.Debug("Received request: node.Help")
 	return []string{"payment"}
 }
 
-// OpenSession opens a session on this node using the given config file and returns the
-// session id, which can be used to retrieve a SessionAPI instance from this node instance.
+// Initializes a new session with the configuration in the given file. If
+// channels were persisted during the previous instance of the session, they
+// will be restored and their last known info will be returned.
+//
+// If there is an error, it will be one of the following codes:
+// - ErrInvalidArgument with Name:"configFile" when config file cannot be accessed.
+// - ErrInvalidConfig when any of the configuration is invalid.
+// - ErrInvalidContracts when the contracts at the addresses in config are invalid.
+// - ErrUnknownInternal.
 func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.APIError) {
 	n.WithField("method", "OpenSession").Infof("\nReceived request with params %+v", configFile)
 	n.Lock()
@@ -113,7 +116,7 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 	sessionConfig, err := session.ParseConfig(configFile)
 	if err != nil {
 		err = errors.WithMessage(err, "parsing config")
-		return "", nil, perun.NewAPIErrInvalidArgument("configFile", configFile, "", err.Error())
+		return "", nil, perun.NewAPIErrInvalidArgument(err, session.ArgNameConfigFile, configFile)
 	}
 	sess, apiErr := session.New(sessionConfig)
 	if apiErr != nil {
@@ -125,7 +128,13 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 	return sess.ID(), sess.GetChsInfo(), nil
 }
 
-// GetSession implements node.GetSession.
+// GetSession is an internal API that retreives the session API instance
+// corresponding to the given session ID.
+//
+// The session instance is safe for concurrent user.
+//
+// If there is an error, it will be one of the following codes:
+// - ErrResourceNotFound when the session ID is not known.
 func (n *node) GetSession(sessionID string) (perun.SessionAPI, perun.APIError) {
 	n.WithField("method", "GetSession").Info("Received request with params:", sessionID)
 
@@ -133,7 +142,7 @@ func (n *node) GetSession(sessionID string) (perun.SessionAPI, perun.APIError) {
 	sess, ok := n.sessions[sessionID]
 	n.Unlock()
 	if !ok {
-		apiErr := perun.NewAPIErrResourceNotFound("session id", sessionID, ErrUnknownSessionID.Error())
+		apiErr := perun.NewAPIErrResourceNotFound(session.ResTypeSession, sessionID)
 		n.WithFields(perun.APIErrAsMap("GetSession (internal)", apiErr)).Error(apiErr.Message())
 		return nil, apiErr
 	}
