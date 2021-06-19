@@ -25,6 +25,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/app/payment"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
@@ -55,6 +57,10 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 	handleError(err, "initializing logger")
 	fmt.Printf("initialized logger\n")
 
+	currencies := currency.NewRegistry()
+	_, err = currencies.Register(currency.ETHSymbol, currency.ETHMaxDecimals)
+	require.NoError(t, err)
+
 	chainID := ethereumtest.ChainID
 	chainURL := ethereumtest.ChainURL
 	onChainTxTimeout := ethereumtest.OnChainTxTimeout
@@ -75,11 +81,11 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 	// *******************************************************
 	fmt.Println("\n=== Setup: Initialize sessions and cross register peer IDs ===")
 
-	aliceSess, err := session.New(aliceCfg)
+	aliceSess, err := session.New(aliceCfg, currencies)
 	handleError(err, "alice: initializing session")
 	fmt.Printf("alice: initialized session, session ID: %s\n", aliceSess.ID())
 
-	bobSess, err := session.New(bobCfg)
+	bobSess, err := session.New(bobCfg, currencies)
 	handleError(err, "initializing session for bob")
 	fmt.Printf("bob: initialized session, session ID: %s\n\n", bobSess.ID())
 
@@ -110,7 +116,7 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		openingBalInfo := perun.BalInfo{
-			Currency: currency.ETH,
+			Currency: currency.ETHSymbol,
 			Parts:    []string{perun.OwnAlias, bobAlias},
 			Bal:      []string{"1", "2"},
 		}

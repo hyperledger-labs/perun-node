@@ -118,7 +118,8 @@ type (
 		timeoutCfg timeoutConfig
 		chainURL   string // chain URL is stored for retrieval when annotating errors
 
-		chs *chRegistry
+		chs        *chRegistry
+		currencies perun.ROCurrencyRegistry
 
 		chProposalNotifier    perun.ChProposalNotifier
 		chProposalNotifsCache []perun.ChProposalNotif
@@ -152,9 +153,10 @@ func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pc
 	return r.ProposalResponder.Accept(ctx, proposalAcc)
 }
 
-// New initializes a SessionAPI instance for the given configuration and returns an
-// instance of it. All methods on it are safe for concurrent use.
-func New(cfg Config) (*Session, perun.APIError) {
+// New initializes a SessionAPI instance for the given configuration, read-only
+// currency registry and returns an instance of it. All methods on it are safe
+// for concurrent use.
+func New(cfg Config, currencies perun.ROCurrencyRegistry) (*Session, perun.APIError) {
 	user, apiErr := NewUnlockedUser(walletBackend, cfg.User)
 	if apiErr != nil {
 		return nil, apiErr
@@ -202,6 +204,7 @@ func New(cfg Config) (*Session, perun.APIError) {
 		chClient:             chClient,
 		idProvider:           idProvider,
 		chs:                  newChRegistry(initialChRegistrySize),
+		currencies:           currencies,
 		chProposalResponders: make(map[string]chProposalResponderEntry),
 	}
 	err := sess.chClient.RestoreChs(sess.handleRestoredCh)
@@ -262,7 +265,8 @@ func (s *Session) handleRestoredCh(pch PChannel) {
 	for i := range pch.Peers() {
 		p, ok := s.idProvider.ReadByOffChainAddr(partOffChainAddrs[i])
 		if !ok {
-			s.Info("Unknown peer address in a persisted channel, will not be restored", pch.Peers()[i].String())
+			s.Infof("Unknown peer address %v in a persisted channel %x, will not be restored",
+				pch.Peers()[i], pch.ID())
 			return
 		}
 		partIDs[i] = p
@@ -271,7 +275,14 @@ func (s *Session) handleRestoredCh(pch PChannel) {
 
 	registerParts(partIDs, s.chClient)
 
-	ch := newCh(pch, s.chainURL, currency.ETH, aliases, s.timeoutCfg, pch.Params().ChallengeDuration)
+	if !s.currencies.IsRegistered(currency.ETHSymbol) {
+		s.Infof("Unknown currency %v in a persisted channel %x, will not be restored",
+			currency.ETHSymbol, pch.ID())
+		return
+	}
+	currency := s.currencies.Currency(currency.ETHSymbol)
+
+	ch := newCh(pch, s.chainURL, currency, aliases, s.timeoutCfg, pch.Params().ChallengeDuration)
 	s.addCh(ch)
 	s.Debugf("restored channel from persistence: %v", ch.getChInfo())
 }
@@ -386,7 +397,8 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	registerParts(parts, s.chClient)
 
 	var allocations *pchannel.Allocation
-	allocations, apiErr = makeAllocation(openingBalInfo, s.chAsset)
+	var currency perun.Currency
+	currency, allocations, apiErr = makeAllocation(openingBalInfo, s.chAsset, s.currencies)
 	if apiErr != nil {
 		return perun.ChInfo{}, apiErr
 	}
@@ -405,7 +417,7 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 		return perun.ChInfo{}, apiErr
 	}
 
-	ch := newCh(pch, s.chainURL, openingBalInfo.Currency, openingBalInfo.Parts, s.timeoutCfg, challengeDurSecs)
+	ch := newCh(pch, s.chainURL, currency, openingBalInfo.Parts, s.timeoutCfg, challengeDurSecs)
 	s.addCh(ch)
 	s.WithFields(log.Fields{"method": "OpenCh", "channelID": ch.ID()}).Info("Channel opened successfully")
 	return ch.GetChInfo(), nil
@@ -531,22 +543,24 @@ func makeOffChainAddrs(partIDs []perun.PeerID) []pwire.Address {
 // makeAllocation makes an allocation using the BalanceInfo and the chAsset.
 // Order of amounts in the balance is same as the order of Aliases in the Balance Info.
 // It errors if any of the amounts cannot be parsed using the interpreter corresponding to the currency.
-func makeAllocation(balInfo perun.BalInfo, chAsset pchannel.Asset) (*pchannel.Allocation, perun.APIError) {
-	if !currency.IsSupported(balInfo.Currency) {
-		return nil, perun.NewAPIErrResourceNotFound(ResTypeCurrency, balInfo.Currency)
+func makeAllocation(balInfo perun.BalInfo, chAsset pchannel.Asset, currencies perun.ROCurrencyRegistry) (
+	perun.Currency, *pchannel.Allocation, perun.APIError) {
+	if !currencies.IsRegistered(balInfo.Currency) {
+		return nil, nil, perun.NewAPIErrResourceNotFound(ResTypeCurrency, balInfo.Currency)
 	}
+	currency := currencies.Currency(balInfo.Currency)
 
 	balance := make([]*big.Int, len(balInfo.Bal))
 	var err error
 	for i := range balInfo.Bal {
-		balance[i], err = currency.NewParser(balInfo.Currency).Parse(balInfo.Bal[i])
+		balance[i], err = currency.Parse(balInfo.Bal[i])
 		if err != nil {
 			err = errors.WithMessage(err, "parsing amount")
-			return nil, perun.NewAPIErrInvalidArgument(err, ArgNameAmount, balInfo.Bal[i])
+			return nil, nil, perun.NewAPIErrInvalidArgument(err, ArgNameAmount, balInfo.Bal[i])
 		}
 	}
 
-	return &pchannel.Allocation{
+	return currency, &pchannel.Allocation{
 		Assets:   []pchannel.Asset{chAsset},
 		Balances: [][]*big.Int{balance},
 	}, nil
@@ -591,16 +605,23 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 	for i := range ledgerChProposal.Peers {
 		p, ok := s.idProvider.ReadByOffChainAddr(ledgerChProposal.Peers[i])
 		if !ok {
-			s.Info("Received channel proposal from unknonwn peer ID", ledgerChProposal.Peers[i].String())
+			s.Infof("Rejecting channel proposal with unknonwn peer ID: %v", ledgerChProposal.Peers[i])
 			// nolint: errcheck              // It is sufficient to just log this error.
-			s.rejectChProposal(context.Background(), responder, "peer ID not found in session ID Provider")
+			s.rejectChProposal(context.Background(), responder, "unrecogonized peer ID")
 			expiry = 0
 			break
 		}
 		parts[i] = p.Alias
 	}
 
-	notif := chProposalNotif(parts, currency.ETH, ledgerChProposal, expiry)
+	if !s.currencies.IsRegistered(currency.ETHSymbol) {
+		s.Infof("Rejecting channel proposal with unknonwn currency: %v", currency.ETHSymbol)
+		// nolint: errcheck              // It is sufficient to just log this error.
+		s.rejectChProposal(context.Background(), responder, "unrecogonized currency")
+	}
+	currency := s.currencies.Currency(currency.ETHSymbol)
+
+	notif := chProposalNotif(parts, currency, ledgerChProposal, expiry)
 	entry := chProposalResponderEntry{
 		proposal:  *ledgerChProposal,
 		notif:     notif,
@@ -626,11 +647,11 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 	}
 }
 
-func chProposalNotif(parts []string, curr string, chProposal *pclient.LedgerChannelProposal,
+func chProposalNotif(parts []string, currency perun.Currency, chProposal *pclient.LedgerChannelProposal,
 	expiry int64) perun.ChProposalNotif {
 	return perun.ChProposalNotif{
 		ProposalID:       fmt.Sprintf("%x", chProposal.ProposalID()),
-		OpeningBalInfo:   makeBalInfoFromRawBal(parts, curr, chProposal.InitBals.Balances[0]),
+		OpeningBalInfo:   makeBalInfoFromRawBal(parts, currency, chProposal.InitBals.Balances[0]),
 		App:              makeApp(chProposal.App, chProposal.InitData),
 		ChallengeDurSecs: chProposal.ChallengeDuration,
 		Expiry:           expiry,
@@ -792,7 +813,11 @@ func (s *Session) acceptChProposal(pctx context.Context, entry chProposalRespond
 	// Set ETH as the currency interpreter for incoming channel.
 	// TODO: (mano) Provide an option for user to configure when more currency interpreters are supported.
 	parts := entry.notif.OpeningBalInfo.Parts
-	ch := newCh(pch, s.chainURL, currency.ETH, parts, s.timeoutCfg, entry.notif.ChallengeDurSecs)
+
+	// Safe to use without nil check, as the proposal handler would have
+	// rejected the proposal if it was not registered.
+	currency := s.currencies.Currency(currency.ETHSymbol)
+	ch := newCh(pch, s.chainURL, currency, parts, s.timeoutCfg, entry.notif.ChallengeDurSecs)
 	s.addCh(ch)
 	s.WithFields(log.Fields{"method": "RespondChProposal", "channelID": ch.ID()}).Info("Channel opened successfully")
 	return ch.getChInfo(), nil

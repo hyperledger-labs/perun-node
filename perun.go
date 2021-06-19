@@ -146,6 +146,21 @@ type WalletBackend interface {
 type Currency interface {
 	Parse(string) (*big.Int, error)
 	Print(*big.Int) string
+	Symbol() string
+}
+
+// CurrencyRegistry provides an interface to register and retrieve currency
+// parsers.
+type CurrencyRegistry interface {
+	ROCurrencyRegistry
+	Register(symbol string, maxDecimals uint8) (Currency, error)
+}
+
+// ROCurrencyRegistry provides an interface to retrieve currency parsers.
+type ROCurrencyRegistry interface {
+	IsRegistered(symbol string) bool
+	Currency(symbol string) Currency
+	Symbols() []string
 }
 
 // NodeConfig represents the configurable parameters of a perun node.
@@ -403,7 +418,7 @@ type ChAPI interface {
 	// Methods for reading the channel information is doesn't change.
 	// These APIs don't use mutex lock.
 	ID() string
-	Currency() string
+	Currency() Currency
 	Parts() []string
 	ChallengeDurSecs() uint64
 

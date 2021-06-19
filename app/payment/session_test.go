@@ -36,7 +36,7 @@ var (
 	// Fixed channel data.
 	peerAlias = "peer"
 	parts     = []string{perun.OwnAlias, peerAlias}
-	curr      = currency.ETH
+	curr      = currency.ETHSymbol
 
 	challengeDurSecs uint64 = 10
 	app                     = perun.App{

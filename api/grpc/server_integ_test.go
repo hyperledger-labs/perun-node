@@ -347,7 +347,7 @@ func OpenPayCh(t *testing.T, sessionID string, parts, bal []string, wantErr bool
 	req := pb.OpenPayChReq{
 		SessionID: sessionID,
 		OpeningBalInfo: &pb.BalInfo{
-			Currency: currency.ETH,
+			Currency: currency.ETHSymbol,
 			Parts:    parts,
 			Bal:      bal,
 		},

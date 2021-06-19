@@ -25,8 +25,6 @@ import (
 
 	"github.com/mum4k/termdash/widgets/text"
 	"github.com/pkg/errors"
-
-	"github.com/hyperledger-labs/perun-node/currency"
 )
 
 type (
@@ -429,13 +427,11 @@ func trimZeros(s *string) {
 // This is a hacky function, that computes the proposed state when sending an update.
 // Assumes, the version is an integer and will be incremented.
 func getProposedBalInfo(current balInfo, amountStr string, isPayeePeer bool) (balInfo, error) {
-	parser := currency.NewParser(currency.ETH)
-
-	currOurs, _ := parser.Parse(current.ours)     // nolint: errcheck
-	currTheirs, _ := parser.Parse(current.theirs) // nolint: errcheck
+	currOurs, _ := ethCurrency.Parse(current.ours)     // nolint: errcheck
+	currTheirs, _ := ethCurrency.Parse(current.theirs) // nolint: errcheck
 	// Values received from node should parse without errors.
 
-	amount, err := parser.Parse(amountStr)
+	amount, err := ethCurrency.Parse(amountStr)
 	if err != nil {
 		return balInfo{}, errors.Wrap(err, "parsing amount")
 	}
@@ -443,11 +439,11 @@ func getProposedBalInfo(current balInfo, amountStr string, isPayeePeer bool) (ba
 	proposed := balInfo{}
 
 	if isPayeePeer {
-		proposed.ours = parser.Print(currOurs.Sub(currOurs, amount))
-		proposed.theirs = parser.Print(currTheirs.Add(currTheirs, amount))
+		proposed.ours = truncateAtAmountMaxLen(ethCurrency.Print(currOurs.Sub(currOurs, amount)))
+		proposed.theirs = truncateAtAmountMaxLen(ethCurrency.Print(currTheirs.Add(currTheirs, amount)))
 	} else {
-		proposed.theirs = parser.Print(currTheirs.Sub(currTheirs, amount))
-		proposed.ours = parser.Print(currOurs.Add(currOurs, amount))
+		proposed.theirs = truncateAtAmountMaxLen(ethCurrency.Print(currTheirs.Sub(currTheirs, amount)))
+		proposed.ours = truncateAtAmountMaxLen(ethCurrency.Print(currOurs.Add(currOurs, amount)))
 	}
 
 	currVersion, err := strconv.Atoi(current.version)
@@ -456,4 +452,11 @@ func getProposedBalInfo(current balInfo, amountStr string, isPayeePeer bool) (ba
 	}
 	proposed.version = strconv.Itoa(currVersion + 1)
 	return proposed, nil
+}
+
+func truncateAtAmountMaxLen(str string) string {
+	if len(str) > amountMaxLength {
+		return str[:amountMaxLength]
+	}
+	return str
 }

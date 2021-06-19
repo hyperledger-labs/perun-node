@@ -27,15 +27,17 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
+	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/log"
 	"github.com/hyperledger-labs/perun-node/session"
 )
 
 type node struct {
 	log.Logger
-	cfg       perun.NodeConfig
-	sessions  map[string]perun.SessionAPI
-	contracts map[blockchain.ContractName]pwire.Address
+	cfg        perun.NodeConfig
+	sessions   map[string]perun.SessionAPI
+	contracts  map[blockchain.ContractName]pwire.Address
+	currencies perun.CurrencyRegistry
 	psync.Mutex
 }
 
@@ -61,16 +63,22 @@ func New(cfg perun.NodeConfig) (perun.NodeAPI, error) {
 		return nil, err
 	}
 
+	currencies := currency.NewRegistry()
+	if _, err = currencies.Register(currency.ETHSymbol, currency.ETHMaxDecimals); err != nil {
+		return nil, errors.WithMessage(err, "registering ETH currency")
+	}
+
 	err = log.InitLogger(cfg.LogLevel, cfg.LogFile)
 	if err != nil {
 		return nil, errors.WithMessage(err, "initializing logger for node")
 	}
 
 	return &node{
-		Logger:    log.NewLoggerWithField("node", 1), // ID of the node is always 1.
-		cfg:       cfg,
-		sessions:  make(map[string]perun.SessionAPI),
-		contracts: contracts,
+		Logger:     log.NewLoggerWithField("node", 1), // ID of the node is always 1.
+		cfg:        cfg,
+		sessions:   make(map[string]perun.SessionAPI),
+		contracts:  contracts,
+		currencies: currencies,
 	}, nil
 }
 
@@ -155,7 +163,7 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 	}
 	sessionConfig.Adjudicator = n.contracts[blockchain.Adjudicator]
 	sessionConfig.AssetETH = n.contracts[blockchain.AssetETH]
-	sess, apiErr := session.New(sessionConfig)
+	sess, apiErr := session.New(sessionConfig, n.currencies)
 	if apiErr != nil {
 		return "", nil, apiErr
 	}
