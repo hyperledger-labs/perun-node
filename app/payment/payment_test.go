@@ -64,9 +64,9 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 	chainID := ethereumtest.ChainID
 	chainURL := ethereumtest.ChainURL
 	onChainTxTimeout := ethereumtest.OnChainTxTimeout
-	adjudicator, assetETH, err := ethereumtest.SetupContracts(chainURL, chainID, onChainTxTimeout)
+	contracts, err := ethereumtest.SetupContracts(chainURL, chainID, onChainTxTimeout, false)
 	handleError(err, "deploying contracts")
-	fmt.Printf("contracts deployed at: adjudicator:%s, asset ETH:%s\n", adjudicator, assetETH)
+	fmt.Printf("contracts deployed at: adjudicator:%s, asset ETH:%s\n", contracts.Adjudicator(), contracts.AssetETH())
 
 	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 
@@ -81,11 +81,11 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 	// *******************************************************
 	fmt.Println("\n=== Setup: Initialize sessions and cross register peer IDs ===")
 
-	aliceSess, err := session.New(aliceCfg, currencies)
+	aliceSess, err := session.New(aliceCfg, currencies, contracts)
 	handleError(err, "alice: initializing session")
 	fmt.Printf("alice: initialized session, session ID: %s\n", aliceSess.ID())
 
-	bobSess, err := session.New(bobCfg, currencies)
+	bobSess, err := session.New(bobCfg, currencies, contracts)
 	handleError(err, "initializing session for bob")
 	fmt.Printf("bob: initialized session, session ID: %s\n\n", bobSess.ID())
 

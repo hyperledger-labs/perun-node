@@ -156,7 +156,7 @@ func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pc
 // New initializes a SessionAPI instance for the given configuration, read-only
 // currency registry and returns an instance of it. All methods on it are safe
 // for concurrent use.
-func New(cfg Config, currencies perun.ROCurrencyRegistry) (*Session, perun.APIError) {
+func New(cfg Config, currencies perun.ROCurrencyRegistry, contracts perun.ContractRegistry) (*Session, perun.APIError) {
 	user, apiErr := NewUnlockedUser(walletBackend, cfg.User)
 	if apiErr != nil {
 		return nil, apiErr
@@ -170,11 +170,11 @@ func New(cfg Config, currencies perun.ROCurrencyRegistry) (*Session, perun.APIEr
 	if apiErr != nil {
 		return nil, apiErr
 	}
-
+	assetETH := contracts.AssetETH()
 	chClientCfg := clientConfig{
 		Chain: ChainConfig{
-			Adjudicator:      cfg.Adjudicator,
-			AssetETH:         cfg.AssetETH,
+			Adjudicator:      contracts.Adjudicator(),
+			AssetETH:         assetETH,
 			URL:              cfg.ChainURL,
 			ChainID:          cfg.ChainID,
 			ConnTimeout:      cfg.ChainConnTimeout,

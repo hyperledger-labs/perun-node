@@ -167,18 +167,35 @@ type ROCurrencyRegistry interface {
 	Symbols() []string
 }
 
+// ContractRegistry provides an interface to register and retrieve adjudicator
+// and asset contracts.
+type ContractRegistry interface {
+	ROContractRegistry
+	RegisterAssetERC20(token, asset pwallet.Address) (symbol string, maxDecimals uint8, _ error)
+}
+
+// ROContractRegistry provides an interface to retrieve contracts.
+type ROContractRegistry interface {
+	Adjudicator() pwallet.Address
+	AssetETH() pwallet.Address
+	Asset(symbol string) (asset pwallet.Address, found bool)
+	Symbol(asset pwallet.Address) (symbol string, found bool)
+	Assets() map[string]string
+}
+
 // NodeConfig represents the configurable parameters of a perun node.
 type NodeConfig struct {
 	// User configurable values.
-	LogLevel         string        // LogLevel represents the log level for the node and all derived loggers.
-	LogFile          string        // LogFile represents the file to write logs. Empty string represents stdout.
-	ChainURL         string        // URL of the blockchain node.
-	ChainID          int           // See session.chainconfig.
-	Adjudicator      string        // Address of the Adjudicator contract.
-	AssetETH         string        // Address of the ETH Asset holder contract.
-	ChainConnTimeout time.Duration // Timeout for connecting to blockchain node.
-	OnChainTxTimeout time.Duration // Timeout to wait for confirmation of on-chain tx.
-	ResponseTimeout  time.Duration // Timeout to wait for a response from the peer / user.
+	LogLevel         string            // LogLevel represents the log level for the node and all derived loggers.
+	LogFile          string            // LogFile represents the file to write logs. Empty string represents stdout.
+	ChainURL         string            // URL of the blockchain node.
+	ChainID          int               // See session.chainconfig.
+	Adjudicator      string            // Address of the Adjudicator contract.
+	AssetETH         string            // Address of the ETH Asset holder contract.
+	AssetERC20s      map[string]string // Address of ERC20 token contracts and corresponding asset contracts.
+	ChainConnTimeout time.Duration     // Timeout for connecting to blockchain node.
+	OnChainTxTimeout time.Duration     // Timeout to wait for confirmation of on-chain tx.
+	ResponseTimeout  time.Duration     // Timeout to wait for a response from the peer / user.
 
 	// Hard coded values. See cmd/perunnode/run.go.
 	CommTypes            []string // Communication protocols supported by the node for off-chain communication.

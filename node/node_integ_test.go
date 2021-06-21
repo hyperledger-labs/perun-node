@@ -45,7 +45,7 @@ func Test_Integ_New(t *testing.T) {
 	var n perun.NodeAPI
 
 	// Deploy contracts.
-	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
+	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout, false)
 
 	t.Run("err_invalid_log_level", func(t *testing.T) {
 		cfg := validConfig

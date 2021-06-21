@@ -153,11 +153,12 @@ func parseFlags() (bool, string) {
 }
 
 func deployContractsIfRequested(requested bool) {
-	if requested {
-		_, _, err := ethereumtest.SetupContracts(defaultChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
-		if err != nil {
-			panic(err)
-		}
+	if !requested {
+		return
+	}
+	_, err := ethereumtest.SetupContracts(defaultChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout, false)
+	if err != nil {
+		panic(err)
 	}
 }
 

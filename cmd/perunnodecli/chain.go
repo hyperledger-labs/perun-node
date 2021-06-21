@@ -128,14 +128,13 @@ func deployPerunContractsFn(c *ishell.Context) {
 		return
 	}
 
-	chainID := ethereumtest.ChainID
-	adjudicator, assetETH, err := ethereumtest.SetupContracts(chainAddr, chainID, ethereumtest.OnChainTxTimeout)
+	contracts, err := ethereumtest.SetupContracts(chainAddr, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout, false)
 	if err != nil {
 		c.Printf("%s\n\n", redf("Error deploying contracts: %v", err))
 		return
 	}
 	c.Printf("%s\n\n", greenf("Contracts deployed successfully.\nAdjudicator address: %v\nAsset ETH address: %v\n",
-		adjudicator, assetETH))
+		contracts.Adjudicator(), contracts.AssetETH()))
 }
 
 func getOnChainBalanceFn(c *ishell.Context) {

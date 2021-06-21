@@ -24,7 +24,9 @@ import (
 	"gotest.tools/assert"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/session"
+	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
 var (
@@ -51,8 +53,14 @@ var (
 		},
 		IDProviderType: "local",
 		IDProviderURL:  "./test-idprovider.yaml",
-		ChainURL:       "ws://127.0.0.1:8545",
+		ChainURL:       ethereumtest.ChainURL,
+		ChainID:        ethereumtest.ChainID,
 		DatabaseDir:    "./test-db",
+
+		ChainConnTimeout:  ethereumtest.ChainConnTimeout,
+		OnChainTxTimeout:  ethereumtest.OnChainTxTimeout,
+		ResponseTimeout:   sessiontest.ResponseTimeout,
+		PeerReconnTimeout: sessiontest.PeerReconnTimeout,
 	}
 )
 
