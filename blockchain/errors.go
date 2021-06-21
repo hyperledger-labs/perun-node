@@ -27,14 +27,14 @@ type ContractName string
 
 // Enumeration of contract names for perun node.
 const (
-	Adjudicator ContractName = "adjudicator"
-	AssetETH    ContractName = "assetETH"
+	Adjudicator = "adjudicator"
+	AssetETH    = "ETH"
 )
 
 // InvalidContractError indicates an error in validating the contract on the
 // blockchain.
 type InvalidContractError struct {
-	Name    ContractName
+	Name    string
 	Address string
 	err     error
 }
@@ -50,7 +50,7 @@ func (e InvalidContractError) Unwrap() error {
 }
 
 // NewInvalidContractError constructs and returns an InvalidContractError.
-func NewInvalidContractError(name ContractName, address string, err error) error {
+func NewInvalidContractError(name string, address string, err error) error {
 	return errors.WithStack(InvalidContractError{
 		Name:    name,
 		Address: address,

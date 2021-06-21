@@ -26,16 +26,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
-	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/internal"
 )
-
-func Test_ROChainBackend_Interface(t *testing.T) {
-	assert.Implements(t, (*perun.ChainBackend)(nil), new(internal.ChainBackend))
-}
 
 func Test_ROChainBackend_ValidateAdjudicator(t *testing.T) {
 	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
