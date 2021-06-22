@@ -41,10 +41,10 @@ func Test_ChainBackend_Deploy(t *testing.T) {
 	onChainAddr := setup.Accs[0].Address()
 	adjAddr, err := setup.ChainBackend.DeployAdjudicator(onChainAddr)
 	require.NoError(t, err)
-	assetAddr, err := setup.ChainBackend.DeployAsset(adjAddr, onChainAddr)
+	assetETHAddr, err := setup.ChainBackend.DeployAssetETH(adjAddr, onChainAddr)
 	require.NoError(t, err)
 	assert.NoError(t, setup.ChainBackend.ValidateAdjudicator(adjAddr))
-	assert.NoError(t, setup.ChainBackend.ValidateAssetHolderETH(adjAddr, assetAddr))
+	assert.NoError(t, setup.ChainBackend.ValidateAssetETH(adjAddr, assetETHAddr))
 }
 
 func Test_ChainBackend_ValidateAdjudicator(t *testing.T) {
@@ -67,17 +67,17 @@ func Test_ChainBackend_ValidateAdjudicator(t *testing.T) {
 	})
 }
 
-func Test_ChainBackend_ValidateAssetHolderETH(t *testing.T) {
+func Test_ChainBackend_ValidateAssetETH(t *testing.T) {
 	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	setup := ethereumtest.NewSimChainBackendSetup(t, rng, 1)
 
 	t.Run("happy", func(t *testing.T) {
 		assert.NoError(t, setup.ChainBackend.ValidateAdjudicator(setup.AdjAddr))
-		assert.NoError(t, setup.ChainBackend.ValidateAssetHolderETH(setup.AdjAddr, setup.AssetAddr))
+		assert.NoError(t, setup.ChainBackend.ValidateAssetETH(setup.AdjAddr, setup.AssetETHAddr))
 	})
 	t.Run("invalid_adjudicator", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
-		err := setup.ChainBackend.ValidateAssetHolderETH(randomAddr1, setup.AssetAddr)
+		err := setup.ChainBackend.ValidateAssetETH(randomAddr1, setup.AssetETHAddr)
 
 		require.Error(t, err)
 		invalidContractError := blockchain.InvalidContractError{}
@@ -86,15 +86,15 @@ func Test_ChainBackend_ValidateAssetHolderETH(t *testing.T) {
 		assert.Equal(t, blockchain.Adjudicator, invalidContractError.Name)
 		assert.Equal(t, randomAddr1.String(), invalidContractError.Address)
 	})
-	t.Run("invalid_assetHolderETH", func(t *testing.T) {
+	t.Run("invalid_assetETH", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
-		err := setup.ChainBackend.ValidateAssetHolderETH(setup.AdjAddr, randomAddr1)
+		err := setup.ChainBackend.ValidateAssetETH(setup.AdjAddr, randomAddr1)
 
 		require.Error(t, err)
 		invalidContractError := blockchain.InvalidContractError{}
 		ok := errors.As(err, &invalidContractError)
 		require.True(t, ok)
-		assert.Equal(t, blockchain.AssetHolderETH, invalidContractError.Name)
+		assert.Equal(t, blockchain.AssetETH, invalidContractError.Name)
 		assert.Equal(t, randomAddr1.String(), invalidContractError.Address)
 	})
 }

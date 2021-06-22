@@ -27,18 +27,12 @@ user:
 idProviderType: local
 idProviderURL: ./test-idprovider.yaml
 chainURL: ws://127.0.0.1:8545
-asset: 0x5992089d61cE79B6CF90506F70DD42B8E42FB21d
-adjudicator: 0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63
 
 databaseDir: ./test-db
 
 # Canonical Representation
 ---
 !!map {
-  ? !!str "adjudicator"
-  : !!int "900210940284552285579369706925971761077161942371",
-  ? !!str "asset"
-  : !!int "511356837854933446704046452540296510558989955613",
   ? !!str "chainURL"
   : !!str "ws://127.0.0.1:8545",
   ? !!str "idProviderType"

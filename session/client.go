@@ -225,7 +225,7 @@ func connectToChain(cfg ChainConfig, cred perun.Credential) (pchannel.Funder, pc
 		err = errors.WithMessage(err, "connecting to blockchain")
 		return nil, nil, perun.NewAPIErrInvalidConfig(err, "chainURL", cfg.URL)
 	}
-	return chain.NewFunder(cfg.Asset, cred.Addr), chain.NewAdjudicator(cfg.Adjudicator, cred.Addr), nil
+	return chain.NewFunder(cfg.AssetETH, cred.Addr), chain.NewAdjudicator(cfg.Adjudicator, cred.Addr), nil
 }
 
 func (c *client) runAsGoRoutine(f func()) {

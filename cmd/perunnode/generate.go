@@ -127,9 +127,9 @@ func generateNodeConfig() error {
 		return errors.New("file exists - " + nodeConfigFile)
 	}
 	nodeCfg := nodetest.NewConfig()
-	adjudicator, asset := ethereumtest.ContractAddrs()
+	adjudicator, assetETH := ethereumtest.ContractAddrs()
 	nodeCfg.Adjudicator = adjudicator.String()
-	nodeCfg.Asset = asset.String()
+	nodeCfg.AssetETH = assetETH.String()
 	// Create file in temp dir.
 	tempNodeConfigFile, err := sessiontest.NewConfigFile(nodeCfg)
 	if err != nil {

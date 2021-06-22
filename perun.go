@@ -117,11 +117,11 @@ type Credential struct {
 // configurable.
 type ChainBackend interface {
 	DeployAdjudicator(onChainAddr pwallet.Address) (adjAddr pwallet.Address, _ error)
-	DeployAsset(adjAddr, onChainAddr pwallet.Address) (assetAddr pwallet.Address, _ error)
-	ValidateAdjudicator(adjAddr pwallet.Address) error
-	ValidateAssetHolderETH(adjAddr, assetAddr pwallet.Address) error
-	NewFunder(assetAddr, onChainAddr pwallet.Address) pchannel.Funder
-	NewAdjudicator(adjAddr, receiverAddr pwallet.Address) pchannel.Adjudicator
+	DeployAssetETH(adjudicator, onChainAddr pwallet.Address) (assetETHAddr pwallet.Address, _ error)
+	ValidateAdjudicator(adjudicator pwallet.Address) error
+	ValidateAssetETH(adjudicator, assetETH pwallet.Address) error
+	NewFunder(assetETH, onChainAddr pwallet.Address) pchannel.Funder
+	NewAdjudicator(adjudicator, receiver pwallet.Address) pchannel.Adjudicator
 }
 
 // ROChainBackend wraps the methods required for validating contracts.
@@ -130,8 +130,8 @@ type ChainBackend interface {
 // corresponding backend. It is up to the implementation to make the value user
 // configurable.
 type ROChainBackend interface {
-	ValidateAdjudicator(adjAddr pwallet.Address) error
-	ValidateAssetHolderETH(adjAddr, assetAddr pwallet.Address) error
+	ValidateAdjudicator(adjudicator pwallet.Address) error
+	ValidateAssetETH(adjudicator, assetETHAddr pwallet.Address) error
 }
 
 // WalletBackend wraps the methods for instantiating wallets and accounts that are specific to a blockchain platform.
@@ -151,14 +151,15 @@ type Currency interface {
 // NodeConfig represents the configurable parameters of a perun node.
 type NodeConfig struct {
 	// User configurable values.
-	LogLevel           string        // LogLevel represents the log level for the node and all derived loggers.
-	LogFile            string        // LogFile represents the file to write logs. Empty string represents stdout.
-	ChainURL           string        // URL of the blockchain node.
-	ChainID            int           // See session.chainconfig.
-	Asset, Adjudicator string        // Address of the Asset and Adjudicator contracts.
-	ChainConnTimeout   time.Duration // Timeout for connecting to blockchain node.
-	OnChainTxTimeout   time.Duration // Timeout to wait for confirmation of on-chain tx.
-	ResponseTimeout    time.Duration // Timeout to wait for a response from the peer / user.
+	LogLevel         string        // LogLevel represents the log level for the node and all derived loggers.
+	LogFile          string        // LogFile represents the file to write logs. Empty string represents stdout.
+	ChainURL         string        // URL of the blockchain node.
+	ChainID          int           // See session.chainconfig.
+	Adjudicator      string        // Address of the Adjudicator contract.
+	AssetETH         string        // Address of the ETH Asset holder contract.
+	ChainConnTimeout time.Duration // Timeout for connecting to blockchain node.
+	OnChainTxTimeout time.Duration // Timeout to wait for confirmation of on-chain tx.
+	ResponseTimeout  time.Duration // Timeout to wait for a response from the peer / user.
 
 	// Hard coded values. See cmd/perunnode/run.go.
 	CommTypes            []string // Communication protocols supported by the node for off-chain communication.

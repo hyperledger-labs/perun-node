@@ -41,11 +41,11 @@ type ChainBackend struct {
 }
 
 // NewFunder initializes and returns an instance of ethereum funder.
-func (cb *ChainBackend) NewFunder(assetAddr pwallet.Address, onChainAddr pwallet.Address) pchannel.Funder {
-	asset := pethwallet.AsWalletAddr(pethwallet.AsEthAddr(assetAddr))
+func (cb *ChainBackend) NewFunder(assetETHAddr pwallet.Address, onChainAddr pwallet.Address) pchannel.Funder {
+	assetETH := pethwallet.AsWalletAddr(pethwallet.AsEthAddr(assetETHAddr))
 	onChainAcc := accounts.Account{Address: pethwallet.AsEthAddr(onChainAddr)}
-	onChainAccs := map[pethchannel.Asset]accounts.Account{*asset: onChainAcc}
-	depositors := map[pethchannel.Asset]pethchannel.Depositor{*asset: new(pethchannel.ETHDepositor)}
+	onChainAccs := map[pethchannel.Asset]accounts.Account{*assetETH: onChainAcc}
+	depositors := map[pethchannel.Asset]pethchannel.Depositor{*assetETH: new(pethchannel.ETHDepositor)}
 	return pethchannel.NewFunder(*cb.Cb, onChainAccs, depositors)
 }
 
@@ -68,13 +68,13 @@ func (cb *ChainBackend) ValidateAdjudicator(adjAddr pwallet.Address) error {
 	return errors.Wrap(err, "validating adjudicator contract")
 }
 
-// ValidateAssetHolderETH validates the integrity of adjudicator and asset
-// holder contracts at the given addresses.
+// ValidateAssetETH validates the integrity of adjudicator and asset ETH
+// contracts at the given addresses.
 //
 // TODO: Submit a suggestion to go-perun to not validate the adjudicator contract in ValidateAssetHolder.
 // If accepted, then update this function to
-// validate only the asset holder contract.
-func (cb *ChainBackend) ValidateAssetHolderETH(adjAddr, assetAddr pwallet.Address) error {
+// validate only the asset ETH contract.
+func (cb *ChainBackend) ValidateAssetETH(adjAddr, assetETHAddr pwallet.Address) error {
 	ctx, cancel := context.WithTimeout(context.Background(), cb.TxTimeout)
 	defer cancel()
 	// Though integrity of adjudicator is implicitly checked by ValidateAssetHolderETH,
@@ -84,11 +84,12 @@ func (cb *ChainBackend) ValidateAssetHolderETH(adjAddr, assetAddr pwallet.Addres
 		return blockchain.NewInvalidContractError(blockchain.Adjudicator, adjAddr.String(), err)
 	}
 
-	err = pethchannel.ValidateAssetHolderETH(ctx, *cb.Cb, pethwallet.AsEthAddr(assetAddr), pethwallet.AsEthAddr(adjAddr))
+	err = pethchannel.ValidateAssetHolderETH(ctx, *cb.Cb,
+		pethwallet.AsEthAddr(assetETHAddr), pethwallet.AsEthAddr(adjAddr))
 	if pethchannel.IsErrInvalidContractCode(err) {
-		return blockchain.NewInvalidContractError(blockchain.AssetHolderETH, assetAddr.String(), err)
+		return blockchain.NewInvalidContractError(blockchain.AssetETH, assetETHAddr.String(), err)
 	}
-	return errors.Wrap(err, "validating asset holder ETH contract")
+	return errors.Wrap(err, "validating asset ETH contract")
 }
 
 // DeployAdjudicator deploys the adjudicator contract.
@@ -101,12 +102,12 @@ func (cb *ChainBackend) DeployAdjudicator(onChainAddr pwallet.Address) (pwallet.
 	return pethwallet.AsWalletAddr(addr), errors.Wrap(err, "deploying adjudicator contract")
 }
 
-// DeployAsset deploys the asset holder contract, setting the adjudicator address to given value.
-func (cb *ChainBackend) DeployAsset(adjAddr, onChainAddr pwallet.Address) (pwallet.Address, error) {
+// DeployAssetETH deploys the asset ETH contract, setting the adjudicator address to given value.
+func (cb *ChainBackend) DeployAssetETH(adjAddr, onChainAddr pwallet.Address) (pwallet.Address, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), cb.TxTimeout)
 	defer cancel()
 
 	onChainAcc := accounts.Account{Address: pethwallet.AsEthAddr(onChainAddr)}
 	addr, err := pethchannel.DeployETHAssetholder(ctx, *cb.Cb, pethwallet.AsEthAddr(adjAddr), onChainAcc)
-	return pethwallet.AsWalletAddr(addr), errors.Wrap(err, "deploying asset contract")
+	return pethwallet.AsWalletAddr(addr), errors.Wrap(err, "deploying asset ETH contract")
 }
