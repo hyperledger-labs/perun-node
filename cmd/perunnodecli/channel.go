@@ -236,7 +236,7 @@ func channelSendFn(c *ishell.Context) {
 	req := pb.OpenPayChReq{
 		SessionID: sessionID,
 		OpeningBalInfo: &pb.BalInfo{
-			Currency: currency.ETH,
+			Currency: currency.ETHSymbol,
 			Parts:    []string{perun.OwnAlias, c.Args[0]},
 			Bal:      []string{c.Args[1], c.Args[2]},
 		},

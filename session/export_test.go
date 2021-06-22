@@ -23,6 +23,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
+	"github.com/hyperledger-labs/perun-node/currency/currencytest"
 	"github.com/hyperledger-labs/perun-node/log"
 )
 
@@ -69,18 +70,20 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient) (*Session, er
 		chClient:             chClient,
 		idProvider:           idProvider,
 		chs:                  newChRegistry(initialChRegistrySize),
+		currencies:           currencytest.Registry(),
 		chProposalResponders: make(map[string]chProposalResponderEntry),
 	}, nil
 }
 
 func NewChForTest(pch PChannel,
-	currency string, parts []string, responseTimeout time.Duration, challengeDurSecs uint64, isOpen bool) *Channel {
+	currencySymbol string, parts []string, responseTimeout time.Duration, challengeDurSecs uint64, isOpen bool) *Channel {
 	chainURL := ethereumtest.ChainURL
 	onChainTxTimeout := ethereumtest.OnChainTxTimeout
 	timeoutCfg := timeoutConfig{
 		response:  responseTimeout,
 		onChainTx: onChainTxTimeout,
 	}
+	currency := currencytest.Registry().Currency(currencySymbol)
 	ch := newCh(pch, chainURL, currency, parts, timeoutCfg, challengeDurSecs)
 	if isOpen {
 		ch.status = open
@@ -91,6 +94,8 @@ func NewChForTest(pch PChannel,
 	return ch
 }
 
-func MakeAllocation(openingBalInfo perun.BalInfo, chAsset pchannel.Asset) (*pchannel.Allocation, error) {
-	return makeAllocation(openingBalInfo, chAsset)
+func MakeAllocation(openingBalInfo perun.BalInfo, chAsset pchannel.Asset, currencies perun.ROCurrencyRegistry) (
+	*pchannel.Allocation, error) {
+	_, allocation, err := makeAllocation(openingBalInfo, chAsset, currencies)
+	return allocation, err
 }

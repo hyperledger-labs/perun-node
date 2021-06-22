@@ -41,6 +41,9 @@ import (
 func Test_Integ_Role(t *testing.T) {
 	// Deploy contracts.
 	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
+	currencies := currency.NewRegistry()
+	_, err := currencies.Register(currency.ETHSymbol, currency.ETHMaxDecimals)
+	require.NoError(t, err)
 
 	aliceAlias, bobAlias := "alice", "bob"
 
@@ -48,12 +51,12 @@ func Test_Integ_Role(t *testing.T) {
 	aliceCfg := sessiontest.NewConfigT(t, prng)
 	bobCfg := sessiontest.NewConfigT(t, prng)
 
-	alice, err := session.New(aliceCfg)
+	alice, err := session.New(aliceCfg, currencies)
 	require.NoErrorf(t, err, "initializing alice session")
 	t.Logf("alice session id: %s\n", alice.ID())
 	t.Logf("alice database dir is: %s\n", aliceCfg.DatabaseDir)
 
-	bob, err := session.New(bobCfg)
+	bob, err := session.New(bobCfg, currencies)
 	require.NoErrorf(t, err, "initializing bob session")
 	t.Logf("bob session id: %s\n", bob.ID())
 	t.Logf("bob database dir is: %s\n", bobCfg.DatabaseDir)
@@ -110,7 +113,7 @@ func Test_Integ_Role(t *testing.T) {
 				defer wg.Done()
 
 				openingBalInfo := perun.BalInfo{
-					Currency: currency.ETH,
+					Currency: currency.ETHSymbol,
 					Parts:    []string{perun.OwnAlias, bobAlias},
 					Bal:      []string{"1", "2"},
 				}
@@ -118,7 +121,6 @@ func Test_Integ_Role(t *testing.T) {
 					Def:  pchannel.NoApp(),
 					Data: pchannel.NoData(),
 				}
-				//nolint:govet				// err does not shadow
 				_, err := alice.OpenCh(ctx, openingBalInfo, app, challengeDurSecs)
 				require.NoErrorf(t, err, "alice opening channel with bob")
 			}()
@@ -152,7 +154,7 @@ func Test_Integ_Role(t *testing.T) {
 			defer wg.Done()
 
 			openingBalInfo := perun.BalInfo{
-				Currency: currency.ETH,
+				Currency: currency.ETHSymbol,
 				Parts:    []string{aliceAlias, perun.OwnAlias},
 				Bal:      []string{"1", "2"},
 			}
@@ -160,7 +162,6 @@ func Test_Integ_Role(t *testing.T) {
 				Def:  pchannel.NoApp(),
 				Data: pchannel.NoData(),
 			}
-			//nolint:govet				// err does not shadow
 			_, err := bob.OpenCh(ctx, openingBalInfo, app, challengeDurSecs)
 			require.Error(t, err, "bob sending channel proposal should be rejected by alice")
 			t.Log(err)
@@ -226,7 +227,6 @@ func Test_Integ_Role(t *testing.T) {
 				return nil
 			}
 
-			//nolint:govet				// err does not shadow
 			_, err := bobChs[0].SendChUpdate(ctx, updater)
 			require.NoError(t, err, "bob sending channel update")
 		}()
@@ -272,7 +272,6 @@ func Test_Integ_Role(t *testing.T) {
 				return nil
 			}
 
-			//nolint:govet				// err does not shadow
 			_, err := aliceChs[0].SendChUpdate(ctx, updater)
 			require.Error(t, err, "alice sending channel update should be rejected by bob")
 			t.Log(err)
@@ -321,7 +320,6 @@ func Test_Integ_Role(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			//nolint:govet				// err does not shadow
 			closedChInfo, err := aliceChs[chIndex].Close(ctx)
 			require.NoError(t, err, "alice closing channel")
 			t.Log("alice", closedChInfo)

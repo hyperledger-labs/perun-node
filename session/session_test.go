@@ -36,6 +36,7 @@ import (
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/currency"
+	"github.com/hyperledger-labs/perun-node/currency/currencytest"
 	"github.com/hyperledger-labs/perun-node/idprovider/local"
 	"github.com/hyperledger-labs/perun-node/internal/mocks"
 	"github.com/hyperledger-labs/perun-node/peruntest"
@@ -141,7 +142,7 @@ func Test_Session_GetPeerID(t *testing.T) {
 func Test_Session_OpenCh(t *testing.T) {
 	peerIDs := newPeerIDs(t, uint(2))
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETH,
+		Currency: currency.ETHSymbol,
 		Parts:    []string{perun.OwnAlias, peerIDs[0].Alias},
 		Bal:      []string{"1", "2"},
 	}
@@ -482,7 +483,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 	peerIDs := newPeerIDs(t, uint(1)) // Aliases of peerIDs are their respective indices in the array.
 
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETH,
+		Currency: currency.ETHSymbol,
 		Parts:    []string{peerIDs[0].Alias, perun.OwnAlias},
 		Bal:      []string{"1", "2"},
 	}
@@ -653,7 +654,7 @@ func Test_ProposeCh_GetChsInfo(t *testing.T) {
 
 	proposeCh := func(session perun.SessionAPI, chClient *mocks.ChClient) string {
 		validOpeningBalInfo := perun.BalInfo{
-			Currency: currency.ETH,
+			Currency: currency.ETHSymbol,
 			Parts:    []string{perun.OwnAlias, peerIDs[0].Alias},
 			Bal:      []string{"1", "2"},
 		}
@@ -711,7 +712,7 @@ func Test_ProposeCh_GetCh(t *testing.T) {
 	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	cfg := sessiontest.NewConfigT(t, prng, peerIDs...)
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETH,
+		Currency: currency.ETHSymbol,
 		Parts:    []string{perun.OwnAlias, peerIDs[0].Alias},
 		Bal:      []string{"1", "2"},
 	}
@@ -751,7 +752,7 @@ func Test_ProposeCh_GetCh(t *testing.T) {
 func Test_ProposeCh_CloseSession(t *testing.T) {
 	peerIDs := newPeerIDs(t, uint(2))
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETH,
+		Currency: currency.ETHSymbol,
 		Parts:    []string{perun.OwnAlias, peerIDs[0].Alias},
 		Bal:      []string{"1", "2"},
 	}
@@ -813,7 +814,7 @@ func Test_ProposeCh_CloseSession(t *testing.T) {
 func Test_Session_HandleUpdateWInterface(t *testing.T) {
 	peerIDs := newPeerIDs(t, uint(2))
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETH,
+		Currency: currency.ETHSymbol,
 		Parts:    []string{perun.OwnAlias, peerIDs[0].Alias},
 		Bal:      []string{"1", "2"},
 	}
@@ -870,7 +871,7 @@ func newMockPCh() (*mocks.PChannel, chan time.Time) {
 }
 
 func makeState(t *testing.T, balInfo perun.BalInfo, isFinal bool) *pchannel.State {
-	allocation, err := session.MakeAllocation(balInfo, nil)
+	allocation, err := session.MakeAllocation(balInfo, nil, currencytest.Registry())
 	require.NoError(t, err)
 	return &pchannel.State{
 		ID:         [32]byte{0},
@@ -887,11 +888,11 @@ func newChProposal(t *testing.T, ownAddr, peer perun.PeerID) pclient.ChannelProp
 	chAsset := ethereumtest.NewRandomAddress(prng)
 
 	openingBalInfo := perun.BalInfo{
-		Currency: currency.ETH,
+		Currency: currency.ETHSymbol,
 		Parts:    []string{peer.Alias, perun.OwnAlias},
 		Bal:      []string{"1", "2"},
 	}
-	allocation, err := session.MakeAllocation(openingBalInfo, chAsset)
+	allocation, err := session.MakeAllocation(openingBalInfo, chAsset, currencytest.Registry())
 	require.NoError(t, err)
 
 	proposal, err := pclient.NewLedgerChannelProposal(10, ownAddr.OffChainAddr, allocation,

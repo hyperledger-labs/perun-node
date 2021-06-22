@@ -32,9 +32,11 @@ import (
 	"github.com/pkg/errors"
 	pwallet "perun.network/go-perun/wallet"
 
+	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/currency"
+	"github.com/hyperledger-labs/perun-node/currency/currencytest"
 )
 
 var (
@@ -45,9 +47,6 @@ var (
 	// R is the package level instance of registry. It is used to keep track of
 	// mapping betweeen channel IDs and row numbers in the table.
 	R *registry
-)
-
-var (
 
 	// Address: 0x8450c0055cB180C7C37A25866132A740b812937B      Balance: 69.936479 ETH    |    00:09:32    |.
 
@@ -69,7 +68,21 @@ var (
 	forUserWriteOpts = text.WriteCellOpts(cell.Blink(), cell.FgColor(cell.Color(4)))
 
 	onChainBalNTimeUpdateInterval = time.Second * 1
+
+	// Max length of the amount string representing on-chain balance.
+	// Digits after this will be trucated.
+	// This is assuming, a maximum of 3 digits before decimal points which
+	// allows upto 6 digits after the decimal place to be shown.
+	amountMaxLength = 10
+	// This currency parser is used to parse on-chain ETH balances.
+	ethCurrency perun.Currency
 )
+
+func init() {
+	// Registry in currencytest has all currency parsers used in tests
+	// pre-registered.
+	ethCurrency = currencytest.Registry().Currency(currency.ETHSymbol)
+}
 
 type dashboardScreen struct {
 	elementHeight    int
@@ -336,5 +349,9 @@ func readOnChainBal(chainURL string, onChainAddr pwallet.Address) (string, error
 	if err != nil {
 		return "", errors.WithMessage(err, "reading on-chain balance")
 	}
-	return currency.NewParser(currency.ETH).Print(onChainBalVal), nil
+	ethAmount := ethCurrency.Print(onChainBalVal)
+	if len(ethAmount) > amountMaxLength {
+		ethAmount = ethAmount[:amountMaxLength]
+	}
+	return ethAmount, nil
 }

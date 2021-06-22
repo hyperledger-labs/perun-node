@@ -65,7 +65,7 @@ func newOutgoingChannelProposalFn(peer, ours, theirs string) proposerFn {
 		req := pb.OpenPayChReq{
 			SessionID: sessionID,
 			OpeningBalInfo: &pb.BalInfo{
-				Currency: currency.ETH,
+				Currency: currency.ETHSymbol,
 				Parts:    []string{perun.OwnAlias, peer},
 				Bal:      []string{ours, theirs},
 			},
