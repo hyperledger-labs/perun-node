@@ -17,15 +17,12 @@
 package node
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
 	psync "perun.network/go-perun/pkg/sync"
-	pwire "perun.network/go-perun/wire"
 
 	"github.com/hyperledger-labs/perun-node"
-	"github.com/hyperledger-labs/perun-node/blockchain"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/log"
@@ -36,7 +33,7 @@ type node struct {
 	log.Logger
 	cfg        perun.NodeConfig
 	sessions   map[string]perun.SessionAPI
-	contracts  map[blockchain.ContractName]pwire.Address
+	contracts  perun.ContractRegistry
 	currencies perun.CurrencyRegistry
 	psync.Mutex
 }
@@ -58,7 +55,7 @@ func New(cfg perun.NodeConfig) (perun.NodeAPI, error) {
 		return nil, errors.WithMessage(err, "connecting to blockchain")
 	}
 
-	contracts, err := validateContracts(chain, cfg.Adjudicator, cfg.AssetETH)
+	contracts, err := initContractRegistry(chain, cfg.Adjudicator, cfg.AssetETH)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +63,10 @@ func New(cfg perun.NodeConfig) (perun.NodeAPI, error) {
 	currencies := currency.NewRegistry()
 	if _, err = currencies.Register(currency.ETHSymbol, currency.ETHMaxDecimals); err != nil {
 		return nil, errors.WithMessage(err, "registering ETH currency")
+	}
+
+	if err = registerAssetERC20s(cfg.AssetERC20s, contracts, currencies); err != nil {
+		return nil, err
 	}
 
 	err = log.InitLogger(cfg.LogLevel, cfg.LogFile)
@@ -82,8 +83,8 @@ func New(cfg perun.NodeConfig) (perun.NodeAPI, error) {
 	}, nil
 }
 
-func validateContracts(chain perun.ROChainBackend, adjudicator, assetETH string) (
-	map[blockchain.ContractName]pwire.Address, error) {
+func initContractRegistry(chain perun.ROChainBackend, adjudicator, assetETH string) (
+	perun.ContractRegistry, error) {
 	walletBackend := ethereum.NewWalletBackend()
 	adjudicatorAddr, err := walletBackend.ParseAddr(adjudicator)
 	if err != nil {
@@ -94,33 +95,43 @@ func validateContracts(chain perun.ROChainBackend, adjudicator, assetETH string)
 		return nil, errors.WithMessage(err, "parsing asset ETH address")
 	}
 
-	adjErr := chain.ValidateAdjudicator(adjudicatorAddr)
-	assetETHErr := chain.ValidateAssetETH(adjudicatorAddr, assetETHAddr)
-	if adjErr != nil || assetETHErr != nil {
-		return nil, handleInvalidContractError(adjErr, assetETHErr)
+	contracts, err := ethereum.NewContractRegistry(chain, adjudicatorAddr, assetETHAddr)
+	if err != nil {
+		return nil, errors.WithMessage(err, "initialing contract registry")
 	}
-	return map[blockchain.ContractName]pwire.Address{
-		blockchain.Adjudicator: adjudicatorAddr,
-		blockchain.AssetETH:    assetETHAddr,
-	}, nil
+
+	return contracts, nil
 }
 
-func handleInvalidContractError(errs ...error) error {
-	contractsErr := make([]string, 0, len(errs))
-	unknownErr := errors.New("")
-	for i := range errs {
-		e := blockchain.InvalidContractError{}
-		ok := errors.As(errs[i], &e)
-		if ok {
-			contractsErr = append(contractsErr, e.Error())
-		} else {
-			unknownErr = errors.WithMessage(errs[i], unknownErr.Error())
+func registerAssetERC20s(assetERC20s map[string]string,
+	contracts perun.ContractRegistry, currencies perun.CurrencyRegistry) error {
+
+	walletBackend := ethereum.NewWalletBackend()
+	for tokenERC20, assetERC20 := range assetERC20s {
+		tokenERC20Addr, err := walletBackend.ParseAddr(tokenERC20)
+		if err != nil {
+			return errors.WithMessage(err, "token ERC20 address")
+		}
+		assetERC20Addr, err := walletBackend.ParseAddr(assetERC20)
+		if err != nil {
+			return errors.WithMessage(err, "asset ERC20 address")
+		}
+
+		symbol, maxDecimals, err := contracts.RegisterAssetERC20(tokenERC20Addr, assetERC20Addr)
+		if err != nil {
+			return errors.WithMessage(err, "registering ERC20 asset contract")
+		}
+
+		// This path is unreachable in normal circumstances, because only error in
+		// this case could be when re-registering a symbol. But if the same symbol
+		// is detected in two token contract address, then previous step of
+		// registering to contract registry would have already failed.
+		_, err = currencies.Register(symbol, maxDecimals)
+		if err != nil {
+			return errors.WithMessage(err, "registering ERC20 asset currency")
 		}
 	}
-	if len(contractsErr) != 0 {
-		return fmt.Errorf("invalid contracts: %+v", contractsErr)
-	}
-	return fmt.Errorf("validating contracts: %+v", unknownErr)
+	return nil
 }
 
 // Time returns the time as per perun node's clock. It should be used to check
@@ -161,9 +172,10 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 		err = errors.WithMessage(err, "parsing config")
 		return "", nil, perun.NewAPIErrInvalidArgument(err, session.ArgNameConfigFile, configFile)
 	}
-	sessionConfig.Adjudicator = n.contracts[blockchain.Adjudicator]
-	sessionConfig.AssetETH = n.contracts[blockchain.AssetETH]
-	sess, apiErr := session.New(sessionConfig, n.currencies)
+	sessionConfig.Adjudicator = n.contracts.Adjudicator()
+	// AssetETH is set during contract registry init and will always be found.
+	sessionConfig.AssetETH = n.contracts.AssetETH()
+	sess, apiErr := session.New(sessionConfig, n.currencies, n.contracts)
 	if apiErr != nil {
 		return "", nil, apiErr
 	}

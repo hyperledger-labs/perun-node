@@ -134,14 +134,12 @@ func (cb *ChainBackend) ValidateAssetERC20(adj, tokenERC20, assetERC20 pwallet.A
 	if err != nil {
 		return "", 0, errors.WithMessage(err, "reading symbol and decimal values from token contract")
 	}
-
 	// Though integrity of adjudicator is implicitly checked by ValidateAssetHolderERC20,
 	// we do it before that call to identify this type of error.
 	err = pethchannel.ValidateAdjudicator(ctx, *cb.Cb, pethwallet.AsEthAddr(adj))
 	if pethchannel.IsErrInvalidContractCode(err) {
 		return "", 0, blockchain.NewInvalidContractError(blockchain.Adjudicator, adj.String(), err)
 	}
-
 	err = pethchannel.ValidateAssetHolderERC20(ctx, *cb.Cb,
 		pethwallet.AsEthAddr(assetERC20), pethwallet.AsEthAddr(adj), pethwallet.AsEthAddr(tokenERC20))
 	if err != nil && pethchannel.IsErrInvalidContractCode(err) {
