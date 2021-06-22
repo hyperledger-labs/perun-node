@@ -46,6 +46,8 @@ func Test_Integ_New(t *testing.T) {
 	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	cfg := sessiontest.NewConfigT(t, prng, peerIDs...)
 
+	contracts := ethereumtest.SetupContractsT(t,
+		cfg.ChainURL, cfg.ChainID, cfg.OnChainTxTimeout, false)
 	currencies := currency.NewRegistry()
 	_, err := currencies.Register(currency.ETHSymbol, currency.ETHMaxDecimals)
 	require.NoError(t, err)
@@ -61,7 +63,7 @@ func Test_Integ_New(t *testing.T) {
 		require.NoError(t, err)
 		cfgCopy.User.CommAddr = fmt.Sprintf("127.0.0.1:%d", port)
 
-		sess, err := session.New(cfgCopy, currencies)
+		sess, err := session.New(cfgCopy, currencies, contracts)
 		require.NoError(t, err)
 		assert.NotNil(t, sess)
 	})
@@ -75,7 +77,7 @@ func Test_Integ_New(t *testing.T) {
 		require.NoError(t, err)
 		cfgCopy.User.CommAddr = fmt.Sprintf("127.0.0.1:%d", port)
 
-		_, apiErr := session.New(cfgCopy, currencies)
+		_, apiErr := session.New(cfgCopy, currencies, contracts)
 		require.NoError(t, apiErr)
 		// Start a session so that persistence directory is already in use,
 		// Keep the database directory as same,
@@ -84,7 +86,7 @@ func Test_Integ_New(t *testing.T) {
 		require.NoError(t, err)
 		cfgCopy.User.CommAddr = fmt.Sprintf("127.0.0.1:%d", port)
 
-		_, apiErr = session.New(cfgCopy, currencies)
+		_, apiErr = session.New(cfgCopy, currencies, contracts)
 		require.Error(t, apiErr)
 		peruntest.AssertAPIError(t, apiErr, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, apiErr.AddInfo(), "databaseDir", cfgCopy.DatabaseDir)
@@ -93,7 +95,7 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
 		cfgCopy.ChainURL = "invalid-url"
-		_, err := session.New(cfgCopy, currencies)
+		_, err := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "chainURL", cfgCopy.ChainURL)
@@ -102,7 +104,7 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
 		cfgCopy.ChainConnTimeout = 0
-		_, err := session.New(cfgCopy, currencies)
+		_, err := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "chainURL", cfgCopy.ChainURL)
@@ -112,7 +114,7 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
 		cfgCopy.User.OnChainAddr = "invalid-addr" //nolint: goconst	// it's okay to repeat this phrase.
-		_, err := session.New(cfgCopy, currencies)
+		_, err := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "onChainAddr", cfgCopy.User.OnChainAddr)
@@ -121,7 +123,7 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
 		cfgCopy.User.OffChainAddr = "invalid-addr"
-		_, err := session.New(cfgCopy, currencies)
+		_, err := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "offChainAddr", cfgCopy.User.OffChainAddr)
@@ -131,7 +133,7 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
 		cfgCopy.User.OnChainWallet.Password = "invalid-password"
 		wantValue := fmt.Sprintf("%s, %s", cfgCopy.User.OnChainWallet.KeystorePath, cfgCopy.User.OnChainWallet.Password)
-		_, err := session.New(cfgCopy, currencies)
+		_, err := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "onChainWallet", wantValue)
@@ -141,7 +143,7 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
 		cfgCopy.User.OffChainWallet.Password = "invalid-password"
 		wantValue := fmt.Sprintf("%s, %s", cfgCopy.User.OffChainWallet.KeystorePath, cfgCopy.User.OffChainWallet.Password)
-		_, err := session.New(cfgCopy, currencies)
+		_, err := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "offChainWallet", wantValue)
@@ -151,7 +153,7 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
 		cfgCopy.User.CommType = "unsupported"
-		_, err := session.New(cfgCopy, currencies)
+		_, err := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "commType", cfgCopy.User.CommType)
@@ -160,7 +162,7 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
 		cfgCopy.User.CommAddr = "invalid-addr"
-		_, err := session.New(cfgCopy, currencies)
+		_, err := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "commAddr", cfgCopy.User.CommAddr)
@@ -181,7 +183,7 @@ func Test_Integ_New(t *testing.T) {
 		}()
 		defer listener.Close() //nolint: errcheck		// no need to check error.
 
-		_, apiErr := session.New(cfgCopy, currencies)
+		_, apiErr := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, apiErr)
 		peruntest.AssertAPIError(t, apiErr, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, apiErr.AddInfo(), "commAddr", cfgCopy.User.CommAddr)
@@ -191,7 +193,7 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
 		cfgCopy.IDProviderType = "unsupported"
-		_, err := session.New(cfgCopy, currencies)
+		_, err := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "idProviderType", cfgCopy.IDProviderType)
@@ -200,7 +202,7 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
 		cfgCopy.IDProviderURL = newCorruptedYAMLFile(t)
-		_, err := session.New(cfgCopy, currencies)
+		_, err := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "idProviderURL", cfgCopy.IDProviderURL)
@@ -212,7 +214,7 @@ func Test_Integ_New(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
 		cfgCopy.IDProviderURL = idprovidertest.NewIDProviderT(t, ownPeer)
-		_, err := session.New(cfgCopy, currencies)
+		_, err := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
 		peruntest.AssertErrInfoInvalidConfig(t, err.AddInfo(), "idProviderURL", cfgCopy.IDProviderURL)
@@ -221,45 +223,49 @@ func Test_Integ_New(t *testing.T) {
 }
 
 func Test_Integ_Persistence(t *testing.T) {
+	// Generate session config for each test case to have unique value of listener address.
 	currencies := currency.NewRegistry()
 	_, err := currencies.Register(currency.ETHSymbol, currency.ETHMaxDecimals)
 	require.NoError(t, err)
 
 	t.Run("happy", func(t *testing.T) {
 		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-		aliceCfg := sessiontest.NewConfigT(t, prng)
+		cfg := sessiontest.NewConfigT(t, prng)
 		// Use idprovider and databaseDir from a session that was persisted already.
 		// Copy database directory to tmp before using as it will be modified when reading as well.
 		// ID provider file can be used as such.
-		aliceCfg.DatabaseDir = copyDirToTmp(t, "../testdata/session/persistence/alice-database")
-		aliceCfg.IDProviderURL = "../testdata/session/persistence/alice-idprovider.yaml"
+		cfg.DatabaseDir = copyDirToTmp(t, "../testdata/session/persistence/alice-database")
+		cfg.IDProviderURL = "../testdata/session/persistence/alice-idprovider.yaml"
+		contracts := ethereumtest.SetupContractsT(t, cfg.ChainURL, cfg.ChainID, cfg.OnChainTxTimeout, false)
 
-		alice, err := session.New(aliceCfg, currencies)
+		alice, err := session.New(cfg, currencies, contracts)
 		require.NoErrorf(t, err, "initializing alice session")
 		t.Logf("alice session id: %s\n", alice.ID())
-		t.Logf("alice database dir is: %s\n", aliceCfg.DatabaseDir)
+		t.Logf("alice database dir is: %s\n", cfg.DatabaseDir)
 
 		require.Equal(t, 2, len(alice.GetChsInfo()))
 	})
 
 	t.Run("happy_drop_unknownPeers", func(t *testing.T) {
 		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-		aliceCfg := sessiontest.NewConfigT(t, prng) // Get a session config with no peerIDs in the ID provider.
-		aliceCfg.DatabaseDir = copyDirToTmp(t, "../testdata/session/persistence/alice-database")
+		cfg := sessiontest.NewConfigT(t, prng) // Get a session config with no peerIDs in the ID provider.
+		cfg.DatabaseDir = copyDirToTmp(t, "../testdata/session/persistence/alice-database")
+		contracts := ethereumtest.SetupContractsT(t, cfg.ChainURL, cfg.ChainID, cfg.OnChainTxTimeout, false)
 
-		_, err := session.New(aliceCfg, currencies)
+		_, err := session.New(cfg, currencies, contracts)
 		require.NoErrorf(t, err, "initializing alice session")
 	})
 
 	t.Run("err_database_init", func(t *testing.T) {
 		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-		aliceCfg := sessiontest.NewConfigT(t, prng) // Get a session config with no peerIDs in the ID provider.
+		cfg := sessiontest.NewConfigT(t, prng) // Get a session config with no peerIDs in the ID provider.
 		tempFile, err := ioutil.TempFile("", "")
 		require.NoError(t, err)
 		tempFile.Close() // nolint:errcheck
-		aliceCfg.DatabaseDir = tempFile.Name()
+		cfg.DatabaseDir = tempFile.Name()
+		contracts := ethereumtest.SetupContractsT(t, cfg.ChainURL, cfg.ChainID, cfg.OnChainTxTimeout, false)
 
-		_, err = session.New(aliceCfg, currencies)
+		_, err = session.New(cfg, currencies, contracts)
 		require.Errorf(t, err, "initializing alice session")
 		t.Log(err)
 	})
@@ -314,26 +320,3 @@ func newDatabaseDir(t *testing.T) (dir string) {
 	})
 	return databaseDir
 }
-
-// func peruntest.AssertErrInfoInvalidConfig(t *testing.T, info interface{}, name, value string) {
-// 	t.Helper()
-
-// 	addInfo, ok := info.(perun.ErrInfoInvalidConfig)
-// 	require.True(t, ok)
-// 	assert.Equal(t, name, addInfo.Name)
-// 	assert.Equal(t, value, addInfo.Value)
-// }
-
-// func .AssertErrInfoInvalidContracts(t *testing.T, info interface{}, cntContracts int, wantInfo map[string]string) {
-// 	t.Helper()
-
-// 	addInfo, ok := info.(perun.ErrInfoInvalidContracts)
-// 	require.True(t, ok)
-// 	assert.Len(t, addInfo.ContractErrInfos, cntContracts)
-// 	assert.Len(t, wantInfo, cntContracts, "length of wantInfo should be same as count of invalid contracts")
-// 	for i := range addInfo.ContractErrInfos {
-// 		addr, ok := wantInfo[addInfo.ContractErrInfos[i].Name]
-// 		require.True(t, ok)
-// 		assert.Equal(t, addr, addInfo.ContractErrInfos[i].Address)
-// 	}
-// }

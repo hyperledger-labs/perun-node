@@ -36,14 +36,14 @@ func Test_ROChainBackend_ValidateAdjudicator(t *testing.T) {
 	// use a real chain backend instead of simulated because, multiple connections are to be made:
 	// 1. With a ChainBackend for deploying contracts.
 	// 2. Use a ROChainbackend for validating contracts.
-	adjudicator, _ := ethereumtest.SetupContractsT(t,
-		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
+	contracts := ethereumtest.SetupContractsT(t,
+		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout, false)
 	roChainBackend, err := ethereum.NewROChainBackend(
 		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.ChainConnTimeout)
 	require.NoError(t, err)
 
 	t.Run("happy", func(t *testing.T) {
-		assert.NoError(t, roChainBackend.ValidateAdjudicator(adjudicator))
+		assert.NoError(t, roChainBackend.ValidateAdjudicator(contracts.Adjudicator()))
 	})
 
 	t.Run("invalid_adjudicator", func(t *testing.T) {
@@ -64,19 +64,19 @@ func Test_Integ_ROChainBackend_ValidateAssetETH(t *testing.T) {
 	// use a real chain backend instead of simulated because, multiple connections are to be made:
 	// 1. With a ChainBackend for deploying contracts.
 	// 2. Use a ROChainbackend for validating contracts.
-	adjudicator, assetETH := ethereumtest.SetupContractsT(t,
-		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
+	contracts := ethereumtest.SetupContractsT(t,
+		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout, false)
 	roChainBackend, err := ethereum.NewROChainBackend(
 		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.ChainConnTimeout)
 	require.NoError(t, err)
 
 	t.Run("happy", func(t *testing.T) {
-		assert.NoError(t, roChainBackend.ValidateAdjudicator(adjudicator))
-		assert.NoError(t, roChainBackend.ValidateAssetETH(adjudicator, assetETH))
+		assert.NoError(t, roChainBackend.ValidateAdjudicator(contracts.Adjudicator()))
+		assert.NoError(t, roChainBackend.ValidateAssetETH(contracts.Adjudicator(), contracts.AssetETH()))
 	})
 	t.Run("invalid_adjudicator", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
-		err := roChainBackend.ValidateAssetETH(randomAddr1, assetETH)
+		err := roChainBackend.ValidateAssetETH(randomAddr1, contracts.AssetETH())
 
 		require.Error(t, err)
 		invalidContractError := blockchain.InvalidContractError{}
@@ -87,7 +87,7 @@ func Test_Integ_ROChainBackend_ValidateAssetETH(t *testing.T) {
 	})
 	t.Run("invalid_assetHolderETH", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
-		err := roChainBackend.ValidateAssetETH(adjudicator, randomAddr1)
+		err := roChainBackend.ValidateAssetETH(contracts.Adjudicator(), randomAddr1)
 
 		require.Error(t, err)
 		invalidContractError := blockchain.InvalidContractError{}

@@ -1,8 +1,11 @@
 loglevel: debug
 logfile: Node.log
 chainurl: ws://127.0.0.1:8545
+chainid: 1337
 adjudicator: 0x9daEdAcb21dce86Af8604Ba1A1D7F9BFE55ddd63
 assetETH: 0x5992089d61cE79B6CF90506F70DD42B8E42FB21d
+asseterc20s:
+    0x44cb7cd4C2B6435dA126F4263AafC3b837f49AbB: 0xb79708b3f6a4Be039BDE75281656c099163e7a5d
 chainconntimeout: 10s          
 onchaintxtimeout: 10s
 responsetimeout: 30s     

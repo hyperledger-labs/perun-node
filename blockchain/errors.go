@@ -22,9 +22,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ContractName identifies specific type of contract.
-type ContractName string
-
 // Enumeration of contract names for perun node.
 const (
 	Adjudicator = "adjudicator"
@@ -41,7 +38,7 @@ type InvalidContractError struct {
 
 // Error implements error interface.
 func (e InvalidContractError) Error() string {
-	return fmt.Sprintf("invalid %s contract at address %s: %v", e.Name, e.Address, e.err)
+	return fmt.Sprintf("invalid asset %s contract at address %s: %v", e.Name, e.Address, e.err)
 }
 
 // Unwrap returns the original error.
@@ -50,10 +47,30 @@ func (e InvalidContractError) Unwrap() error {
 }
 
 // NewInvalidContractError constructs and returns an InvalidContractError.
-func NewInvalidContractError(name string, address string, err error) error {
+func NewInvalidContractError(name, address string, err error) error {
 	return errors.WithStack(InvalidContractError{
 		Name:    name,
 		Address: address,
 		err:     err,
+	})
+}
+
+// AssetERC20RegisteredError indicates that an asset contract for the given
+// ERC20 token was already registered.
+type AssetERC20RegisteredError struct {
+	Asset  string
+	Symbol string
+}
+
+// Error implements error interface.
+func (e AssetERC20RegisteredError) Error() string {
+	return fmt.Sprintf("already registered asset (%s) for the symbol %s", e.Asset, e.Symbol)
+}
+
+// NewAssetERC20RegisteredError constructs and returns an AssetERC20RegisteredError.
+func NewAssetERC20RegisteredError(asset, symbol string) error {
+	return errors.WithStack(AssetERC20RegisteredError{
+		Asset:  asset,
+		Symbol: symbol,
 	})
 }

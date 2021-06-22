@@ -17,6 +17,7 @@
 package ethereumtest
 
 import (
+	"math/big"
 	"math/rand"
 	"testing"
 	"time"
@@ -50,26 +51,30 @@ import (
 // be resused in subsequent runs. This saves ~0.3s of setup time in each run.
 // Hence when running tests on development machine, START THE NODE ONLY ONCE.
 
-var adjudicatorAddr, assetETHAddr pwallet.Address
+var (
+	// These will be set and used by SetupContracts functions. See its comments
+	// for more info.
+	adjudicatorAddr, assetETHAddr pwallet.Address
+	assetERC20Addrs               map[pwallet.Address]pwallet.Address
+)
 
-// SetupContractsT is the test friendly version of SetupContracts.
-// It uses the passed testing.T to handle the errors and registers the cleanup
-// functions on it.
-func SetupContractsT(t *testing.T, chainURL string, chainID int, onChainTxTimeout time.Duration) (
-	adjudicator, assetETH pwallet.Address) {
-	var err error
-	adjudicator, assetETH, err = SetupContracts(chainURL, chainID, onChainTxTimeout)
-	require.NoError(t, err)
-	return adjudicator, assetETH
-}
-
-// ContractAddrs returns the contract addresses of adjudicator and asset ETH
-// contracts used in test setups.  Address generation mechanism in ethereum is
-// used to pre-compute the contract address.
+// ContractAddrs returns the contract addresses of adjudicator, asset ETH
+// asset ERC20 contracts (along with the corresponding erc20 token contracts
+// used in test setups. Address generation mechanism in ethereum is used to
+// pre-compute the contract address.
 //
 // On a fresh ganache-cli node run the setup contracts helper function to
 // deploy these contracts.
-func ContractAddrs() (adjudicator, assetETH pwallet.Address) {
+func ContractAddrs() (adjudicator, assetETH pwallet.Address, assetERC20s map[pwallet.Address]pwallet.Address) {
+	// If all the contracts are not nil, these addresses have been set already,
+	// just return them.
+	if adjudicatorAddr != nil && assetETHAddr != nil && assetERC20Addrs != nil {
+		return adjudicatorAddr, assetETHAddr, assetERC20Addrs
+	}
+
+	// If not, then all of them must be nil, generate the addresses and return the values.
+	// DO NOT SET the package level variable, it will be set by SetupContracts
+	// function after the contracts are deployed to the blockchain.
 	prng := rand.New(rand.NewSource(RandSeedForTestAccs))
 	ws, err := NewWalletSetup(prng, 2)
 	if err != nil {
@@ -77,18 +82,46 @@ func ContractAddrs() (adjudicator, assetETH pwallet.Address) {
 	}
 	adjudicator = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(ws.Accs[0].Address()), 0))
 	assetETH = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(ws.Accs[0].Address()), 1))
+	tokenERC20PRN := pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(ws.Accs[0].Address()), 2))
+	assetERC20PRN := pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(ws.Accs[0].Address()), 3))
+	assetERC20s = map[pwallet.Address]pwallet.Address{
+		tokenERC20PRN: assetERC20PRN,
+	}
 	return
 }
 
-// SetupContracts checks if valid contracts are deployed in pre-computed
-// addresses, if not it deployes them.  Address generation mechanism in
-// ethereum is used to pre-compute the contract address.
-func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration) (
-	adjudicator, assetETH pwallet.Address, _ error) {
+// SetupContractsT is the test friendly version of SetupContracts.
+// It uses the passed testing.T to handle the errors and registers the cleanup
+// functions on it.
+func SetupContractsT(t *testing.T,
+	chainURL string, chainID int, onChainTxTimeout time.Duration, incAssetERC20s bool) perun.ContractRegistry {
+	contracts, err := SetupContracts(chainURL, chainID, onChainTxTimeout, incAssetERC20s)
+	require.NoError(t, err)
+	return contracts
+}
+
+// SetupContracts on its first invocation, deploys the contracts to blockchain
+// and sets the addresses to package level variables.
+// It checks first time invocation by checking if all any of the package level
+// variables are nil.
+//
+// On every consequent calls, a contract registry will be initialized using
+// these addresses in package level variables and will be returned directly.
+//
+// Every calls returns a new instance of contract registry, so that modifying
+// the contract registry in one test does not affect other tests.
+func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration, incAssetERC20s bool) (
+	perun.ContractRegistry, error) {
+	var err error
+
+	if !isBlockchainRunning(chainURL) {
+		return nil, errors.New("cannot connect to ganache-cli node at " + chainURL)
+	}
+
 	prng := rand.New(rand.NewSource(RandSeedForTestAccs))
 	ws, err := NewWalletSetup(prng, 2)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	onChainCred := perun.Credential{
 		Addr:     ws.Accs[0].Address(),
@@ -96,37 +129,35 @@ func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration
 		Keystore: ws.KeystorePath,
 		Password: "",
 	}
-	if !isBlockchainRunning(chainURL) {
-		return nil, nil, errors.New("cannot connect to ganache-cli node at " + chainURL)
-	}
-
-	if adjudicatorAddr == nil && assetETHAddr == nil {
-		adjudicator = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(onChainCred.Addr), 0))
-		assetETH = pethwallet.AsWalletAddr(crypto.CreateAddress(pethwallet.AsEthAddr(onChainCred.Addr), 1))
-		adjudicatorAddr = adjudicator
-		assetETHAddr = assetETH
-	} else {
-		adjudicator = adjudicatorAddr
-		assetETH = assetETHAddr
-	}
-
+	// If any of the values are nil, deploy contracts, set the package level
+	// variables and return the addresses.
 	chain, err := ethereum.NewChainBackend(chainURL, chainID, ChainConnTimeout, onChainTxTimeout, onChainCred)
 	if err != nil {
-		return nil, nil, errors.WithMessage(err, "initializaing chain backend")
+		return nil, errors.WithMessage(err, "initializaing chain backend")
 	}
 
-	err = chain.ValidateAdjudicator(adjudicator)
-	if err == nil {
-		err = chain.ValidateAssetETH(adjudicator, assetETH)
-		if err != nil {
-			// Contracts not yet deployed for this ganache-cli instance.
-			adjudicator, assetETH, err = deployContracts(chain, onChainCred)
-		}
-	} else {
-		adjudicator, assetETH, err = deployContracts(chain, onChainCred)
+	// If all the values are not nil, assume they are valid contract address
+	// set during a previous invocation of this function and return the
+	// contract addresses.
+	// If not, then deploy the contracts and set the package level address variables.
+	if adjudicatorAddr != nil && assetETHAddr != nil && assetERC20Addrs != nil {
+		return newContractRegistry(chain, incAssetERC20s)
 	}
 
-	return adjudicator, assetETH, errors.WithMessage(err, "initializaing chain backend")
+	// Make a list of addresses by including all the accounts in wallet setup.
+	// Each of these address will be assigned initBal amount of PRN tokens.
+	initAccs := make([]pwallet.Address, len(ws.Accs))
+	for i := range ws.Accs {
+		initAccs[i] = ws.Accs[i].Address()
+	}
+
+	initBal := big.NewInt(1e18)
+	adjudicatorAddr, assetETHAddr, assetERC20Addrs, err = deployContracts(chain, onChainCred, initAccs, initBal)
+	if err != nil {
+		return nil, err
+	}
+
+	return newContractRegistry(chain, incAssetERC20s)
 }
 
 func isBlockchainRunning(url string) bool {
@@ -134,13 +165,47 @@ func isBlockchainRunning(url string) bool {
 	return err == nil
 }
 
-func deployContracts(chain perun.ChainBackend, onChainCred perun.Credential) (adjudicator, assetETH pwallet.Address,
-	_ error) {
+func newContractRegistry(chain perun.ROChainBackend, incAssetERC20s bool) (perun.ContractRegistry, error) {
+	contracts, err := ethereum.NewContractRegistry(chain, adjudicatorAddr, assetETHAddr)
+	if err != nil {
+		return nil, errors.WithMessage(err, "initializing contract registry")
+	}
+	if !incAssetERC20s {
+		return contracts, nil
+	}
+
+	for tokenERC20, assetERC20 := range assetERC20Addrs {
+		_, _, err = contracts.RegisterAssetERC20(tokenERC20, assetERC20)
+		if err != nil {
+			return nil, errors.WithMessagef(err, "registering erc20 token %v with asset %v", tokenERC20, assetERC20)
+		}
+	}
+	return contracts, nil
+}
+
+func deployContracts(chain perun.ChainBackend, onChainCred perun.Credential,
+	initAccs []pwallet.Address, initBal *big.Int) (
+	adjudicator, assetETH pwallet.Address, assetERC20s map[pwallet.Address]pwallet.Address, _ error) {
 	var err error
 	adjudicator, err = chain.DeployAdjudicator(onChainCred.Addr)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, errors.WithMessage(err, "deploying adjudicator")
 	}
 	assetETH, err = chain.DeployAssetETH(adjudicator, onChainCred.Addr)
-	return adjudicator, assetETH, err
+	if err != nil {
+		return nil, nil, nil, errors.WithMessage(err, "deploying asset ETH")
+	}
+	tokenERC20PRN, err := chain.DeployPerunToken(initAccs, initBal, onChainCred.Addr)
+	if err != nil {
+		return nil, nil, nil, errors.WithMessage(err, "deploying perun token")
+	}
+	assetERC20PRN, err := chain.DeployAssetERC20(adjudicator, tokenERC20PRN, onChainCred.Addr)
+	if err != nil {
+		return nil, nil, nil, errors.WithMessage(err, "deploying asset ERC20")
+	}
+	assetERC20s = map[pwallet.Address]pwallet.Address{
+		tokenERC20PRN: assetERC20PRN,
+	}
+
+	return adjudicator, assetETH, assetERC20s, nil
 }

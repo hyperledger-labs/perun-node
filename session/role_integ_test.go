@@ -40,7 +40,8 @@ import (
 // This test includes all methods on SessionAPI and ChAPI.
 func Test_Integ_Role(t *testing.T) {
 	// Deploy contracts.
-	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout)
+	contracts := ethereumtest.SetupContractsT(t,
+		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout, false)
 	currencies := currency.NewRegistry()
 	_, err := currencies.Register(currency.ETHSymbol, currency.ETHMaxDecimals)
 	require.NoError(t, err)
@@ -51,12 +52,12 @@ func Test_Integ_Role(t *testing.T) {
 	aliceCfg := sessiontest.NewConfigT(t, prng)
 	bobCfg := sessiontest.NewConfigT(t, prng)
 
-	alice, err := session.New(aliceCfg, currencies)
+	alice, err := session.New(aliceCfg, currencies, contracts)
 	require.NoErrorf(t, err, "initializing alice session")
 	t.Logf("alice session id: %s\n", alice.ID())
 	t.Logf("alice database dir is: %s\n", aliceCfg.DatabaseDir)
 
-	bob, err := session.New(bobCfg, currencies)
+	bob, err := session.New(bobCfg, currencies, contracts)
 	require.NoErrorf(t, err, "initializing bob session")
 	t.Logf("bob session id: %s\n", bob.ID())
 	t.Logf("bob database dir is: %s\n", bobCfg.DatabaseDir)

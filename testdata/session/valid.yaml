@@ -10,10 +10,12 @@ user:
     password: test-password-off-chain
   commAddr: 127.0.0.1:5751
   commType: tcp
-
-
 idProviderType: local
 idProviderURL: ./test-idprovider.yaml
 chainURL: ws://127.0.0.1:8545  
-    
+chainid: 1337
+chainconntimeout: 10s
+onchaintxtimeout: 1m0s
+responsetimeout: 10s
 databaseDir: ./test-db 
+peerreconntimeout: 20s
