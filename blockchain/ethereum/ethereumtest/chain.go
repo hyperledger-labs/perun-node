@@ -50,7 +50,8 @@ const (
 type ChainBackendSetup struct {
 	*WalletSetup
 	ChainBackend          perun.ChainBackend
-	AdjAddr, AssetETHAddr pwallet.Address
+	Adjudicator, AssetETH pwallet.Address
+	AssetERC20s           map[pwallet.Address]pwallet.Address
 }
 
 // NewSimChainBackendSetup returns a simulated contract backend with asset ETH
@@ -63,18 +64,34 @@ func NewSimChainBackendSetup(t *testing.T, rng *rand.Rand, numAccs uint) *ChainB
 	cbEth := newSimContractBackend(t, walletSetup.Accs, walletSetup.Keystore)
 	cb := &internal.ChainBackend{Cb: &cbEth, TxTimeout: OnChainTxTimeout}
 
-	onChainAddr := walletSetup.Accs[0].Address()
-	adjudicator, err := cb.DeployAdjudicator(onChainAddr)
+	onChainAcc := walletSetup.Accs[0].Address()
+	adjudicator, err := cb.DeployAdjudicator(onChainAcc)
 	require.NoError(t, err)
-	assetETH, err := cb.DeployAssetETH(adjudicator, onChainAddr)
+	require.NotNil(t, adjudicator)
+
+	assetETH, err := cb.DeployAssetETH(adjudicator, onChainAcc)
 	require.NoError(t, err)
+	require.NotNil(t, assetETH)
+
+	initAccs := []pwallet.Address{walletSetup.Accs[0].Address()}
+	initBal := big.NewInt(10)
+	tokenERC20PRN, err := cb.DeployPerunToken(initAccs, initBal, onChainAcc)
+	require.NoError(t, err)
+	require.NotNil(t, tokenERC20PRN)
+
+	assetERC20PRN, err := cb.DeployAssetERC20(adjudicator, tokenERC20PRN, onChainAcc)
+	require.NoError(t, err)
+	require.NotNil(t, assetERC20PRN)
 
 	// No cleanup required.
 	return &ChainBackendSetup{
 		WalletSetup:  walletSetup,
 		ChainBackend: cb,
-		AdjAddr:      adjudicator,
-		AssetETHAddr: assetETH,
+		Adjudicator:  adjudicator,
+		AssetETH:     assetETH,
+		AssetERC20s: map[pwallet.Address]pwallet.Address{
+			tokenERC20PRN: assetERC20PRN,
+		},
 	}
 }
 
