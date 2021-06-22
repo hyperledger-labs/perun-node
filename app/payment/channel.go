@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/hyperledger-labs/perun-node"
-	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/session"
 )
 
@@ -75,7 +74,7 @@ type (
 // - ErrInvalidArgument with Name:"Amount" when the amount is invalid.
 // or any of the errors returned by the session.SendChUpdate API.
 func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string) (PayChInfo, perun.APIError) {
-	parsedAmount, err := currency.NewParser(ch.Currency()).Parse(amount)
+	parsedAmount, err := ch.Currency().Parse(amount)
 	if err != nil {
 		err = errors.WithMessage(err, ErrInvalidAmount.Error())
 		return PayChInfo{}, perun.NewAPIErrInvalidArgument(err, session.ArgNameAmount, amount)

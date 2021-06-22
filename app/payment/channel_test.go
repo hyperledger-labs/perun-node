@@ -33,10 +33,14 @@ import (
 )
 
 func Test_SendPayChUpdate(t *testing.T) {
+	currencies := currency.NewRegistry()
+	//nolint: errcheck	// Safe to ignore the error, as it is first register after init.
+	currency, _ := currencies.Register(currency.ETHSymbol, currency.ETHMaxDecimals)
+
 	// Returns a mock with API calls set up for currency and parts.
 	newChAPIMock := func() *mocks.ChAPI {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("Currency").Return(currency.ETH)
+		chAPI.On("Currency").Return(currency)
 		chAPI.On("Parts").Return(parts)
 		return chAPI
 	}

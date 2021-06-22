@@ -19,9 +19,11 @@ package main
 import (
 	"github.com/abiosoft/ishell"
 
+	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/currency"
+	"github.com/hyperledger-labs/perun-node/currency/currencytest"
 )
 
 var (
@@ -69,6 +71,14 @@ var (
 		},
 		Func: getOnChainBalanceFn,
 	}
+
+	// Max length of the amount string representing on-chain balance.
+	// Digits after this will be trucated.
+	// This is assuming, a maximum of 3 digits before decimal points which
+	// allows upto 6 digits after the decimal place to be shown.
+	amountMaxLength = 10
+	// This currency parser is used to parse on-chain ETH balances.
+	ethCurrency perun.Currency
 )
 
 func init() {
@@ -76,6 +86,10 @@ func init() {
 	chainCmd.AddCmd(getChainAddrCmd)
 	chainCmd.AddCmd(deployPerunContractsCmd)
 	chainCmd.AddCmd(getOnChainBalanceCmd)
+
+	// Registry in currencytest has all currency parsers used in tests
+	// pre-registered.
+	ethCurrency = currencytest.Registry().Currency(currency.ETHSymbol)
 }
 
 func chainFn(c *ishell.Context) {
@@ -147,5 +161,9 @@ func getOnChainBalanceFn(c *ishell.Context) {
 		return
 	}
 
-	c.Printf("%s\n\n", greenf("On-chain balance: %s", currency.NewParser(currency.ETH).Print(bal)))
+	ethAmount := ethCurrency.Print(bal)
+	if len(ethAmount) > amountMaxLength {
+		ethAmount = ethAmount[:amountMaxLength]
+	}
+	c.Printf("%s\n\n", greenf("On-chain balance: %s", ethAmount))
 }

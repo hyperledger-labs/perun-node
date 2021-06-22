@@ -31,7 +31,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/hyperledger-labs/perun-node"
-	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/log"
 )
 
@@ -47,17 +46,11 @@ type (
 	// It implements the perun.ChAPI interface.
 	Channel struct {
 		log.Logger
+		params
 
-		id                string
 		pch               PChannel
 		status            chStatus
 		wasCloseInitiated bool
-
-		currency         string
-		parts            []string
-		timeoutCfg       timeoutConfig
-		challengeDurSecs uint64
-		chainURL         string
 
 		chUpdateNotifier   perun.ChUpdateNotifier
 		chUpdateNotifCache []perun.ChUpdateNotif
@@ -65,6 +58,17 @@ type (
 
 		watcherWg *sync.WaitGroup
 		psync.Mutex
+	}
+
+	// params represent the parameters of the channel that do not change after
+	// it is initialized.
+	params struct {
+		id               string
+		currency         perun.Currency
+		parts            []string
+		timeoutCfg       timeoutConfig
+		challengeDurSecs uint64
+		chainURL         string
 	}
 
 	// PChannel represents the methods on the state channel controller defined
@@ -107,17 +111,19 @@ type (
 
 // newCh initializes  a channel instance using the passed pchannel (controller)
 // and other channel parameters.
-func newCh(pch PChannel, chainURL, currency string, parts []string, timeoutCfg timeoutConfig,
+func newCh(pch PChannel, chainURL string, currency perun.Currency, parts []string, timeoutCfg timeoutConfig,
 	challengeDurSecs uint64) *Channel {
 	ch := &Channel{
-		id:                 fmt.Sprintf("%x", pch.ID()),
+		params: params{
+			id:               fmt.Sprintf("%x", pch.ID()),
+			timeoutCfg:       timeoutCfg,
+			challengeDurSecs: challengeDurSecs,
+			chainURL:         chainURL,
+			currency:         currency,
+			parts:            parts,
+		},
 		pch:                pch,
 		status:             open,
-		timeoutCfg:         timeoutCfg,
-		challengeDurSecs:   challengeDurSecs,
-		chainURL:           chainURL,
-		currency:           currency,
-		parts:              parts,
 		wasCloseInitiated:  false,
 		chUpdateResponders: make(map[string]chUpdateResponderEntry),
 		watcherWg:          &sync.WaitGroup{},
@@ -250,7 +256,7 @@ func (ch *Channel) ID() string {
 //
 // Does not require a mutex lock, as the data will remain unchanged throughout
 // the lifecycle of the channel.
-func (ch *Channel) Currency() string {
+func (ch *Channel) Currency() perun.Currency {
 	return ch.currency
 }
 
@@ -334,8 +340,8 @@ func (ch *Channel) HandleUpdate(
 	}
 
 	expiry := time.Now().UTC().Add(ch.timeoutCfg.response).Unix()
-	currChInfo := makeChInfo(ch.id, ch.parts, ch.currency, currState)
-	notif := makeChUpdateNotif(currChInfo, chUpdate.State, expiry)
+	currChInfo := ch.makeChInfo(currState)
+	notif := ch.makeChUpdateNotif(currChInfo, chUpdate.State, expiry)
 	entry := chUpdateResponderEntry{
 		notif:       notif,
 		responder:   responder,
@@ -362,7 +368,8 @@ func (ch *Channel) sendChUpdateNotif(notif perun.ChUpdateNotif) {
 	}()
 }
 
-func makeChUpdateNotif(currChInfo perun.ChInfo, proposedState *pchannel.State, expiry int64) perun.ChUpdateNotif {
+func (ch *Channel) makeChUpdateNotif(
+	currChInfo perun.ChInfo, proposedState *pchannel.State, expiry int64) perun.ChUpdateNotif {
 	var chUpdateType perun.ChUpdateType
 	switch proposedState.IsFinal {
 	case true:
@@ -371,9 +378,9 @@ func makeChUpdateNotif(currChInfo perun.ChInfo, proposedState *pchannel.State, e
 		chUpdateType = perun.ChUpdateTypeOpen
 	}
 	return perun.ChUpdateNotif{
-		UpdateID:       fmt.Sprintf("%s_%d", currChInfo.ChID, proposedState.Version),
+		UpdateID:       fmt.Sprintf("%s_%d", ch.ID(), proposedState.Version),
 		CurrChInfo:     currChInfo,
-		ProposedChInfo: makeChInfo(currChInfo.ChID, currChInfo.BalInfo.Parts, currChInfo.BalInfo.Currency, proposedState),
+		ProposedChInfo: ch.makeChInfo(proposedState),
 		Type:           chUpdateType,
 		Expiry:         expiry,
 		Error:          nil,
@@ -553,16 +560,16 @@ func (ch *Channel) GetChInfo() perun.ChInfo {
 
 // This function assumes that caller has already locked the channel.
 func (ch *Channel) getChInfo() perun.ChInfo {
-	return makeChInfo(ch.ID(), ch.parts, ch.currency, ch.pch.State().Clone())
+	return ch.makeChInfo(ch.pch.State().Clone())
 }
 
-func makeChInfo(chID string, parts []string, curr string, state *pchannel.State) perun.ChInfo {
+func (ch *Channel) makeChInfo(state *pchannel.State) perun.ChInfo {
 	if state == nil {
 		return perun.ChInfo{}
 	}
 	return perun.ChInfo{
-		ChID:    chID,
-		BalInfo: makeBalInfoFromState(parts, curr, state),
+		ChID:    ch.id,
+		BalInfo: makeBalInfoFromState(ch.parts, ch.currency, state),
 		App:     makeApp(state.App, state.Data),
 		Version: fmt.Sprintf("%d", state.Version),
 	}
@@ -577,21 +584,20 @@ func makeApp(def pchannel.App, data pchannel.Data) perun.App {
 }
 
 // makeBalInfoFromState retrieves balance information from the channel state.
-func makeBalInfoFromState(parts []string, curr string, state *pchannel.State) perun.BalInfo {
-	return makeBalInfoFromRawBal(parts, curr, state.Balances[0])
+func makeBalInfoFromState(parts []string, currency perun.Currency, state *pchannel.State) perun.BalInfo {
+	return makeBalInfoFromRawBal(parts, currency, state.Balances[0])
 }
 
 // makeBalInfoFromRawBal retrieves balance information from the raw balance.
-func makeBalInfoFromRawBal(parts []string, curr string, rawBal []*big.Int) perun.BalInfo {
+func makeBalInfoFromRawBal(parts []string, currency perun.Currency, rawBal []*big.Int) perun.BalInfo {
 	balInfo := perun.BalInfo{
-		Currency: curr,
+		Currency: currency.Symbol(),
 		Parts:    parts,
 		Bal:      make([]string, len(rawBal)),
 	}
 
-	parser := currency.NewParser(curr)
 	for i := range rawBal {
-		balInfo.Bal[i] = parser.Print(rawBal[i])
+		balInfo.Bal[i] = currency.Print(rawBal[i])
 	}
 	return balInfo
 }

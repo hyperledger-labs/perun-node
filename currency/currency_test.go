@@ -26,12 +26,7 @@ import (
 	"github.com/hyperledger-labs/perun-node/currency"
 )
 
-func Test_IsSupported_NewParser_ETH(t *testing.T) {
-	assert.True(t, currency.IsSupported(currency.ETH))
-	assert.NotNil(t, currency.NewParser(currency.ETH))
-}
-
-func Test_ethParser_Parse(t *testing.T) {
+func Test_Currency_Parse(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
@@ -48,10 +43,14 @@ func Test_ethParser_Parse(t *testing.T) {
 		{"err_too_small", "0.0000000000000000005", nil, true},
 		{"invalid_string", "invalid-currency-string", nil, true},
 	}
+	r := currency.NewRegistry()
+	eth, err := r.Register(currency.ETHSymbol, currency.ETHMaxDecimals)
+	require.NoError(t, err)
+	require.Equal(t, currency.ETHSymbol, eth.Symbol())
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := currency.NewParser(currency.ETH)
-			got, err := p.Parse(tt.input)
+			got, err := eth.Parse(tt.input)
 			if err != nil {
 				t.Log(err)
 			}
@@ -61,22 +60,25 @@ func Test_ethParser_Parse(t *testing.T) {
 	}
 }
 
-func Test_ethParser_Print(t *testing.T) {
+func Test_Currency_Print(t *testing.T) {
 	tests := []struct {
 		name   string
 		input  *big.Int
 		output string
 	}{
-		{"happy_1_whole_number", big.NewInt(5e18), "5.000000"},
-		{"happy_1_decimal", big.NewInt(5e17), "0.500000"},
-		{"happy_round_up", big.NewInt(12345678e10), "0.123457"},
-		{"happy_round_down", big.NewInt(87654321e10), "0.876543"},
-		{"happy_to_zero", big.NewInt(5), "0.000000"},
+		{"happy_1_whole_number", big.NewInt(5e18), "5"},
+		{"happy_1_decimal", big.NewInt(5e17), "0.5"},
+		{"happy_2_decimal", big.NewInt(12345678e10), "0.12345678"},
+		{"happy_3_decimal", big.NewInt(87654321e10), "0.87654321"},
+		{"happy_to_zero", big.NewInt(5), "0"},
 	}
+	r := currency.NewRegistry()
+	eth, err := r.Register(currency.ETHSymbol, currency.ETHMaxDecimals)
+	require.NoError(t, err)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := currency.NewParser(currency.ETH)
-			got := p.Print(tt.input)
+			got := eth.Print(tt.input)
 			assert.Equal(t, tt.output, got)
 		})
 	}
