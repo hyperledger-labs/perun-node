@@ -116,12 +116,15 @@ type Credential struct {
 // corresponding backend. It is up to the implementation to make the value user
 // configurable.
 type ChainBackend interface {
-	DeployAdjudicator(onChainAddr pwallet.Address) (adjAddr pwallet.Address, _ error)
-	DeployAssetETH(adjudicator, onChainAddr pwallet.Address) (assetETHAddr pwallet.Address, _ error)
-	ValidateAdjudicator(adjudicator pwallet.Address) error
-	ValidateAssetETH(adjudicator, assetETH pwallet.Address) error
-	NewFunder(assetETH, onChainAddr pwallet.Address) pchannel.Funder
-	NewAdjudicator(adjudicator, receiver pwallet.Address) pchannel.Adjudicator
+	ROChainBackend
+
+	DeployAdjudicator(txSender pwallet.Address) (pwallet.Address, error)
+	DeployAssetETH(adjudicator, txSender pwallet.Address) (pwallet.Address, error)
+	DeployAssetERC20(adjudicator, tokenERC20, txSender pwallet.Address) (pwallet.Address, error)
+	DeployPerunToken(initAccs []pwallet.Address, initBal *big.Int, txSender pwallet.Address) (pwallet.Address, error)
+
+	NewFunder(assetETH, txSender pwallet.Address) pchannel.Funder
+	NewAdjudicator(adjudicator, txSender pwallet.Address) pchannel.Adjudicator
 }
 
 // ROChainBackend wraps the methods required for validating contracts.
@@ -131,7 +134,8 @@ type ChainBackend interface {
 // configurable.
 type ROChainBackend interface {
 	ValidateAdjudicator(adjudicator pwallet.Address) error
-	ValidateAssetETH(adjudicator, assetETHAddr pwallet.Address) error
+	ValidateAssetETH(adjudicator, assetETH pwallet.Address) error
+	ValidateAssetERC20(adjudicator, tokenERC20, assetERC20 pwallet.Address) (symbol string, maxDecimals uint8, _ error)
 }
 
 // WalletBackend wraps the methods for instantiating wallets and accounts that are specific to a blockchain platform.
