@@ -196,8 +196,8 @@ message GetConfigReq {
 
 message GetConfigResp{
     string chainAddress = 1;
-    string adjudicatorAddress = 2;
-    string assetAddress = 3;
+    string adjudicator = 2;
+    string assetETH = 3;
     repeated string commTypes = 4;
     repeated string idProviderTypes = 5;
 }

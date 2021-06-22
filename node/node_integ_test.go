@@ -65,7 +65,7 @@ func Test_Integ_New(t *testing.T) {
 
 	t.Run("err_invalid_asset_address", func(t *testing.T) {
 		cfg := validConfig
-		cfg.Asset = "invalid-addr"
+		cfg.AssetETH = "invalid-addr"
 		_, err := node.New(cfg)
 		require.Error(t, err)
 		t.Log(err)
@@ -79,18 +79,18 @@ func Test_Integ_New(t *testing.T) {
 		t.Log(err)
 	})
 
-	t.Run("err_invalid_asset_contract", func(t *testing.T) {
+	t.Run("err_invalid_assetETH_contract", func(t *testing.T) {
 		cfg := validConfig
-		cfg.Asset = ethereumtest.NewRandomAddress(prng).String()
+		cfg.AssetETH = ethereumtest.NewRandomAddress(prng).String()
 		_, err := node.New(cfg)
 		require.Error(t, err)
 		t.Log(err)
 	})
 
-	t.Run("err_invalid_adjudicator_asset_contract", func(t *testing.T) {
+	t.Run("err_invalid_adjudicator_assetETH_contract", func(t *testing.T) {
 		cfg := validConfig
 		cfg.Adjudicator = ethereumtest.NewRandomAddress(prng).String()
-		cfg.Asset = ethereumtest.NewRandomAddress(prng).String()
+		cfg.AssetETH = ethereumtest.NewRandomAddress(prng).String()
 		_, err := node.New(cfg)
 		require.Error(t, err)
 		t.Log(err)

@@ -43,10 +43,10 @@ type (
 		// previous running instance of the node.
 		PeerReconnTimeout time.Duration
 
-		// Address of the valid Asset and Adjudicator contracts.
+		// Address of the valid AssetETH and Adjudicator contracts.
 		// These values are set by the node and will not parsed from the user
 		// provided configuration.
-		Asset, Adjudicator pwire.Address `yaml:"-"`
+		AssetETH, Adjudicator pwire.Address `yaml:"-"`
 	}
 
 	// UserConfig defines the parameters required to configure a user.
@@ -93,10 +93,10 @@ type (
 		// OnChainTxTimeout is the timeout to wait for a blockchain transaction to be finalized.
 		OnChainTxTimeout time.Duration
 
-		// Address of the valid Asset and Adjudicator contracts.
+		// Address of the valid AssetETH and Adjudicator contracts.
 		// These values are set by the node and will not parsed from the user
 		// provided configuration.
-		Asset, Adjudicator pwire.Address `yaml:"-"`
+		AssetETH, Adjudicator pwire.Address `yaml:"-"`
 	}
 )
 
