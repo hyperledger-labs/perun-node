@@ -32,7 +32,6 @@ import (
 	pnet "perun.network/go-perun/wire/net"
 
 	"github.com/hyperledger-labs/perun-node"
-	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 )
 
 type (
@@ -56,7 +55,7 @@ type (
 		EnablePersistence(ppersistence.PersistRestorer)
 		OnNewChannel(handler func(PChannel))
 		Restore(context.Context) error
-		RestoreChs(func(PChannel)) error
+		RestoreChs(databaseDir string, timeout time.Duration, handler func(PChannel)) error
 
 		Log() plog.Logger
 	}
@@ -77,9 +76,7 @@ type (
 		// Registry that is used by the channel client for resolving off-chain address to comm address.
 		msgBusRegistry perun.Registerer
 
-		dbPath        string        // Database path, because restore will be called later.
-		reconnTimeout time.Duration // Reconn Timeout, because restore will be called later.
-		dbConn        Closer        // Database connection for closing it during client.Close.
+		dbConn Closer // Database connection for closing it during client.Close.
 
 		wg *sync.WaitGroup
 	}
@@ -133,20 +130,21 @@ func (c *pclientWrapped) OnNewChannel(handler func(PChannel)) {
 // newEthereumPaymentClient initializes a two party, ethereum payment channel client for the given user.
 // It establishes a connection to the blockchain and verifies the integrity of contracts at the given address.
 // It uses the comm backend to initialize adapters for off-chain communication network.
-func newEthereumPaymentClient(cfg clientConfig, user User, comm perun.CommBackend) (
+func newEthereumPaymentClient(
+	funder pchannel.Funder, adjudicator pchannel.Adjudicator,
+	comm perun.CommBackend, commAddr string,
+	offChainCred perun.Credential) (
 	ChClient, perun.APIError) {
-	funder, adjudicator, apiErr := connectToChain(cfg.Chain, user.OnChain)
-	if apiErr != nil {
-		return nil, apiErr
-	}
-	offChainAcc, err := user.OffChain.Wallet.Unlock(user.OffChain.Addr)
+
+	offChainAcc, err := offChainCred.Wallet.Unlock(offChainCred.Addr)
 	if err != nil {
 		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain account"))
 	}
+
 	dialer := comm.NewDialer()
 	msgBus := pnet.NewBus(offChainAcc, dialer)
 
-	pcClient, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, user.OffChain.Wallet)
+	pcClient, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, offChainCred.Wallet)
 	if err != nil {
 		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain account"))
 	}
@@ -155,19 +153,54 @@ func newEthereumPaymentClient(cfg clientConfig, user User, comm perun.CommBacken
 		pClient:        &pclientWrapped{pcClient},
 		msgBus:         msgBus,
 		msgBusRegistry: dialer,
-		dbPath:         cfg.DatabaseDir,
-		reconnTimeout:  cfg.PeerReconnTimeout,
 		wg:             &sync.WaitGroup{},
 	}
 
-	listener, err := comm.NewListener(user.CommAddr)
+	listener, err := comm.NewListener(commAddr)
 	if err != nil {
-		return nil, perun.NewAPIErrInvalidConfig(err, "commAddr", user.CommAddr)
+		return nil, perun.NewAPIErrInvalidConfig(err, "commAddr", commAddr)
 	}
 	c.runAsGoRoutine(func() { msgBus.Listen(listener) })
 
 	return c, nil
 }
+
+// newEthereumPaymentClient initializes a two party, ethereum payment channel client for the given user.
+// It establishes a connection to the blockchain and verifies the integrity of contracts at the given address.
+// It uses the comm backend to initialize adapters for off-chain communication network.
+// func newEthereumPaymentClient(cfg clientConfig, user User, comm perun.CommBackend) (
+// 	ChClient, perun.APIError) {
+
+// 	funder := chain.NewFunder(contracts.AssetETH(), cred.Addr)
+// 	adjudicator := chain.NewAdjudicator(cfg.Adjudicator, cred.Addr)
+
+// 	offChainAcc, err := user.OffChain.Wallet.Unlock(user.OffChain.Addr)
+// 	if err != nil {
+// 		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain account"))
+// 	}
+// 	dialer := comm.NewDialer()
+// 	msgBus := pnet.NewBus(offChainAcc, dialer)
+
+// 	pcClient, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, user.OffChain.Wallet)
+// 	if err != nil {
+// 		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain account"))
+// 	}
+
+// 	c := &client{
+// 		pClient:        &pclientWrapped{pcClient},
+// 		msgBus:         msgBus,
+// 		msgBusRegistry: dialer,
+// 		wg:             &sync.WaitGroup{},
+// 	}
+
+// 	listener, err := comm.NewListener(user.CommAddr)
+// 	if err != nil {
+// 		return nil, perun.NewAPIErrInvalidConfig(err, "commAddr", user.CommAddr)
+// 	}
+// 	c.runAsGoRoutine(func() { msgBus.Listen(listener) })
+
+// 	return c, nil
+// }
 
 // Register registers the comm address for the given off-chain address in the client.
 func (c *client) Register(offChainAddr pwire.Address, commAddr string) {
@@ -182,17 +215,17 @@ func (c *client) Handle(ph pclient.ProposalHandler, ch pclient.UpdateHandler) {
 
 // RestoreChs will restore the persisted channels. Register OnNewChannel Callback
 // before calling this function.
-func (c *client) RestoreChs(handler func(PChannel)) error {
+func (c *client) RestoreChs(databaseDir string, timeout time.Duration, handler func(PChannel)) error {
 	c.OnNewChannel(handler)
-	db, err := pleveldb.LoadDatabase(c.dbPath)
+	db, err := pleveldb.LoadDatabase(databaseDir)
 	if err != nil {
-		return errors.Wrap(err, "initializing persistence database in dir - "+c.dbPath)
+		return errors.Wrap(err, "initializing persistence database in dir - "+databaseDir)
 	}
 	c.dbConn = db
 
 	pr := pkeyvalue.NewPersistRestorer(db)
 	c.EnablePersistence(pr)
-	ctx, cancel := context.WithTimeout(context.Background(), c.reconnTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	err = c.Restore(ctx)
 	// Set the OnNewChannel call back to a dummy function, so it does not
@@ -217,15 +250,6 @@ func (c *client) Close() error {
 	}
 	c.wg.Wait()
 	return errors.Wrap(c.dbConn.Close(), "closing persistence database")
-}
-
-func connectToChain(cfg ChainConfig, cred perun.Credential) (pchannel.Funder, pchannel.Adjudicator, perun.APIError) {
-	chain, err := ethereum.NewChainBackend(cfg.URL, cfg.ChainID, cfg.ConnTimeout, cfg.OnChainTxTimeout, cred)
-	if err != nil {
-		err = errors.WithMessage(err, "connecting to blockchain")
-		return nil, nil, perun.NewAPIErrInvalidConfig(err, "chainURL", cfg.URL)
-	}
-	return chain.NewFunder(cfg.AssetETH, cred.Addr), chain.NewAdjudicator(cfg.Adjudicator, cred.Addr), nil
 }
 
 func (c *client) runAsGoRoutine(f func()) {
