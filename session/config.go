@@ -71,17 +71,6 @@ type (
 		Password     string
 	}
 
-	// clientConfig represents the configuration parameters for state channel client.
-	clientConfig struct {
-		Chain ChainConfig
-
-		// Path to directory containing persistence database.
-		DatabaseDir string
-		// Timeout for re-establishing all open channels (if any) that was persisted during the
-		// previous running instance of the node.
-		PeerReconnTimeout time.Duration
-	}
-
 	// ChainConfig represents the configuration parameters for connecting to blockchain.
 	ChainConfig struct {
 		// URL for connecting to the blockchain node.

@@ -15,6 +15,8 @@ import (
 
 	session "github.com/hyperledger-labs/perun-node/session"
 
+	time "time"
+
 	wire "perun.network/go-perun/wire"
 )
 
@@ -133,13 +135,13 @@ func (_m *ChClient) Restore(_a0 context.Context) error {
 	return r0
 }
 
-// RestoreChs provides a mock function with given fields: _a0
-func (_m *ChClient) RestoreChs(_a0 func(session.PChannel)) error {
-	ret := _m.Called(_a0)
+// RestoreChs provides a mock function with given fields: databaseDir, timeout, handler
+func (_m *ChClient) RestoreChs(databaseDir string, timeout time.Duration, handler func(session.PChannel)) error {
+	ret := _m.Called(databaseDir, timeout, handler)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(func(session.PChannel)) error); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func(string, time.Duration, func(session.PChannel)) error); ok {
+		r0 = rf(databaseDir, timeout, handler)
 	} else {
 		r0 = ret.Error(0)
 	}
