@@ -48,9 +48,10 @@ type ChainBackend struct {
 func (cb *ChainBackend) NewFunder(assetETHAddr pwallet.Address, txSender pwallet.Address) pchannel.Funder {
 	assetETH := pethwallet.AsWalletAddr(pethwallet.AsEthAddr(assetETHAddr))
 	txSenderAcc := accounts.Account{Address: pethwallet.AsEthAddr(txSender)}
-	txSenderAccs := map[pethchannel.Asset]accounts.Account{*assetETH: txSenderAcc}
-	depositors := map[pethchannel.Asset]pethchannel.Depositor{*assetETH: new(pethchannel.ETHDepositor)}
-	return pethchannel.NewFunder(*cb.Cb, txSenderAccs, depositors)
+	funder := pethchannel.NewFunder(*cb.Cb)
+	// Registering unique assets on a newly initialized funder will always return true.
+	funder.RegisterAsset(*assetETH, pethchannel.NewETHDepositor(), txSenderAcc)
+	return funder
 }
 
 // NewAdjudicator initializes and returns an instance of ethereum adjudicator.
@@ -97,21 +98,10 @@ func (cb *ChainBackend) ValidateAdjudicator(adjAddr pwallet.Address) error {
 
 // ValidateAssetETH validates the integrity of adjudicator and asset ETH
 // contracts at the given addresses.
-//
-// TODO: Submit a suggestion to go-perun to not validate the adjudicator contract in ValidateAssetHolder.
-// If accepted, then update this function to
-// validate only the asset ETH contract.
 func (cb *ChainBackend) ValidateAssetETH(adjAddr, assetETHAddr pwallet.Address) error {
 	ctx, cancel := context.WithTimeout(context.Background(), cb.TxTimeout)
 	defer cancel()
-	// Though integrity of adjudicator is implicitly checked by ValidateAssetHolderETH,
-	// we do it before that call to identify this type of error.
-	err := pethchannel.ValidateAdjudicator(ctx, *cb.Cb, pethwallet.AsEthAddr(adjAddr))
-	if pethchannel.IsErrInvalidContractCode(err) {
-		return blockchain.NewInvalidContractError(blockchain.Adjudicator, adjAddr.String(), err)
-	}
-
-	err = pethchannel.ValidateAssetHolderETH(ctx, *cb.Cb,
+	err := pethchannel.ValidateAssetHolderETH(ctx, *cb.Cb,
 		pethwallet.AsEthAddr(assetETHAddr), pethwallet.AsEthAddr(adjAddr))
 	if pethchannel.IsErrInvalidContractCode(err) {
 		return blockchain.NewInvalidContractError(blockchain.AssetETH, assetETHAddr.String(), err)
@@ -122,9 +112,6 @@ func (cb *ChainBackend) ValidateAssetETH(adjAddr, assetETHAddr pwallet.Address) 
 // ValidateAssetERC20 validates the integrity of adjudicator and asset ERC20
 // contracts at the given addresses. TokenERC20 is the address of ERC20 token
 // contract.
-//
-// TODO: Submit a suggestion to go-perun to not validate the adjudicator contract in ValidateAssetHolder.
-// If accepted, then update this function to validate only the asset ERC20 contract.
 func (cb *ChainBackend) ValidateAssetERC20(adj, tokenERC20, assetERC20 pwallet.Address) (
 	symbol string, decimals uint8, _ error) {
 	ctx, cancel := context.WithTimeout(context.Background(), cb.TxTimeout)
@@ -133,12 +120,6 @@ func (cb *ChainBackend) ValidateAssetERC20(adj, tokenERC20, assetERC20 pwallet.A
 	symbol, decimals, err = cb.ERC20Info(tokenERC20)
 	if err != nil {
 		return "", 0, errors.WithMessage(err, "reading symbol and decimal values from token contract")
-	}
-	// Though integrity of adjudicator is implicitly checked by ValidateAssetHolderERC20,
-	// we do it before that call to identify this type of error.
-	err = pethchannel.ValidateAdjudicator(ctx, *cb.Cb, pethwallet.AsEthAddr(adj))
-	if pethchannel.IsErrInvalidContractCode(err) {
-		return "", 0, blockchain.NewInvalidContractError(blockchain.Adjudicator, adj.String(), err)
 	}
 	err = pethchannel.ValidateAssetHolderERC20(ctx, *cb.Cb,
 		pethwallet.AsEthAddr(assetERC20), pethwallet.AsEthAddr(adj), pethwallet.AsEthAddr(tokenERC20))
