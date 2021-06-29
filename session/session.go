@@ -116,7 +116,7 @@ type (
 		idProvider perun.IDProvider
 
 		timeoutCfg timeoutConfig
-		chainURL   string // chain URL is stored for retrieval when annotating errors
+		chainURL   string // used for annotating error messages.
 
 		chs        *chRegistry
 		currencies perun.ROCurrencyRegistry
@@ -170,20 +170,18 @@ func New(cfg Config, currencies perun.ROCurrencyRegistry, contracts perun.Contra
 	if apiErr != nil {
 		return nil, apiErr
 	}
-	assetETH := contracts.AssetETH()
-	chClientCfg := clientConfig{
-		Chain: ChainConfig{
-			Adjudicator:      contracts.Adjudicator(),
-			AssetETH:         assetETH,
-			URL:              cfg.ChainURL,
-			ChainID:          cfg.ChainID,
-			ConnTimeout:      cfg.ChainConnTimeout,
-			OnChainTxTimeout: cfg.OnChainTxTimeout,
-		},
-		DatabaseDir:       cfg.DatabaseDir,
-		PeerReconnTimeout: cfg.PeerReconnTimeout,
+
+	chain, err := ethereum.NewChainBackend(
+		cfg.ChainURL, cfg.ChainID, cfg.ChainConnTimeout, cfg.OnChainTxTimeout, user.OnChain)
+	if err != nil {
+		err = errors.WithMessage(err, "connecting to blockchain")
+		return nil, perun.NewAPIErrInvalidConfig(err, "chainURL", cfg.ChainURL)
 	}
-	chClient, apiErr := newEthereumPaymentClient(chClientCfg, user, commBackend)
+
+	funder := chain.NewFunder(contracts.AssetETH(), user.OnChain.Addr)
+	adjudicator := chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
+
+	chClient, apiErr := newEthereumPaymentClient(funder, adjudicator, commBackend, cfg.User.CommAddr, user.OffChain)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -207,7 +205,8 @@ func New(cfg Config, currencies perun.ROCurrencyRegistry, contracts perun.Contra
 		currencies:           currencies,
 		chProposalResponders: make(map[string]chProposalResponderEntry),
 	}
-	err := sess.chClient.RestoreChs(sess.handleRestoredCh)
+
+	err = sess.chClient.RestoreChs(cfg.DatabaseDir, cfg.PeerReconnTimeout, sess.handleRestoredCh)
 	if err != nil {
 		err = errors.WithMessage(err, "restoring channels")
 		return nil, perun.NewAPIErrInvalidConfig(err, "databaseDir", cfg.DatabaseDir)
@@ -953,7 +952,6 @@ func (s *Session) HandleUpdateWInterface(
 // - ErrUnknownInternal.
 func (s *Session) Close(force bool) ([]perun.ChInfo, perun.APIError) {
 	s.WithField("method", "Close").Infof("\nReceived request with params %+v", force)
-	s.Debug("Received request: session.Close")
 	s.Lock()
 	defer s.Unlock()
 
