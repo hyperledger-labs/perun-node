@@ -89,16 +89,22 @@ func Test_ChainBackend_ValidateAssetETH(t *testing.T) {
 		assert.NoError(t, setup.ChainBackend.ValidateAdjudicator(setup.Adjudicator))
 		assert.NoError(t, setup.ChainBackend.ValidateAssetETH(setup.Adjudicator, setup.AssetETH))
 	})
-	t.Run("invalid_adjudicator", func(t *testing.T) {
+	t.Run("happy_adjudicator_matches_but_code_incorrect", func(t *testing.T) {
+		// Use a new instance of asset ETH, where adjudicator address is set to a random address.
+		// This test shows ValidAssetETH does not validate adjudicator, but only checks address match.
+		randomAddr1 := ethereumtest.NewRandomAddress(rng)
+		assetETH, err := setup.ChainBackend.DeployAssetETH(randomAddr1, setup.Accs[0].Address())
+		require.NoError(t, err)
+		assert.NoError(t, setup.ChainBackend.ValidateAssetETH(randomAddr1, assetETH))
+	})
+	t.Run("adjudicator_mismatch", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
 		err := setup.ChainBackend.ValidateAssetETH(randomAddr1, setup.AssetETH)
-
-		require.Error(t, err)
 		invalidContractError := blockchain.InvalidContractError{}
 		ok := errors.As(err, &invalidContractError)
 		require.True(t, ok)
-		assert.Equal(t, blockchain.Adjudicator, invalidContractError.Name)
-		assert.Equal(t, randomAddr1.String(), invalidContractError.Address)
+		assert.Equal(t, blockchain.AssetETH, invalidContractError.Name)
+		assert.Equal(t, setup.AssetETH.String(), invalidContractError.Address)
 	})
 	t.Run("invalid_assetETH", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
@@ -127,17 +133,21 @@ func Test_ChainBackend_ValidateAssetERC20(t *testing.T) {
 			require.Equal(t, uint8(18), decimals) // MaxDecimals for the perun ERC20 token deployed for tests.
 		}
 	})
-	t.Run("invalid_adjudicator", func(t *testing.T) {
+	t.Run("happy_adjudicator_matches_but_code_incorrect", func(t *testing.T) {
+		// Use a new instance of asset ETH, where adjudicator address is set to a random address.
+		// This test shows ValidAssetETH does not validate adjudicator, but only checks address match.
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
-		for tokenERC20, assetERC20 := range setup.AssetERC20s {
-			_, _, err := setup.ChainBackend.ValidateAssetERC20(randomAddr1, tokenERC20, assetERC20)
-
-			require.Error(t, err)
-			invalidContractError := blockchain.InvalidContractError{}
-			ok := errors.As(err, &invalidContractError)
-			require.True(t, ok)
-			assert.Equal(t, blockchain.Adjudicator, invalidContractError.Name)
-			assert.Equal(t, randomAddr1.String(), invalidContractError.Address)
+		assetETH, err := setup.ChainBackend.DeployAssetETH(randomAddr1, setup.Accs[0].Address())
+		require.NoError(t, err)
+		assert.NoError(t, setup.ChainBackend.ValidateAssetETH(randomAddr1, assetETH))
+	})
+	t.Run("adjudicator_mismatch", func(t *testing.T) {
+		randomAddr1 := ethereumtest.NewRandomAddress(rng)
+		for tokenERC20 := range setup.AssetERC20s {
+			assetERC20, err := setup.ChainBackend.DeployAssetERC20(randomAddr1, tokenERC20, setup.Accs[0].Address())
+			require.NoError(t, err)
+			_, _, err = setup.ChainBackend.ValidateAssetERC20(randomAddr1, tokenERC20, assetERC20)
+			assert.NoError(t, err)
 		}
 	})
 	t.Run("invalid_assetERC20", func(t *testing.T) {
@@ -155,7 +165,7 @@ func Test_ChainBackend_ValidateAssetERC20(t *testing.T) {
 			assert.Equal(t, randomAddr1.String(), invalidContractError.Address)
 		}
 	})
-	t.Run("invalid_tokenAddr", func(t *testing.T) {
+	t.Run("tokenAddr_mismatch", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
 		for _, assetERC20 := range setup.AssetERC20s {
 			_, _, err := setup.ChainBackend.ValidateAssetERC20(setup.Adjudicator, randomAddr1, assetERC20)

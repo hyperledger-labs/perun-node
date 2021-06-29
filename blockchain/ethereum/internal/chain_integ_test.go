@@ -25,7 +25,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	pwallet "perun.network/go-perun/wallet"
 
+	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
@@ -60,8 +62,6 @@ func Test_ROChainBackend_ValidateAdjudicator(t *testing.T) {
 }
 
 func Test_Integ_ROChainBackend_ValidateAssetETH(t *testing.T) {
-	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-	// use a real chain backend instead of simulated because, multiple connections are to be made:
 	// 1. With a ChainBackend for deploying contracts.
 	// 2. Use a ROChainbackend for validating contracts.
 	contracts := ethereumtest.SetupContractsT(t,
@@ -69,23 +69,30 @@ func Test_Integ_ROChainBackend_ValidateAssetETH(t *testing.T) {
 	roChainBackend, err := ethereum.NewROChainBackend(
 		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.ChainConnTimeout)
 	require.NoError(t, err)
+	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 
 	t.Run("happy", func(t *testing.T) {
 		assert.NoError(t, roChainBackend.ValidateAdjudicator(contracts.Adjudicator()))
 		assert.NoError(t, roChainBackend.ValidateAssetETH(contracts.Adjudicator(), contracts.AssetETH()))
 	})
-	t.Run("invalid_adjudicator", func(t *testing.T) {
+	t.Run("happy_adjudicator_matches_but_code_incorrect", func(t *testing.T) {
+		// Use a new instance of asset ETH, where adjudicator address is set to a random address.
+		// This test shows ValidAssetETH does not validate adjudicator, but only checks address match.
+		randomAddr1 := ethereumtest.NewRandomAddress(rng)
+		assetETH := deployAssetETH(t, randomAddr1)
+		require.NoError(t, err)
+		assert.NoError(t, roChainBackend.ValidateAssetETH(randomAddr1, assetETH))
+	})
+	t.Run("adjudicator_mismatch", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
 		err := roChainBackend.ValidateAssetETH(randomAddr1, contracts.AssetETH())
-
-		require.Error(t, err)
 		invalidContractError := blockchain.InvalidContractError{}
 		ok := errors.As(err, &invalidContractError)
 		require.True(t, ok)
-		assert.Equal(t, blockchain.Adjudicator, invalidContractError.Name)
-		assert.Equal(t, randomAddr1.String(), invalidContractError.Address)
+		assert.Equal(t, blockchain.AssetETH, invalidContractError.Name)
+		assert.Equal(t, contracts.AssetETH().String(), invalidContractError.Address)
 	})
-	t.Run("invalid_assetHolderETH", func(t *testing.T) {
+	t.Run("invalid_assetETH", func(t *testing.T) {
 		randomAddr1 := ethereumtest.NewRandomAddress(rng)
 		err := roChainBackend.ValidateAssetETH(contracts.Adjudicator(), randomAddr1)
 
@@ -96,4 +103,23 @@ func Test_Integ_ROChainBackend_ValidateAssetETH(t *testing.T) {
 		assert.Equal(t, blockchain.AssetETH, invalidContractError.Name)
 		assert.Equal(t, randomAddr1.String(), invalidContractError.Address)
 	})
+}
+
+func deployAssetETH(t *testing.T, adjudicator pwallet.Address) pwallet.Address {
+	t.Helper()
+	rng := rand.New(rand.NewSource((ethereumtest.RandSeedForTestAccs)))
+	ws, err := ethereumtest.NewWalletSetup(rng, uint(1))
+	require.NoError(t, err)
+	onChainCred := perun.Credential{
+		Addr:     ws.Accs[0].Address(),
+		Wallet:   ws.Wallet,
+		Keystore: ws.KeystorePath,
+		Password: "",
+	}
+	chainBackend, err := ethereum.NewChainBackend(ethereumtest.ChainURL, ethereumtest.ChainID,
+		ethereumtest.ChainConnTimeout, ethereumtest.OnChainTxTimeout, onChainCred)
+	require.NoError(t, err)
+	assetETH, err := chainBackend.DeployAssetETH(adjudicator, ws.Accs[0].Address())
+	require.NoError(t, err)
+	return assetETH
 }

@@ -105,7 +105,6 @@ func initContractRegistry(chain perun.ROChainBackend, adjudicator, assetETH stri
 
 func registerAssetERC20s(assetERC20s map[string]string,
 	contracts perun.ContractRegistry, currencies perun.CurrencyRegistry) error {
-
 	walletBackend := ethereum.NewWalletBackend()
 	for tokenERC20, assetERC20 := range assetERC20s {
 		tokenERC20Addr, err := walletBackend.ParseAddr(tokenERC20)
