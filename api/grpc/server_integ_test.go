@@ -132,8 +132,11 @@ func Test_Integ_Role(t *testing.T) {
 
 	t.Run("Node.RegisterCurrency", func(t *testing.T) {
 		_, _, assetERC20s := ethereumtest.ContractAddrs()
-		for tokenAddr, assetAddr := range assetERC20s {
-			symbol := RegisterCurrency(t, tokenAddr.String(), assetAddr.String())
+		for tokenAddr := range assetERC20s {
+			assetAddr := DeployAssetERC20(t, aliceSessionID, tokenAddr.String())
+			require.NotZero(t, assetAddr)
+
+			symbol := RegisterCurrency(t, tokenAddr.String(), assetAddr)
 			require.Equal(t, "PRN", symbol)
 		}
 	})
@@ -306,6 +309,17 @@ func OpenSession(t *testing.T, cfgFile string) string {
 	return msg.MsgSuccess.SessionID
 }
 
+func DeployAssetERC20(t *testing.T, sessionID, tokenAddr string) string {
+	req := pb.DeployAssetERC20Req{
+		SessionID: sessionID,
+		TokenAddr: tokenAddr,
+	}
+	resp, err := client.DeployAssetERC20(ctx, &req)
+	require.NoErrorf(t, err, "DeployAssetERC20")
+	msg, ok := resp.Response.(*pb.DeployAssetERC20Resp_MsgSuccess_)
+	require.True(t, ok, "DeployAssetERC20 returned error response")
+	return msg.MsgSuccess.AssetAddr
+}
 
 func RegisterCurrency(t *testing.T, tokenAddr, assetAddr string) string {
 	req := pb.RegisterCurrencyReq{
