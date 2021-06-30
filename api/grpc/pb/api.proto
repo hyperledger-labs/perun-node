@@ -183,6 +183,7 @@ service Payment_API{
     rpc UnsubPayChProposals (UnsubPayChProposalsReq) returns (UnsubPayChProposalsResp) {}
     rpc RespondPayChProposal (RespondPayChProposalReq) returns (RespondPayChProposalResp) {}
     rpc CloseSession (CloseSessionReq) returns (CloseSessionResp) {}
+    rpc DeployAssetERC20(DeployAssetERC20Req) returns (DeployAssetERC20Resp) {}
 
     rpc SendPayChUpdate (SendPayChUpdateReq) returns (SendPayChUpdateResp) {}
     rpc SubPayChUpdates (SubpayChUpdatesReq) returns (stream SubPayChUpdatesResp) {}
@@ -366,6 +367,21 @@ message CloseSessionResp {
     }
     message MsgSuccess {
         repeated PayChInfo openPayChsInfo = 1;
+    }
+}
+
+message DeployAssetERC20Req {
+    string sessionID = 1;
+    string tokenAddr = 2;
+}
+
+message DeployAssetERC20Resp {
+    oneof response {
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        string AssetAddr = 2;
     }
 }
 

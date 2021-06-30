@@ -383,7 +383,7 @@ func (a *payChAPIServer) RespondPayChProposal(ctx context.Context, req *pb.Respo
 	}, nil
 }
 
-// CloseSession wraps payment.CloseSession. For now, this is a stub.
+// CloseSession wraps payment.CloseSession.
 func (a *payChAPIServer) CloseSession(ctx context.Context, req *pb.CloseSessionReq) (*pb.CloseSessionResp, error) {
 	errResponse := func(err perun.APIError) *pb.CloseSessionResp {
 		return &pb.CloseSessionResp{
@@ -406,6 +406,35 @@ func (a *payChAPIServer) CloseSession(ctx context.Context, req *pb.CloseSessionR
 		Response: &pb.CloseSessionResp_MsgSuccess_{
 			MsgSuccess: &pb.CloseSessionResp_MsgSuccess{
 				OpenPayChsInfo: toGrpcPayChsInfo(openPayChsInfo),
+			},
+		},
+	}, nil
+}
+
+// DeployAssetERC20 wraps session.DeployAssetERC20.
+func (a *payChAPIServer) DeployAssetERC20(ctx context.Context, req *pb.DeployAssetERC20Req) (
+	*pb.DeployAssetERC20Resp, error) {
+	errResponse := func(err perun.APIError) *pb.DeployAssetERC20Resp {
+		return &pb.DeployAssetERC20Resp{
+			Response: &pb.DeployAssetERC20Resp_Error{
+				Error: toGrpcError(err),
+			},
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	assetAddr, err := sess.DeployAssetERC20(req.TokenAddr)
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	return &pb.DeployAssetERC20Resp{
+		Response: &pb.DeployAssetERC20Resp_MsgSuccess_{
+			MsgSuccess: &pb.DeployAssetERC20Resp_MsgSuccess{
+				AssetAddr: assetAddr,
 			},
 		},
 	}, nil
