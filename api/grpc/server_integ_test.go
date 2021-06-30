@@ -55,7 +55,7 @@ var (
 )
 
 func StartServer(t *testing.T, nodeCfg perun.NodeConfig, grpcPort string) {
-	nodeAPI, err := node.New(nodetest.NewConfig())
+	nodeAPI, err := node.New(nodetest.NewConfig(true))
 	require.NoErrorf(t, err, "initializing nodeAPI")
 
 	t.Log("Started ListenAndServePayChAPI")
@@ -72,7 +72,7 @@ func Test_Integ_Role(t *testing.T) {
 	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout, false)
 
 	// Run server in a go routine.
-	StartServer(t, nodetest.NewConfig(), grpcPort)
+	StartServer(t, nodetest.NewConfig(true), grpcPort)
 
 	// Inititalize client.
 	conn, err := grpclib.Dial(grpcPort, grpclib.WithInsecure())

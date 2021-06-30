@@ -42,13 +42,13 @@ func Test_Integ_New(t *testing.T) {
 	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout, false)
 
 	t.Run("happy", func(t *testing.T) {
-		n, err := node.New(nodetest.NewConfig())
+		n, err := node.New(nodetest.NewConfig(true))
 		require.NoError(t, err)
 		require.NotNil(t, n)
 	})
 
 	t.Run("err_invalid_log_level", func(t *testing.T) {
-		cfg := nodetest.NewConfig()
+		cfg := nodetest.NewConfig(true)
 		cfg.LogLevel = ""
 		_, err := node.New(cfg)
 		require.Error(t, err)
@@ -56,7 +56,7 @@ func Test_Integ_New(t *testing.T) {
 	})
 
 	t.Run("err_invalid_adjudicator_address", func(t *testing.T) {
-		cfg := nodetest.NewConfig()
+		cfg := nodetest.NewConfig(true)
 		cfg.Adjudicator = "invalid-addr"
 		_, err := node.New(cfg)
 		require.Error(t, err)
@@ -64,7 +64,7 @@ func Test_Integ_New(t *testing.T) {
 	})
 
 	t.Run("err_invalid_asset_address", func(t *testing.T) {
-		cfg := nodetest.NewConfig()
+		cfg := nodetest.NewConfig(true)
 		cfg.AssetETH = "invalid-addr"
 		_, err := node.New(cfg)
 		require.Error(t, err)
@@ -72,7 +72,7 @@ func Test_Integ_New(t *testing.T) {
 	})
 
 	t.Run("err_invalid_adjudicator_contract", func(t *testing.T) {
-		cfg := nodetest.NewConfig()
+		cfg := nodetest.NewConfig(true)
 		cfg.Adjudicator = ethereumtest.NewRandomAddress(prng).String()
 		_, err := node.New(cfg)
 		require.Error(t, err)
@@ -80,7 +80,7 @@ func Test_Integ_New(t *testing.T) {
 	})
 
 	t.Run("err_invalid_assetETH_contract", func(t *testing.T) {
-		cfg := nodetest.NewConfig()
+		cfg := nodetest.NewConfig(true)
 		cfg.AssetETH = ethereumtest.NewRandomAddress(prng).String()
 		_, err := node.New(cfg)
 		require.Error(t, err)
@@ -88,18 +88,17 @@ func Test_Integ_New(t *testing.T) {
 	})
 
 	t.Run("err_invalid_adjudicator_assetETH_contract", func(t *testing.T) {
-		cfg := nodetest.NewConfig()
+		cfg := nodetest.NewConfig(true)
 		cfg.Adjudicator = ethereumtest.NewRandomAddress(prng).String()
 		cfg.AssetETH = ethereumtest.NewRandomAddress(prng).String()
 		_, err := node.New(cfg)
 		require.Error(t, err)
 		t.Log(err)
 	})
-
 }
 
 func Test_Integ_Node_Time(t *testing.T) {
-	n, err := node.New(nodetest.NewConfig())
+	n, err := node.New(nodetest.NewConfig(true))
 	require.NoError(t, err)
 	require.NotNil(t, n)
 
@@ -107,16 +106,16 @@ func Test_Integ_Node_Time(t *testing.T) {
 }
 
 func Test_Integ_Node_GetConfig(t *testing.T) {
-	n, err := node.New(nodetest.NewConfig())
+	n, err := node.New(nodetest.NewConfig(true))
 	require.NoError(t, err)
 	require.NotNil(t, n)
 
 	cfg := n.GetConfig()
-	assert.Equal(t, nodetest.NewConfig(), cfg)
+	assert.Equal(t, nodetest.NewConfig(true), cfg)
 }
 
 func Test_Integ_Node_Help(t *testing.T) {
-	n, err := node.New(nodetest.NewConfig())
+	n, err := node.New(nodetest.NewConfig(true))
 	require.NoError(t, err)
 	require.NotNil(t, n)
 
@@ -125,9 +124,8 @@ func Test_Integ_Node_Help(t *testing.T) {
 }
 
 func Test_Integ_Node_OpenSession_GetSession(t *testing.T) {
-
 	t.Run("happy", func(t *testing.T) {
-		n, err := node.New(nodetest.NewConfig())
+		n, err := node.New(nodetest.NewConfig(true))
 		require.NoError(t, err)
 		require.NotNil(t, n)
 		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
@@ -146,7 +144,7 @@ func Test_Integ_Node_OpenSession_GetSession(t *testing.T) {
 	// Simulate one error to fail session.New and check if err is not nil.
 	// Complete test of session.New is done in the session package.
 	t.Run("OpenSession_init_error", func(t *testing.T) {
-		n, err := node.New(nodetest.NewConfig())
+		n, err := node.New(nodetest.NewConfig(true))
 		require.NoError(t, err)
 		require.NotNil(t, n)
 		invalidChainURL := "invalid-url"
@@ -161,7 +159,7 @@ func Test_Integ_Node_OpenSession_GetSession(t *testing.T) {
 	})
 
 	t.Run("GetSession_not_found", func(t *testing.T) {
-		n, err := node.New(nodetest.NewConfig())
+		n, err := node.New(nodetest.NewConfig(true))
 		require.NoError(t, err)
 		require.NotNil(t, n)
 		unknownSessID := "unknown session id"
@@ -173,15 +171,25 @@ func Test_Integ_Node_OpenSession_GetSession(t *testing.T) {
 }
 
 func Test_Integ_Node_RegisterCurrency(t *testing.T) {
-	t.Run("RegisterCurrency_Exists", func(t *testing.T) {
-		n, err := node.New(nodetest.NewConfig())
+	t.Run("happy", func(t *testing.T) {
+		n, err := node.New(nodetest.NewConfig(false))
 		require.NoError(t, err)
 		require.NotNil(t, n)
 
-		// PRN token is deployed by SetupContracts function and included in node config.
-		// So registering it once again will return an error.
-		//
-		// TODO: Make deploy perun token function to take symbol and maxDecimals as input arguments. Do happy test.
+		_, _, assetERC20s := ethereumtest.ContractAddrs()
+		require.Len(t, assetERC20s, 1)
+		for tokenERC20Addr, assetERC20Addr := range assetERC20s {
+			symbol, apiErr := n.RegisterCurrency(tokenERC20Addr.String(), assetERC20Addr.String())
+			require.NoError(t, apiErr)
+			assert.Equal(t, symbol, "PRN")
+		}
+	})
+
+	t.Run("Exists", func(t *testing.T) {
+		n, err := node.New(nodetest.NewConfig(true))
+		require.NoError(t, err)
+		require.NotNil(t, n)
+
 		_, _, assetERC20s := ethereumtest.ContractAddrs()
 		require.Len(t, assetERC20s, 1)
 		for tokenERC20Addr, assetERC20Addr := range assetERC20s {
