@@ -55,6 +55,29 @@ func (_m *SessionAPI) Close(force bool) ([]perun.ChInfo, perun.APIError) {
 	return r0, r1
 }
 
+// DeployAssetERC20 provides a mock function with given fields: tokenERC20
+func (_m *SessionAPI) DeployAssetERC20(tokenERC20 string) (string, perun.APIError) {
+	ret := _m.Called(tokenERC20)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(string) string); ok {
+		r0 = rf(tokenERC20)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 perun.APIError
+	if rf, ok := ret.Get(1).(func(string) perun.APIError); ok {
+		r1 = rf(tokenERC20)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(perun.APIError)
+		}
+	}
+
+	return r0, r1
+}
+
 // GetCh provides a mock function with given fields: _a0
 func (_m *SessionAPI) GetCh(_a0 string) (perun.ChAPI, perun.APIError) {
 	ret := _m.Called(_a0)

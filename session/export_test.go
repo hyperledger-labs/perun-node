@@ -79,7 +79,9 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient, chainSetup *e
 		chAsset:              cfg.AssetETH,
 		chClient:             chClient,
 		idProvider:           idProvider,
+		chain:                chainSetup.ChainBackend,
 		chs:                  newChRegistry(initialChRegistrySize),
+		contracts:            contracts,
 		currencies:           currencytest.Registry(),
 		chProposalResponders: make(map[string]chProposalResponderEntry),
 	}, nil

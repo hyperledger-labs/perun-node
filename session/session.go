@@ -120,7 +120,10 @@ type (
 		timeoutCfg timeoutConfig
 		chainURL   string // used for annotating error messages.
 
+		chain perun.ChainBackend
+
 		chs        *chRegistry
+		contracts  perun.ContractRegistry
 		currencies perun.ROCurrencyRegistry
 
 		chProposalNotifier    perun.ChProposalNotifier
@@ -203,7 +206,9 @@ func New(cfg Config, currencies perun.ROCurrencyRegistry, contracts perun.Contra
 		chAsset:              cfg.AssetETH,
 		chClient:             chClient,
 		idProvider:           idProvider,
+		chain:                chain,
 		chs:                  newChRegistry(initialChRegistrySize),
+		contracts:            contracts,
 		currencies:           currencies,
 		chProposalResponders: make(map[string]chProposalResponderEntry),
 	}
@@ -1026,6 +1031,46 @@ func (s *Session) close() perun.APIError {
 		return perun.NewAPIErrUnknownInternal(err)
 	}
 	return nil
+}
+
+// DeployAssetERC20 deploys a new ERC20 asset holder contract for the given token.
+//
+// If there is an error, it will be one of the following codes:
+// - ErrFailedPreCondition when session is closed
+// - ErrInvalidArgument with Name:"token", when token address cannot be parsed.
+// - ErrTxTimedOut when there is tx timed error while funding.
+// - ErrChainNotReachable when connection to blockchain drops while deploying.
+// - ErrUnknownInternal.
+func (s *Session) DeployAssetERC20(tokenAddr string) (assetAddr string, _ perun.APIError) {
+	s.WithField("method", "DeployERC20Asset").Infof("\nReceived request with params %+v", tokenAddr)
+	s.Lock()
+	defer s.Unlock()
+
+	var apiErr perun.APIError
+	defer func() {
+		if apiErr != nil {
+			s.WithFields(perun.APIErrAsMap("DeployERC20Asset", apiErr)).Error(apiErr.Message())
+		}
+	}()
+
+	if !s.isOpen {
+		apiErr = perun.NewAPIErrFailedPreCondition(ErrSessionClosed)
+		return "", apiErr
+	}
+
+	token, err := walletBackend.ParseAddr(tokenAddr)
+	if err != nil {
+		apiErr = perun.NewAPIErrInvalidArgument(err, ArgNameToken, tokenAddr)
+		return "", apiErr
+	}
+	asset, err := s.chain.DeployAssetERC20(s.contracts.Adjudicator(), token, s.user.OnChain.Addr)
+	if err != nil {
+		if apiErr = handleChainError(s.chainURL, s.timeoutCfg.onChainTx.String(), err); apiErr != nil {
+			return "", apiErr
+		}
+		return "", perun.NewAPIErrUnknownInternal(err)
+	}
+	return asset.String(), nil
 }
 
 // handleFundingTimeoutError inspects if the passed error is an funding timeout error.
