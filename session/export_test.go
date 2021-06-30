@@ -21,7 +21,10 @@ import (
 
 	pchannel "perun.network/go-perun/channel"
 
+	"github.com/pkg/errors"
+
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/currency/currencytest"
 	"github.com/hyperledger-labs/perun-node/log"
@@ -42,7 +45,9 @@ func NewClientForTest(pClient pClient,
 	}
 }
 
-func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient) (*Session, error) {
+func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient, chainSetup *ethereumtest.ChainBackendSetup) (
+	*Session, error) {
+	_ = chainSetup
 	user, apiErr := NewUnlockedUser(walletBackend, cfg.User)
 	if apiErr != nil {
 		return nil, apiErr
@@ -57,6 +62,11 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient) (*Session, er
 	timeoutCfg := timeoutConfig{
 		onChainTx: cfg.OnChainTxTimeout,
 		response:  cfg.ResponseTimeout,
+	}
+
+	contracts, err := ethereum.NewContractRegistry(chainSetup.ChainBackend, chainSetup.Adjudicator, chainSetup.AssetETH)
+	if err != nil {
+		return nil, errors.WithMessage(err, "initializing contract registry")
 	}
 
 	return &Session{
