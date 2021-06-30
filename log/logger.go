@@ -35,15 +35,10 @@ type Logger = logrus.FieldLogger
 type Fields = logrus.Fields
 
 // InitLogger sets the internal logger instance to the given level and log file.
-// This function should be called exactly once and subsequent calls return an error.
 // Logs to stdout if logFile is an empty string.
 //
 // It also initializes the logger in the go-perun library.
 func InitLogger(levelStr, logFile string) error {
-	if logger != nil {
-		return errors.New("logger already initialized")
-	}
-
 	newLogger := logrus.New()
 	level, err := logrus.ParseLevel(levelStr)
 	if err != nil {

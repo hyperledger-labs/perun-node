@@ -80,16 +80,17 @@ func Test_NewLoggerWithField(t *testing.T) {
 }
 
 func Test_InitLogger(t *testing.T) {
-	t.Run("err_multiple_init", func(t *testing.T) {
+	t.Run("happy_multiple_init", func(t *testing.T) {
 		setCleanup(t)
 		err1 := InitLogger("error", "")
 		require.NoError(t, err1)
-		err2 := InitLogger("info", "")
-		require.Error(t, err2)
-		t.Log(err2)
-
 		require.NotNil(t, logger)
 		assert.Equal(t, logrus.ErrorLevel, logger.Level)
+
+		err2 := InitLogger("info", "")
+		require.NoError(t, err2)
+		require.NotNil(t, logger)
+		assert.Equal(t, logrus.InfoLevel, logger.Level)
 	})
 
 	t.Run("err_invalid_level", func(t *testing.T) {
