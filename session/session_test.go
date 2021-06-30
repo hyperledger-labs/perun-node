@@ -54,21 +54,26 @@ func Test_SessionAPI_Interface(t *testing.T) {
 	assert.Implements(t, (*perun.SessionAPI)(nil), new(session.Session))
 }
 
-func newSessionWMockChClient(t *testing.T, isOpen bool, peerIDs ...perun.PeerID) (*session.Session, *mocks.ChClient) {
-	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-	cfg := sessiontest.NewConfigT(t, prng, peerIDs...)
+func newSessionWMockChClient(t *testing.T, isOpen bool, peerIDs ...perun.PeerID) (
+	*session.Session, *mocks.ChClient, *ethereumtest.ChainBackendSetup) {
+	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+	cfg := sessiontest.NewConfigT(t, rng, peerIDs...)
 	chClient := &mocks.ChClient{}
-	s, err := session.NewSessionForTest(cfg, isOpen, chClient)
+
+	// Re-initialize rng, so that the first two addresses are those funded in the ganache-cli.
+	rng = rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+	chainSetup := ethereumtest.NewSimChainBackendSetup(t, rng, 2)
+	s, err := session.NewSessionForTest(cfg, isOpen, chClient, chainSetup)
 	require.NoError(t, err)
 	require.NotNil(t, s)
-	return s, chClient
+	return s, chClient, chainSetup
 }
 
 func Test_Session_AddPeerID(t *testing.T) {
 	peerIDs := newPeerIDs(t, uint(3))
 	// In openSession, peer0 is already present, peer1 can be added.
-	openSession, _ := newSessionWMockChClient(t, true, peerIDs[0])
-	closedSession, _ := newSessionWMockChClient(t, false, peerIDs[0])
+	openSession, _, _ := newSessionWMockChClient(t, true, peerIDs[0])
+	closedSession, _, _ := newSessionWMockChClient(t, false, peerIDs[0])
 
 	t.Run("happy_add_peerID", func(t *testing.T) {
 		err := openSession.AddPeerID(peerIDs[1])
@@ -113,8 +118,8 @@ func Test_Session_AddPeerID(t *testing.T) {
 func Test_Session_GetPeerID(t *testing.T) {
 	peerIDs := newPeerIDs(t, uint(1))
 	// In openSession, peer0 is present and peer1 is not present.
-	openSession, _ := newSessionWMockChClient(t, true, peerIDs[0])
-	closedSession, _ := newSessionWMockChClient(t, false, peerIDs[0])
+	openSession, _, _ := newSessionWMockChClient(t, true, peerIDs[0])
+	closedSession, _, _ := newSessionWMockChClient(t, false, peerIDs[0])
 
 	t.Run("happy_get_contact", func(t *testing.T) {
 		peerID, err := openSession.GetPeerID(peerIDs[0].Alias)
@@ -154,7 +159,7 @@ func Test_Session_OpenCh(t *testing.T) {
 	t.Run("happy_1_own_alias_first", func(t *testing.T) {
 		pch, _ := newMockPCh()
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-		session, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		session, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(pch, nil)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 
@@ -169,7 +174,7 @@ func Test_Session_OpenCh(t *testing.T) {
 
 		pch, _ := newMockPCh()
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-		session, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		session, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(pch, nil)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 
@@ -180,7 +185,7 @@ func Test_Session_OpenCh(t *testing.T) {
 
 	t.Run("session_closed", func(t *testing.T) {
 		ch, _ := newMockPCh()
-		sess, chClient := newSessionWMockChClient(t, false, peerIDs...)
+		sess, chClient, _ := newSessionWMockChClient(t, false, peerIDs...)
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, nil)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 
@@ -196,7 +201,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		unknownAlias := "unknown-alias"
 		invalidOpeningBalInfo := validOpeningBalInfo
 		invalidOpeningBalInfo.Parts = []string{perun.OwnAlias, unknownAlias}
-		sess, _ := newSessionWMockChClient(t, true, peerIDs...)
+		sess, _, _ := newSessionWMockChClient(t, true, peerIDs...)
 
 		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 
@@ -210,7 +215,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		invalidOpeningBalInfo := validOpeningBalInfo
 		invalidOpeningBalInfo.Parts = []string{unknownAlias1, unknownAlias2}
 		partsList := strings.Join(invalidOpeningBalInfo.Parts, ",")
-		sess, _ := newSessionWMockChClient(t, true, peerIDs...)
+		sess, _, _ := newSessionWMockChClient(t, true, peerIDs...)
 
 		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 		require.Error(t, err)
@@ -224,7 +229,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		invalidOpeningBalInfo.Parts = []string{peerIDs[0].Alias, peerIDs[0].Alias}
 		partsList := strings.Join(invalidOpeningBalInfo.Parts, ",")
 
-		sess, _ := newSessionWMockChClient(t, true, peerIDs...)
+		sess, _, _ := newSessionWMockChClient(t, true, peerIDs...)
 
 		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 
@@ -237,7 +242,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		invalidOpeningBalInfo := validOpeningBalInfo
 		invalidOpeningBalInfo.Parts = []string{peerIDs[0].Alias, peerIDs[1].Alias}
 		partsList := strings.Join(invalidOpeningBalInfo.Parts, ",")
-		sess, _ := newSessionWMockChClient(t, true, peerIDs...)
+		sess, _, _ := newSessionWMockChClient(t, true, peerIDs...)
 
 		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 		require.Error(t, err)
@@ -250,7 +255,7 @@ func Test_Session_OpenCh(t *testing.T) {
 	t.Run("unsupported_currency", func(t *testing.T) {
 		invalidOpeningBalInfo := validOpeningBalInfo
 		invalidOpeningBalInfo.Currency = "unknown-currency"
-		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		sess, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 
 		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
@@ -262,7 +267,7 @@ func Test_Session_OpenCh(t *testing.T) {
 	t.Run("invalid_amount", func(t *testing.T) {
 		invalidOpeningBalInfo := validOpeningBalInfo
 		invalidOpeningBalInfo.Bal = []string{"abc", "gef"}
-		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		sess, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 
 		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
@@ -274,7 +279,7 @@ func Test_Session_OpenCh(t *testing.T) {
 
 	t.Run("chClient_proposeChannel_AnError", func(t *testing.T) {
 		ch, _ := newMockPCh()
-		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		sess, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, assert.AnError)
 
@@ -287,7 +292,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		timeout := sessiontest.ResponseTimeout.String()
 		peerRequestTimedOutError := pclient.RequestTimedOutError("some-error")
 		ch, _ := newMockPCh()
-		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		sess, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, peerRequestTimedOutError)
 
@@ -305,7 +310,7 @@ func Test_Session_OpenCh(t *testing.T) {
 			Reason:   reason,
 		}
 		ch, _ := newMockPCh()
-		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		sess, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, peerRejectedError)
 
@@ -325,7 +330,7 @@ func Test_Session_OpenCh(t *testing.T) {
 			}},
 		}
 		ch, _ := newMockPCh()
-		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		sess, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, fundingTimeoutError)
 
@@ -342,7 +347,7 @@ func Test_Session_OpenCh(t *testing.T) {
 			TxID:   "0xabcd",
 		}
 		ch, _ := newMockPCh()
-		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		sess, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, fundingTxTimedOutError)
 
@@ -359,7 +364,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		chainURL := ethereumtest.ChainURL
 		chainNotReachableError := pclient.ChainNotReachableError{}
 		ch, _ := newMockPCh()
-		sess, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		sess, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, chainNotReachableError)
 
@@ -374,7 +379,7 @@ func Test_Session_HandleProposalWInterface(t *testing.T) {
 	peerIDs := newPeerIDs(t, uint(1))
 
 	t.Run("unknown_peer", func(t *testing.T) {
-		session, _ := newSessionWMockChClient(t, true) // Don't register any peer in ID provider.
+		session, _, _ := newSessionWMockChClient(t, true) // Don't register any peer in ID provider.
 		ownPeerID, err := session.GetPeerID(perun.OwnAlias)
 		require.NoError(t, err)
 		unknownPeerID := peerIDs[0]
@@ -387,7 +392,7 @@ func Test_Session_HandleProposalWInterface(t *testing.T) {
 	})
 
 	t.Run("session_closed", func(t *testing.T) {
-		session, _ := newSessionWMockChClient(t, false, peerIDs...)
+		session, _, _ := newSessionWMockChClient(t, false, peerIDs...)
 		chProposal := &mocks.ChannelProposal{}
 
 		responder := &mocks.ChProposalResponder{}
@@ -397,8 +402,8 @@ func Test_Session_HandleProposalWInterface(t *testing.T) {
 
 func Test_SubUnsubChProposal(t *testing.T) {
 	dummyNotifier := func(notif perun.ChProposalNotif) {}
-	openSession, _ := newSessionWMockChClient(t, true)
-	closedSession, _ := newSessionWMockChClient(t, false)
+	openSession, _, _ := newSessionWMockChClient(t, true)
+	closedSession, _, _ := newSessionWMockChClient(t, false)
 
 	// Note: All sub tests are written at the same level because each sub test modifies the state of session
 	// and the order of execution needs to be maintained.
@@ -514,7 +519,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 	})
 
 	t.Run("respond_session_closed", func(t *testing.T) {
-		sess, _ := newSessionWMockChClient(t, false, peerIDs...)
+		sess, _, _ := newSessionWMockChClient(t, false, peerIDs...)
 
 		chProposalID := "any-proposal-id" // A closed session returns error irrespective of proposal id.
 		_, err := sess.RespondChProposal(context.Background(), chProposalID, true)
@@ -525,7 +530,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 	})
 
 	t.Run("respond_unknown_proposalID", func(t *testing.T) {
-		sess, _ := newSessionWMockChClient(t, true, peerIDs...)
+		sess, _, _ := newSessionWMockChClient(t, true, peerIDs...)
 
 		unknownProposalID := "unknown-proposal-id"
 		_, err := sess.RespondChProposal(context.Background(), unknownProposalID, true)
@@ -536,11 +541,17 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 
 	t.Run("response_timeout_expired", func(t *testing.T) {
 		modifiedResponseTimeout := 1 * time.Second
-		chClient := &mocks.ChClient{} // Dummy ChClient is sufficient as no methods on it will be invoked.
-		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-		modifiedCfg := sessiontest.NewConfigT(t, prng, peerIDs...)
+
+		// Session setup without using newSessionWMockChClient because of modified config.
+		rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+		modifiedCfg := sessiontest.NewConfigT(t, rng, peerIDs...)
 		modifiedCfg.ResponseTimeout = modifiedResponseTimeout
-		session, err := session.NewSessionForTest(modifiedCfg, true, chClient)
+		chClient := &mocks.ChClient{}
+		// Re-initialize rng, so that the first two addresses are those funded in the ganache-cli.
+		rng = rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+		chainSetup := ethereumtest.NewSimChainBackendSetup(t, rng, 2)
+
+		session, err := session.NewSessionForTest(modifiedCfg, true, chClient, chainSetup)
 		require.NoError(t, err)
 		require.NotNil(t, session)
 
@@ -643,11 +654,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 func Test_ProposeCh_GetChsInfo(t *testing.T) {
 	peerIDs := newPeerIDs(t, uint(2))
 	setupSession := func() (perun.SessionAPI, *mocks.ChClient) {
-		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-		cfg := sessiontest.NewConfigT(t, prng, peerIDs...)
-		chClient := &mocks.ChClient{}
-		session, err := session.NewSessionForTest(cfg, true, chClient)
-		require.NoError(t, err)
+		session, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 		require.NotNil(t, session)
 		return session, chClient
 	}
@@ -709,8 +716,6 @@ func Test_ProposeCh_GetChsInfo(t *testing.T) {
 
 func Test_ProposeCh_GetCh(t *testing.T) {
 	peerIDs := newPeerIDs(t, uint(2))
-	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-	cfg := sessiontest.NewConfigT(t, prng, peerIDs...)
 	validOpeningBalInfo := perun.BalInfo{
 		Currency: currency.ETHSymbol,
 		Parts:    []string{perun.OwnAlias, peerIDs[0].Alias},
@@ -720,15 +725,13 @@ func Test_ProposeCh_GetCh(t *testing.T) {
 		Def:  pchannel.NoApp(),
 		Data: pchannel.NoData(),
 	}
+
+	sess, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
+	require.NotNil(t, sess)
 	pch, _ := newMockPCh()
 	pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-	chClient := &mocks.ChClient{}
 	chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(pch, nil)
 	chClient.On("Register", mock.Anything, mock.Anything).Return()
-
-	sess, err := session.NewSessionForTest(cfg, true, chClient)
-	require.NoError(t, err)
-	require.NotNil(t, sess)
 
 	chInfo, err := sess.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
 	require.NoError(t, err)
@@ -759,7 +762,7 @@ func Test_ProposeCh_CloseSession(t *testing.T) {
 	t.Run("happy_no_force", func(t *testing.T) {
 		ch, _ := newMockPCh()
 		ch.On("Phase").Return(pchannel.Acting)
-		session, chClient := newSessionWMockChClient(t, true, peerIDs...)
+		session, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 		chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, nil)
 		chClient.On("Register", mock.Anything, mock.Anything).Return()
 		chClient.On("Close", mock.Anything).Return(nil)
@@ -802,7 +805,7 @@ func Test_ProposeCh_CloseSession(t *testing.T) {
 		peruntest.AssertErrInfoFailedPreCondUnclosedChs(t, err.AddInfo(), chsInfo)
 	})
 	t.Run("session_closed", func(t *testing.T) {
-		sess, _ := newSessionWMockChClient(t, false)
+		sess, _, _ := newSessionWMockChClient(t, false)
 
 		_, err := sess.Close(false)
 		require.Error(t, err)
@@ -827,14 +830,14 @@ func Test_Session_HandleUpdateWInterface(t *testing.T) {
 	}
 
 	t.Run("happy", func(t *testing.T) {
-		session, _ := newSessionWMockChClient(t, true)
+		session, _, _ := newSessionWMockChClient(t, true)
 		responder := &mocks.ChUpdateResponder{}
 		responder.On("Reject", mock.Anything, mock.Anything).Return(nil)
 
 		session.HandleUpdateWInterface(currState, *chUpdate, responder)
 	})
 	t.Run("session_closed", func(t *testing.T) {
-		session, _ := newSessionWMockChClient(t, false)
+		session, _, _ := newSessionWMockChClient(t, false)
 		session.HandleUpdate(currState, pclient.ChannelUpdate{}, new(pclient.UpdateResponder))
 	})
 
@@ -904,7 +907,7 @@ func newChProposal(t *testing.T, ownAddr, peer perun.PeerID) pclient.ChannelProp
 
 func newSessionWChProposal(t *testing.T, peerIDs []perun.PeerID) (
 	*session.Session, pclient.ChannelProposal, string) {
-	session, _ := newSessionWMockChClient(t, true, peerIDs...)
+	session, _, _ := newSessionWMockChClient(t, true, peerIDs...)
 	ownPeerID, err := session.GetPeerID(perun.OwnAlias)
 	require.NoError(t, err)
 	chProposal := newChProposal(t, ownPeerID, peerIDs[0])
@@ -918,7 +921,7 @@ func newSessionWCh(t *testing.T, peerIDs []perun.PeerID, openingBalInfo perun.Ba
 		Def:  pchannel.NoApp(),
 		Data: pchannel.NoData(),
 	}
-	session, chClient := newSessionWMockChClient(t, true, peerIDs...)
+	session, chClient, _ := newSessionWMockChClient(t, true, peerIDs...)
 	chClient.On("ProposeChannel", mock.Anything, mock.Anything).Return(ch, nil)
 	chClient.On("Register", mock.Anything, mock.Anything).Return()
 	chClient.On("Close", mock.Anything).Return(nil)
