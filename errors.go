@@ -268,7 +268,7 @@ func NewAPIErrInvalidConfig(err error, name, value string) APIError {
 //
 // For this error, stack traces of errors for each contract cannot be
 // retreived, as there are more than one.
-func NewAPIErrInvalidContracts(contractErrInfos []ContractErrInfo) APIError {
+func NewAPIErrInvalidContracts(contractErrInfos ...ContractErrInfo) APIError {
 	contractsErrInfosMsg := ""
 	for _, c := range contractErrInfos {
 		contractsErrInfosMsg += fmt.Sprintf("(%s at address %s: %v) ", c.Name, c.Address, c.Error)

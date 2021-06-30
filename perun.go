@@ -136,6 +136,7 @@ type ROChainBackend interface {
 	ValidateAdjudicator(adjudicator pwallet.Address) error
 	ValidateAssetETH(adjudicator, assetETH pwallet.Address) error
 	ValidateAssetERC20(adjudicator, tokenERC20, assetERC20 pwallet.Address) (symbol string, maxDecimals uint8, _ error)
+	ERC20Info(token pwallet.Address) (symbol string, decimal uint8, _ error)
 }
 
 // WalletBackend wraps the methods for instantiating wallets and accounts that are specific to a blockchain platform.
@@ -389,6 +390,8 @@ type NodeAPI interface {
 	GetConfig() NodeConfig
 	Help() []string
 	OpenSession(configFile string) (string, []ChInfo, APIError)
+
+	RegisterCurrency(tokenAddr, assetAddr string) (symbol string, _ APIError)
 
 	// This function is used internally to get a SessionAPI instance.
 	// Should not be exposed via user API.
