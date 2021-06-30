@@ -35,20 +35,20 @@ import (
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
-// Node can be initialized only once and hence run all the error cases before a happy test.
 func Test_Integ_New(t *testing.T) {
 	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
-	validConfig := nodetest.NewConfig()
-
-	// This NodeAPI instance will be set upon first happy test.
-	// This will be used in the subsequent tests.
-	var n perun.NodeAPI
 
 	// Deploy contracts.
 	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout, false)
 
+	t.Run("happy", func(t *testing.T) {
+		n, err := node.New(nodetest.NewConfig())
+		require.NoError(t, err)
+		require.NotNil(t, n)
+	})
+
 	t.Run("err_invalid_log_level", func(t *testing.T) {
-		cfg := validConfig
+		cfg := nodetest.NewConfig()
 		cfg.LogLevel = ""
 		_, err := node.New(cfg)
 		require.Error(t, err)
@@ -56,7 +56,7 @@ func Test_Integ_New(t *testing.T) {
 	})
 
 	t.Run("err_invalid_adjudicator_address", func(t *testing.T) {
-		cfg := validConfig
+		cfg := nodetest.NewConfig()
 		cfg.Adjudicator = "invalid-addr"
 		_, err := node.New(cfg)
 		require.Error(t, err)
@@ -64,7 +64,7 @@ func Test_Integ_New(t *testing.T) {
 	})
 
 	t.Run("err_invalid_asset_address", func(t *testing.T) {
-		cfg := validConfig
+		cfg := nodetest.NewConfig()
 		cfg.AssetETH = "invalid-addr"
 		_, err := node.New(cfg)
 		require.Error(t, err)
@@ -72,7 +72,7 @@ func Test_Integ_New(t *testing.T) {
 	})
 
 	t.Run("err_invalid_adjudicator_contract", func(t *testing.T) {
-		cfg := validConfig
+		cfg := nodetest.NewConfig()
 		cfg.Adjudicator = ethereumtest.NewRandomAddress(prng).String()
 		_, err := node.New(cfg)
 		require.Error(t, err)
@@ -80,7 +80,7 @@ func Test_Integ_New(t *testing.T) {
 	})
 
 	t.Run("err_invalid_assetETH_contract", func(t *testing.T) {
-		cfg := validConfig
+		cfg := nodetest.NewConfig()
 		cfg.AssetETH = ethereumtest.NewRandomAddress(prng).String()
 		_, err := node.New(cfg)
 		require.Error(t, err)
@@ -88,7 +88,7 @@ func Test_Integ_New(t *testing.T) {
 	})
 
 	t.Run("err_invalid_adjudicator_assetETH_contract", func(t *testing.T) {
-		cfg := validConfig
+		cfg := nodetest.NewConfig()
 		cfg.Adjudicator = ethereumtest.NewRandomAddress(prng).String()
 		cfg.AssetETH = ethereumtest.NewRandomAddress(prng).String()
 		_, err := node.New(cfg)
@@ -96,52 +96,88 @@ func Test_Integ_New(t *testing.T) {
 		t.Log(err)
 	})
 
+}
+
+func Test_Integ_Node_Time(t *testing.T) {
+	n, err := node.New(nodetest.NewConfig())
+	require.NoError(t, err)
+	require.NotNil(t, n)
+
+	assert.GreaterOrEqual(t, time.Now().UTC().Unix()+5, n.Time())
+}
+
+func Test_Integ_Node_GetConfig(t *testing.T) {
+	n, err := node.New(nodetest.NewConfig())
+	require.NoError(t, err)
+	require.NotNil(t, n)
+
+	cfg := n.GetConfig()
+	assert.Equal(t, nodetest.NewConfig(), cfg)
+}
+
+func Test_Integ_Node_Help(t *testing.T) {
+	n, err := node.New(nodetest.NewConfig())
+	require.NoError(t, err)
+	require.NotNil(t, n)
+
+	apis := n.Help()
+	assert.Equal(t, []string{"payment"}, apis)
+}
+
+func Test_Integ_Node_OpenSession_GetSession(t *testing.T) {
+
 	t.Run("happy", func(t *testing.T) {
-		var err error
-		n, err = node.New(validConfig)
+		n, err := node.New(nodetest.NewConfig())
 		require.NoError(t, err)
 		require.NotNil(t, n)
-	})
-
-	t.Run("happy_Time", func(t *testing.T) {
-		assert.GreaterOrEqual(t, time.Now().UTC().Unix()+5, n.Time())
-	})
-
-	t.Run("happy_GetConfig", func(t *testing.T) {
-		cfg := n.GetConfig()
-		assert.Equal(t, validConfig, cfg)
-	})
-
-	t.Run("happy_Help", func(t *testing.T) {
-		apis := n.Help()
-		assert.Equal(t, []string{"payment"}, apis)
-	})
-
-	var sessionID string
-
-	t.Run("happy_OpenSession", func(t *testing.T) {
-		var err error
+		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 		sessionCfg := sessiontest.NewConfigT(t, prng)
 		sessionCfgFile := sessiontest.NewConfigFileT(t, sessionCfg)
-		sessionID, _, err = n.OpenSession(sessionCfgFile)
+
+		sessionID, _, err := n.OpenSession(sessionCfgFile)
 		require.NoError(t, err)
 		assert.NotZero(t, sessionID)
-	})
 
-	t.Run("happy_GetSession", func(t *testing.T) {
 		sess, err := n.GetSession(sessionID)
 		require.NoError(t, err)
 		assert.NotNil(t, sess)
 	})
 
-	t.Run("err_GetSession_not_found", func(t *testing.T) {
-		unknownSessID := "unknown session id"
-		_, err := n.GetSession(unknownSessID)
+	// Simulate one error to fail session.New and check if err is not nil.
+	// Complete test of session.New is done in the session package.
+	t.Run("OpenSession_init_error", func(t *testing.T) {
+		n, err := node.New(nodetest.NewConfig())
+		require.NoError(t, err)
+		require.NotNil(t, n)
+		invalidChainURL := "invalid-url"
+		prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+		sessionCfg := sessiontest.NewConfigT(t, prng)
+		sessionCfg.ChainURL = invalidChainURL
+		sessionCfgFile := sessiontest.NewConfigFileT(t, sessionCfg)
 
-		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypeSession, unknownSessID)
+		_, _, err = n.OpenSession(sessionCfgFile)
+		require.Error(t, err)
+		t.Log(err)
 	})
 
+	t.Run("GetSession_not_found", func(t *testing.T) {
+		n, err := node.New(nodetest.NewConfig())
+		require.NoError(t, err)
+		require.NotNil(t, n)
+		unknownSessID := "unknown session id"
+
+		_, apiErr := n.GetSession(unknownSessID)
+		peruntest.AssertAPIError(t, apiErr, perun.ClientError, perun.ErrResourceNotFound)
+		peruntest.AssertErrInfoResourceNotFound(t, apiErr.AddInfo(), session.ResTypeSession, unknownSessID)
+	})
+}
+
+func Test_Integ_Node_RegisterCurrency(t *testing.T) {
 	t.Run("RegisterCurrency_Exists", func(t *testing.T) {
+		n, err := node.New(nodetest.NewConfig())
+		require.NoError(t, err)
+		require.NotNil(t, n)
+
 		// PRN token is deployed by SetupContracts function and included in node config.
 		// So registering it once again will return an error.
 		//
@@ -155,17 +191,5 @@ func Test_Integ_New(t *testing.T) {
 			peruntest.AssertAPIError(t, apiErr, perun.ClientError, perun.ErrResourceExists)
 			peruntest.AssertErrInfoResourceExists(t, apiErr.AddInfo(), session.ResTypeCurrency, "PRN")
 		}
-	})
-
-	// Simulate one error to fail session.New and check if err is not nil.
-	// Complete test of session.New is done in the session package.
-	t.Run("err_OpenSession_init_error", func(t *testing.T) {
-		invalidChainURL := "invalid-url"
-		sessionCfg := sessiontest.NewConfigT(t, prng)
-		sessionCfg.ChainURL = invalidChainURL
-		sessionCfgFile := sessiontest.NewConfigFileT(t, sessionCfg)
-		_, _, err := n.OpenSession(sessionCfgFile)
-		require.Error(t, err)
-		t.Log(err)
 	})
 }
