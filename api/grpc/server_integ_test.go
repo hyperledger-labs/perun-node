@@ -55,7 +55,7 @@ var (
 )
 
 func StartServer(t *testing.T, nodeCfg perun.NodeConfig, grpcPort string) {
-	nodeAPI, err := node.New(nodetest.NewConfig(true))
+	nodeAPI, err := node.New(nodeCfg)
 	require.NoErrorf(t, err, "initializing nodeAPI")
 
 	t.Log("Started ListenAndServePayChAPI")
@@ -72,7 +72,8 @@ func Test_Integ_Role(t *testing.T) {
 	ethereumtest.SetupContractsT(t, ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout, false)
 
 	// Run server in a go routine.
-	StartServer(t, nodetest.NewConfig(true), grpcPort)
+	// Do not include asset contracts, so that RegisterCurrency API can be tested.
+	StartServer(t, nodetest.NewConfig(false), grpcPort)
 
 	// Inititalize client.
 	conn, err := grpclib.Dial(grpcPort, grpclib.WithInsecure())
@@ -128,6 +129,14 @@ func Test_Integ_Role(t *testing.T) {
 	// Bob Open Session.
 	bobSessionID = OpenSession(t, bobCfgFile)
 	t.Logf("%s session id is %s", bobAlias, bobSessionID)
+
+	t.Run("Node.RegisterCurrency", func(t *testing.T) {
+		_, _, assetERC20s := ethereumtest.ContractAddrs()
+		for tokenAddr, assetAddr := range assetERC20s {
+			symbol := RegisterCurrency(t, tokenAddr.String(), assetAddr.String())
+			require.Equal(t, "PRN", symbol)
+		}
+	})
 
 	t.Run("GetPeerID", func(t *testing.T) {
 		// Get own peer ID of alice and bob.
@@ -295,6 +304,19 @@ func OpenSession(t *testing.T, cfgFile string) string {
 	msg, ok := resp.Response.(*pb.OpenSessionResp_MsgSuccess_)
 	require.True(t, ok, "OpenSession returned error response")
 	return msg.MsgSuccess.SessionID
+}
+
+
+func RegisterCurrency(t *testing.T, tokenAddr, assetAddr string) string {
+	req := pb.RegisterCurrencyReq{
+		TokenAddr: tokenAddr,
+		AssetAddr: assetAddr,
+	}
+	resp, err := client.RegisterCurrency(ctx, &req)
+	require.NoErrorf(t, err, "RegisterCurrency")
+	msg, ok := resp.Response.(*pb.RegisterCurrencyResp_MsgSuccess_)
+	require.True(t, ok, "RegisterCurrency returned error response")
+	return msg.MsgSuccess.Symbol
 }
 
 func CloseSession(t *testing.T, sessionID string, force bool, wantErr bool) []*pb.PayChInfo {
