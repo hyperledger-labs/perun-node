@@ -126,7 +126,7 @@ func generateNodeConfig() error {
 	if _, err := os.Stat(nodeConfigFile); !os.IsNotExist(err) {
 		return errors.New("file exists - " + nodeConfigFile)
 	}
-	nodeCfg := nodetest.NewConfig()
+	nodeCfg := nodetest.NewConfig(true)
 	adjudicator, assetETH, _ := ethereumtest.ContractAddrs()
 	nodeCfg.Adjudicator = adjudicator.String()
 	nodeCfg.AssetETH = assetETH.String()
