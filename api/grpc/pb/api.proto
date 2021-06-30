@@ -172,6 +172,7 @@ service Payment_API{
     rpc GetConfig (GetConfigReq) returns (GetConfigResp){}
     rpc OpenSession (OpenSessionReq) returns (OpenSessionResp) {}
     rpc Time (TimeReq) returns (TimeResp) {}
+    rpc RegisterCurrency(RegisterCurrencyReq) returns (RegisterCurrencyResp) {}
     rpc Help (HelpReq) returns (HelpResp) {}
 
     rpc AddPeerID (AddPeerIDReq) returns (AddPeerIDResp) {}
@@ -222,6 +223,21 @@ message TimeReq {
 
 message TimeResp {
     int64 time = 1;
+}
+
+message RegisterCurrencyReq {
+    string tokenAddr = 1;
+    string assetAddr = 2;
+}
+
+message RegisterCurrencyResp {
+    oneof response {
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        string symbol = 1;
+    }
 }
 
 message HelpReq {

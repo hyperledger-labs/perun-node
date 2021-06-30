@@ -89,6 +89,31 @@ func (a *payChAPIServer) Time(context.Context, *pb.TimeReq) (*pb.TimeResp, error
 	}, nil
 }
 
+// RegisterCurrency wraps node.RegisterCurrency.
+func (a *payChAPIServer) RegisterCurrency(ctx context.Context, req *pb.RegisterCurrencyReq) (
+	*pb.RegisterCurrencyResp, error) {
+	errResponse := func(err perun.APIError) *pb.RegisterCurrencyResp {
+		return &pb.RegisterCurrencyResp{
+			Response: &pb.RegisterCurrencyResp_Error{
+				Error: toGrpcError(err),
+			},
+		}
+	}
+
+	symbol, err := a.n.RegisterCurrency(req.TokenAddr, req.AssetAddr)
+	if err != nil {
+		return errResponse(err), nil
+	}
+
+	return &pb.RegisterCurrencyResp{
+		Response: &pb.RegisterCurrencyResp_MsgSuccess_{
+			MsgSuccess: &pb.RegisterCurrencyResp_MsgSuccess{
+				Symbol: symbol,
+			},
+		},
+	}, nil
+}
+
 // Help wraps node.Help.
 func (a *payChAPIServer) Help(context.Context, *pb.HelpReq) (*pb.HelpResp, error) {
 	return &pb.HelpResp{
