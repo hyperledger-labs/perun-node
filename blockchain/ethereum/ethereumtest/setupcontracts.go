@@ -51,13 +51,6 @@ import (
 // be resused in subsequent runs. This saves ~0.3s of setup time in each run.
 // Hence when running tests on development machine, START THE NODE ONLY ONCE.
 
-var (
-	// These will be set and used by SetupContracts functions. See its comments
-	// for more info.
-	adjudicatorAddr, assetETHAddr pwallet.Address
-	assetERC20Addrs               map[pwallet.Address]pwallet.Address
-)
-
 // ContractAddrs returns the contract addresses of adjudicator, asset ETH
 // asset ERC20 contracts (along with the corresponding erc20 token contracts
 // used in test setups. Address generation mechanism in ethereum is used to
@@ -66,12 +59,6 @@ var (
 // On a fresh ganache-cli node run the setup contracts helper function to
 // deploy these contracts.
 func ContractAddrs() (adjudicator, assetETH pwallet.Address, assetERC20s map[pwallet.Address]pwallet.Address) {
-	// If all the contracts are not nil, these addresses have been set already,
-	// just return them.
-	if adjudicatorAddr != nil && assetETHAddr != nil && assetERC20Addrs != nil {
-		return adjudicatorAddr, assetETHAddr, assetERC20Addrs
-	}
-
 	// If not, then all of them must be nil, generate the addresses and return the values.
 	// DO NOT SET the package level variable, it will be set by SetupContracts
 	// function after the contracts are deployed to the blockchain.
@@ -140,7 +127,11 @@ func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration
 	// set during a previous invocation of this function and return the
 	// contract addresses.
 	// If not, then deploy the contracts and set the package level address variables.
-	if adjudicatorAddr != nil && assetETHAddr != nil && assetERC20Addrs != nil {
+
+	// If adjudicator is valid, then return the addresses directly.
+	// If not, assume contracts have not been deployed, then deploy all of them.
+	adjudicatorAddr, _, _ := ContractAddrs()
+	if chain.ValidateAdjudicator(adjudicatorAddr) == nil {
 		return newContractRegistry(chain, incAssetERC20s)
 	}
 
@@ -152,7 +143,7 @@ func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration
 	}
 
 	initBal := big.NewInt(1e18)
-	adjudicatorAddr, assetETHAddr, assetERC20Addrs, err = deployContracts(chain, onChainCred, initAccs, initBal)
+	err = deployContracts(chain, onChainCred, initAccs, initBal)
 	if err != nil {
 		return nil, err
 	}
@@ -166,6 +157,7 @@ func isBlockchainRunning(url string) bool {
 }
 
 func newContractRegistry(chain perun.ROChainBackend, incAssetERC20s bool) (perun.ContractRegistry, error) {
+	adjudicatorAddr, assetETHAddr, assetERC20Addrs := ContractAddrs()
 	contracts, err := ethereum.NewContractRegistry(chain, adjudicatorAddr, assetETHAddr)
 	if err != nil {
 		return nil, errors.WithMessage(err, "initializing contract registry")
@@ -184,28 +176,23 @@ func newContractRegistry(chain perun.ROChainBackend, incAssetERC20s bool) (perun
 }
 
 func deployContracts(chain perun.ChainBackend, onChainCred perun.Credential,
-	initAccs []pwallet.Address, initBal *big.Int) (
-	adjudicator, assetETH pwallet.Address, assetERC20s map[pwallet.Address]pwallet.Address, _ error) {
+	initAccs []pwallet.Address, initBal *big.Int) error {
 	var err error
-	adjudicator, err = chain.DeployAdjudicator(onChainCred.Addr)
+	adjudicator, err := chain.DeployAdjudicator(onChainCred.Addr)
 	if err != nil {
-		return nil, nil, nil, errors.WithMessage(err, "deploying adjudicator")
+		return errors.WithMessage(err, "deploying adjudicator")
 	}
-	assetETH, err = chain.DeployAssetETH(adjudicator, onChainCred.Addr)
+	_, err = chain.DeployAssetETH(adjudicator, onChainCred.Addr)
 	if err != nil {
-		return nil, nil, nil, errors.WithMessage(err, "deploying asset ETH")
+		return errors.WithMessage(err, "deploying asset ETH")
 	}
 	tokenERC20PRN, err := chain.DeployPerunToken(initAccs, initBal, onChainCred.Addr)
 	if err != nil {
-		return nil, nil, nil, errors.WithMessage(err, "deploying perun token")
+		return errors.WithMessage(err, "deploying perun token")
 	}
-	assetERC20PRN, err := chain.DeployAssetERC20(adjudicator, tokenERC20PRN, onChainCred.Addr)
+	_, err = chain.DeployAssetERC20(adjudicator, tokenERC20PRN, onChainCred.Addr)
 	if err != nil {
-		return nil, nil, nil, errors.WithMessage(err, "deploying asset ERC20")
+		return errors.WithMessage(err, "deploying asset ERC20")
 	}
-	assetERC20s = map[pwallet.Address]pwallet.Address{
-		tokenERC20PRN: assetERC20PRN,
-	}
-
-	return adjudicator, assetETH, assetERC20s, nil
+	return nil
 }

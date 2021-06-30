@@ -141,6 +141,22 @@ func Test_Integ_New(t *testing.T) {
 		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypeSession, unknownSessID)
 	})
 
+	t.Run("RegisterCurrency_Exists", func(t *testing.T) {
+		// PRN token is deployed by SetupContracts function and included in node config.
+		// So registering it once again will return an error.
+		//
+		// TODO: Make deploy perun token function to take symbol and maxDecimals as input arguments. Do happy test.
+		_, _, assetERC20s := ethereumtest.ContractAddrs()
+		require.Len(t, assetERC20s, 1)
+		for tokenERC20Addr, assetERC20Addr := range assetERC20s {
+			_, apiErr := n.RegisterCurrency(tokenERC20Addr.String(), assetERC20Addr.String())
+			require.Error(t, apiErr)
+
+			peruntest.AssertAPIError(t, apiErr, perun.ClientError, perun.ErrResourceExists)
+			peruntest.AssertErrInfoResourceExists(t, apiErr.AddInfo(), session.ResTypeCurrency, "PRN")
+		}
+	})
+
 	// Simulate one error to fail session.New and check if err is not nil.
 	// Complete test of session.New is done in the session package.
 	t.Run("err_OpenSession_init_error", func(t *testing.T) {
