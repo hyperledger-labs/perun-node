@@ -414,6 +414,8 @@ type SessionAPI interface {
 	RespondChProposal(context.Context, string, bool) (ChInfo, APIError)
 	Close(force bool) ([]ChInfo, APIError)
 
+	DeployAssetERC20(tokenERC20 string) (asset string, _ APIError)
+
 	// This function is used internally to get a ChAPI instance.
 	// Should not be exposed via user API.
 	GetCh(string) (ChAPI, APIError)

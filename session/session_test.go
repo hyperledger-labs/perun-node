@@ -19,6 +19,7 @@ package session_test
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"strings"
 	"testing"
@@ -31,6 +32,7 @@ import (
 	pethchannel "perun.network/go-perun/backend/ethereum/channel"
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
+	pwallet "perun.network/go-perun/wallet"
 	pwire "perun.network/go-perun/wire"
 
 	"github.com/hyperledger-labs/perun-node"
@@ -842,6 +844,35 @@ func Test_Session_HandleUpdateWInterface(t *testing.T) {
 	})
 
 	// TODO: Test if upates are handled properly.
+}
+
+func Test_Session_DeployAssetERC20(t *testing.T) {
+	session, _, chainSetup := newSessionWMockChClient(t, true)
+
+	initAccs := []pwallet.Address{chainSetup.Accs[0].Address()}
+	initBal := big.NewInt(10)
+	tokenERC20PRN, err := chainSetup.ChainBackend.DeployPerunToken(initAccs, initBal, chainSetup.Accs[0].Address())
+	require.NoError(t, err)
+	require.NotNil(t, tokenERC20PRN)
+
+	t.Run("happy", func(t *testing.T) {
+		asset, err := session.DeployAssetERC20(tokenERC20PRN.String())
+		require.NoError(t, err)
+		require.NotZero(t, asset)
+	})
+
+	t.Run("happy_invalid_token_contract", func(t *testing.T) {
+		rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
+		randomAddr1 := ethereumtest.NewRandomAddress(rng)
+		asset, err := session.DeployAssetERC20(randomAddr1.String())
+		require.NoError(t, err)
+		require.NotZero(t, asset)
+	})
+
+	t.Run("invalid_token_address", func(t *testing.T) {
+		_, err := session.DeployAssetERC20("invalid-addr")
+		require.Error(t, err)
+	})
 }
 
 func newPeerIDs(t *testing.T, n uint) []perun.PeerID {
