@@ -289,7 +289,8 @@ func (s *Session) handleRestoredCh(pch PChannel) {
 
 // AddPeerID adds the peer ID to the ID provider instance of the session.
 //
-// If there is errors, it will be one of the following codes:
+// If there is an error, it will be one of the following codes:
+// - ErrFailedPrecondition when the session is closed.
 // - ErrResourceExists with ResourceType: "peerID" when peer ID is already registered
 // - ErrInvalidArgument with Name:"peerAlias" when peer alias is used for another peer,
 // - ErrInvalidArgument with Name:"offChainAddress" when off-chain address is invalid.
@@ -329,7 +330,8 @@ func (s *Session) AddPeerID(peerID perun.PeerID) perun.APIError {
 // GetPeerID gets the peer ID for the given alias from the ID provider instance
 // of the session.
 //
-// If there is errors, it will be one of the following codes:
+// If there is an error, it will be one of the following codes:
+// - ErrFailedPrecondition when the session is closed.
 // - ErrResourceNotFound with ResourceType: "peerID" when peer alias is not known.
 func (s *Session) GetPeerID(alias string) (perun.PeerID, perun.APIError) {
 	s.WithField("method", "GetPeerID").Info("Received request with params:", alias)
@@ -360,10 +362,11 @@ func (s *Session) GetPeerID(alias string) (perun.PeerID, perun.APIError) {
 // `Challenge duration` is the time available for the node to refute in case of
 // disputes when a state is registered on the blockchain.
 //
-// If there is errors, it will be one of the following codes:
+// If there is an error, it will be one of the following codes:
+// - ErrFailedPrecondition when the session is closed.
 // - ErrResourceNotFound with ResourceType: "peerID" when any of the peer aliases are not known.
 // - ErrResourceNotFound with ResourceType: "currency" when the currency is not known.
-// - ErrInvalidArgument with Name:"Amount" when any of the amounts is invalid.
+// - ErrInvalidArgument with Name:"amount" when any of the amounts is invalid.
 // - ErrPeerRequestTimedOut when peer request times out.
 // - ErrPeerRejected when peer rejects the request.
 // - ErrPeerNotFunded when peer did not fund the channel in time.
@@ -680,7 +683,8 @@ func chProposalNotif(parts []string, currency perun.Currency, chProposal *pclien
 // responded to. If the user till responds to it, a ErrResourceNotFound error
 // will be returned.
 //
-// If there is errors, it will be one of the following codes:
+// If there is an error, it will be one of the following codes:
+// - ErrFailedPrecondition when the session is closed.
 // - ErrResourceExists with ResourceType: "proposalsSub" when a subscription already exists.
 func (s *Session) SubChProposals(notifier perun.ChProposalNotifier) perun.APIError {
 	s.WithField("method", "SubChProposals").Info("Received request with params:", notifier)
@@ -713,7 +717,8 @@ func (s *Session) SubChProposals(notifier perun.ChProposalNotifier) perun.APIErr
 // UnsubChProposals unsubscribes from notifications on new incoming channel
 // proposals in the specified session.
 //
-// If there is errors, it will be one of the following codes:
+// If there is an error, it will be one of the following codes:
+// - ErrFailedPrecondition when the session is closed.
 // - ErrResourceNotFound with ResourceType: "proposalsSub" when a subscription does not exist.
 func (s *Session) UnsubChProposals() perun.APIError {
 	s.WithField("method", "UnsubChProposals").Info("Received request")
@@ -742,9 +747,9 @@ func (s *Session) UnsubChProposals() perun.APIError {
 // notification expires. Use the `Time` API to fetch current time of the perun
 // node as as reference for checking notification expiry.
 //
-// If there is errors, it will be one of the following codes:
+// If there is an error, it will be one of the following codes:
+// - ErrFailedPrecondition when the session is closed.
 // - ErrResourceNotFound with ResourceType: "proposal" when proposal ID is not known.
-// - ErrFailedPreCondition when session is closed.
 // - ErrPeerNotFunded when peer did not fund the channel in time.
 // - ErrUserResponseTimedOut when user responded after time out expired.
 // - ErrTxTimedOut with TxType: "Fund" when there is tx timed error while funding.
@@ -870,7 +875,7 @@ func (s *Session) GetChsInfo() []perun.ChInfo {
 //
 // The channel instance is safe for concurrent user.
 //
-// If there is errors, it will be one of the following codes:
+// If there is an error, it will be one of the following codes:
 // - perun.ErrResourceNotFound when the channel ID is not known.
 func (s *Session) GetCh(chID string) (perun.ChAPI, perun.APIError) {
 	s.WithField("method", "GetCh").Info("Received request with params:", chID)
@@ -901,6 +906,8 @@ func (s *Session) HandleUpdate(
 // HandleUpdateWInterface is the actual implemention of HandleUpdate that takes
 // arguments as interface types.
 // It is implemented this way to enable easier testing.
+//
+// If the session is closed, it drops the incoming updates.
 func (s *Session) HandleUpdateWInterface(
 	currState *pchannel.State, chUpdate pclient.ChannelUpdate, responder ChUpdateResponder) {
 	s.Debugf("SDK Callback: HandleUpdate. Params: %+v", chUpdate)
@@ -939,9 +946,10 @@ func (s *Session) HandleUpdateWInterface(
 //     an older, invalid state on the blockchain and finalize it.
 //
 // If there is an error, it will be one of the following codes:
-// - ErrFailedPreCondition when session is closed with force=false and unclosed channels
-//   exists. Additional Info will contain an extra field: OpenChannelsInfo
-//   that contains a list of Channel Info.
+// - ErrFailedPrecondition when the session is closed.
+// - ErrFailedPreCondition when force=false and unclosed channels exists.
+//   Additional Info will contain an extra field: OpenChannelsInfo that
+//   contains a list of Channel Info.
 // - ErrUnknownInternal.
 func (s *Session) Close(force bool) ([]perun.ChInfo, perun.APIError) {
 	s.WithField("method", "Close").Infof("\nReceived request with params %+v", force)
