@@ -23,6 +23,7 @@ import (
 	psync "perun.network/go-perun/pkg/sync"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/blockchain"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/log"
@@ -182,6 +183,73 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 
 	n.WithFields(log.Fields{"method": "OpenSession", "sessionID": sess.ID()}).Info("Session opened successfully")
 	return sess.ID(), sess.GetChsInfo(), nil
+}
+
+// RegisterCurrency registers the currency for the specified token address in
+// the node.
+//
+// If there is an error, it will be one of the following codes:
+// - ErrInvalidArgument with Name:token, when token address cannot be parsed.
+// - ErrInvalidArgument with Name:asset, when asset address cannot be parsed.
+// - ErrResourceExists with ResourceType:"currency" when the asset is already registered.
+// - ErrInvalidContracts when the asset contract at the given address is invalid.
+// - ErrUnknownInternal.
+func (n *node) RegisterCurrency(tokenERC20Addr, assetERC20Addr string) (symbol string, _ perun.APIError) {
+	n.WithField("method", "RegisterCurrency").
+		Infof("\nReceived request with params %+v,%+v", tokenERC20Addr, assetERC20Addr)
+	n.Lock()
+	defer n.Unlock()
+
+	var apiErr perun.APIError
+	defer func() {
+		if apiErr != nil {
+			n.WithFields(perun.APIErrAsMap("RegisterCurrency", apiErr)).Error(apiErr.Message())
+		}
+	}()
+
+	walletBackend := ethereum.NewWalletBackend()
+	assetERC20, err := walletBackend.ParseAddr(assetERC20Addr)
+	if err != nil {
+		apiErr = perun.NewAPIErrInvalidArgument(err, session.ArgNameAsset, assetERC20Addr)
+		return "", apiErr
+	}
+
+	tokenERC20, err := walletBackend.ParseAddr(tokenERC20Addr)
+	if err != nil {
+		apiErr = perun.NewAPIErrInvalidArgument(err, session.ArgNameToken, tokenERC20Addr)
+		return "", apiErr
+	}
+
+	symbol, maxDecimals, err := n.contracts.RegisterAssetERC20(tokenERC20, assetERC20)
+	if err != nil {
+		assetERC20RegisteredError := blockchain.AssetERC20RegisteredError{}
+		invalidContractError := blockchain.InvalidContractError{}
+		switch {
+		case errors.As(err, &assetERC20RegisteredError):
+			apiErr = perun.NewAPIErrResourceExists(session.ResTypeCurrency, assetERC20RegisteredError.Symbol)
+			return "", apiErr
+		case errors.As(err, &invalidContractError):
+			contractErrorInfo := perun.ContractErrInfo{
+				Name:    invalidContractError.Name,
+				Address: invalidContractError.Address,
+				Error:   invalidContractError.Unwrap().Error(),
+			}
+			apiErr = perun.NewAPIErrInvalidContracts(contractErrorInfo)
+			return "", apiErr
+		default:
+			apiErr = perun.NewAPIErrUnknownInternal(err)
+			return "", apiErr
+		}
+	}
+
+	_, err = n.currencies.Register(symbol, maxDecimals)
+	if err != nil {
+		// Ideally, code should not reach here, because currency registry is
+		// only updated after contracts registry, this condition would have
+		// already been detected when registering to contract registry.
+		return "", perun.NewAPIErrResourceExists(session.ResTypeCurrency, symbol)
+	}
+	return symbol, nil
 }
 
 // Help returns the list of user APIs served by the node.

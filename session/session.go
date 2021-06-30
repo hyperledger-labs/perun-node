@@ -96,6 +96,8 @@ const (
 	ArgNameOffChainAddr perun.ArgumentName = "offChainAddress"
 	ArgNameConfigFile   perun.ArgumentName = "configFile"
 	ArgNamePayee        perun.ArgumentName = "payee"
+	ArgNameToken        perun.ArgumentName = "token"
+	ArgNameAsset        perun.ArgumentName = "asset"
 )
 
 type (

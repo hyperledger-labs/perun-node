@@ -225,7 +225,7 @@ func Test_NewErrInvalidContracts(t *testing.T) {
 	}
 	wantMsg := "invalid contracts: " + contractsErrInfosMsg
 
-	apiErr := perun.NewAPIErrInvalidContracts(contractErrInfos)
+	apiErr := perun.NewAPIErrInvalidContracts(contractErrInfos...)
 	peruntest.AssertAPIError(t, apiErr, perun.ClientError, perun.ErrInvalidContracts, wantMsg)
 	peruntest.AssertErrInfoInvalidContracts(t, apiErr.AddInfo(), contractErrInfos)
 }
