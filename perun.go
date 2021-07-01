@@ -182,6 +182,7 @@ type ROContractRegistry interface {
 	Adjudicator() pwallet.Address
 	AssetETH() pwallet.Address
 	Asset(symbol string) (asset pwallet.Address, found bool)
+	Token(symbol string) (token pwallet.Address, found bool)
 	Symbol(asset pwallet.Address) (symbol string, found bool)
 	Assets() map[string]string
 }

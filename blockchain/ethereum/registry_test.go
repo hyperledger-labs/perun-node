@@ -50,7 +50,9 @@ func Test_ContractRegistry_Adjudicator_AssetETH(t *testing.T) {
 		assert.Equal(t, setup.Adjudicator, gotAdjudicator)
 
 		// happy/registry.asset.
-		gotAssetETH := r.AssetETH()
+		assert.Equal(t, setup.AssetETH, r.AssetETH())
+		gotAssetETH, found := r.Asset("ETH")
+		assert.True(t, found)
 		assert.Equal(t, setup.AssetETH, gotAssetETH)
 
 		// happy/registry.assets.
@@ -108,6 +110,11 @@ func Test_ContractRegistry_ERC20(t *testing.T) {
 		gotAsset, found := r.Asset(perunSymbol)
 		assert.True(t, found, "No ERC20 tokens should be registered during init")
 		require.True(t, assetERC20.Equals(gotAsset))
+
+		// happy/registry.Token.
+		gotToken, found := r.Token(perunSymbol)
+		assert.True(t, found, "No ERC20 tokens should be registered during init")
+		require.True(t, tokenERC20.Equals(gotToken))
 
 		// happy/registry.Symbol.
 		gotSymbol, found := r.Symbol(assetERC20)

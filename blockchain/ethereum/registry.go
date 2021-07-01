@@ -32,8 +32,9 @@ type contractRegistry struct {
 	mtx         sync.RWMutex
 	chain       perun.ROChainBackend // read-only chain backend for validating contracts.
 	adjudicator pwallet.Address
-	assetETH    pwallet.Address
-	assets      map[string]pwallet.Address
+	currencies  map[string]int
+	assets      []pwallet.Address
+	tokens      []pwallet.Address
 }
 
 // NewContractRegistry initializes a contract registry and sets the adjudicator
@@ -58,9 +59,14 @@ func NewContractRegistry(chain perun.ROChainBackend, adjudicator, assetETH pwall
 	r := contractRegistry{
 		chain:       chain,
 		adjudicator: adjudicator,
-		assetETH:    assetETH,
-		assets:      make(map[string]pwallet.Address),
+		currencies:  make(map[string]int),
+		assets:      []pwallet.Address{},
+		tokens:      []pwallet.Address{},
 	}
+	nextIdx := len(r.assets)
+	r.currencies["ETH"] = nextIdx
+	r.assets = append(r.assets, assetETH)
+	r.tokens = append(r.tokens, nil)
 	return &r, nil
 }
 
@@ -89,11 +95,15 @@ func (r *contractRegistry) RegisterAssetERC20(token, asset pwallet.Address) (
 		return "", 0, err
 	}
 
-	if alreadyRegisteredAsset, found := r.isSymbolRegistered(symbol); found {
+	if idx, found := r.isSymbolRegistered(symbol); found {
+		alreadyRegisteredAsset := r.assets[idx]
 		return "", 0, blockchain.NewAssetERC20RegisteredError(alreadyRegisteredAsset.String(), symbol)
 	}
 
-	r.assets[symbol] = asset
+	nextIdx := len(r.assets)
+	r.currencies[symbol] = nextIdx
+	r.assets = append(r.assets, asset)
+	r.tokens = append(r.tokens, token)
 	return symbol, maxDecimals, nil
 }
 
@@ -108,7 +118,7 @@ func (r *contractRegistry) Adjudicator() pwallet.Address {
 // AssetETH returns asset ETH contract address.
 func (r *contractRegistry) AssetETH() pwallet.Address {
 	r.mtx.RLock()
-	assetETH := r.assetETH
+	assetETH := r.assets[r.currencies["ETH"]]
 	r.mtx.RUnlock()
 	return assetETH
 }
@@ -118,20 +128,38 @@ func (r *contractRegistry) AssetETH() pwallet.Address {
 func (r *contractRegistry) Assets() map[string]string {
 	r.mtx.RLock()
 	assetsCopy := make(map[string]string, len(r.assets))
-	assetsCopy["ETH"] = r.assetETH.String()
-	for symbol, asset := range r.assets {
-		assetsCopy[symbol] = asset.String()
+	for symbol, idx := range r.currencies {
+		assetsCopy[symbol] = r.assets[idx].String()
 	}
 	r.mtx.RUnlock()
 	return assetsCopy
 }
 
 // Asset returns asset contract address for the given symbol.
-func (r *contractRegistry) Asset(symbol string) (asset pwallet.Address, found bool) {
+func (r *contractRegistry) Asset(symbol string) (pwallet.Address, bool) {
 	r.mtx.RLock()
-	asset, found = r.isSymbolRegistered(symbol)
+	idx, found := r.isSymbolRegistered(symbol)
 	r.mtx.RUnlock()
-	return asset, found
+	if !found || r.assets[idx] == nil {
+		return nil, false
+	}
+	return r.assets[idx], true
+}
+
+// Token returns asset contract address for the given symbol.
+//
+// It always returns false for "ETH" symbol as it does not have token address.
+func (r *contractRegistry) Token(symbol string) (pwallet.Address, bool) {
+	if symbol == "ETH" {
+		return nil, false
+	}
+	r.mtx.RLock()
+	idx, found := r.isSymbolRegistered(symbol)
+	r.mtx.RUnlock()
+	if !found || r.tokens[idx] == nil {
+		return nil, false
+	}
+	return r.tokens[idx], true
 }
 
 // Symbol returns symbol for the given asset contract address.
@@ -142,15 +170,19 @@ func (r *contractRegistry) Symbol(asset pwallet.Address) (symbol string, found b
 	return symbol, found
 }
 
-func (r *contractRegistry) isSymbolRegistered(symbol string) (asset pwallet.Address, found bool) {
-	asset, found = r.assets[symbol]
-	return asset, found && asset != nil
+func (r *contractRegistry) isSymbolRegistered(symbol string) (idx int, found bool) {
+	idx, found = r.currencies[symbol]
+	return idx, found
 }
 
 func (r *contractRegistry) isAssetRegistered(asset pwallet.Address) (symbol string, found bool) {
-	for symbol, gotAsset := range r.assets {
+	for assetIdx, gotAsset := range r.assets {
 		if gotAsset.Equals(asset) {
-			return symbol, true
+			for symbol, i := range r.currencies {
+				if assetIdx == i {
+					return symbol, true
+				}
+			}
 		}
 	}
 	return "", false
