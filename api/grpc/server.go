@@ -241,7 +241,7 @@ func (a *payChAPIServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*
 			MsgSuccess: &pb.OpenPayChResp_MsgSuccess{
 				OpenedPayChInfo: &pb.PayChInfo{
 					ChID:    payChInfo.ChID,
-					BalInfo: toGrpcBalInfo(payChInfo.BalInfo),
+					BalInfo: ToGrpcBalInfo(payChInfo.BalInfo),
 					Version: payChInfo.Version,
 				},
 			},
@@ -290,7 +290,7 @@ func (a *payChAPIServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
 		err := srv.Send(&pb.SubPayChProposalsResp{Response: &pb.SubPayChProposalsResp_Notify_{
 			Notify: &pb.SubPayChProposalsResp_Notify{
 				ProposalID:       notif.ProposalID,
-				OpeningBalInfo:   toGrpcBalInfo(notif.OpeningBalInfo),
+				OpeningBalInfo:   ToGrpcBalInfo(notif.OpeningBalInfo),
 				ChallengeDurSecs: notif.ChallengeDurSecs,
 				Expiry:           notif.Expiry,
 			},
@@ -707,7 +707,7 @@ func toGrpcPayChsInfo(payChsInfo []payment.PayChInfo) []*pb.PayChInfo {
 func toGrpcPayChInfo(src payment.PayChInfo) *pb.PayChInfo {
 	return &pb.PayChInfo{
 		ChID:    src.ChID,
-		BalInfo: toGrpcBalInfo(src.BalInfo),
+		BalInfo: ToGrpcBalInfo(src.BalInfo),
 		Version: src.Version,
 	}
 }
@@ -726,9 +726,9 @@ func fromGrpcBalInfo(src *pb.BalInfo) perun.BalInfo {
 	}
 }
 
-// toGrpcBalInfo is a helper function to convert BalInfo struct defined in perun-node
+// ToGrpcBalInfo is a helper function to convert BalInfo struct defined in perun-node
 // to BalInfo struct defined in grpc package.
-func toGrpcBalInfo(src perun.BalInfo) *pb.BalInfo {
+func ToGrpcBalInfo(src perun.BalInfo) *pb.BalInfo {
 	bals := make([]*pb.BalInfoBal, len(src.Bals))
 	for i := range src.Bals {
 		bals[i] = &pb.BalInfoBal{}

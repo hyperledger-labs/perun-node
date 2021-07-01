@@ -106,7 +106,7 @@ func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration
 	}
 
 	prng := rand.New(rand.NewSource(RandSeedForTestAccs))
-	ws, err := NewWalletSetup(prng, 2)
+	ws, err := NewWalletSetup(prng, 3) // Because accounts at index 0, 2 should be funded with PRN tokens.
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration
 		initAccs[i] = ws.Accs[i].Address()
 	}
 
-	initBal := big.NewInt(1e18)
+	initBal := new(big.Int).Mul(big.NewInt(1e18), big.NewInt(1e3))
 	err = deployContracts(chain, onChainCred, initAccs, initBal)
 	if err != nil {
 		return nil, err

@@ -33,7 +33,6 @@ import (
 	"github.com/hyperledger-labs/perun-node/api/grpc"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
-	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/node"
 	"github.com/hyperledger-labs/perun-node/node/nodetest"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
@@ -110,7 +109,7 @@ func Test_Integ_Role(t *testing.T) {
 	aliceAlias, bobAlias := "alice", "bob"
 	var aliceSessionID, bobSessionID string
 	var alicePeerID, bobPeerID *pb.PeerID
-	var chID string
+	var chIDETH, chIDPRN string
 	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	aliceCfg := sessiontest.NewConfigT(t, prng)
 	bobCfg := sessiontest.NewConfigT(t, prng)
@@ -156,35 +155,63 @@ func Test_Integ_Role(t *testing.T) {
 	})
 
 	t.Run("OpenCh_Sub_Unsub_Respond_Accept", func(t *testing.T) {
-		// Alice proposes a channel and bob accepts.
-		wg.Add(1)
-		go func() {
-			chID = OpenPayCh(t, aliceSessionID, []string{perun.OwnAlias, bobAlias}, []string{"1", "2"}, false)
+		t.Run("ETH", func(t *testing.T) {
+			chIDETH = func(t *testing.T) (chID string) {
+				// Alice proposes a channel and bob accepts.
+				wg.Add(1)
+				go func() {
+					chID = OpenPayCh(t, aliceSessionID,
+						[]string{"ETH", "PRN"},
+						[]string{perun.OwnAlias, bobAlias},
+						[][]string{{"1", "2"}, {"1", "2"}}, false)
 
-			wg.Done()
-		}()
-		sub := SubPayChProposal(t, bobSessionID)
-		notif := ReadPayChProposalNotif(t, bobSessionID, sub, false)
-		RespondPayChProposal(t, bobSessionID, notif.Notify.ProposalID, true, false)
-		UnsubPayChProposal(t, bobSessionID, false)
+					wg.Done()
+				}()
+				sub := SubPayChProposal(t, bobSessionID)
+				notif := ReadPayChProposalNotif(t, bobSessionID, sub, false)
+				RespondPayChProposal(t, bobSessionID, notif.Notify.ProposalID, true, false)
+				UnsubPayChProposal(t, bobSessionID, false)
 
-		wg.Wait()
+				wg.Wait()
+				return chID
+			}(t)
+		})
+		t.Run("PRN", func(t *testing.T) {
+			chIDPRN = func(t *testing.T) (chID string) {
+				// Alice proposes a channel and bob accepts.
+				wg.Add(1)
+				go func() {
+					chID = OpenPayCh(t, aliceSessionID,
+						[]string{"PRN"}, []string{perun.OwnAlias, bobAlias}, [][]string{{"1", "2"}}, false)
+
+					wg.Done()
+				}()
+				sub := SubPayChProposal(t, bobSessionID)
+				notif := ReadPayChProposalNotif(t, bobSessionID, sub, false)
+				RespondPayChProposal(t, bobSessionID, notif.Notify.ProposalID, true, false)
+				UnsubPayChProposal(t, bobSessionID, false)
+
+				wg.Wait()
+				return chID
+			}(t)
+		})
 	})
 
 	t.Run("CloseSession_NoForce_ErrOpenPayChs", func(t *testing.T) {
 		openPayChsInfo := CloseSession(t, aliceSessionID, false, true)
-		require.Len(t, openPayChsInfo, 1)
-		assert.Equal(t, chID, openPayChsInfo[0].ChID)
+		require.Len(t, openPayChsInfo, 2)
+		assert.Equal(t, chIDETH, openPayChsInfo[0].ChID)
 		openPayChsInfo = CloseSession(t, bobSessionID, false, true)
-		require.Len(t, openPayChsInfo, 1)
-		assert.Equal(t, chID, openPayChsInfo[0].ChID)
+		require.Len(t, openPayChsInfo, 2)
+		assert.Equal(t, chIDETH, openPayChsInfo[0].ChID)
 	})
 
 	t.Run("OpenCh_Sub_Unsub_Respond_Reject", func(t *testing.T) {
 		// Bob proposes a channel and alice accepts.
 		wg.Add(1)
 		go func() {
-			OpenPayCh(t, bobSessionID, []string{perun.OwnAlias, aliceAlias}, []string{"1", "2"}, true)
+			OpenPayCh(t, bobSessionID,
+				[]string{"ETH"}, []string{perun.OwnAlias, aliceAlias}, [][]string{{"1", "2"}}, true)
 
 			wg.Done()
 		}()
@@ -196,93 +223,124 @@ func Test_Integ_Role(t *testing.T) {
 		wg.Wait()
 	})
 
-	t.Run("SendPayChUpdate_Sub_Unsub_Respond_Accept", func(t *testing.T) {
-		// Bob sends a payment and alice accepts.
-		wg.Add(1)
-		go func() {
-			SendPayChUpdate(t, bobSessionID, chID, aliceAlias, "0.5", false)
+	t.Run("Send_Payment", func(t *testing.T) {
+		sendPayment := func(t *testing.T, chID, currency string) {
+			// Bob sends a payment and alice accepts.
+			wg.Add(1)
+			go func() {
+				SendPayChUpdate(t, bobSessionID, chID, aliceAlias, currency, "0.5", false)
 
-			wg.Done()
-		}()
+				wg.Done()
+			}()
 
-		sub := SubPayChUpdate(t, aliceSessionID, chID)
-		notif := ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
-		assert.EqualValues(t, perun.ChUpdateTypeOpen, notif.Notify.Type)
-		RespondPayChUpdate(t, aliceSessionID, chID, notif.Notify.UpdateID, true)
-		UnsubPayChUpdate(t, aliceSessionID, chID)
+			sub := SubPayChUpdate(t, aliceSessionID, chID)
+			notif := ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
+			assert.EqualValues(t, perun.ChUpdateTypeOpen, notif.Notify.Type)
+			RespondPayChUpdate(t, aliceSessionID, chID, notif.Notify.UpdateID, true)
+			UnsubPayChUpdate(t, aliceSessionID, chID)
 
-		wg.Wait()
+			wg.Wait()
+		}
+		t.Run("ETH", func(t *testing.T) {
+			sendPayment(t, chIDETH, "ETH")
+		})
+		t.Run("PRN", func(t *testing.T) {
+			sendPayment(t, chIDPRN, "PRN")
+		})
 	})
 
 	t.Run("Request_Payment", func(t *testing.T) {
-		// Alice requests a payment and bob accepts.
-		wg.Add(1)
-		go func() {
-			SendPayChUpdate(t, aliceSessionID, chID, perun.OwnAlias, "0.5", true)
+		requestPayment := func(t *testing.T, chID, currency string) {
+			// Alice requests a payment and bob accepts.
+			wg.Add(1)
+			go func() {
+				SendPayChUpdate(t, aliceSessionID, chID, perun.OwnAlias, currency, "0.5", true)
 
-			wg.Done()
-		}()
+				wg.Done()
+			}()
 
-		sub := SubPayChUpdate(t, bobSessionID, chID)
-		notif := ReadPayChUpdateNotif(t, bobSessionID, chID, sub)
-		assert.EqualValues(t, perun.ChUpdateTypeOpen, notif.Notify.Type)
-		RespondPayChUpdate(t, bobSessionID, chID, notif.Notify.UpdateID, false)
-		UnsubPayChUpdate(t, bobSessionID, chID)
-
-		wg.Wait()
-	})
-
-	t.Run("SendPayChUpdate_Sub_Unsub_Respond_Reject", func(t *testing.T) {
-		// Alice sends a payment and bob accepts.
-		wg.Add(1)
-		go func() {
-			SendPayChUpdate(t, aliceSessionID, chID, bobAlias, "0.5", true)
-
-			wg.Done()
-		}()
-
-		sub := SubPayChUpdate(t, bobSessionID, chID)
-		notif := ReadPayChUpdateNotif(t, bobSessionID, chID, sub)
-		assert.EqualValues(t, perun.ChUpdateTypeOpen, notif.Notify.Type)
-		RespondPayChUpdate(t, bobSessionID, chID, notif.Notify.UpdateID, false)
-		UnsubPayChUpdate(t, bobSessionID, chID)
-
-		wg.Wait()
-	})
-
-	isClosePayChSuccessful := make(chan bool, 1)
-	t.Run("Close_Sub_Unsub", func(t *testing.T) {
-		// Bob initiates channel close, alice receives an update request for "finalized state" that he acknowledges.
-		// The channel is then closed on-chain by bob and the funds are withdrawn immediately.
-		wg.Add(2)
-		go func() {
-			sub := SubPayChUpdate(t, aliceSessionID, chID)
-			notif := ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
-			assert.EqualValues(t, perun.ChUpdateTypeFinal, notif.Notify.Type)
-			RespondPayChUpdate(t, aliceSessionID, chID, notif.Notify.UpdateID, true)
-			notif = ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
-			assert.EqualValues(t, perun.ChUpdateTypeClosed, notif.Notify.Type)
-			UnsubPayChUpdate(t, aliceSessionID, chID)
-
-			wg.Done()
-		}()
-		go func() {
 			sub := SubPayChUpdate(t, bobSessionID, chID)
 			notif := ReadPayChUpdateNotif(t, bobSessionID, chID, sub)
-			assert.EqualValues(t, perun.ChUpdateTypeClosed, notif.Notify.Type)
-			RespondPayChUpdateExpectError(t, bobSessionID, chID, notif.Notify.UpdateID, true)
+			assert.EqualValues(t, perun.ChUpdateTypeOpen, notif.Notify.Type)
+			RespondPayChUpdate(t, bobSessionID, chID, notif.Notify.UpdateID, false)
 			UnsubPayChUpdate(t, bobSessionID, chID)
 
-			wg.Done()
-		}()
-
-		time.Sleep(2 * time.Second) // Wait for the subscriptions to be made.
-		isClosePayChSuccessful <- ClosePayCh(t, bobSessionID, chID)
-
-		wg.Wait()
+			wg.Wait()
+		}
+		t.Run("ETH", func(t *testing.T) {
+			requestPayment(t, chIDETH, "ETH")
+		})
+		t.Run("PRN", func(t *testing.T) {
+			requestPayment(t, chIDPRN, "PRN")
+		})
 	})
 
-	require.True(t, <-isClosePayChSuccessful)
+	t.Run("Send_Payment_Reject", func(t *testing.T) {
+		sendPaymentReject := func(t *testing.T, chID, currency string) {
+			// Alice sends a payment and bob accepts.
+			wg.Add(1)
+			go func() {
+				SendPayChUpdate(t, aliceSessionID, chID, bobAlias, currency, "0.5", true)
+
+				wg.Done()
+			}()
+
+			sub := SubPayChUpdate(t, bobSessionID, chID)
+			notif := ReadPayChUpdateNotif(t, bobSessionID, chID, sub)
+			assert.EqualValues(t, perun.ChUpdateTypeOpen, notif.Notify.Type)
+			RespondPayChUpdate(t, bobSessionID, chID, notif.Notify.UpdateID, false)
+			UnsubPayChUpdate(t, bobSessionID, chID)
+
+			wg.Wait()
+		}
+		t.Run("ETH", func(t *testing.T) {
+			sendPaymentReject(t, chIDETH, "ETH")
+		})
+		t.Run("PRN", func(t *testing.T) {
+			sendPaymentReject(t, chIDPRN, "PRN")
+		})
+	})
+
+	isClosePayChSuccessful := make(chan bool, 2)
+	t.Run("Close_Sub_Unsub", func(t *testing.T) {
+		closeCh := func(t *testing.T, chID string) {
+			// Bob initiates channel close, alice receives an update request for "finalized state" that he acknowledges.
+			// The channel is then closed on-chain by bob and the funds are withdrawn immediately.
+			wg.Add(2)
+			go func() {
+				sub := SubPayChUpdate(t, aliceSessionID, chID)
+				notif := ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
+				assert.EqualValues(t, perun.ChUpdateTypeFinal, notif.Notify.Type)
+				RespondPayChUpdate(t, aliceSessionID, chID, notif.Notify.UpdateID, true)
+				notif = ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
+				assert.EqualValues(t, perun.ChUpdateTypeClosed, notif.Notify.Type)
+
+				wg.Done()
+			}()
+			go func() {
+				sub := SubPayChUpdate(t, bobSessionID, chID)
+				notif := ReadPayChUpdateNotif(t, bobSessionID, chID, sub)
+				assert.EqualValues(t, perun.ChUpdateTypeClosed, notif.Notify.Type)
+				RespondPayChUpdateExpectError(t, bobSessionID, chID, notif.Notify.UpdateID, true)
+
+				wg.Done()
+			}()
+
+			time.Sleep(2 * time.Second) // Wait for the subscriptions to be made.
+			isClosePayChSuccessful <- ClosePayCh(t, bobSessionID, chID)
+
+			wg.Wait()
+		}
+		t.Run("ETH", func(t *testing.T) {
+			closeCh(t, chIDETH)
+			require.True(t, <-isClosePayChSuccessful)
+		})
+		t.Run("PRN", func(t *testing.T) {
+			closeCh(t, chIDPRN)
+			require.True(t, <-isClosePayChSuccessful)
+		})
+	})
+
 	t.Run("CloseSession_NoForce_", func(t *testing.T) {
 		openPayChsInfo := CloseSession(t, aliceSessionID, false, false)
 		require.Len(t, openPayChsInfo, 0)
@@ -290,7 +348,8 @@ func Test_Integ_Role(t *testing.T) {
 		require.Len(t, openPayChsInfo, 0)
 	})
 	t.Run("APIs error when session is closed", func(t *testing.T) {
-		OpenPayCh(t, bobSessionID, []string{perun.OwnAlias, aliceAlias}, []string{"1", "2"}, true)
+		OpenPayCh(t, bobSessionID,
+			[]string{"ETH"}, []string{perun.OwnAlias, aliceAlias}, [][]string{{"1", "2"}}, true)
 		sub := SubPayChProposal(t, aliceSessionID)
 		ReadPayChProposalNotif(t, aliceSessionID, sub, true)
 		RespondPayChProposal(t, aliceSessionID, "", false, true)
@@ -379,14 +438,14 @@ func AddPeerID(t *testing.T, sessionID string, peerID *pb.PeerID) {
 	require.True(t, ok, "AddPeerID returned error response")
 }
 
-func OpenPayCh(t *testing.T, sessionID string, parts, bal []string, wantErr bool) string {
+func OpenPayCh(t *testing.T, sessionID string, currencies, parts []string, bals [][]string, wantErr bool) string {
 	req := pb.OpenPayChReq{
 		SessionID: sessionID,
-		OpeningBalInfo: &pb.BalInfo{
-			Currencies: []string{currency.ETHSymbol},
+		OpeningBalInfo: grpc.ToGrpcBalInfo(perun.BalInfo{
+			Currencies: currencies,
 			Parts:      parts,
-			Bals:       []*pb.BalInfoBal{{Bal: bal}},
-		},
+			Bals:       bals,
+		}),
 		ChallengeDurSecs: 10,
 	}
 	resp, err := client.OpenPayCh(ctx, &req)
@@ -463,13 +522,13 @@ func UnsubPayChProposal(t *testing.T, sessionID string, wantErr bool) {
 	require.True(t, ok, "UnsubPayChProposals returned error response")
 }
 
-func SendPayChUpdate(t *testing.T, sessionID, chID, peerAlias, amount string, wantErr bool) {
+func SendPayChUpdate(t *testing.T, sessionID, chID, peerAlias, currency, amount string, wantErr bool) {
 	req := pb.SendPayChUpdateReq{
 		SessionID: sessionID,
 		ChID:      chID,
 		Payments: []*pb.Payment{
 			{
-				Currency: currency.ETHSymbol,
+				Currency: currency,
 				Payee:    peerAlias,
 				Amount:   amount,
 			},
