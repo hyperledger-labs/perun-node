@@ -65,6 +65,7 @@ type (
 	params struct {
 		id               string
 		currencies       []perun.Currency
+		symbols          map[string]int
 		parts            []string
 		timeoutCfg       timeoutConfig
 		challengeDurSecs uint64
@@ -120,6 +121,7 @@ func newCh(pch PChannel, chainURL string, currencies []perun.Currency, parts []s
 			challengeDurSecs: challengeDurSecs,
 			chainURL:         chainURL,
 			currencies:       currencies,
+			symbols:          make(map[string]int, len(currencies)),
 			parts:            parts,
 		},
 		pch:                pch,
@@ -128,6 +130,10 @@ func newCh(pch PChannel, chainURL string, currencies []perun.Currency, parts []s
 		chUpdateResponders: make(map[string]chUpdateResponderEntry),
 		watcherWg:          &sync.WaitGroup{},
 	}
+	for i := range currencies {
+		ch.symbols[currencies[i].Symbol()] = i
+	}
+
 	ch.watcherWg.Add(1)
 	go func(ch *Channel) {
 		err := ch.pch.Watch(ch)
@@ -258,6 +264,19 @@ func (ch *Channel) ID() string {
 // the lifecycle of the channel.
 func (ch *Channel) Currencies() []perun.Currency {
 	return ch.currencies
+}
+
+// Currency returns the index of this currency in channel balances and the
+// currency interpreter.  If symbol is unknown, returns an false.
+//
+// Does not require a mutex lock, as the data will remain unchanged throughout
+// the lifecycle of the channel.
+func (ch *Channel) Currency(symbol string) (int, perun.Currency, bool) {
+	idx, found := ch.symbols[symbol]
+	if !found {
+		return 0, nil, false
+	}
+	return idx, ch.currencies[idx], true
 }
 
 // Parts returns the list of aliases of the channel participants.

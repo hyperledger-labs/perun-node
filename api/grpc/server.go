@@ -459,7 +459,7 @@ func (a *payChAPIServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChU
 	if err != nil {
 		return errResponse(err), nil
 	}
-	updatedPayChInfo, err := payment.SendPayChUpdate(ctx, ch, req.Payee, req.Amount)
+	updatedPayChInfo, err := payment.SendPayChUpdate(ctx, ch, fromGrpcPayments(req.Payments))
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -670,6 +670,26 @@ func (a *payChAPIServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) 
 			},
 		},
 	}, nil
+}
+
+// fromGrpcPayment is a helper function to convert slice of Payment struct defined in
+// grpc package to slice of Payment struct defined in perun-node.
+func fromGrpcPayments(payments []*pb.Payment) []payment.Payment {
+	grpcPayments := make([]payment.Payment, len(payments))
+	for i := range payments {
+		grpcPayments[i] = fromGrpcPayment(payments[i])
+	}
+	return grpcPayments
+}
+
+// fromGrpcPayment is a helper function to convert Payment struct defined in
+// grpc package to Payment struct defined in perun-node.
+func fromGrpcPayment(src *pb.Payment) payment.Payment {
+	return payment.Payment{
+		Currency: src.Currency,
+		Payee:    src.Payee,
+		Amount:   src.Amount,
+	}
 }
 
 // toGrpcPayChInfo is a helper function to convert slice of PayChInfo struct defined in perun-node

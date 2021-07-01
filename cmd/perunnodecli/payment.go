@@ -25,6 +25,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
+	"github.com/hyperledger-labs/perun-node/currency"
 )
 
 var (
@@ -129,8 +130,13 @@ func paymentSendFn(c *ishell.Context) {
 	req := pb.SendPayChUpdateReq{
 		SessionID: sessionID,
 		ChID:      chInfo.id,
-		Payee:     chInfo.peerAlias,
-		Amount:    c.Args[1],
+		Payments: []*pb.Payment{
+			{
+				Currency: currency.ETHSymbol,
+				Payee:    chInfo.peerAlias,
+				Amount:   c.Args[1],
+			},
+		},
 	}
 	resp, err := client.SendPayChUpdate(context.Background(), &req)
 	if err != nil {
@@ -171,8 +177,13 @@ func paymentRequestFn(c *ishell.Context) {
 	req := pb.SendPayChUpdateReq{
 		SessionID: sessionID,
 		ChID:      chInfo.id,
-		Payee:     perun.OwnAlias,
-		Amount:    c.Args[1],
+		Payments: []*pb.Payment{
+			{
+				Currency: currency.ETHSymbol,
+				Payee:    perun.OwnAlias,
+				Amount:   c.Args[1],
+			},
+		},
 	}
 	resp, err := client.SendPayChUpdate(context.Background(), &req)
 	if err != nil {

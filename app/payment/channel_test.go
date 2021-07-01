@@ -35,12 +35,13 @@ import (
 func Test_SendPayChUpdate(t *testing.T) {
 	currencies := currency.NewRegistry()
 	//nolint: errcheck	// Safe to ignore the error, as it is first register after init.
-	currency, _ := currencies.Register(currency.ETHSymbol, currency.ETHMaxDecimals)
+	ethCurrency, _ := currencies.Register(currency.ETHSymbol, currency.ETHMaxDecimals)
 
 	// Returns a mock with API calls set up for currency and parts.
 	newChAPIMock := func() *mocks.ChAPI {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("Currencies").Return([]perun.Currency{currency})
+		chAPI.On("Currencies").Return([]perun.Currency{ethCurrency})
+		chAPI.On("Currency", currency.ETHSymbol).Return(0, ethCurrency, true)
 		chAPI.On("Parts").Return(parts)
 		return chAPI
 	}
@@ -53,7 +54,10 @@ func Test_SendPayChUpdate(t *testing.T) {
 			return true
 		})).Return(updatedChInfo, nil)
 
-		gotPayChInfo, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, amountToSend)
+		payments := []payment.Payment{
+			makePayment(currency.ETHSymbol, peerAlias, amountToSend),
+		}
+		gotPayChInfo, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, payments)
 		require.NoError(t, gotErr)
 		assert.Equal(t, wantUpdatedPayChInfo, gotPayChInfo)
 		require.NotNil(t, updater)
@@ -67,8 +71,11 @@ func Test_SendPayChUpdate(t *testing.T) {
 	t.Run("happy_requestPayment", func(t *testing.T) {
 		chAPI := newChAPIMock()
 		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(updatedChInfo, nil)
+		payments := []payment.Payment{
+			makePayment(currency.ETHSymbol, perun.OwnAlias, amountToSend),
+		}
 
-		gotPayChInfo, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, perun.OwnAlias, amountToSend)
+		gotPayChInfo, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, payments)
 		require.NoError(t, gotErr)
 		require.Equal(t, wantUpdatedPayChInfo, gotPayChInfo)
 	})
@@ -78,7 +85,10 @@ func Test_SendPayChUpdate(t *testing.T) {
 		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(perun.ChInfo{}, nil)
 
 		invalidAmount := "abc"
-		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, invalidAmount)
+		payments := []payment.Payment{
+			makePayment(currency.ETHSymbol, perun.OwnAlias, invalidAmount),
+		}
+		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, payments)
 		peruntest.AssertAPIError(t, gotErr, perun.ClientError, perun.ErrInvalidArgument, payment.ErrInvalidAmount.Error())
 		peruntest.AssertErrInfoInvalidArgument(t, gotErr.AddInfo(), session.ArgNameAmount, invalidAmount)
 	})
@@ -88,7 +98,10 @@ func Test_SendPayChUpdate(t *testing.T) {
 		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(perun.ChInfo{}, nil)
 
 		invalidPayee := "invalid-payee"
-		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, invalidPayee, amountToSend)
+		payments := []payment.Payment{
+			makePayment(currency.ETHSymbol, invalidPayee, amountToSend),
+		}
+		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, payments)
 		peruntest.AssertAPIError(t, gotErr, perun.ClientError, perun.ErrInvalidArgument, payment.ErrInvalidPayee.Error())
 		peruntest.AssertErrInfoInvalidArgument(t, gotErr.AddInfo(), "payee", invalidPayee)
 	})
@@ -97,8 +110,11 @@ func Test_SendPayChUpdate(t *testing.T) {
 		chAPI := newChAPIMock()
 		chAPI.On("SendChUpdate", context.Background(), mock.Anything).Return(
 			perun.ChInfo{}, perun.NewAPIErrUnknownInternal(assert.AnError))
+		payments := []payment.Payment{
+			makePayment(currency.ETHSymbol, perun.OwnAlias, amountToSend),
+		}
 
-		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, peerAlias, amountToSend)
+		_, gotErr := payment.SendPayChUpdate(context.Background(), chAPI, payments)
 		require.Error(t, gotErr)
 		t.Log(gotErr)
 	})
@@ -251,4 +267,13 @@ func Test_ClosePayCh(t *testing.T) {
 		require.Error(t, gotErr)
 		t.Log(gotErr)
 	})
+}
+
+// nolint: unparam
+func makePayment(currency, payee, amount string) payment.Payment {
+	return payment.Payment{
+		Currency: currency,
+		Payee:    payee,
+		Amount:   amount,
+	}
 }

@@ -461,7 +461,7 @@ type ChAPI interface {
 	// Methods for reading the channel information is doesn't change.
 	// These APIs don't use mutex lock.
 	ID() string
-	Currencies() []Currency
+	Currency(symbol string) (int, Currency, bool)
 	Parts() []string
 	ChallengeDurSecs() uint64
 

@@ -51,20 +51,34 @@ func (_m *ChAPI) Close(_a0 context.Context) (perun.ChInfo, perun.APIError) {
 	return r0, r1
 }
 
-// Currencies provides a mock function with given fields:
-func (_m *ChAPI) Currencies() []perun.Currency {
-	ret := _m.Called()
+// Currency provides a mock function with given fields: symbol
+func (_m *ChAPI) Currency(symbol string) (int, perun.Currency, bool) {
+	ret := _m.Called(symbol)
 
-	var r0 []perun.Currency
-	if rf, ok := ret.Get(0).(func() []perun.Currency); ok {
-		r0 = rf()
+	var r0 int
+	if rf, ok := ret.Get(0).(func(string) int); ok {
+		r0 = rf(symbol)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]perun.Currency)
+		r0 = ret.Get(0).(int)
+	}
+
+	var r1 perun.Currency
+	if rf, ok := ret.Get(1).(func(string) perun.Currency); ok {
+		r1 = rf(symbol)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(perun.Currency)
 		}
 	}
 
-	return r0
+	var r2 bool
+	if rf, ok := ret.Get(2).(func(string) bool); ok {
+		r2 = rf(symbol)
+	} else {
+		r2 = ret.Get(2).(bool)
+	}
+
+	return r0, r1, r2
 }
 
 // GetChInfo provides a mock function with given fields:
