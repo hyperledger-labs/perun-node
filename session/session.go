@@ -27,14 +27,15 @@ import (
 	"github.com/pkg/errors"
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
+	"perun.network/go-perun/pkg/io"
 	psync "perun.network/go-perun/pkg/sync"
+	pwallet "perun.network/go-perun/wallet"
 	pwire "perun.network/go-perun/wire"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
 	"github.com/hyperledger-labs/perun-node/comm/tcp/tcptest"
-	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/idprovider"
 	"github.com/hyperledger-labs/perun-node/idprovider/local"
 	"github.com/hyperledger-labs/perun-node/log"
@@ -113,7 +114,6 @@ type (
 		id         string
 		isOpen     bool
 		user       User
-		chAsset    pchannel.Asset
 		chClient   ChClient
 		idProvider perun.IDProvider
 
@@ -122,9 +122,9 @@ type (
 
 		chain perun.ChainBackend
 
-		chs        *chRegistry
-		contracts  perun.ContractRegistry
-		currencies perun.ROCurrencyRegistry
+		chs              *chRegistry
+		contractRegistry perun.ContractRegistry
+		currencyRegistry perun.ROCurrencyRegistry
 
 		chProposalNotifier    perun.ChProposalNotifier
 		chProposalNotifsCache []perun.ChProposalNotif
@@ -132,9 +132,10 @@ type (
 	}
 
 	chProposalResponderEntry struct {
-		proposal  pclient.LedgerChannelProposal
-		notif     perun.ChProposalNotif
-		responder ChProposalResponder
+		proposal   pclient.LedgerChannelProposal
+		notif      perun.ChProposalNotif
+		responder  ChProposalResponder
+		currencies []perun.Currency
 	}
 
 	// ChProposalResponder defines the methods on proposal responder that will be used by the perun node.
@@ -161,7 +162,8 @@ func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pc
 // New initializes a SessionAPI instance for the given configuration, read-only
 // currency registry and returns an instance of it. All methods on it are safe
 // for concurrent use.
-func New(cfg Config, currencies perun.ROCurrencyRegistry, contracts perun.ContractRegistry) (*Session, perun.APIError) {
+func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry perun.ContractRegistry) (
+	*Session, perun.APIError) {
 	user, apiErr := NewUnlockedUser(walletBackend, cfg.User)
 	if apiErr != nil {
 		return nil, apiErr
@@ -183,7 +185,7 @@ func New(cfg Config, currencies perun.ROCurrencyRegistry, contracts perun.Contra
 		return nil, perun.NewAPIErrInvalidConfig(err, "chainURL", cfg.ChainURL)
 	}
 
-	funder := chain.NewFunder(contracts.AssetETH(), user.OnChain.Addr)
+	funder := chain.NewFunder(contractRegistry.AssetETH(), user.OnChain.Addr)
 	adjudicator := chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
 
 	chClient, apiErr := newEthereumPaymentClient(funder, adjudicator, commBackend, cfg.User.CommAddr, user.OffChain)
@@ -203,13 +205,12 @@ func New(cfg Config, currencies perun.ROCurrencyRegistry, contracts perun.Contra
 		chainURL:             cfg.ChainURL,
 		timeoutCfg:           timeoutCfg,
 		user:                 user,
-		chAsset:              cfg.AssetETH,
 		chClient:             chClient,
 		idProvider:           idProvider,
 		chain:                chain,
 		chs:                  newChRegistry(initialChRegistrySize),
-		contracts:            contracts,
-		currencies:           currencies,
+		contractRegistry:     contractRegistry,
+		currencyRegistry:     currencyRegistry,
 		chProposalResponders: make(map[string]chProposalResponderEntry),
 	}
 
@@ -281,14 +282,13 @@ func (s *Session) handleRestoredCh(pch PChannel) {
 
 	registerParts(partIDs, s.chClient)
 
-	if !s.currencies.IsRegistered(currency.ETHSymbol) {
-		s.Infof("Unknown currency %v in a persisted channel %x, will not be restored",
-			currency.ETHSymbol, pch.ID())
+	currencies, err := getCurrencies(pch.State().Assets, s.contractRegistry, s.currencyRegistry)
+	if err != nil {
+		s.Infof("Not restoring persisted channel %x due to %v", pch.ID(), err)
 		return
 	}
-	currency := s.currencies.Currency(currency.ETHSymbol)
 
-	ch := newCh(pch, s.chainURL, currency, aliases, s.timeoutCfg, pch.Params().ChallengeDuration)
+	ch := newCh(pch, s.chainURL, currencies, aliases, s.timeoutCfg, pch.Params().ChallengeDuration)
 	s.addCh(ch)
 	s.Debugf("restored channel from persistence: %v", ch.getChInfo())
 }
@@ -398,6 +398,7 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	}
 
 	sanitizeBalInfo(openingBalInfo)
+
 	var parts []perun.PeerID
 	parts, apiErr = retrievePartIDs(openingBalInfo.Parts, s.idProvider)
 	if apiErr != nil {
@@ -405,14 +406,14 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	}
 	registerParts(parts, s.chClient)
 
-	var allocations *pchannel.Allocation
-	var currency perun.Currency
-	currency, allocations, apiErr = makeAllocation(openingBalInfo, s.chAsset, s.currencies)
+	var allocation *pchannel.Allocation
+	var currencies []perun.Currency
+	currencies, allocation, apiErr = makeAllocation(openingBalInfo, s.contractRegistry, s.currencyRegistry)
 	if apiErr != nil {
 		return perun.ChInfo{}, apiErr
 	}
 
-	proposal, err := pclient.NewLedgerChannelProposal(challengeDurSecs, s.user.OffChainAddr, allocations,
+	proposal, err := pclient.NewLedgerChannelProposal(challengeDurSecs, s.user.OffChainAddr, allocation,
 		makeOffChainAddrs(parts), pclient.WithApp(app.Def, app.Data), pclient.WithRandomNonce())
 	if err != nil {
 		apiErr = perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "constructing channel proposal"))
@@ -426,7 +427,7 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 		return perun.ChInfo{}, apiErr
 	}
 
-	ch := newCh(pch, s.chainURL, currency, openingBalInfo.Parts, s.timeoutCfg, challengeDurSecs)
+	ch := newCh(pch, s.chainURL, currencies, openingBalInfo.Parts, s.timeoutCfg, challengeDurSecs)
 	s.addCh(ch)
 	s.WithFields(log.Fields{"method": "OpenCh", "channelID": ch.ID()}).Info("Channel opened successfully")
 	return ch.GetChInfo(), nil
@@ -486,9 +487,11 @@ func sanitizeBalInfo(balInfo perun.BalInfo) {
 		balInfo.Parts[ownIdx] = balInfo.Parts[0]
 		balInfo.Parts[0] = perun.OwnAlias
 
-		ownAmount := balInfo.Bals[0][ownIdx]
-		balInfo.Bals[0][ownIdx] = balInfo.Bals[0][0]
-		balInfo.Bals[0][0] = ownAmount
+		for i := range balInfo.Bals {
+			ownAmount := balInfo.Bals[i][ownIdx]
+			balInfo.Bals[i][ownIdx] = balInfo.Bals[i][0]
+			balInfo.Bals[i][0] = ownAmount
+		}
 	}
 }
 
@@ -549,29 +552,45 @@ func makeOffChainAddrs(partIDs []perun.PeerID) []pwire.Address {
 	return addrs
 }
 
-// makeAllocation makes an allocation using the BalanceInfo and the chAsset.
-// Order of amounts in the balance is same as the order of Aliases in the Balance Info.
-// It errors if any of the amounts cannot be parsed using the interpreter corresponding to the currency.
-func makeAllocation(balInfo perun.BalInfo, chAsset pchannel.Asset, currencies perun.ROCurrencyRegistry) (
-	perun.Currency, *pchannel.Allocation, perun.APIError) {
-	if !currencies.IsRegistered(balInfo.Currencies[0]) {
-		return nil, nil, perun.NewAPIErrResourceNotFound(ResTypeCurrency, balInfo.Currencies[0])
-	}
-	currency := currencies.Currency(balInfo.Currencies[0])
+// makeAllocation constructs the channel allocation for the given balInfo.
+// Order of amounts in the balance is same as the order of Aliases in the
+// Balance Info. It errors if any of the amounts cannot be parsed using the
+// interpreter corresponding to the currency.
+func makeAllocation(balInfo perun.BalInfo,
+	contractRegistry perun.ROContractRegistry, currencyRegistry perun.ROCurrencyRegistry) (
+	[]perun.Currency, *pchannel.Allocation, perun.APIError) {
 
-	balance := make([]*big.Int, len(balInfo.Bals[0]))
+	if len(balInfo.Currencies) != len(balInfo.Bals) {
+		err := errors.New("length of currencies should match the outer length of bals")
+		return nil, nil, perun.NewAPIErrInvalidArgument(err, ArgNameCurrency, strings.Join(balInfo.Currencies, ","))
+	}
+	// retrieve assets for each currency
+	assets := make([]pchannel.Asset, len(balInfo.Currencies))
+	currencies := make([]perun.Currency, len(balInfo.Currencies))
+	balances := make([][]*big.Int, len(balInfo.Currencies))
 	var err error
-	for i := range balInfo.Bals[0] {
-		balance[i], err = currency.Parse(balInfo.Bals[0][i])
-		if err != nil {
-			err = errors.WithMessage(err, "parsing amount")
-			return nil, nil, perun.NewAPIErrInvalidArgument(err, ArgNameAmount, balInfo.Bals[0][i])
+	var found bool
+	for i := range balInfo.Currencies {
+		assets[i], found = contractRegistry.Asset(balInfo.Currencies[i])
+		if !found {
+			return nil, nil, perun.NewAPIErrResourceNotFound(ResTypeCurrency, balInfo.Currencies[i])
+		}
+		// If asset was registered, currency would also have been registered.
+		currencies[i] = currencyRegistry.Currency(balInfo.Currencies[i])
+		balances[i] = make([]*big.Int, len(balInfo.Bals[i]))
+
+		for j := range balInfo.Bals[i] {
+			balances[i][j], err = currencies[i].Parse(balInfo.Bals[i][j])
+			if err != nil {
+				err = errors.WithMessage(err, "parsing amount")
+				return nil, nil, perun.NewAPIErrInvalidArgument(err, ArgNameAmount, balInfo.Bals[i][j])
+			}
 		}
 	}
 
-	return currency, &pchannel.Allocation{
-		Assets:   []pchannel.Asset{chAsset},
-		Balances: [][]*big.Int{balance},
+	return currencies, &pchannel.Allocation{
+		Assets:   assets,
+		Balances: balances,
 	}, nil
 }
 
@@ -614,7 +633,7 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 	for i := range ledgerChProposal.Peers {
 		p, ok := s.idProvider.ReadByOffChainAddr(ledgerChProposal.Peers[i])
 		if !ok {
-			s.Infof("Rejecting channel proposal with unknonwn peer ID: %v", ledgerChProposal.Peers[i])
+			s.Infof("Rejecting channel proposal with unknown peer ID: %v", ledgerChProposal.Peers[i])
 			// nolint: errcheck              // It is sufficient to just log this error.
 			s.rejectChProposal(context.Background(), responder, "unrecogonized peer ID")
 			expiry = 0
@@ -623,18 +642,19 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 		parts[i] = p.Alias
 	}
 
-	if !s.currencies.IsRegistered(currency.ETHSymbol) {
-		s.Infof("Rejecting channel proposal with unknonwn currency: %v", currency.ETHSymbol)
+	currencies, err := getCurrencies(ledgerChProposal.InitBals.Assets, s.contractRegistry, s.currencyRegistry)
+	if err != nil {
+		s.Infof("Rejecting channel proposal due to %v", err)
 		// nolint: errcheck              // It is sufficient to just log this error.
 		s.rejectChProposal(context.Background(), responder, "unrecogonized currency")
 	}
-	currency := s.currencies.Currency(currency.ETHSymbol)
 
-	notif := chProposalNotif(parts, currency, ledgerChProposal, expiry)
+	notif := chProposalNotif(parts, currencies, ledgerChProposal, expiry)
 	entry := chProposalResponderEntry{
-		proposal:  *ledgerChProposal,
-		notif:     notif,
-		responder: responder,
+		proposal:   *ledgerChProposal,
+		notif:      notif,
+		responder:  responder,
+		currencies: currencies,
 	}
 
 	s.Lock()
@@ -645,8 +665,6 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 		s.chProposalResponders[notif.ProposalID] = entry
 	}
 
-	// Set ETH as the currency interpreter for incoming channel.
-	// TODO: (mano) Provide an option for user to configure when more currency interpretters are supported.
 	if s.chProposalNotifier == nil {
 		s.chProposalNotifsCache = append(s.chProposalNotifsCache, notif)
 		s.Debug("HandleProposal: Notification cached", notif)
@@ -656,11 +674,30 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 	}
 }
 
-func chProposalNotif(parts []string, currency perun.Currency, chProposal *pclient.LedgerChannelProposal,
+// TODO: Here, assets are received as io.Encoder. But since we are working with only one type of client,
+// we know, the underlying type is pwallet.Address and hence we do type extraction without assertion.
+//
+// But when working with multiple clients, the type underlying hte asset should
+// be specified by the framework and all implementations should comply with it.
+func getCurrencies(assets []io.Encoder,
+	contractRegistry perun.ROContractRegistry, currencyRegistry perun.ROCurrencyRegistry) ([]perun.Currency, error) {
+	currencies := make([]perun.Currency, len(assets))
+	for i, asset := range assets {
+		symbol, found := contractRegistry.Symbol(asset.(pwallet.Address))
+		if !found {
+			return nil, fmt.Errorf("unknown asset %v", asset.(pwallet.Address))
+		}
+		// Since the symbol was found in contract registry, it must be registered in currency registry as well.
+		currencies[i] = currencyRegistry.Currency(symbol)
+	}
+	return currencies, nil
+}
+
+func chProposalNotif(parts []string, currencies []perun.Currency, chProposal *pclient.LedgerChannelProposal,
 	expiry int64) perun.ChProposalNotif {
 	return perun.ChProposalNotif{
 		ProposalID:       fmt.Sprintf("%x", chProposal.ProposalID()),
-		OpeningBalInfo:   makeBalInfoFromRawBal(parts, currency, chProposal.InitBals.Balances[0]),
+		OpeningBalInfo:   makeBalInfoFromRawBal(parts, currencies, chProposal.InitBals.Balances),
 		App:              makeApp(chProposal.App, chProposal.InitData),
 		ChallengeDurSecs: chProposal.ChallengeDuration,
 		Expiry:           expiry,
@@ -821,14 +858,8 @@ func (s *Session) acceptChProposal(pctx context.Context, entry chProposalRespond
 		return perun.ChInfo{}, s.handleChProposalAcceptError(entry.notif.OpeningBalInfo.Parts, err)
 	}
 
-	// Set ETH as the currency interpreter for incoming channel.
-	// TODO: (mano) Provide an option for user to configure when more currency interpreters are supported.
 	parts := entry.notif.OpeningBalInfo.Parts
-
-	// Safe to use without nil check, as the proposal handler would have
-	// rejected the proposal if it was not registered.
-	currency := s.currencies.Currency(currency.ETHSymbol)
-	ch := newCh(pch, s.chainURL, currency, parts, s.timeoutCfg, entry.notif.ChallengeDurSecs)
+	ch := newCh(pch, s.chainURL, entry.currencies, parts, s.timeoutCfg, entry.notif.ChallengeDurSecs)
 	s.addCh(ch)
 	s.WithFields(log.Fields{"method": "RespondChProposal", "channelID": ch.ID()}).Info("Channel opened successfully")
 	return ch.getChInfo(), nil
@@ -1063,7 +1094,7 @@ func (s *Session) DeployAssetERC20(tokenAddr string) (assetAddr string, _ perun.
 		apiErr = perun.NewAPIErrInvalidArgument(err, ArgNameToken, tokenAddr)
 		return "", apiErr
 	}
-	asset, err := s.chain.DeployAssetERC20(s.contracts.Adjudicator(), token, s.user.OnChain.Addr)
+	asset, err := s.chain.DeployAssetERC20(s.contractRegistry.Adjudicator(), token, s.user.OnChain.Addr)
 	if err != nil {
 		if apiErr = handleChainError(s.chainURL, s.timeoutCfg.onChainTx.String(), err); apiErr != nil {
 			return "", apiErr

@@ -76,13 +76,12 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient, chainSetup *e
 		chainURL:             cfg.ChainURL,
 		timeoutCfg:           timeoutCfg,
 		user:                 user,
-		chAsset:              cfg.AssetETH,
 		chClient:             chClient,
 		idProvider:           idProvider,
 		chain:                chainSetup.ChainBackend,
 		chs:                  newChRegistry(initialChRegistrySize),
-		contracts:            contracts,
-		currencies:           currencytest.Registry(),
+		contractRegistry:     contracts,
+		currencyRegistry:     currencytest.Registry(),
 		chProposalResponders: make(map[string]chProposalResponderEntry),
 	}, nil
 }
@@ -95,7 +94,7 @@ func NewChForTest(pch PChannel,
 		response:  responseTimeout,
 		onChainTx: onChainTxTimeout,
 	}
-	currency := currencytest.Registry().Currency(currencySymbol)
+	currency := []perun.Currency{currencytest.Registry().Currency(currencySymbol)}
 	ch := newCh(pch, chainURL, currency, parts, timeoutCfg, challengeDurSecs)
 	if isOpen {
 		ch.status = open
@@ -106,8 +105,9 @@ func NewChForTest(pch PChannel,
 	return ch
 }
 
-func MakeAllocation(openingBalInfo perun.BalInfo, chAsset pchannel.Asset, currencies perun.ROCurrencyRegistry) (
+func MakeAllocation(openingBalInfo perun.BalInfo,
+	contractRegistry perun.ROContractRegistry, currencyRegistry perun.ROCurrencyRegistry) (
 	*pchannel.Allocation, error) {
-	_, allocation, err := makeAllocation(openingBalInfo, chAsset, currencies)
+	_, allocation, err := makeAllocation(openingBalInfo, contractRegistry, currencyRegistry)
 	return allocation, err
 }

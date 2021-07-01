@@ -64,7 +64,7 @@ type (
 	// it is initialized.
 	params struct {
 		id               string
-		currency         perun.Currency
+		currencies       []perun.Currency
 		parts            []string
 		timeoutCfg       timeoutConfig
 		challengeDurSecs uint64
@@ -111,7 +111,7 @@ type (
 
 // newCh initializes  a channel instance using the passed pchannel (controller)
 // and other channel parameters.
-func newCh(pch PChannel, chainURL string, currency perun.Currency, parts []string, timeoutCfg timeoutConfig,
+func newCh(pch PChannel, chainURL string, currencies []perun.Currency, parts []string, timeoutCfg timeoutConfig,
 	challengeDurSecs uint64) *Channel {
 	ch := &Channel{
 		params: params{
@@ -119,7 +119,7 @@ func newCh(pch PChannel, chainURL string, currency perun.Currency, parts []strin
 			timeoutCfg:       timeoutCfg,
 			challengeDurSecs: challengeDurSecs,
 			chainURL:         chainURL,
-			currency:         currency,
+			currencies:       currencies,
 			parts:            parts,
 		},
 		pch:                pch,
@@ -252,12 +252,12 @@ func (ch *Channel) ID() string {
 	return ch.id
 }
 
-// Currency returns the currency interpreter used in the channel.
+// Currencies returns the currency interpreters used in the channel.
 //
 // Does not require a mutex lock, as the data will remain unchanged throughout
 // the lifecycle of the channel.
-func (ch *Channel) Currency() perun.Currency {
-	return ch.currency
+func (ch *Channel) Currencies() []perun.Currency {
+	return ch.currencies
 }
 
 // Parts returns the list of aliases of the channel participants.
@@ -569,7 +569,7 @@ func (ch *Channel) makeChInfo(state *pchannel.State) perun.ChInfo {
 	}
 	return perun.ChInfo{
 		ChID:    ch.id,
-		BalInfo: makeBalInfoFromState(ch.parts, ch.currency, state),
+		BalInfo: makeBalInfoFromState(ch.parts, ch.currencies, state),
 		App:     makeApp(state.App, state.Data),
 		Version: fmt.Sprintf("%d", state.Version),
 	}
@@ -584,21 +584,25 @@ func makeApp(def pchannel.App, data pchannel.Data) perun.App {
 }
 
 // makeBalInfoFromState retrieves balance information from the channel state.
-func makeBalInfoFromState(parts []string, currency perun.Currency, state *pchannel.State) perun.BalInfo {
-	return makeBalInfoFromRawBal(parts, currency, state.Balances[0])
+func makeBalInfoFromState(parts []string, currencies []perun.Currency, state *pchannel.State) perun.BalInfo {
+	return makeBalInfoFromRawBal(parts, currencies, state.Balances)
 }
 
 // makeBalInfoFromRawBal retrieves balance information from the raw balance.
-func makeBalInfoFromRawBal(parts []string, currency perun.Currency, rawBal []*big.Int) perun.BalInfo {
+func makeBalInfoFromRawBal(parts []string, currencies []perun.Currency, rawBal [][]*big.Int) perun.BalInfo {
 	balInfo := perun.BalInfo{
-		Currencies: []string{currency.Symbol()},
+		Currencies: make([]string, len(currencies)),
 		Parts:      parts,
-		Bals:       [][]string{make([]string, len(rawBal))},
+		Bals:       make([][]string, len(rawBal)),
+	}
+	for i := range rawBal {
+		balInfo.Currencies[i] = currencies[i].Symbol()
+		balInfo.Bals[i] = make([]string, len(rawBal[i]))
+		for j := range rawBal[i] {
+			balInfo.Bals[i][j] = currencies[i].Print(rawBal[i][j])
+		}
 	}
 
-	for i := range rawBal {
-		balInfo.Bals[0][i] = currency.Print(rawBal[i])
-	}
 	return balInfo
 }
 

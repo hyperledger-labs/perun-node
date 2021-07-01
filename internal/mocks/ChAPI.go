@@ -51,16 +51,16 @@ func (_m *ChAPI) Close(_a0 context.Context) (perun.ChInfo, perun.APIError) {
 	return r0, r1
 }
 
-// Currency provides a mock function with given fields:
-func (_m *ChAPI) Currency() perun.Currency {
+// Currencies provides a mock function with given fields:
+func (_m *ChAPI) Currencies() []perun.Currency {
 	ret := _m.Called()
 
-	var r0 perun.Currency
-	if rf, ok := ret.Get(0).(func() perun.Currency); ok {
+	var r0 []perun.Currency
+	if rf, ok := ret.Get(0).(func() []perun.Currency); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(perun.Currency)
+			r0 = ret.Get(0).([]perun.Currency)
 		}
 	}
 
