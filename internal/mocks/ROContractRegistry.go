@@ -104,3 +104,26 @@ func (_m *ROContractRegistry) Symbol(asset wallet.Address) (string, bool) {
 
 	return r0, r1
 }
+
+// Token provides a mock function with given fields: symbol
+func (_m *ROContractRegistry) Token(symbol string) (wallet.Address, bool) {
+	ret := _m.Called(symbol)
+
+	var r0 wallet.Address
+	if rf, ok := ret.Get(0).(func(string) wallet.Address); ok {
+		r0 = rf(symbol)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(wallet.Address)
+		}
+	}
+
+	var r1 bool
+	if rf, ok := ret.Get(1).(func(string) bool); ok {
+		r1 = rf(symbol)
+	} else {
+		r1 = ret.Get(1).(bool)
+	}
+
+	return r0, r1
+}
