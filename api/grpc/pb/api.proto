@@ -57,6 +57,12 @@ message PayChInfo {
     string version=3;
 }
 
+message Payment {
+    string currency = 1;
+    string payee = 2;
+    string amount = 3;
+}
+
 message MsgError {
     ErrorCategory category = 1;
     ErrorCode code = 2;
@@ -391,8 +397,7 @@ message DeployAssetERC20Resp {
 message SendPayChUpdateReq {
     string sessionID = 1;
     string chID = 2;
-    string payee = 3;
-    string amount = 4;
+    repeated Payment payments = 3;
 }
 
 message SendPayChUpdateResp {
