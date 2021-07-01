@@ -40,7 +40,7 @@ func Test_SendPayChUpdate(t *testing.T) {
 	// Returns a mock with API calls set up for currency and parts.
 	newChAPIMock := func() *mocks.ChAPI {
 		chAPI := &mocks.ChAPI{}
-		chAPI.On("Currency").Return(currency)
+		chAPI.On("Currencies").Return([]perun.Currency{currency})
 		chAPI.On("Parts").Return(parts)
 		return chAPI
 	}

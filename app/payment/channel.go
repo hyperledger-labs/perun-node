@@ -74,7 +74,8 @@ type (
 // - ErrInvalidArgument with Name:"Amount" when the amount is invalid.
 // or any of the errors returned by the session.SendChUpdate API.
 func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string) (PayChInfo, perun.APIError) {
-	parsedAmount, err := ch.Currency().Parse(amount)
+	// TODO: Replace hard-coded SendPayChUpdate API is updated to handle multiple currencies.
+	parsedAmount, err := ch.Currencies()[0].Parse(amount)
 	if err != nil {
 		err = errors.WithMessage(err, ErrInvalidAmount.Error())
 		return PayChInfo{}, perun.NewAPIErrInvalidArgument(err, session.ArgNameAmount, amount)

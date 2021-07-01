@@ -32,10 +32,10 @@ import (
 
 type node struct {
 	log.Logger
-	cfg        perun.NodeConfig
-	sessions   map[string]perun.SessionAPI
-	contracts  perun.ContractRegistry
-	currencies perun.CurrencyRegistry
+	cfg              perun.NodeConfig
+	sessions         map[string]perun.SessionAPI
+	contractRegistry perun.ContractRegistry
+	currencyRegistry perun.CurrencyRegistry
 	psync.Mutex
 }
 
@@ -56,17 +56,17 @@ func New(cfg perun.NodeConfig) (perun.NodeAPI, error) {
 		return nil, errors.WithMessage(err, "connecting to blockchain")
 	}
 
-	contracts, err := initContractRegistry(chain, cfg.Adjudicator, cfg.AssetETH)
+	contractRegistry, err := initContractRegistry(chain, cfg.Adjudicator, cfg.AssetETH)
 	if err != nil {
 		return nil, err
 	}
 
-	currencies := currency.NewRegistry()
-	if _, err = currencies.Register(currency.ETHSymbol, currency.ETHMaxDecimals); err != nil {
+	currencyRegistry := currency.NewRegistry()
+	if _, err = currencyRegistry.Register(currency.ETHSymbol, currency.ETHMaxDecimals); err != nil {
 		return nil, errors.WithMessage(err, "registering ETH currency")
 	}
 
-	if err = registerAssetERC20s(cfg.AssetERC20s, contracts, currencies); err != nil {
+	if err = registerAssetERC20s(cfg.AssetERC20s, contractRegistry, currencyRegistry); err != nil {
 		return nil, err
 	}
 
@@ -76,11 +76,11 @@ func New(cfg perun.NodeConfig) (perun.NodeAPI, error) {
 	}
 
 	return &node{
-		Logger:     log.NewLoggerWithField("node", 1), // ID of the node is always 1.
-		cfg:        cfg,
-		sessions:   make(map[string]perun.SessionAPI),
-		contracts:  contracts,
-		currencies: currencies,
+		Logger:           log.NewLoggerWithField("node", 1), // ID of the node is always 1.
+		cfg:              cfg,
+		sessions:         make(map[string]perun.SessionAPI),
+		contractRegistry: contractRegistry,
+		currencyRegistry: currencyRegistry,
 	}, nil
 }
 
@@ -96,16 +96,16 @@ func initContractRegistry(chain perun.ROChainBackend, adjudicator, assetETH stri
 		return nil, errors.WithMessage(err, "parsing asset ETH address")
 	}
 
-	contracts, err := ethereum.NewContractRegistry(chain, adjudicatorAddr, assetETHAddr)
+	contractRegistry, err := ethereum.NewContractRegistry(chain, adjudicatorAddr, assetETHAddr)
 	if err != nil {
 		return nil, errors.WithMessage(err, "initialing contract registry")
 	}
 
-	return contracts, nil
+	return contractRegistry, nil
 }
 
 func registerAssetERC20s(assetERC20s map[string]string,
-	contracts perun.ContractRegistry, currencies perun.CurrencyRegistry) error {
+	contractRegistry perun.ContractRegistry, currencyRegistry perun.CurrencyRegistry) error {
 	walletBackend := ethereum.NewWalletBackend()
 	for tokenERC20, assetERC20 := range assetERC20s {
 		tokenERC20Addr, err := walletBackend.ParseAddr(tokenERC20)
@@ -117,7 +117,7 @@ func registerAssetERC20s(assetERC20s map[string]string,
 			return errors.WithMessage(err, "asset ERC20 address")
 		}
 
-		symbol, maxDecimals, err := contracts.RegisterAssetERC20(tokenERC20Addr, assetERC20Addr)
+		symbol, maxDecimals, err := contractRegistry.RegisterAssetERC20(tokenERC20Addr, assetERC20Addr)
 		if err != nil {
 			return errors.WithMessage(err, "registering ERC20 asset contract")
 		}
@@ -126,7 +126,7 @@ func registerAssetERC20s(assetERC20s map[string]string,
 		// this case could be when re-registering a symbol. But if the same symbol
 		// is detected in two token contract address, then previous step of
 		// registering to contract registry would have already failed.
-		_, err = currencies.Register(symbol, maxDecimals)
+		_, err = currencyRegistry.Register(symbol, maxDecimals)
 		if err != nil {
 			return errors.WithMessage(err, "registering ERC20 asset currency")
 		}
@@ -172,10 +172,10 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 		err = errors.WithMessage(err, "parsing config")
 		return "", nil, perun.NewAPIErrInvalidArgument(err, session.ArgNameConfigFile, configFile)
 	}
-	sessionConfig.Adjudicator = n.contracts.Adjudicator()
+	sessionConfig.Adjudicator = n.contractRegistry.Adjudicator()
 	// AssetETH is set during contract registry init and will always be found.
-	sessionConfig.AssetETH = n.contracts.AssetETH()
-	sess, apiErr := session.New(sessionConfig, n.currencies, n.contracts)
+	sessionConfig.AssetETH = n.contractRegistry.AssetETH()
+	sess, apiErr := session.New(sessionConfig, n.currencyRegistry, n.contractRegistry)
 	if apiErr != nil {
 		return "", nil, apiErr
 	}
@@ -220,7 +220,7 @@ func (n *node) RegisterCurrency(tokenERC20Addr, assetERC20Addr string) (symbol s
 		return "", apiErr
 	}
 
-	symbol, maxDecimals, err := n.contracts.RegisterAssetERC20(tokenERC20, assetERC20)
+	symbol, maxDecimals, err := n.contractRegistry.RegisterAssetERC20(tokenERC20, assetERC20)
 	if err != nil {
 		assetERC20RegisteredError := blockchain.AssetERC20RegisteredError{}
 		invalidContractError := blockchain.InvalidContractError{}
@@ -242,7 +242,7 @@ func (n *node) RegisterCurrency(tokenERC20Addr, assetERC20Addr string) (symbol s
 		}
 	}
 
-	_, err = n.currencies.Register(symbol, maxDecimals)
+	_, err = n.currencyRegistry.Register(symbol, maxDecimals)
 	if err != nil {
 		// Ideally, code should not reach here, because currency registry is
 		// only updated after contracts registry, this condition would have
