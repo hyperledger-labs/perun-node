@@ -49,9 +49,9 @@ func Test_ChAPI_Interface(t *testing.T) {
 func Test_Getters(t *testing.T) {
 	peers := newPeerIDs(t, uint(2))
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETHSymbol,
-		Parts:    []string{perun.OwnAlias, peers[0].Alias},
-		Bal:      []string{"1", "2"},
+		Currencies: []string{currency.ETHSymbol},
+		Parts:      []string{perun.OwnAlias, peers[0].Alias},
+		Bals:       [][]string{{"1", "2"}},
 	}
 
 	pch, _ := newMockPCh()
@@ -59,7 +59,7 @@ func Test_Getters(t *testing.T) {
 		pch, currency.ETHSymbol, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
 	assert.Equal(t, ch.ID(), fmt.Sprintf("%x", pch.ID()))
-	assert.Equal(t, ch.Currency().Symbol(), validOpeningBalInfo.Currency)
+	assert.Equal(t, ch.Currency().Symbol(), validOpeningBalInfo.Currencies[0])
 	assert.Equal(t, ch.Parts(), validOpeningBalInfo.Parts)
 	assert.Equal(t, ch.ChallengeDurSecs(), uint64(10))
 }
@@ -67,9 +67,9 @@ func Test_Getters(t *testing.T) {
 func Test_GetChInfo(t *testing.T) {
 	peers := newPeerIDs(t, uint(2))
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETHSymbol,
-		Parts:    []string{perun.OwnAlias, peers[0].Alias},
-		Bal:      []string{"1", "2"},
+		Currencies: []string{currency.ETHSymbol},
+		Parts:      []string{perun.OwnAlias, peers[0].Alias},
+		Bals:       [][]string{{"1", "2"}},
 	}
 
 	t.Run("happy", func(t *testing.T) {
@@ -80,7 +80,7 @@ func Test_GetChInfo(t *testing.T) {
 		chInfo := ch.GetChInfo()
 		assert.Equal(t, chInfo.ChID, fmt.Sprintf("%x", pch.ID()))
 		assert.Equal(t, chInfo.BalInfo.Parts, validOpeningBalInfo.Parts)
-		assert.Equal(t, chInfo.BalInfo.Currency, validOpeningBalInfo.Currency)
+		assert.Equal(t, chInfo.BalInfo.Currencies, validOpeningBalInfo.Currencies)
 	})
 
 	t.Run("nil_state", func(t *testing.T) {
@@ -98,9 +98,9 @@ func Test_SendChUpdate(t *testing.T) {
 	peers := newPeerIDs(t, uint(2))
 	peerAlias := peers[0].Alias
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETHSymbol,
-		Parts:    []string{perun.OwnAlias, peerAlias},
-		Bal:      []string{"1", "2"},
+		Currencies: []string{currency.ETHSymbol},
+		Parts:      []string{perun.OwnAlias, peerAlias},
+		Bals:       [][]string{{"1", "2"}},
 	}
 	ourIdx := 0
 	noopUpdater := func(s *pchannel.State) error {
@@ -172,12 +172,12 @@ func Test_SendChUpdate(t *testing.T) {
 func Test_HandleUpdate(t *testing.T) {
 	peers := newPeerIDs(t, uint(2))
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETHSymbol,
-		Parts:    []string{perun.OwnAlias, peers[0].Alias},
-		Bal:      []string{"1", "2"},
+		Currencies: []string{currency.ETHSymbol},
+		Parts:      []string{perun.OwnAlias, peers[0].Alias},
+		Bals:       [][]string{{"1", "2"}},
 	}
 	updatedBalInfo := validOpeningBalInfo
-	updatedBalInfo.Bal = []string{"0.5", "2.5"}
+	updatedBalInfo.Bals[0] = []string{"0.5", "2.5"}
 	pch, _ := newMockPCh()
 
 	currState := makeState(t, validOpeningBalInfo, false)
@@ -197,9 +197,9 @@ func Test_HandleUpdate(t *testing.T) {
 func Test_SubUnsubChUpdate(t *testing.T) {
 	peers := newPeerIDs(t, uint(2))
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETHSymbol,
-		Parts:    []string{perun.OwnAlias, peers[0].Alias},
-		Bal:      []string{"1", "2"},
+		Currencies: []string{currency.ETHSymbol},
+		Parts:      []string{perun.OwnAlias, peers[0].Alias},
+		Bals:       [][]string{{"1", "2"}},
 	}
 
 	dummyNotifier := func(notif perun.ChUpdateNotif) {}
@@ -252,12 +252,12 @@ func Test_SubUnsubChUpdate(t *testing.T) {
 func Test_HandleUpdate_Sub(t *testing.T) {
 	peers := newPeerIDs(t, uint(2))
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETHSymbol,
-		Parts:    []string{perun.OwnAlias, peers[0].Alias},
-		Bal:      []string{"1", "2"},
+		Currencies: []string{currency.ETHSymbol},
+		Parts:      []string{perun.OwnAlias, peers[0].Alias},
+		Bals:       [][]string{{"1", "2"}},
 	}
 	updatedBalInfo := validOpeningBalInfo
-	updatedBalInfo.Bal = []string{"0.5", "2.5"}
+	updatedBalInfo.Bals[0] = []string{"0.5", "2.5"}
 	pch, _ := newMockPCh()
 
 	currState := makeState(t, validOpeningBalInfo, false)
@@ -340,12 +340,12 @@ func Test_HandleUpdate_Sub(t *testing.T) {
 func Test_HandleUpdate_Respond(t *testing.T) {
 	peers := newPeerIDs(t, uint(2))
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETHSymbol,
-		Parts:    []string{perun.OwnAlias, peers[0].Alias},
-		Bal:      []string{"1", "2"},
+		Currencies: []string{currency.ETHSymbol},
+		Parts:      []string{perun.OwnAlias, peers[0].Alias},
+		Bals:       [][]string{{"1", "2"}},
 	}
 	updatedBalInfo := validOpeningBalInfo
-	updatedBalInfo.Bal = []string{"0.5", "2.5"}
+	updatedBalInfo.Bals[0] = []string{"0.5", "2.5"}
 	pch, _ := newMockPCh()
 	pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
 
@@ -561,9 +561,9 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 func Test_Close(t *testing.T) {
 	peers := newPeerIDs(t, uint(2))
 	validOpeningBalInfo := perun.BalInfo{
-		Currency: currency.ETHSymbol,
-		Parts:    []string{perun.OwnAlias, peers[0].Alias},
-		Bal:      []string{"1", "2"},
+		Currencies: []string{currency.ETHSymbol},
+		Parts:      []string{perun.OwnAlias, peers[0].Alias},
+		Bals:       [][]string{{"1", "2"}},
 	}
 	peerIdx := 1
 

@@ -114,9 +114,9 @@ func Test_Integ_Role(t *testing.T) {
 				defer wg.Done()
 
 				openingBalInfo := perun.BalInfo{
-					Currency: currency.ETHSymbol,
-					Parts:    []string{perun.OwnAlias, bobAlias},
-					Bal:      []string{"1", "2"},
+					Currencies: []string{currency.ETHSymbol},
+					Parts:      []string{perun.OwnAlias, bobAlias},
+					Bals:       [][]string{{"1", "2"}},
 				}
 				app := perun.App{
 					Def:  pchannel.NoApp(),
@@ -155,9 +155,9 @@ func Test_Integ_Role(t *testing.T) {
 			defer wg.Done()
 
 			openingBalInfo := perun.BalInfo{
-				Currency: currency.ETHSymbol,
-				Parts:    []string{aliceAlias, perun.OwnAlias},
-				Bal:      []string{"1", "2"},
+				Currencies: []string{currency.ETHSymbol},
+				Parts:      []string{aliceAlias, perun.OwnAlias},
+				Bals:       [][]string{{"1", "2"}},
 			}
 			app := perun.App{
 				Def:  pchannel.NoApp(),

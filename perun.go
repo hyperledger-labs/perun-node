@@ -524,15 +524,22 @@ type (
 	}
 
 	// BalInfo represents the Balance information of the channel participants.
-	// A valid BalInfo should meet the following conditions (will be validated before using the struct):
-	//	1. Lengths of Parts list and Balance list are equal.
-	//	2. All entries in Parts list are unique.
+	// Bal[0] represents the balance of the channel for asset Currency[0] for
+	// the all the channel participants as mentioned in Parts; Bal[1] specifies
+	// for asset Currency[1] and so on.
+	//
+	// A valid BalInfo should meet the following conditions (will be validated
+	// before using the struct):
+	//  1. Length of Currencies and outer length of Bal are equal.
+	//	1. Lengths of Parts and inner length of Bal are equal.
+	//	2. All entries in Parts list are unique unique.
 	//	3. Parts list has an entry "self", that represents the user of the session.
 	//	4. No amount in Balance must be negative.
+	//
 	BalInfo struct {
-		Currency string   // Currency interpreter used to interpret the amounts in the balance.
-		Parts    []string // List of aliases of channel participants.
-		Bal      []string // Amounts held by each participant in this channel for the given currency.
+		Currencies []string   // List of currencies for the specifying amounts in the balance.
+		Parts      []string   // List of aliases of channel participants.
+		Bals       [][]string // Amounts held by each participant in this channel for the each currency.
 	}
 
 	// StateUpdater function is the function that will be used for applying state updates.

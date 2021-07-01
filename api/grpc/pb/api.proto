@@ -43,9 +43,12 @@ message PeerID {
 //	3. Parts list has an entry "self", that represents the user of the session.
 //	4. No amount in Balance must be negative.
 message BalInfo {
-    string currency=1;
+    message bal {
+        repeated string bal=1;
+    }
+    repeated string currencies=1;
     repeated string parts=2;
-    repeated string bal=3;
+    repeated bal bals=3;
 }
 
 message PayChInfo {

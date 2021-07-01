@@ -135,7 +135,6 @@ func newEthereumPaymentClient(
 	comm perun.CommBackend, commAddr string,
 	offChainCred perun.Credential) (
 	ChClient, perun.APIError) {
-
 	offChainAcc, err := offChainCred.Wallet.Unlock(offChainCred.Addr)
 	if err != nil {
 		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain account"))
