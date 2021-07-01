@@ -175,6 +175,8 @@ type ContractRegistry interface {
 	RegisterAssetERC20(token, asset pwallet.Address) (symbol string, maxDecimals uint8, _ error)
 }
 
+//go:generate mockery --name ROContractRegistry --output ./internal/mocks
+
 // ROContractRegistry provides an interface to retrieve contracts.
 type ROContractRegistry interface {
 	Adjudicator() pwallet.Address
@@ -444,7 +446,7 @@ type ChAPI interface {
 	// Methods for reading the channel information is doesn't change.
 	// These APIs don't use mutex lock.
 	ID() string
-	Currency() Currency
+	Currencies() []Currency
 	Parts() []string
 	ChallengeDurSecs() uint64
 

@@ -58,8 +58,13 @@ func Test_Getters(t *testing.T) {
 	ch := session.NewChForTest(
 		pch, currency.ETHSymbol, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
+	currencies := ch.Currencies()
+	symbols := make([]string, len(currencies))
+	for i := range currencies {
+		symbols[i] = currencies[i].Symbol()
+	}
 	assert.Equal(t, ch.ID(), fmt.Sprintf("%x", pch.ID()))
-	assert.Equal(t, ch.Currency().Symbol(), validOpeningBalInfo.Currencies[0])
+	assert.Equal(t, symbols, validOpeningBalInfo.Currencies)
 	assert.Equal(t, ch.Parts(), validOpeningBalInfo.Parts)
 	assert.Equal(t, ch.ChallengeDurSecs(), uint64(10))
 }

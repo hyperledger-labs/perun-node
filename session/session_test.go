@@ -905,7 +905,8 @@ func newMockPCh() (*mocks.PChannel, chan time.Time) {
 }
 
 func makeState(t *testing.T, balInfo perun.BalInfo, isFinal bool) *pchannel.State {
-	allocation, err := session.MakeAllocation(balInfo, nil, currencytest.Registry())
+	allocation, err := session.MakeAllocation(balInfo,
+		roContractRegistry(), currencytest.Registry())
 	require.NoError(t, err)
 	return &pchannel.State{
 		ID:         [32]byte{0},
@@ -918,15 +919,13 @@ func makeState(t *testing.T, balInfo perun.BalInfo, isFinal bool) *pchannel.Stat
 }
 
 func newChProposal(t *testing.T, ownAddr, peer perun.PeerID) pclient.ChannelProposal {
-	prng := rand.New(rand.NewSource(121))
-	chAsset := ethereumtest.NewRandomAddress(prng)
-
 	openingBalInfo := perun.BalInfo{
 		Currencies: []string{currency.ETHSymbol},
 		Parts:      []string{peer.Alias, perun.OwnAlias},
 		Bals:       [][]string{{"1", "2"}},
 	}
-	allocation, err := session.MakeAllocation(openingBalInfo, chAsset, currencytest.Registry())
+	allocation, err := session.MakeAllocation(openingBalInfo,
+		roContractRegistry(), currencytest.Registry())
 	require.NoError(t, err)
 
 	proposal, err := pclient.NewLedgerChannelProposal(10, ownAddr.OffChainAddr, allocation,
@@ -962,4 +961,23 @@ func newSessionWCh(t *testing.T, peerIDs []perun.PeerID, openingBalInfo perun.Ba
 	require.NotZero(t, chInfo)
 
 	return session
+}
+
+var r *mocks.ROContractRegistry
+
+// roContractRegistry returns a contract registry for use in tests with all the assets
+// used in the tests already registered.
+//
+// This is intended for use in mock tests in session, because in actual
+// implementation, this is initialized by the node and passed onto the session.
+func roContractRegistry() perun.ROContractRegistry {
+	if r != nil {
+		return r
+	}
+	r = &mocks.ROContractRegistry{}
+	adjudicator, assetETH, _ := ethereumtest.ContractAddrs()
+	r.On("Adjudicator").Return(adjudicator)
+	r.On("AssetETH").Return(assetETH)
+	r.On("Asset", "ETH").Return(assetETH, true)
+	return r
 }
