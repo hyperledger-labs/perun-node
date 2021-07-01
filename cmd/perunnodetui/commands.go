@@ -193,7 +193,7 @@ func grpcBalInfotoBalInfo(grpcPayChInfo *pb.BalInfo) balInfo {
 	peerIdx := findPeerIndex(grpcPayChInfo.Parts)
 	ourIdx := peerIdx ^ 1
 	return balInfo{
-		ours:   grpcPayChInfo.Bal[ourIdx],
-		theirs: grpcPayChInfo.Bal[peerIdx],
+		ours:   grpcPayChInfo.Bals[0].Bal[ourIdx],
+		theirs: grpcPayChInfo.Bals[0].Bal[peerIdx],
 	}
 }

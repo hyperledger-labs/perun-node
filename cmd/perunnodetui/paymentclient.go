@@ -62,12 +62,15 @@ func newOutgoingChannelProposalFn(peer, ours, theirs string) proposerFn {
 			return false, "", balInfo{}, errors.WithStack(errNotConnectedToNode)
 		}
 
+		bals := make([]*pb.BalInfoBal, 2)
+		bals[0] = &pb.BalInfoBal{}
+		bals[0].Bal = []string{ours, theirs}
 		req := pb.OpenPayChReq{
 			SessionID: sessionID,
 			OpeningBalInfo: &pb.BalInfo{
-				Currency: currency.ETHSymbol,
-				Parts:    []string{perun.OwnAlias, peer},
-				Bal:      []string{ours, theirs},
+				Currencies: []string{currency.ETHSymbol},
+				Parts:      []string{perun.OwnAlias, peer},
+				Bals:       bals,
 			},
 			ChallengeDurSecs: challengeDurSecs,
 		}

@@ -51,14 +51,14 @@ var (
 
 	// Initial channel data.
 	openingBalInfoInput = perun.BalInfo{
-		Currency: curr,
-		Parts:    parts,
-		Bal:      []string{"1", "2"},
+		Currencies: []string{curr},
+		Parts:      parts,
+		Bals:       [][]string{{"1", "2"}},
 	}
 	openingBalInfo = perun.BalInfo{
-		Currency: curr,
-		Parts:    parts,
-		Bal:      []string{"1.000000", "2.000000"},
+		Currencies: []string{curr},
+		Parts:      parts,
+		Bals:       [][]string{{"1.000000", "2.000000"}},
 	}
 	openedChInfo = perun.ChInfo{
 		ChID:    chID,
@@ -84,9 +84,9 @@ var (
 	// Updated channel data.
 	amountToSend   = "0.5"
 	updatedBalInfo = perun.BalInfo{
-		Currency: curr,
-		Parts:    parts,
-		Bal:      []string{"0.500000", "2.500000"},
+		Currencies: []string{curr},
+		Parts:      parts,
+		Bals:       [][]string{{"0.500000", "2.500000"}},
 	}
 	updatedChInfo = perun.ChInfo{
 		ChID:    chID,
