@@ -116,9 +116,9 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		openingBalInfo := perun.BalInfo{
-			Currency: currency.ETHSymbol,
-			Parts:    []string{perun.OwnAlias, bobAlias},
-			Bal:      []string{"1", "2"},
+			Currencies: []string{currency.ETHSymbol},
+			Parts:      []string{perun.OwnAlias, bobAlias},
+			Bals:       [][]string{{"1", "2"}},
 		}
 		var challengeDurSecs uint64 = 10
 		aliceChInfo, err = payment.OpenPayCh(ctx, aliceSess, openingBalInfo, challengeDurSecs)

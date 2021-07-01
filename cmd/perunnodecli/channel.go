@@ -233,12 +233,15 @@ func channelSendFn(c *ishell.Context) {
 		return
 	}
 
+	bals := make([]*pb.BalInfoBal, 2)
+	bals[0] = &pb.BalInfoBal{}
+	bals[0].Bal = []string{c.Args[1], c.Args[2]}
 	req := pb.OpenPayChReq{
 		SessionID: sessionID,
 		OpeningBalInfo: &pb.BalInfo{
-			Currency: currency.ETHSymbol,
-			Parts:    []string{perun.OwnAlias, c.Args[0]},
-			Bal:      []string{c.Args[1], c.Args[2]},
+			Currencies: []string{currency.ETHSymbol},
+			Parts:      []string{perun.OwnAlias, c.Args[0]},
+			Bals:       bals,
 		},
 		ChallengeDurSecs: challengeDurSecs,
 	}
@@ -571,17 +574,17 @@ func getChannelInfo(c ishell.Actions, chAlias string) *pb.PayChInfo {
 
 func prettifyChannelOpeningRequest(notif *pb.SubPayChProposalsResp_Notify) string {
 	return fmt.Sprintf("Currency: %s, Balance: %v",
-		notif.OpeningBalInfo.Currency, toBalanceMap(notif.OpeningBalInfo.Parts, notif.OpeningBalInfo.Bal))
+		notif.OpeningBalInfo.Currencies[0], toBalanceMap(notif.OpeningBalInfo.Parts, notif.OpeningBalInfo.Bals[0].Bal))
 }
 
 func prettifyBalanceInfo(balInfo *pb.BalInfo, v string) string {
 	return fmt.Sprintf("Currency: %s, Balance: %v, Version: %s",
-		balInfo.Currency, toBalanceMap(balInfo.Parts, balInfo.Bal), v)
+		balInfo.Currencies[0], toBalanceMap(balInfo.Parts, balInfo.Bals[0].Bal), v)
 }
 
 func prettifyPayChInfo(chInfo *pb.PayChInfo) string {
-	return fmt.Sprintf("ID: %s, Currency: %s, Version: %s, Balance %v",
-		chInfo.ChID, chInfo.BalInfo.Currency, chInfo.Version, toBalanceMap(chInfo.BalInfo.Parts, chInfo.BalInfo.Bal))
+	return fmt.Sprintf("ID: %s, Currency: %s, Version: %s, Balance %v", chInfo.ChID,
+		chInfo.BalInfo.Currencies, chInfo.Version, toBalanceMap(chInfo.BalInfo.Parts, chInfo.BalInfo.Bals[0].Bal))
 }
 
 func toBalanceMap(parts, bal []string) string {

@@ -486,9 +486,9 @@ func sanitizeBalInfo(balInfo perun.BalInfo) {
 		balInfo.Parts[ownIdx] = balInfo.Parts[0]
 		balInfo.Parts[0] = perun.OwnAlias
 
-		ownAmount := balInfo.Bal[ownIdx]
-		balInfo.Bal[ownIdx] = balInfo.Bal[0]
-		balInfo.Bal[0] = ownAmount
+		ownAmount := balInfo.Bals[0][ownIdx]
+		balInfo.Bals[0][ownIdx] = balInfo.Bals[0][0]
+		balInfo.Bals[0][0] = ownAmount
 	}
 }
 
@@ -554,18 +554,18 @@ func makeOffChainAddrs(partIDs []perun.PeerID) []pwire.Address {
 // It errors if any of the amounts cannot be parsed using the interpreter corresponding to the currency.
 func makeAllocation(balInfo perun.BalInfo, chAsset pchannel.Asset, currencies perun.ROCurrencyRegistry) (
 	perun.Currency, *pchannel.Allocation, perun.APIError) {
-	if !currencies.IsRegistered(balInfo.Currency) {
-		return nil, nil, perun.NewAPIErrResourceNotFound(ResTypeCurrency, balInfo.Currency)
+	if !currencies.IsRegistered(balInfo.Currencies[0]) {
+		return nil, nil, perun.NewAPIErrResourceNotFound(ResTypeCurrency, balInfo.Currencies[0])
 	}
-	currency := currencies.Currency(balInfo.Currency)
+	currency := currencies.Currency(balInfo.Currencies[0])
 
-	balance := make([]*big.Int, len(balInfo.Bal))
+	balance := make([]*big.Int, len(balInfo.Bals[0]))
 	var err error
-	for i := range balInfo.Bal {
-		balance[i], err = currency.Parse(balInfo.Bal[i])
+	for i := range balInfo.Bals[0] {
+		balance[i], err = currency.Parse(balInfo.Bals[0][i])
 		if err != nil {
 			err = errors.WithMessage(err, "parsing amount")
-			return nil, nil, perun.NewAPIErrInvalidArgument(err, ArgNameAmount, balInfo.Bal[i])
+			return nil, nil, perun.NewAPIErrInvalidArgument(err, ArgNameAmount, balInfo.Bals[0][i])
 		}
 	}
 

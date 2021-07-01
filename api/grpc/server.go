@@ -695,20 +695,29 @@ func toGrpcPayChInfo(src payment.PayChInfo) *pb.PayChInfo {
 // fromGrpcBalInfo is a helper function to convert BalInfo struct defined in grpc package
 // to BalInfo struct defined in perun-node.
 func fromGrpcBalInfo(src *pb.BalInfo) perun.BalInfo {
+	bals := make([][]string, len(src.Bals))
+	for i := range src.Bals {
+		bals[i] = src.Bals[i].Bal
+	}
 	return perun.BalInfo{
-		Currency: src.Currency,
-		Parts:    src.Parts,
-		Bal:      src.Bal,
+		Currencies: src.Currencies,
+		Parts:      src.Parts,
+		Bals:       bals,
 	}
 }
 
 // toGrpcBalInfo is a helper function to convert BalInfo struct defined in perun-node
 // to BalInfo struct defined in grpc package.
 func toGrpcBalInfo(src perun.BalInfo) *pb.BalInfo {
+	bals := make([]*pb.BalInfoBal, len(src.Bals))
+	for i := range src.Bals {
+		bals[i] = &pb.BalInfoBal{}
+		bals[i].Bal = src.Bals[i]
+	}
 	return &pb.BalInfo{
-		Currency: src.Currency,
-		Parts:    src.Parts,
-		Bal:      src.Bal,
+		Currencies: src.Currencies,
+		Parts:      src.Parts,
+		Bals:       bals,
 	}
 }
 

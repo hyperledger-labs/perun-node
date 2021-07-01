@@ -591,13 +591,13 @@ func makeBalInfoFromState(parts []string, currency perun.Currency, state *pchann
 // makeBalInfoFromRawBal retrieves balance information from the raw balance.
 func makeBalInfoFromRawBal(parts []string, currency perun.Currency, rawBal []*big.Int) perun.BalInfo {
 	balInfo := perun.BalInfo{
-		Currency: currency.Symbol(),
-		Parts:    parts,
-		Bal:      make([]string, len(rawBal)),
+		Currencies: []string{currency.Symbol()},
+		Parts:      parts,
+		Bals:       [][]string{make([]string, len(rawBal))},
 	}
 
 	for i := range rawBal {
-		balInfo.Bal[i] = currency.Print(rawBal[i])
+		balInfo.Bals[0][i] = currency.Print(rawBal[i])
 	}
 	return balInfo
 }
