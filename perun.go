@@ -123,7 +123,7 @@ type ChainBackend interface {
 	DeployAssetERC20(adjudicator, tokenERC20, txSender pwallet.Address) (pwallet.Address, error)
 	DeployPerunToken(initAccs []pwallet.Address, initBal *big.Int, txSender pwallet.Address) (pwallet.Address, error)
 
-	NewFunder(assetETH, txSender pwallet.Address) pchannel.Funder
+	NewFunder(assetETH, txSender pwallet.Address) Funder
 	NewAdjudicator(adjudicator, txSender pwallet.Address) pchannel.Adjudicator
 }
 
@@ -137,6 +137,20 @@ type ROChainBackend interface {
 	ValidateAssetETH(adjudicator, assetETH pwallet.Address) error
 	ValidateAssetERC20(adjudicator, tokenERC20, assetERC20 pwallet.Address) (symbol string, maxDecimals uint8, _ error)
 	ERC20Info(token pwallet.Address) (symbol string, decimal uint8, _ error)
+}
+
+// Funder wraps the methods required on ETH funder.
+//
+// ETH funder implements helper methods for registering assets and checking if
+// assets are registered. But these methods use types that are defined in
+// ethereum backend packages.
+//
+// This wrapper wraps those types with only those types defined in go-perun
+// core abstraction.
+type Funder interface {
+	pchannel.Funder
+	RegisterAssetERC20(asset, token, acc pwallet.Address) bool
+	IsAssetRegistered(asset pwallet.Address) bool
 }
 
 // WalletBackend wraps the methods for instantiating wallets and accounts that are specific to a blockchain platform.
