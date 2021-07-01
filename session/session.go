@@ -120,7 +120,8 @@ type (
 		timeoutCfg timeoutConfig
 		chainURL   string // used for annotating error messages.
 
-		chain perun.ChainBackend
+		chain  perun.ChainBackend
+		funder perun.Funder
 
 		chs              *chRegistry
 		contractRegistry perun.ContractRegistry
@@ -208,6 +209,7 @@ func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry
 		chClient:             chClient,
 		idProvider:           idProvider,
 		chain:                chain,
+		funder:               funder,
 		chs:                  newChRegistry(initialChRegistrySize),
 		contractRegistry:     contractRegistry,
 		currencyRegistry:     currencyRegistry,
@@ -412,6 +414,7 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 	if apiErr != nil {
 		return perun.ChInfo{}, apiErr
 	}
+	updateAssetsInFunder(currencies, s.contractRegistry, s.funder, s.user.OnChain.Addr)
 
 	proposal, err := pclient.NewLedgerChannelProposal(challengeDurSecs, s.user.OffChainAddr, allocation,
 		makeOffChainAddrs(parts), pclient.WithApp(app.Def, app.Data), pclient.WithRandomNonce())
@@ -592,6 +595,19 @@ func makeAllocation(balInfo perun.BalInfo,
 		Assets:   assets,
 		Balances: balances,
 	}, nil
+}
+
+func updateAssetsInFunder(currs []perun.Currency, contractRegistry perun.ROContractRegistry,
+	f perun.Funder, onChainAcc pwallet.Address) {
+	// Updating assets in funder is done only after constructing an allocation.
+	// So, all assets will be present in the registry,
+	for i := range currs {
+		asset, _ := contractRegistry.Asset(currs[i].Symbol())
+		if !f.IsAssetRegistered(asset) {
+			token, _ := contractRegistry.Token(currs[i].Symbol())
+			f.RegisterAssetERC20(asset, token, onChainAcc)
+		}
+	}
 }
 
 // addCh adds the channel to session. It locks the session mutex during the operation.
@@ -852,6 +868,7 @@ func (s *Session) acceptChProposal(pctx context.Context, entry chProposalRespond
 	proposal := entry.proposal
 	resp := proposal.Accept(s.user.OffChainAddr, pclient.WithRandomNonce())
 
+	updateAssetsInFunder(entry.currencies, s.contractRegistry, s.funder, s.user.OnChain.Addr)
 	pch, err := entry.responder.Accept(ctx, resp)
 	if err != nil {
 		err = errors.WithMessage(err, "accepting channel proposal")
