@@ -69,6 +69,8 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient, chainSetup *e
 		return nil, errors.WithMessage(err, "initializing contract registry")
 	}
 
+	funder := chainSetup.ChainBackend.NewFunder(contracts.AssetETH(), user.OnChain.Addr)
+
 	return &Session{
 		Logger:               log.NewLoggerWithField("session-id", sessionID),
 		id:                   sessionID,
@@ -79,6 +81,7 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient, chainSetup *e
 		chClient:             chClient,
 		idProvider:           idProvider,
 		chain:                chainSetup.ChainBackend,
+		funder:               funder,
 		chs:                  newChRegistry(initialChRegistrySize),
 		contractRegistry:     contracts,
 		currencyRegistry:     currencytest.Registry(),

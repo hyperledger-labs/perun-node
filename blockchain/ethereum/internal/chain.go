@@ -31,8 +31,41 @@ import (
 	pchannel "perun.network/go-perun/channel"
 	pwallet "perun.network/go-perun/wallet"
 
+	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain"
 )
+
+// Funder implements a wrapper around ETH Funder.
+//
+// See perun.Funder for more info.
+type Funder struct {
+	*pethchannel.Funder
+}
+
+// RegisterAssetERC20 wraps the RegisterAssetERC20 on the actual ETH funder
+// implementation with abstract types defined in go-perun core.
+func (f *Funder) RegisterAssetERC20(asset pwallet.Address, token pwallet.Address, onChainAcc pwallet.Address) bool {
+	assetAddr, ok := asset.(*pethwallet.Address)
+	if !ok {
+		return false
+	}
+	return f.Funder.RegisterAsset(
+		*assetAddr,
+		pethchannel.NewERC20Depositor(pethwallet.AsEthAddr(token)),
+		accounts.Account{Address: pethwallet.AsEthAddr(onChainAcc)},
+	)
+}
+
+// IsAssetRegistered wraps the IsAssetRegistered on the actual ETH funder
+// implementation with abstract types defined in go-perun core.
+func (f *Funder) IsAssetRegistered(asset pwallet.Address) bool {
+	assetAddr, ok := asset.(*pethwallet.Address)
+	if !ok {
+		return false
+	}
+	_, _, ok = f.Funder.IsAssetRegistered(*assetAddr)
+	return ok
+}
 
 // ChainBackend provides ethereum specific contract backend functionality.
 type ChainBackend struct {
@@ -45,13 +78,13 @@ type ChainBackend struct {
 }
 
 // NewFunder initializes and returns an instance of ethereum funder.
-func (cb *ChainBackend) NewFunder(assetETHAddr pwallet.Address, txSender pwallet.Address) pchannel.Funder {
+func (cb *ChainBackend) NewFunder(assetETHAddr pwallet.Address, txSender pwallet.Address) perun.Funder {
 	assetETH := pethwallet.AsWalletAddr(pethwallet.AsEthAddr(assetETHAddr))
 	txSenderAcc := accounts.Account{Address: pethwallet.AsEthAddr(txSender)}
 	funder := pethchannel.NewFunder(*cb.Cb)
 	// Registering unique assets on a newly initialized funder will always return true.
 	funder.RegisterAsset(*assetETH, pethchannel.NewETHDepositor(), txSenderAcc)
-	return funder
+	return &Funder{funder}
 }
 
 // NewAdjudicator initializes and returns an instance of ethereum adjudicator.
