@@ -467,8 +467,13 @@ func SendPayChUpdate(t *testing.T, sessionID, chID, peerAlias, amount string, wa
 	req := pb.SendPayChUpdateReq{
 		SessionID: sessionID,
 		ChID:      chID,
-		Payee:     peerAlias,
-		Amount:    amount,
+		Payments: []*pb.Payment{
+			{
+				Currency: currency.ETHSymbol,
+				Payee:    peerAlias,
+				Amount:   amount,
+			},
+		},
 	}
 	resp, err := client.SendPayChUpdate(ctx, &req)
 	require.NoErrorf(t, err, "SendPayChUpdate")

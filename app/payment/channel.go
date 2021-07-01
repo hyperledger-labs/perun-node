@@ -43,12 +43,20 @@ const (
 )
 
 type (
+	// Payment contains the info required for making a single payment.
+	Payment struct {
+		Currency string
+		Payee    string
+		Amount   string
+	}
+
 	// PayChInfo represents the interpretation of channelInfo for payment app.
 	PayChInfo struct {
 		ChID    string
 		BalInfo perun.BalInfo
 		Version string
 	}
+
 	// PayChUpdateNotifier represents the interpretation of channel update notifier for payment app.
 	PayChUpdateNotifier func(PayChUpdateNotif)
 
@@ -73,18 +81,32 @@ type (
 // - ErrResourceNotFound with ResourceType: "peerID" when any of the peer aliases are not known.
 // - ErrInvalidArgument with Name:"Amount" when the amount is invalid.
 // or any of the errors returned by the session.SendChUpdate API.
-func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payee, amount string) (PayChInfo, perun.APIError) {
-	// TODO: Replace hard-coded SendPayChUpdate API is updated to handle multiple currencies.
-	parsedAmount, err := ch.Currencies()[0].Parse(amount)
-	if err != nil {
-		err = errors.WithMessage(err, ErrInvalidAmount.Error())
-		return PayChInfo{}, perun.NewAPIErrInvalidArgument(err, session.ArgNameAmount, amount)
+func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payments []Payment) (PayChInfo, perun.APIError) {
+	updates := make([]func(state *pchannel.State), len(payments))
+
+	for i := range payments {
+		idxOfCurrencyInBals, currency, found := ch.Currency(payments[i].Currency)
+		if !found {
+			return PayChInfo{}, perun.NewAPIErrResourceNotFound(session.ResTypeCurrency, payments[i].Currency)
+		}
+		parsedAmount, err := currency.Parse(payments[i].Amount)
+		if err != nil {
+			err = errors.WithMessage(err, ErrInvalidAmount.Error())
+			return PayChInfo{}, perun.NewAPIErrInvalidArgument(err, session.ArgNameAmount, payments[i].Amount)
+		}
+		payerIdx, payeeIdx, err := getPayerPayeeIdx(ch.Parts(), payments[i].Payee)
+		if err != nil {
+			return PayChInfo{}, perun.NewAPIErrInvalidArgument(err, session.ArgNamePayee, payments[i].Payee)
+		}
+		updates[i] = newUpdate(payerIdx, payeeIdx, idxOfCurrencyInBals, parsedAmount)
 	}
-	payerIdx, payeeIdx, err := getPayerPayeeIdx(ch.Parts(), payee)
-	if err != nil {
-		return PayChInfo{}, perun.NewAPIErrInvalidArgument(err, session.ArgNamePayee, payee)
-	}
-	chInfo, apiErr := ch.SendChUpdate(pctx, newUpdate(payerIdx, payeeIdx, parsedAmount))
+
+	chInfo, apiErr := ch.SendChUpdate(pctx, func(state *pchannel.State) error {
+		for i := range updates {
+			updates[i](state)
+		}
+		return nil
+	})
 	return toPayChInfo(chInfo), apiErr
 }
 
@@ -99,12 +121,11 @@ func getPayerPayeeIdx(parts []string, payee string) (payerIdx, payeeIdx int, _ e
 	return 0, 0, ErrInvalidPayee
 }
 
-func newUpdate(payerIdx, payeeIdx int, parsedAmount *big.Int) perun.StateUpdater {
-	return func(state *pchannel.State) error {
-		bal := state.Allocation.Balances[0]
+func newUpdate(payerIdx, payeeIdx, idxOfCurrencyInBals int, parsedAmount *big.Int) func(state *pchannel.State) {
+	return func(state *pchannel.State) {
+		bal := state.Allocation.Balances[idxOfCurrencyInBals]
 		bal[payerIdx].Sub(bal[payerIdx], parsedAmount)
 		bal[payeeIdx].Add(bal[payeeIdx], parsedAmount)
-		return nil
 	}
 }
 

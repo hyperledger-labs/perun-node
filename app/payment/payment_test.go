@@ -172,7 +172,10 @@ func Test_Integ_PaymentAPI(t *testing.T) {
 	wg.Add(1)
 	go bobAcceptIncomingUpdate()
 
-	aliceUpdateChInfo, err := payment.SendPayChUpdate(ctx, aliceCh, bobAlias, "0.1")
+	payments := []payment.Payment{
+		makePayment(currency.ETHSymbol, bobAlias, "0.1"),
+	}
+	aliceUpdateChInfo, err := payment.SendPayChUpdate(ctx, aliceCh, payments)
 	handleError(err, "sending payment")
 	fmt.Printf("alice: sent payment to bob, updated version: %s\n", aliceUpdateChInfo.Version)
 

@@ -253,8 +253,13 @@ func sendUpdate(chID, peer, amount string) (bool, balInfo, error) {
 	req := pb.SendPayChUpdateReq{
 		SessionID: sessionID,
 		ChID:      chID,
-		Payee:     peer,
-		Amount:    amount,
+		Payments: []*pb.Payment{
+			{
+				Currency: currency.ETHSymbol,
+				Payee:    peer,
+				Amount:   amount,
+			},
+		},
 	}
 	resp, err := client.SendPayChUpdate(context.Background(), &req)
 	if err != nil {

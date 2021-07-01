@@ -562,7 +562,6 @@ func makeOffChainAddrs(partIDs []perun.PeerID) []pwire.Address {
 func makeAllocation(balInfo perun.BalInfo,
 	contractRegistry perun.ROContractRegistry, currencyRegistry perun.ROCurrencyRegistry) (
 	[]perun.Currency, *pchannel.Allocation, perun.APIError) {
-
 	if len(balInfo.Currencies) != len(balInfo.Bals) {
 		err := errors.New("length of currencies should match the outer length of bals")
 		return nil, nil, perun.NewAPIErrInvalidArgument(err, ArgNameCurrency, strings.Join(balInfo.Currencies, ","))
