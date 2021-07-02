@@ -1,0 +1,55 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+stages:
+  - vet
+  - lint
+  - test
+  - security
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+  - node_modules/
+  - build/
+
+copyright:
+  stage: vet
+  script:
+    - .scripts/check-notice-authors.sh $(git log --pretty=format:"%H" --merges -n 1)
+    - .scripts/check-copyright-notice.sh
+
+solhint:
+  image: node:12
+  stage: lint
+  script:
+    - npm install -g solhint
+    - solhint "contracts/**/*.sol"
+
+.build: &build |
+  npm -g install truffle@5.1.46 typescript
+  yarn install --pure-lockfile
+  yarn build
+
+test:
+  image: node:12
+  stage: test
+  script:
+    - *build
+    - yarn test
+
+coverage:
+  image: node:12
+  stage: security
+  script:
+    - *build
+    - truffle run coverage
+
+mythril:
+  image: python:3.7
+  stage: security
+  script:
+    - pip3 install mythril
+    - myth truffle
+  only:
+    changes:
+      - contracts/*

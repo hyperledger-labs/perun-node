@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "module": "commonjs",
+    "strict": true,
+    "moduleResolution": "node",
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["es2017", "esnext.asynciterable"],
+    "sourceMap": true,
+    "rootDir": "src",
+    "outDir": "build",
+    "typeRoots": ["./node_modules", "./node_modules/@types", "./types"],
+    "types": ["node", "chai", "mocha", "bn.js", "web3","truffle-typings", "truffle-contracts"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "build", "node_modules/*"]
+}
