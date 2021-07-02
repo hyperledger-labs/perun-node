@@ -1,0 +1,3 @@
+[submodule "backend/ethereum/contracts"]
+	path = backend/ethereum/contracts
+	url = https://github.com/hyperledger-labs/perun-eth-contracts

@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - dev
+      - master
+    tags:
+  pull_request:
+  release:
+
+jobs:
+  check-copyright:
+    name: Copyright
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: License header
+        run: .scripts/check-copyright-notice.sh
+      - name: Authors
+        run: .scripts/check-notice-authors.sh origin/master
+
+  vet:
+    name: Vetting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Check vanity import
+        run: .scripts/check-vanity-imports.sh $GITHUB_WORKSPACE
+      - name: Lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.40.1
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.16
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Unit Tests
+        run: go test -timeout 60s ./...
+
+  race-tests:
+    name: Race Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.16
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Unit Race Tests
+        run: go test -timeout 120s -race -gcflags=all=-d=checkptr=0 ./...
