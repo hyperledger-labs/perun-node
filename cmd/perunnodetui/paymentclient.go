@@ -62,7 +62,7 @@ func newOutgoingChannelProposalFn(peer, ours, theirs string) proposerFn {
 			return false, "", balInfo{}, errors.WithStack(errNotConnectedToNode)
 		}
 
-		bals := make([]*pb.BalInfoBal, 2)
+		bals := make([]*pb.BalInfoBal, 1)
 		bals[0] = &pb.BalInfoBal{}
 		bals[0].Bal = []string{ours, theirs}
 		req := pb.OpenPayChReq{
