@@ -233,7 +233,7 @@ func channelSendFn(c *ishell.Context) {
 		return
 	}
 
-	bals := make([]*pb.BalInfoBal, 2)
+	bals := make([]*pb.BalInfoBal, 1)
 	bals[0] = &pb.BalInfoBal{}
 	bals[0].Bal = []string{c.Args[1], c.Args[2]}
 	req := pb.OpenPayChReq{
