@@ -72,15 +72,14 @@ This project currently contains three executable packages located in the `cmd` d
   visual representation most of the actions, it is easy way to try out payment
   channel API and understand the perun protocol.
 
-For detailed information on using perun-node with `perunnodecli`, see the
+For a tutorial on using perun-node with `perunnodecli`, see the
 [tutorial section](https://labs.hyperledger.org/perun-doc/node/introduction.html#user-guide)
 on the project documentation website.
 
-For detailed information on using perun-node with `perunnodetui`, see the
-[this section](cmd/perunnodetui/Readme.md).
-
-A video tutorial on using the perunnode tui can be found
-[here](https://youtu.be/sASYSJm3QKw?t=916).
+For a tutorial on using perun-node with `perunnodetui`, see the
+[this section](cmd/perunnodetui/Readme.md). A talk on overview of perun,
+including a hands-on demo of using the perunnode with `perunnodetui` can be
+found [here](https://youtu.be/sASYSJm3QKw?t=916).
 
 ## Getting Started
 
