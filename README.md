@@ -56,8 +56,9 @@ The current version provides the following features:
 |User API|Two Party Payment API |
 |User API Adapter|gRPC |
 |Persistence|LevelDB|
+|Currencies|ETH, Any ERC20 token|
 
-This project currently contains two executable packages located in the `cmd` directory.
+This project currently contains three executable packages located in the `cmd` directory.
 
 - `perunnode`: An app for starting a running instance of perun node. It can
   also generate configuration artifacts for trying out the node.
@@ -67,11 +68,18 @@ This project currently contains two executable packages located in the `cmd` dir
     - reference implementation for using the generated grpc client stubs for
       payment channel API.
 
-For detailed information on the features offered by these two applications and
-steps on how to try them out, see the
+- `perunnodetui` is an app with interactive text based user interface. With
+  visual representation most of the actions, it is easy way to try out payment
+  channel API and understand the perun protocol.
+
+For a tutorial on using perun-node with `perunnodecli`, see the
 [tutorial section](https://labs.hyperledger.org/perun-doc/node/introduction.html#user-guide)
-on the project documentation website. For a tutorial using for `perunnodetui`, see
-[this section](cmd/perunnodetui/Readme.md).
+on the project documentation website.
+
+For a tutorial on using perun-node with `perunnodetui`, see
+[this section](cmd/perunnodetui/Readme.md). A talk on overview of perun,
+including a hands-on demo of using the perunnode with `perunnodetui` can be
+found [here](https://youtu.be/sASYSJm3QKw?t=916).
 
 ## Getting Started
 
@@ -108,10 +116,9 @@ golangci-lint run ./...
 # Test
 go test -tags=integration -count=1 ./...
 
-# Build peurnnode and perunnodecli binaries
+# Build perunnode and perunnodecli binaries
 make
 ```
-
 
 ## License
 
