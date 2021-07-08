@@ -76,7 +76,7 @@ For a tutorial on using perun-node with `perunnodecli`, see the
 [tutorial section](https://labs.hyperledger.org/perun-doc/node/introduction.html#user-guide)
 on the project documentation website.
 
-For a tutorial on using perun-node with `perunnodetui`, see the
+For a tutorial on using perun-node with `perunnodetui`, see
 [this section](cmd/perunnodetui/Readme.md). A talk on overview of perun,
 including a hands-on demo of using the perunnode with `perunnodetui` can be
 found [here](https://youtu.be/sASYSJm3QKw?t=916).
