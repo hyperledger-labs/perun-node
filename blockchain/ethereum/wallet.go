@@ -27,7 +27,7 @@ import (
 // This enables the function to be loaded as symbol without importing this package when it is compiled as plugin.
 func NewWalletBackend() perun.WalletBackend {
 	return &internal.WalletBackend{EncParams: internal.ScryptParams{
-		N: internal.StandardScryptN,
-		P: internal.StandardScryptP,
+		N: internal.WeakScryptN,
+		P: internal.WeakScryptP,
 	}}
 }
