@@ -3,9 +3,9 @@
 [rocketchat-url]: https://chat.hyperledger.org/channel/perun
 [rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
 
-| Develop | Master |
-| :----: | :-----: |
-| [![CircleCI](https://circleci.com/gh/hyperledger-labs/perun-node/tree/develop.svg?style=shield)](https://circleci.com/gh/hyperledger-labs/perun-node/tree/develop) | [![CircleCI](https://circleci.com/gh/hyperledger-labs/perun-node/tree/master.svg?style=shield)](https://circleci.com/gh/hyperledger-labs/perun-node/tree/master) |
+| Develop | Main |
+| :----: | :----: |
+| [![CircleCI](https://circleci.com/gh/hyperledger-labs/perun-node/tree/develop.svg?style=shield)](https://circleci.com/gh/hyperledger-labs/perun-node/tree/develop) | [![CircleCI](https://circleci.com/gh/hyperledger-labs/perun-node/tree/main.svg?style=shield)](https://circleci.com/gh/hyperledger-labs/perun-node/tree/main) |
 
 Perun is an open source project that aims to increase blockchain transaction
 throughput by using just a handful of main chain transactions to move an entire
