@@ -27,7 +27,6 @@ import (
 	"github.com/pkg/errors"
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
-	"perun.network/go-perun/pkg/io"
 	psync "perun.network/go-perun/pkg/sync"
 	pwallet "perun.network/go-perun/wallet"
 	pwire "perun.network/go-perun/wire"
@@ -692,9 +691,9 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 // TODO: Here, assets are received as io.Encoder. But since we are working with only one type of client,
 // we know, the underlying type is pwallet.Address and hence we do type extraction without assertion.
 //
-// But when working with multiple clients, the type underlying hte asset should
+// But when working with multiple clients, the type underlying the asset should
 // be specified by the framework and all implementations should comply with it.
-func getCurrencies(assets []io.Encoder,
+func getCurrencies(assets []pchannel.Asset,
 	contractRegistry perun.ROContractRegistry, currencyRegistry perun.ROCurrencyRegistry) ([]perun.Currency, error) {
 	currencies := make([]perun.Currency, len(assets))
 	for i, asset := range assets {
