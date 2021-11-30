@@ -127,20 +127,6 @@ func (_m *PChannel) Phase() channel.Phase {
 	return r0
 }
 
-// Register provides a mock function with given fields: ctx
-func (_m *PChannel) Register(ctx context.Context) error {
-	ret := _m.Called(ctx)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
-		r0 = rf(ctx)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // Settle provides a mock function with given fields: ctx, isSecondary
 func (_m *PChannel) Settle(ctx context.Context, isSecondary bool) error {
 	ret := _m.Called(ctx, isSecondary)
