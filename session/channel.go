@@ -86,7 +86,6 @@ type (
 		State() *pchannel.State
 		OnUpdate(cb func(from, to *pchannel.State))
 		UpdateBy(ctx context.Context, update func(*pchannel.State) error) error
-		Register(ctx context.Context) error
 		Settle(ctx context.Context, isSecondary bool) error
 		Watch(pclient.AdjudicatorEventHandler) error
 	}
@@ -154,26 +153,7 @@ func (ch *Channel) HandleAdjudicatorEvent(e pchannel.AdjudicatorEvent) {
 
 	switch e.(type) {
 
-	case *pchannel.RegisteredEvent:
-		// For collaborative close, this type of event will NOT BE RECEIVED as the
-		// channel will be directly concluded.
-		//
-		// For non-collaborative close, both the parties receive a registered
-		// event. The channel is settled on this event.
-		if !ch.pch.State().IsFinal {
-			ch.Infof("Waiting for timeout to pass")
-			err := e.Timeout().Wait(context.Background())
-			if err != nil {
-				ch.Errorf("Wait for timeout returned error:%v. Trying to settle anyways", err)
-			} else {
-				ch.Info("Timeout passed, initiating settle")
-			}
-
-			apiErr := ch.settle()
-			ch.closeAndNotify(apiErr)
-			return
-		}
-
+	// Valid only when that state is Final and close was not initiated by us.
 	case *pchannel.ConcludedEvent:
 		// For collaborative close, this type of event will be received after one
 		// of the parties registered the final state on the chain. The channel is
@@ -184,26 +164,28 @@ func (ch *Channel) HandleAdjudicatorEvent(e pchannel.AdjudicatorEvent) {
 		// go-perun framework itself.
 		// For details, see the ensureConcluded call in adjudicator.Withdraw
 		// implementation in go-perun/backend/ethereum/channel package.
-		if ch.pch.State().IsFinal {
-			apiErr := ch.settle()
+		if !ch.wasCloseInitiated {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			apiErr := ch.settle(ctx)
+			if apiErr != nil {
+				ch.WithField("method", "HandleAdjudicatorEvent").Errorf("Settling the channel: %v", apiErr)
+			} else {
+				ch.WithField("method", "HandleAdjudicatorEvent").Info("Channel settled")
+			}
 			ch.closeAndNotify(apiErr)
 			return
 		}
 
 	default:
-		ch.Infof("Ignoring adjudicator event that is not of type RegisteredEvent or ConcludedEvent")
+		ch.Infof("Ignoring adjudicator event that is not of type ConcludedEvent")
 	}
 }
 
 // settle concludes the channel on-chain and ensures the funds are withdrawn.
-func (ch *Channel) settle() perun.APIError {
-	ctx, cancel := context.WithTimeout(context.Background(), ch.timeoutCfg.settle(ch.challengeDurSecs))
+func (ch *Channel) settle(pctx context.Context) perun.APIError {
+	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.settle(ch.challengeDurSecs))
 	defer cancel()
-	// Settle in go-perun does not implement secondary logic. So both users
-	// will have sent on-chain transactions, one of which will not reverted.
-	// As discussed in go-perun/issues/8, since real funds are not used, it is
-	// not planned to implement this now.
-	// TODO: remove this comment when secondary logic is implemented.
 	err := ch.pch.Settle(ctx, !ch.wasCloseInitiated)
 	if err != nil {
 		return ch.handleChSettleError(errors.WithMessage(err, "settling channel"))
@@ -525,17 +507,13 @@ func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept
 			ch.WithField("method", "RespondChUpdate").Info("Channel update accepted successfully")
 		}
 		if apiErr == nil && entry.notif.Type == perun.ChUpdateTypeFinal {
-			ch.Info("Responded to update successfully, registering the state as it was final update.")
-			// Register in go-perun does not implement secondary logic. So both users
-			// will have sent on-chain transactions, one of which will not reverted.
-			// As discussed in go-perun/issues/8 similar to the case of Settle,
-			// since real funds are not used, it is not planned to implement
-			// this now.
-			// TODO: remove this comment when secondary logic is implemented.
-			apiErr = ch.register(pctx)
-			if apiErr == nil {
-				ch.WithField("method", "RespondChUpdate").Info("Finalized channel state registered successfully")
+			apiErr = ch.settle(pctx)
+			if apiErr != nil {
+				ch.Errorf("Settling the channel with the finalized state: %v", apiErr)
+			} else {
+				ch.Info("Settled the channel with the finalized state")
 			}
+			ch.closeAndNotify(apiErr)
 		}
 	case false:
 		apiErr = ch.rejectChUpdate(pctx, entry, "rejected by user")
@@ -663,10 +641,16 @@ func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, perun.APIError) {
 		return ch.getChInfo(), apiErr
 	}
 
-	ch.finalize(pctx)
-	apiErr = ch.register(pctx)
 	ch.wasCloseInitiated = true
-	ch.WithField("method", "ChClose").Info("State close initiated")
+	ch.finalize(pctx)
+	apiErr = ch.settle(pctx)
+	if apiErr != nil {
+		ch.WithField("method", "HandleAdjudicatorEvent").Errorf("Settling the channel: %v", apiErr)
+	} else {
+		ch.WithField("method", "HandleAdjudicatorEvent").Info("Channel settled")
+	}
+	ch.closeAndNotify(apiErr)
+	ch.WithField("method", "ChClose").Info("Channel closed")
 	return ch.getChInfo(), apiErr
 }
 
@@ -695,33 +679,12 @@ func (ch *Channel) finalize(pctx context.Context) {
 	ch.Info("Channel finalized. Proceeding with collaborative close")
 }
 
-// register registers the latest state of the channel on-chain.
-func (ch *Channel) register(pctx context.Context) perun.APIError {
-	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.register(ch.challengeDurSecs))
-	defer cancel()
-	err := ch.pch.Register(ctx)
-	if err != nil {
-		return ch.handleChRegisterError(errors.WithMessage(err, "registering channel state"))
-	}
-	return nil
-}
-
-// handleChRegisterError inspects the passed error, constructs an
-// appropriate APIError and returns it.
-func (ch *Channel) handleChRegisterError(err error) perun.APIError {
-	var apiErr perun.APIError
-	if apiErr = handleChainError(ch.chainURL, ch.timeoutCfg.onChainTx.String(), err); apiErr != nil {
-		return apiErr
-	}
-	return perun.NewAPIErrUnknownInternal(err)
-}
-
 // Close the computing resources (listeners, subscriptions etc.,) of the channel.
 // If it fails, this error can be ignored.
 // It also removes the channel from the session.
 func (ch *Channel) close() {
 	if err := ch.pch.Close(); err != nil {
-		ch.WithField("method", "ChClose").Infof("\nClosing channe %v", err)
+		ch.WithField("method", "ChClose").Errorf("\nClosing channel %v", err)
 	}
 	ch.watcherWg.Wait()
 	ch.status = closed

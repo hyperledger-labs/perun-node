@@ -40,7 +40,7 @@ import (
 const roChainBackendTxTimeout = 1 * time.Second
 
 // Use a default value of 1 for tx finality depth as the node is currently
-// used only with simualted backend or ganache-cli.
+// used only with simulated backend or ganache-cli.
 const txFinalityDepth = 1
 
 // NewChainBackend initializes a connection to blockchain node and sets up a
