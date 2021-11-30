@@ -663,8 +663,9 @@ func Test_Close(t *testing.T) {
 		ch := session.NewChForTest(
 			pch, currency.ETHSymbol, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
+		state := makeState(t, validOpeningBalInfo, false)
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
-		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		pch.On("State").Return(state)
 		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(assert.AnError)
 		pch.On("Register", mock.Anything).Return(nil)
 
@@ -675,7 +676,8 @@ func Test_Close(t *testing.T) {
 
 		// == Part 2: Simulate registered event and test check if channel close notification is sent.
 		var registeredVersion uint64
-		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion)
+		// func NewRegisteredEvent(id ID, timeout Timeout, version uint64, state *State, sigs []wallet.Sig) *RegisteredEvent {
+		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion, state, nil)
 		pch.On("Settle", mock.Anything, mock.Anything).Return(nil)
 		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
 			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
@@ -696,11 +698,11 @@ func Test_Close(t *testing.T) {
 		pch, watcherSignal := newMockPCh()
 		ch := session.NewChForTest(
 			pch, currency.ETHSymbol, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
-
+		state := makeState(t, validOpeningBalInfo, false)
 		// Simulate registered event and test check if channel close notification is sent.
 		var registeredVersion uint64
-		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion)
-		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion, state, nil)
+		pch.On("State").Return(state)
 		pch.On("Settle", mock.Anything, mock.Anything).Return(nil)
 		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
 			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
@@ -788,11 +790,12 @@ func Test_Close(t *testing.T) {
 		pch, watcherSignal := newMockPCh()
 		ch := session.NewChForTest(
 			pch, currency.ETHSymbol, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+		state := makeState(t, validOpeningBalInfo, false)
 
 		// Simulate registered event and test check if channel close notification with error is sent.
 		var registeredVersion uint64
-		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion)
-		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion, state, nil)
+		pch.On("State").Return(state)
 		pch.On("Settle", mock.Anything, mock.Anything).Return(assert.AnError)
 		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
 			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
@@ -819,11 +822,12 @@ func Test_Close(t *testing.T) {
 		pch, watcherSignal := newMockPCh()
 		ch := session.NewChForTest(
 			pch, currency.ETHSymbol, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+		state := makeState(t, validOpeningBalInfo, false)
 
 		// Simulate registered event and test check if channel close notification with error is sent.
 		var registeredVersion uint64
-		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion)
-		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion, state, nil)
+		pch.On("State").Return(state)
 		pch.On("Settle", mock.Anything, mock.Anything).Return(txTimedOutError)
 		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
 			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
@@ -852,11 +856,12 @@ func Test_Close(t *testing.T) {
 		pch, watcherSignal := newMockPCh()
 		ch := session.NewChForTest(
 			pch, currency.ETHSymbol, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
+		state := makeState(t, validOpeningBalInfo, false)
 
 		// Simulate registered event and test check if channel close notification with error is sent.
 		var registeredVersion uint64
-		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion)
-		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
+		registeredEvent := pchannel.NewRegisteredEvent(pch.ID(), &pchannel.ElapsedTimeout{}, registeredVersion, state, nil)
+		pch.On("State").Return(state)
 		pch.On("Settle", mock.Anything, mock.Anything).Return(chainNotReachableError)
 		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
 			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
