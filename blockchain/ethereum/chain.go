@@ -36,7 +36,7 @@ import (
 )
 
 // roChainBackendTxTimeout is the tx timeout for roChainBackend used only for
-// reading on-chain data. So make it as a package level constant.
+// reading on-chain data.
 const roChainBackendTxTimeout = 1 * time.Second
 
 // Use a default value of 1 for tx finality depth as the node is currently
