@@ -49,14 +49,14 @@ func (_m *PChannel) ID() [32]byte {
 }
 
 // Idx provides a mock function with given fields:
-func (_m *PChannel) Idx() uint16 {
+func (_m *PChannel) Idx() channel.Index {
 	ret := _m.Called()
 
-	var r0 uint16
-	if rf, ok := ret.Get(0).(func() uint16); ok {
+	var r0 channel.Index
+	if rf, ok := ret.Get(0).(func() channel.Index); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Get(0).(uint16)
+		r0 = ret.Get(0).(channel.Index)
 	}
 
 	return r0

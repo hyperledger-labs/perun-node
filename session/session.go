@@ -441,7 +441,7 @@ func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app
 //
 // Passed error must be non-nil.
 func (s *Session) handleProposeChError(parts []string, err error) perun.APIError {
-	var peerIdx uint16 = 1 // In a sanitized openingBalInfo, peer (proposee) is at index 1.
+	var peerIdx pchannel.Index = 1 // In a sanitized openingBalInfo, peer (proposee) is at index 1.
 
 	var apiErr perun.APIError
 	if apiErr = handleChainError(s.chainURL, s.timeoutCfg.onChainTx.String(), err); apiErr != nil {
@@ -886,7 +886,7 @@ func (s *Session) acceptChProposal(pctx context.Context, entry chProposalRespond
 //
 // Passed error must be non-nil.
 func (s *Session) handleChProposalAcceptError(parts []string, err error) perun.APIError {
-	var peerIdx uint16 // In a sanitized openingBalInfo, peer (proposer) is at index 0.
+	var peerIdx pchannel.Index // In a sanitized openingBalInfo, peer (proposer) is at index 0.
 
 	var apiErr perun.APIError
 	if apiErr = handleChainError(s.chainURL, s.timeoutCfg.onChainTx.String(), err); apiErr != nil {
@@ -1124,7 +1124,7 @@ func (s *Session) DeployAssetERC20(tokenAddr string) (assetAddr string, _ perun.
 // If yes, it constructs & returns an APIError. If not, returns nil
 //
 // Passed error must be non-nil.
-func handleFundingTimeoutError(peerAlias string, peerIdx uint16, err error) perun.APIError {
+func handleFundingTimeoutError(peerAlias string, peerIdx pchannel.Index, err error) perun.APIError {
 	fundingTimeoutError := pchannel.FundingTimeoutError{}
 	ok := errors.As(err, &fundingTimeoutError)
 	if !ok {
