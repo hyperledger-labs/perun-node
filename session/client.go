@@ -138,7 +138,7 @@ func newEthereumPaymentClient(
 	ChClient, perun.APIError) {
 	offChainAcc, err := offChainCred.Wallet.Unlock(offChainCred.Addr)
 	if err != nil {
-		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain account"))
+		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "unlocking off-chain account"))
 	}
 
 	dialer := comm.NewDialer()
@@ -169,43 +169,6 @@ func newEthereumPaymentClient(
 
 	return c, nil
 }
-
-// newEthereumPaymentClient initializes a two party, ethereum payment channel client for the given user.
-// It establishes a connection to the blockchain and verifies the integrity of contracts at the given address.
-// It uses the comm backend to initialize adapters for off-chain communication network.
-// func newEthereumPaymentClient(cfg clientConfig, user User, comm perun.CommBackend) (
-// 	ChClient, perun.APIError) {
-
-// 	funder := chain.NewFunder(contracts.AssetETH(), cred.Addr)
-// 	adjudicator := chain.NewAdjudicator(cfg.Adjudicator, cred.Addr)
-
-// 	offChainAcc, err := user.OffChain.Wallet.Unlock(user.OffChain.Addr)
-// 	if err != nil {
-// 		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain account"))
-// 	}
-// 	dialer := comm.NewDialer()
-// 	msgBus := pnet.NewBus(offChainAcc, dialer)
-
-// 	pcClient, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, user.OffChain.Wallet)
-// 	if err != nil {
-// 		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain account"))
-// 	}
-
-// 	c := &client{
-// 		pClient:        &pclientWrapped{pcClient},
-// 		msgBus:         msgBus,
-// 		msgBusRegistry: dialer,
-// 		wg:             &sync.WaitGroup{},
-// 	}
-
-// 	listener, err := comm.NewListener(user.CommAddr)
-// 	if err != nil {
-// 		return nil, perun.NewAPIErrInvalidConfig(err, "commAddr", user.CommAddr)
-// 	}
-// 	c.runAsGoRoutine(func() { msgBus.Listen(listener) })
-
-// 	return c, nil
-// }
 
 // Register registers the comm address for the given off-chain address in the client.
 func (c *client) Register(offChainAddr pwire.Address, commAddr string) {
