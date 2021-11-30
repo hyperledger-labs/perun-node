@@ -28,6 +28,7 @@ import (
 	pclient "perun.network/go-perun/client"
 	plog "perun.network/go-perun/log"
 	pleveldb "perun.network/go-perun/pkg/sortedkv/leveldb"
+	"perun.network/go-perun/watcher/local"
 	pwire "perun.network/go-perun/wire"
 	pnet "perun.network/go-perun/wire/net"
 
@@ -143,9 +144,14 @@ func newEthereumPaymentClient(
 	dialer := comm.NewDialer()
 	msgBus := pnet.NewBus(offChainAcc, dialer)
 
-	pcClient, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, offChainCred.Wallet)
+	watcher, err := local.NewWatcher(adjudicator)
 	if err != nil {
-		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain account"))
+		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "initializing watcher"))
+	}
+
+	pcClient, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, offChainCred.Wallet, watcher)
+	if err != nil {
+		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "initializing client"))
 	}
 
 	c := &client{
