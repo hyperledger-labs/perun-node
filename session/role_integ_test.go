@@ -310,7 +310,7 @@ func Test_Integ_Role(t *testing.T) {
 
 	closeCh := func(chIndex int, isCollaborative bool) {
 		// Subscribe to channel update notifications by Alice.
-		aliceChUpdateNotif := make(chan perun.ChUpdateNotif)
+		aliceChUpdateNotif := make(chan perun.ChUpdateNotif, 1)
 		aliceChUpdateNotifier := func(notif perun.ChUpdateNotif) {
 			aliceChUpdateNotif <- notif
 		}
@@ -329,7 +329,7 @@ func Test_Integ_Role(t *testing.T) {
 		defer wg.Wait()
 
 		// Accept final channel update by bob (to enable collaborative close).
-		bobChUpdateNotif := make(chan perun.ChUpdateNotif)
+		bobChUpdateNotif := make(chan perun.ChUpdateNotif, 1)
 		bobChUpdateNotifier := func(notif perun.ChUpdateNotif) {
 			bobChUpdateNotif <- notif
 		}
