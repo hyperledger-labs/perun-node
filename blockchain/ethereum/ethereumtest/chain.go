@@ -43,6 +43,13 @@ const (
 	ChainURL            = "ws://127.0.0.1:8545"
 	ChainConnTimeout    = 10 * time.Second
 	ChainID             = 1337 // Default chain id for ganache-cli private network.
+
+	// txFinalityDepth represents the transaction finality depth for test
+	// environments such as simulated backend and ganache-cli.
+	//
+	// Value of 1 is used, since no re-organization is expected in these
+	// environments.
+	txFinalityDepth = 1
 )
 
 // ChainBackendSetup is a test setup that uses a simulated blockchain backend (for details on this backend,
@@ -109,5 +116,5 @@ func newSimContractBackend(t *testing.T, accs []pwallet.Account, ks *keystore.Ke
 	require.NoError(t, err)
 
 	tr := pkeystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(int64(ChainID))))
-	return pethchannel.NewContractBackend(simBackend, tr)
+	return pethchannel.NewContractBackend(simBackend, tr, txFinalityDepth)
 }
