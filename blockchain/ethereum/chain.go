@@ -39,6 +39,10 @@ import (
 // reading on-chain data. So make it as a package level constant.
 const roChainBackendTxTimeout = 1 * time.Second
 
+// Use a default value of 1 for tx finality depth as the node is currently
+// used only with simualted backend or ganache-cli.
+const txFinalityDepth = 1
+
 // NewChainBackend initializes a connection to blockchain node and sets up a
 // wallet with given credentials for funding on-chain transactions and channel
 // balances.
@@ -72,7 +76,7 @@ func NewChainBackend(url string,
 		return nil, err
 	}
 	tr := pkeystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(int64(chainID))))
-	cb := pethchannel.NewContractBackend(ethereumBackend, tr)
+	cb := pethchannel.NewContractBackend(ethereumBackend, tr, txFinalityDepth)
 	return &internal.ChainBackend{Cb: &cb, TxTimeout: onChainTxTimeout}, nil
 }
 
@@ -91,7 +95,7 @@ func NewROChainBackend(url string, chainID int, chainConnTimeout time.Duration) 
 		return nil, errors.Wrap(err, "connecting to ethereum node at "+url)
 	}
 
-	cb := pethchannel.NewContractBackend(ethereumBackend, nil)
+	cb := pethchannel.NewContractBackend(ethereumBackend, nil, txFinalityDepth)
 	return &internal.ChainBackend{Cb: &cb, TxTimeout: roChainBackendTxTimeout}, nil
 }
 
