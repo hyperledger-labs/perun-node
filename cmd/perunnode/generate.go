@@ -18,10 +18,12 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
 
+	"github.com/idoall/gocryptotrader/common/file"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -241,12 +243,43 @@ func updatedConfigCopy(cfg session.Config) session.Config {
 func moveFiles(srcDest map[string]string) error {
 	errs := []string{}
 	for src, dest := range srcDest {
-		if err := os.Rename(src, dest); err != nil {
+		//  avoiding invalid cross-device link, therefore dir has to be checked and os.Rename cannot be used
+		fileInfo, err := os.Stat(src)
+		if err != nil {
 			errs = append(errs, fmt.Sprintf("%s to %s: %v", src, dest, err))
+		}
+		if fileInfo.IsDir() {
+			if err := handleDir(src, dest); err != nil {
+				errs = append(errs, fmt.Sprintf("%s to %s: %v", src, dest, err))
+			}
+		} else {
+			if err := file.Move(src, dest); err != nil {
+				errs = append(errs, fmt.Sprintf("%s to %s: %v", src, dest, err))
+			}
 		}
 	}
 	if len(errs) != 0 {
 		return fmt.Errorf("moving files: %v", errs)
+	}
+	return nil
+}
+
+func handleDir(srcDir string, destDir string) error {
+	errs := []string{}
+	if err := os.Mkdir(destDir, dirFileMode); err != nil {
+		errs = append(errs, fmt.Sprintf("creating dir - %s: %v", destDir, err))
+	}
+	files, err := ioutil.ReadDir(srcDir)
+	if err != nil {
+		errs = append(errs, fmt.Sprintf("reading dir - %s: %v", srcDir, err))
+	}
+	for _, fileToMove := range files {
+		if err := file.Move(srcDir+"/"+fileToMove.Name(), destDir+"/"+fileToMove.Name()); err != nil {
+			errs = append(errs, fmt.Sprintf("%s to %s: %v", srcDir+"/"+fileToMove.Name(), destDir+"/"+fileToMove.Name(), err))
+		}
+	}
+	if len(errs) != 0 {
+		return fmt.Errorf("handleDir files: %v", errs)
 	}
 	return nil
 }
