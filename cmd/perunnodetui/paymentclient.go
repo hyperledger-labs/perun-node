@@ -24,6 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	grpclib "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
@@ -33,7 +34,7 @@ import (
 var errNotConnectedToNode = fmt.Errorf("not connected to perun node")
 
 func connectToNode(perunNodeURL, configFileURL string) (string, pb.Payment_APIClient, error) {
-	conn, err := grpclib.Dial(perunNodeURL, grpclib.WithInsecure())
+	conn, err := grpclib.Dial(perunNodeURL, grpclib.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return "", nil, errors.Wrap(err, "connecting to perun node")
 	}

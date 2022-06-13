@@ -22,6 +22,7 @@ import (
 
 	"github.com/abiosoft/ishell"
 	grpclib "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
 )
@@ -78,7 +79,7 @@ func nodeConnectFn(c *ishell.Context) {
 	}
 
 	nodeAddr := c.Args[0]
-	conn, err := grpclib.Dial(nodeAddr, grpclib.WithInsecure())
+	conn, err := grpclib.Dial(nodeAddr, grpclib.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		sh.Printf("Error connecting to perun node at %s: %v", nodeAddr, err)
 	}
