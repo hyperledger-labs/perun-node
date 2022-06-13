@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	grpclib "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/api/grpc"
@@ -48,7 +49,7 @@ import (
 // --account="0xb0309c60b4622d3071fad3e16c2ce4d0b1e7758316c187754f4dd0cfb44ceb33,100000000000000000000"
 
 var (
-	grpcPort = ":50001"
+	grpcPort = "127.0.0.1:50001"
 
 	// singleton instance of client and context that will be used for all tests.
 	client pb.Payment_APIClient
@@ -77,7 +78,7 @@ func Test_Integ_Role(t *testing.T) {
 	StartServer(t, nodetest.NewConfig(false), grpcPort)
 
 	// Initialize client.
-	conn, err := grpclib.Dial(grpcPort, grpclib.WithInsecure())
+	conn, err := grpclib.Dial(grpcPort, grpclib.WithTransportCredentials(insecure.NewCredentials()))
 	require.NoError(t, err, "dialing to grpc server")
 	t.Log("connected to server")
 	client = pb.NewPayment_APIClient(conn)
