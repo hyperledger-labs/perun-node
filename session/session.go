@@ -27,9 +27,9 @@ import (
 	"github.com/pkg/errors"
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
-	psync "perun.network/go-perun/pkg/sync"
 	pwallet "perun.network/go-perun/wallet"
 	pwire "perun.network/go-perun/wire"
+	psync "polycry.pt/poly-go/sync"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
