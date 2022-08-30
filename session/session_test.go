@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	pethchannel "perun.network/go-perun/backend/ethereum/channel"
+	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
 	pwallet "perun.network/go-perun/wallet"
@@ -560,7 +561,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		ownPeerID, err := session.GetPeerID(perun.OwnAlias)
 		require.NoError(t, err)
 		chProposal := newChProposal(t, ownPeerID, peerIDs[0])
-		chProposalID := fmt.Sprintf("%x", chProposal.ProposalID())
+		chProposalID := fmt.Sprintf("%x", chProposal.Base().ProposalID)
 		responder := &mocks.ChProposalResponder{} // Dummy responder as no methods on it will be invoked.
 		session.HandleProposalWInterface(chProposal, responder)
 
@@ -941,7 +942,7 @@ func newSessionWChProposal(t *testing.T, peerIDs []perun.PeerID) (
 	ownPeerID, err := session.GetPeerID(perun.OwnAlias)
 	require.NoError(t, err)
 	chProposal := newChProposal(t, ownPeerID, peerIDs[0])
-	chProposalID := fmt.Sprintf("%x", chProposal.ProposalID())
+	chProposalID := fmt.Sprintf("%x", chProposal.Base().ProposalID)
 	return session, chProposal, chProposalID
 }
 
@@ -975,9 +976,10 @@ func roContractRegistry() perun.ROContractRegistry {
 		return r
 	}
 	r = &mocks.ROContractRegistry{}
-	adjudicator, assetETH, _ := ethereumtest.ContractAddrs()
-	r.On("Adjudicator").Return(adjudicator)
-	r.On("AssetETH").Return(assetETH)
+	adjudicatorAddr, assetETHAddr, _ := ethereumtest.ContractAddrs()
+	r.On("Adjudicator").Return(adjudicatorAddr)
+	r.On("AssetETH").Return(assetETHAddr)
+	assetETH := pethchannel.NewAssetFromAddress(pethwallet.AsEthAddr(assetETHAddr))
 	r.On("Asset", "ETH").Return(assetETH, true)
 	return r
 }

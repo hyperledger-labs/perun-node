@@ -27,10 +27,11 @@ import (
 	pkeyvalue "perun.network/go-perun/channel/persistence/keyvalue"
 	pclient "perun.network/go-perun/client"
 	plog "perun.network/go-perun/log"
-	pleveldb "perun.network/go-perun/pkg/sortedkv/leveldb"
-	"perun.network/go-perun/watcher/local"
+	pwatcher "perun.network/go-perun/watcher"
 	pwire "perun.network/go-perun/wire"
 	pnet "perun.network/go-perun/wire/net"
+	pperunioserializer "perun.network/go-perun/wire/perunio/serializer"
+	pleveldb "polycry.pt/poly-go/sortedkv/leveldb"
 
 	"github.com/hyperledger-labs/perun-node"
 )
@@ -128,11 +129,11 @@ func (c *pclientWrapped) OnNewChannel(handler func(PChannel)) {
 	})
 }
 
-// newEthereumPaymentClient initializes a two party, ethereum payment channel client for the given user.
+// newPaymentClient initializes a two party, payment channel client for the given user.
 // It establishes a connection to the blockchain and verifies the integrity of contracts at the given address.
 // It uses the comm backend to initialize adapters for off-chain communication network.
-func newEthereumPaymentClient(
-	funder pchannel.Funder, adjudicator pchannel.Adjudicator,
+func newPaymentClient(
+	funder pchannel.Funder, adjudicator pchannel.Adjudicator, watcher pwatcher.Watcher,
 	comm perun.CommBackend, commAddr string,
 	offChainCred perun.Credential) (
 	ChClient, perun.APIError) {
@@ -142,12 +143,7 @@ func newEthereumPaymentClient(
 	}
 
 	dialer := comm.NewDialer()
-	msgBus := pnet.NewBus(offChainAcc, dialer)
-
-	watcher, err := local.NewWatcher(adjudicator)
-	if err != nil {
-		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "initializing watcher"))
-	}
+	msgBus := pnet.NewBus(offChainAcc, dialer, pperunioserializer.Serializer())
 
 	pcClient, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, offChainCred.Wallet, watcher)
 	if err != nil {

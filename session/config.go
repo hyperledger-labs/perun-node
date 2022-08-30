@@ -43,10 +43,24 @@ type (
 		// previous running instance of the node.
 		PeerReconnTimeout time.Duration
 
+		FundingType string // Can take two values: local, grpc
+
+		// If funding type is local, these two parameters are needed.
+		//
 		// Address of the valid AssetETH and Adjudicator contracts.
 		// These values are set by the node and will not parsed from the user
 		// provided configuration.
 		AssetETH, Adjudicator pwire.Address `yaml:"-"`
+
+		// If funding type is grpc, these two parameters are needed.
+		FundingURL    string
+		FundingAPIKey string
+
+		WatcherType string // Can take two values: local, grpc
+
+		// If watcher type is grpc, these two parameters are needed.
+		WatcherURL    string
+		WatcherAPIKey string
 	}
 
 	// UserConfig defines the parameters required to configure a user.

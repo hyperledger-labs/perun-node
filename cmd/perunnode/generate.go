@@ -34,7 +34,8 @@ import (
 )
 
 const (
-	aliceAlias, bobAlias = "alice", "bob"
+	aliceAlias, bobAlias = "charger", "car"
+	apiAlias             = "api"
 	nodeConfigFile       = "node.yaml"
 	sessionConfigFile    = "session.yaml"
 	keystoreDir          = "keystore"
@@ -112,7 +113,8 @@ func generate(cmd *cobra.Command, args []string) {
 		if err = generateSessionConfig(); err != nil {
 			fmt.Printf("Error generating session configuration artifacts: %v\n", err)
 		} else {
-			fmt.Printf("Generated session configuration artifacts: %s, %s directories\n", aliceAlias, bobAlias)
+			fmt.Printf("Generated session configuration artifacts: %s, %s, %s directories\n",
+				aliceAlias, bobAlias, apiAlias)
 		}
 	}
 	if err != nil {
@@ -148,7 +150,7 @@ func generateSessionConfig() error {
 	if isPresent, dirName := isAnyDirPresent(aliceAlias, bobAlias); isPresent {
 		return errors.New("dir exists - " + dirName)
 	}
-	if err := makeDirs(aliceAlias, bobAlias); err != nil {
+	if err := makeDirs(aliceAlias, bobAlias, apiAlias); err != nil {
 		return err
 	}
 
@@ -160,11 +162,18 @@ func generateSessionConfig() error {
 		return err
 	}
 	aliceCfg.User.Alias = aliceAlias
+
 	bobCfg, err := sessiontest.NewConfig(prng)
 	if err != nil {
 		return err
 	}
 	bobCfg.User.Alias = bobAlias
+
+	apiCfg, err := sessiontest.NewConfig(prng)
+	if err != nil {
+		return err
+	}
+	apiCfg.User.Alias = apiAlias
 
 	// Create IDProvider file.
 	aliceIDProviderFile, err := idprovidertest.NewIDProvider(peerID(bobCfg.User))
@@ -175,6 +184,10 @@ func generateSessionConfig() error {
 	if err != nil {
 		return err
 	}
+	apiIDProviderFile, err := idprovidertest.NewIDProvider()
+	if err != nil {
+		return err
+	}
 
 	// Create session config file.
 	aliceCfgFile, err := sessiontest.NewConfigFile(updatedConfigCopy(aliceCfg))
@@ -182,6 +195,10 @@ func generateSessionConfig() error {
 		return err
 	}
 	bobCfgFile, err := sessiontest.NewConfigFile(updatedConfigCopy(bobCfg))
+	if err != nil {
+		return err
+	}
+	apiCfgFile, err := sessiontest.NewConfigFile(updatedConfigCopy(apiCfg))
 	if err != nil {
 		return err
 	}
@@ -197,6 +214,11 @@ func generateSessionConfig() error {
 		bobCfg.DatabaseDir:                     filepath.Join(bobAlias, databaseDir),
 		bobIDProviderFile:                      filepath.Join(bobAlias, idProviderFile),
 		bobCfg.User.OnChainWallet.KeystorePath: filepath.Join(bobAlias, keystoreDir),
+
+		apiCfgFile:                             filepath.Join(apiAlias, sessionConfigFile),
+		apiCfg.DatabaseDir:                     filepath.Join(apiAlias, databaseDir),
+		apiIDProviderFile:                      filepath.Join(apiAlias, idProviderFile),
+		apiCfg.User.OnChainWallet.KeystorePath: filepath.Join(apiAlias, keystoreDir),
 	}
 	return moveFiles(filesToMove)
 }

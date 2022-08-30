@@ -21,8 +21,10 @@ import (
 	"math/big"
 	"time"
 
+	"perun.network/go-perun/channel"
 	pchannel "perun.network/go-perun/channel"
 	pwallet "perun.network/go-perun/wallet"
+	pwatcher "perun.network/go-perun/watcher"
 	pwire "perun.network/go-perun/wire"
 	pnet "perun.network/go-perun/wire/net"
 )
@@ -149,8 +151,35 @@ type ROChainBackend interface {
 // core abstraction.
 type Funder interface {
 	pchannel.Funder
-	RegisterAssetERC20(asset, token, acc pwallet.Address) bool
-	IsAssetRegistered(asset pwallet.Address) bool
+	RegisterAssetERC20(asset pchannel.Asset, token, acc pwallet.Address) bool
+	IsAssetRegistered(asset pchannel.Asset) bool
+}
+
+// AdjudicatorReq redefines pchannel.AdjudicatorReq with a slight modification.
+//
+// It uses pwallet.Address type instead of pwallet.Account for acc, which is
+// used for signing withdrawal auth.
+//
+// Because, only addresses can be passed over the wire or from external sources.
+// The corresponding account will be initialized by the API using its wallet.
+type AdjudicatorReq struct {
+	Params    *pchannel.Params
+	Acc       pwallet.Address
+	Tx        pchannel.Transaction
+	Idx       pchannel.Index // Always the own index
+	Secondary bool           // Optimized secondary call protocol
+}
+
+// AdjudicatorReq redefines pchannel.AdjudicatorReq with a slight modification.
+//
+// It uses redefined AdjudicatorReq type instead of pchannel.AdjudicatorReq.
+//
+// See documentation of AdjudicatorReq, for details on why this redefined type
+// is used in session API.
+type ProgressReq struct {
+	AdjudicatorReq                 // Tx should refer to the currently registered state
+	NewState       *pchannel.State // New state to progress into
+	Sig            pwallet.Sig     // Own signature on the new state
 }
 
 // WalletBackend wraps the methods for instantiating wallets and accounts that are specific to a blockchain platform.
@@ -195,9 +224,9 @@ type ContractRegistry interface {
 type ROContractRegistry interface {
 	Adjudicator() pwallet.Address
 	AssetETH() pwallet.Address
-	Asset(symbol string) (asset pwallet.Address, found bool)
+	Asset(symbol string) (asset pchannel.Asset, found bool)
 	Token(symbol string) (token pwallet.Address, found bool)
-	Symbol(asset pwallet.Address) (symbol string, found bool)
+	Symbol(asset pchannel.Asset) (symbol string, found bool)
 	Assets() map[string]string
 }
 
@@ -433,6 +462,23 @@ type SessionAPI interface {
 
 	DeployAssetERC20(tokenERC20 string) (asset string, _ APIError)
 
+	Fund(context.Context, pchannel.FundingReq) APIError
+	RegisterAssetERC20(asset pchannel.Asset, token, acc pwallet.Address) bool
+	IsAssetRegistered(asset pchannel.Asset) bool
+
+	Register(context.Context, AdjudicatorReq, []pchannel.SignedState) APIError
+	Withdraw(context.Context, AdjudicatorReq, pchannel.StateMap) APIError
+	Progress(context.Context, ProgressReq) APIError
+	Subscribe(context.Context, pchannel.ID) (pchannel.AdjudicatorSubscription, APIError)
+
+	// pchannel.Adjudicator
+
+	StartWatchingLedgerChannel(context.Context, channel.SignedState) (
+		pwatcher.StatesPub, pwatcher.AdjudicatorSub, APIError)
+	StartWatchingSubChannel(ctx context.Context, parent channel.ID, signedState pchannel.SignedState) (
+		pwatcher.StatesPub, pwatcher.AdjudicatorSub, APIError)
+	StopWatching(context.Context, pchannel.ID) APIError
+
 	// This function is used internally to get a ChAPI instance.
 	// Should not be exposed via user API.
 	GetCh(string) (ChAPI, APIError)
@@ -560,5 +606,5 @@ type (
 	}
 
 	// StateUpdater function is the function that will be used for applying state updates.
-	StateUpdater func(*pchannel.State) error
+	StateUpdater func(*pchannel.State)
 )

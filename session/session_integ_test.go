@@ -32,6 +32,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pperunioserializer "perun.network/go-perun/wire/perunio/serializer"
+
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
@@ -180,7 +182,7 @@ func Test_Integ_New(t *testing.T) {
 		listener, err := tcp.NewTCPBackend(1 * time.Second).NewListener(cfgCopy.User.CommAddr)
 		require.NoError(t, err)
 		go func() {
-			_, _ = listener.Accept() //nolint: errcheck		// no need to check error.
+			_, _ = listener.Accept(pperunioserializer.Serializer()) //nolint: errcheck		// no need to check error.
 		}()
 		defer listener.Close() //nolint: errcheck		// no need to check error.
 

@@ -25,13 +25,17 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	grpclib "google.golang.org/grpc"
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
-	psync "perun.network/go-perun/pkg/sync"
 	pwallet "perun.network/go-perun/wallet"
+	pwatcher "perun.network/go-perun/watcher"
+	plocal "perun.network/go-perun/watcher/local"
 	pwire "perun.network/go-perun/wire"
+	psync "polycry.pt/poly-go/sync"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
 	"github.com/hyperledger-labs/perun-node/comm/tcp/tcptest"
@@ -119,8 +123,10 @@ type (
 		timeoutCfg timeoutConfig
 		chainURL   string // used for annotating error messages.
 
-		chain  perun.ChainBackend
-		funder perun.Funder
+		chain       perun.ChainBackend
+		funder      perun.Funder
+		watcher     pwatcher.Watcher
+		adjudicator pchannel.Adjudicator
 
 		chs              *chRegistry
 		contractRegistry perun.ContractRegistry
@@ -132,7 +138,7 @@ type (
 	}
 
 	chProposalResponderEntry struct {
-		proposal   pclient.LedgerChannelProposal
+		proposal   pclient.LedgerChannelProposalMsg
 		notif      perun.ChProposalNotif
 		responder  ChProposalResponder
 		currencies []perun.Currency
@@ -140,7 +146,7 @@ type (
 
 	// ChProposalResponder defines the methods on proposal responder that will be used by the perun node.
 	ChProposalResponder interface {
-		Accept(context.Context, *pclient.LedgerChannelProposalAcc) (PChannel, error)
+		Accept(context.Context, *pclient.LedgerChannelProposalAccMsg) (PChannel, error)
 		Reject(ctx context.Context, reason string) error
 	}
 )
@@ -154,7 +160,7 @@ type chProposalResponderWrapped struct {
 }
 
 // Accept is a wrapper around the original function, that returns a channel of interface type instead of struct type.
-func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pclient.LedgerChannelProposalAcc) (
+func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pclient.LedgerChannelProposalAccMsg) (
 	PChannel, error) {
 	return r.ProposalResponder.Accept(ctx, proposalAcc)
 }
@@ -185,15 +191,73 @@ func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry
 		return nil, perun.NewAPIErrInvalidConfig(err, "chainURL", cfg.ChainURL)
 	}
 
-	funder := chain.NewFunder(contractRegistry.AssetETH(), user.OnChain.Addr)
-	adjudicator := chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
+	var funder perun.Funder
+	var adjudicator pchannel.Adjudicator
+	switch cfg.FundingType {
+	case "local":
+		funder = chain.NewFunder(contractRegistry.AssetETH(), user.OnChain.Addr)
+		adjudicator = chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
+	case "grpc":
+		conn, err := grpclib.Dial(cfg.FundingURL, grpclib.WithInsecure())
+		if err != nil {
+			err = errors.WithMessage(err, "connecting to funding api")
+			return nil, perun.NewAPIErrUnknownInternal(err)
+		}
+		funderClient := pb.NewPayment_APIClient(conn)
+		_, err = getNodeTime(funderClient) // Test the API.
+		if err != nil {
+			err = errors.WithMessage(err, "test access of funding api")
+			return nil, perun.NewAPIErrUnknownInternal(err)
+		}
+		funder = &grpcFunder{
+			apiKey: cfg.FundingAPIKey,
+			client: funderClient,
+		}
 
-	chClient, apiErr := newEthereumPaymentClient(funder, adjudicator, commBackend, cfg.User.CommAddr, user.OffChain)
+		adjudicator = &grpcAdjudicator{
+			apiKey: cfg.FundingAPIKey,
+			client: funderClient,
+		}
+
+	default:
+		err = errors.New("should be local or grpc")
+		return nil, perun.NewAPIErrInvalidConfig(err, "fundingType", cfg.FundingAPIKey)
+	}
+
+	var watcher pwatcher.Watcher
+	switch cfg.WatcherType {
+	case "local":
+		watcher, err = plocal.NewWatcher(adjudicator)
+		if err != nil {
+			return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "initializing watcher"))
+		}
+	case "grpc":
+		conn, err := grpclib.Dial(cfg.WatcherURL, grpclib.WithInsecure())
+		if err != nil {
+			err = errors.WithMessage(err, "connecting to watching api")
+			return nil, perun.NewAPIErrUnknownInternal(err)
+		}
+		watcherClient := pb.NewPayment_APIClient(conn)
+		_, err = getNodeTime(watcherClient) // Test the API.
+		if err != nil {
+			err = errors.WithMessage(err, "test access of watcher api")
+			return nil, perun.NewAPIErrUnknownInternal(err)
+		}
+		watcher = &grpcWatcher{
+			apiKey: cfg.WatcherAPIKey,
+			client: watcherClient,
+		}
+	}
+
+	chClient, apiErr := newPaymentClient(funder, adjudicator, watcher, commBackend, cfg.User.CommAddr, user.OffChain)
 	if apiErr != nil {
 		return nil, apiErr
 	}
-
-	sessionID := calcSessionID(user.OffChainAddr.Bytes())
+	offChainAddr, err := user.OffChainAddr.MarshalBinary()
+	if err != nil {
+		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain address"))
+	}
+	sessionID := calcSessionID(offChainAddr)
 	timeoutCfg := timeoutConfig{
 		onChainTx: cfg.OnChainTxTimeout,
 		response:  cfg.ResponseTimeout,
@@ -209,6 +273,8 @@ func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry
 		idProvider:           idProvider,
 		chain:                chain,
 		funder:               funder,
+		watcher:              watcher,
+		adjudicator:          adjudicator,
 		chs:                  newChRegistry(initialChRegistrySize),
 		contractRegistry:     contractRegistry,
 		currencyRegistry:     currencyRegistry,
@@ -627,7 +693,7 @@ func (s *Session) HandleProposal(chProposal pclient.ChannelProposal, responder *
 //
 // It is implemented this way to enable easier testing.
 func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, responder ChProposalResponder) {
-	ledgerChProposal, ok := chProposal.(*pclient.LedgerChannelProposal)
+	ledgerChProposal, ok := chProposal.(*pclient.LedgerChannelProposalMsg)
 	if !ok {
 		// Our handler is expected to handle only ledger channel proposals,
 		// if it is anything else (sub-channel proposals), simply drop it.
@@ -696,10 +762,10 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 func getCurrencies(assets []pchannel.Asset,
 	contractRegistry perun.ROContractRegistry, currencyRegistry perun.ROCurrencyRegistry) ([]perun.Currency, error) {
 	currencies := make([]perun.Currency, len(assets))
-	for i, asset := range assets {
-		symbol, found := contractRegistry.Symbol(asset.(pwallet.Address))
+	for i := range assets {
+		symbol, found := contractRegistry.Symbol(assets[i])
 		if !found {
-			return nil, fmt.Errorf("unknown asset %v", asset.(pwallet.Address))
+			return nil, fmt.Errorf("unknown asset %v", assets[i])
 		}
 		// Since the symbol was found in contract registry, it must be registered in currency registry as well.
 		currencies[i] = currencyRegistry.Currency(symbol)
@@ -707,10 +773,10 @@ func getCurrencies(assets []pchannel.Asset,
 	return currencies, nil
 }
 
-func chProposalNotif(parts []string, currencies []perun.Currency, chProposal *pclient.LedgerChannelProposal,
+func chProposalNotif(parts []string, currencies []perun.Currency, chProposal *pclient.LedgerChannelProposalMsg,
 	expiry int64) perun.ChProposalNotif {
 	return perun.ChProposalNotif{
-		ProposalID:       fmt.Sprintf("%x", chProposal.ProposalID()),
+		ProposalID:       fmt.Sprintf("%x", chProposal.ProposalID),
 		OpeningBalInfo:   makeBalInfoFromRawBal(parts, currencies, chProposal.InitBals.Balances),
 		App:              makeApp(chProposal.App, chProposal.InitData),
 		ChallengeDurSecs: chProposal.ChallengeDuration,
@@ -988,9 +1054,9 @@ func (s *Session) HandleUpdateWInterface(
 //
 // `Force` parameter determines what happens when there are open channels in the
 // session.
-//   * If `False` the API returns an error when there are open channels. This
+//   - If `False` the API returns an error when there are open channels. This
 //     should be used by default.
-//   * If `True`, the session is forcibly closed and the API returns list of open
+//   - If `True`, the session is forcibly closed and the API returns list of open
 //     channels that were persisted. When a session is re-opened with the same
 //     config file, these channels can be restored in open state. However, use this
 //     with caution, as closing a session with open channels creates a possibility
@@ -998,11 +1064,11 @@ func (s *Session) HandleUpdateWInterface(
 //     an older, invalid state on the blockchain and finalize it.
 //
 // If there is an error, it will be one of the following codes:
-// - ErrFailedPrecondition when the session is closed.
-// - ErrFailedPreCondition when force=false and unclosed channels exists.
-//   Additional Info will contain an extra field: OpenChannelsInfo that
-//   contains a list of Channel Info.
-// - ErrUnknownInternal.
+//   - ErrFailedPrecondition when the session is closed.
+//   - ErrFailedPreCondition when force=false and unclosed channels exists.
+//     Additional Info will contain an extra field: OpenChannelsInfo that
+//     contains a list of Channel Info.
+//   - ErrUnknownInternal.
 func (s *Session) Close(force bool) ([]perun.ChInfo, perun.APIError) {
 	s.WithField("method", "Close").Infof("\nReceived request with params %+v", force)
 	s.Lock()
@@ -1164,4 +1230,13 @@ func handleChainError(chainURL, onChainTxTimeout string, err error) perun.APIErr
 	default:
 		return nil
 	}
+}
+
+func getNodeTime(client pb.Payment_APIClient) (int64, error) {
+	timeReq := pb.TimeReq{}
+	timeResp, err := client.Time(context.Background(), &timeReq)
+	if err != nil {
+		return 0, err
+	}
+	return timeResp.Time, err
 }

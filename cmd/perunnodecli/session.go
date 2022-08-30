@@ -37,7 +37,7 @@ var (
 		Name: "open",
 		Help: "Open a new session. Use tab completion to cycle through default values." + sessionOpenCmdUsage,
 		Completer: func([]string) []string {
-			return []string{"alice/session.yaml", "bob/session.yaml"} // Provide default values as autocompletion.
+			return []string{"charger/session.yaml", "car/session.yaml", "api/session.yaml"} // Provide default values as autocompletion.
 		},
 		Func: sessionOpenFn,
 	}

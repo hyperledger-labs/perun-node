@@ -44,7 +44,7 @@ func (c currency) Parse(input string) (*big.Int, error) {
 	}
 
 	amountBaseUnit := amount.Mul(c.decimals)
-	if amountBaseUnit.LessThan(decimal.NewFromInt(1)) {
+	if !amountBaseUnit.IsZero() && amountBaseUnit.LessThan(decimal.NewFromInt(1)) {
 		return nil, errors.New("amount is too small, should be larger than 1e-18")
 	}
 	return amountBaseUnit.BigInt(), nil

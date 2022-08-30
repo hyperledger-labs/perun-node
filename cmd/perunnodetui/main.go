@@ -137,8 +137,8 @@ func main() {
 }
 
 func parseFlags() (bool, string) {
-	aliceFlag := flag.Bool("alice", false, "load alice defaults")
-	bobFlag := flag.Bool("bob", false, "load bob defaults")
+	aliceFlag := flag.Bool("charger", false, "load alice defaults")
+	bobFlag := flag.Bool("car", false, "load bob defaults")
 	deployFlag := flag.Bool("deploy", false, "deploy contracts on blockchain")
 
 	flag.Parse()

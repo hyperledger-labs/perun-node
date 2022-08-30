@@ -28,7 +28,7 @@ import (
 
 var (
 	aliceOnChainAddr = "0x8450c0055cB180C7C37A25866132A740b812937B"
-	bobOnChainAddr   = "0xc4bA4815c82727554e4c12A07a139b74c6742322"
+	bobOnChainAddr   = "0x8946Ee6a3Ba1AD6CF79faaa31F4D4aBC17A9424b"
 	chainAddr        string
 
 	chainCmdUsage = "Usage: chain [sub-command]"

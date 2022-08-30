@@ -31,15 +31,15 @@ import (
 
 var (
 	// Two default roles and their corresponding data.
-	alice               = "Alice"
-	bob                 = "Bob"
+	alice               = "Charger"
+	bob                 = "Car"
 	defaultOnChainAddrs = map[string]string{
 		alice: "0x8450c0055cB180C7C37A25866132A740b812937B",
-		bob:   "0xc4bA4815c82727554e4c12A07a139b74c6742322",
+		bob:   "0x8946Ee6a3Ba1AD6CF79faaa31F4D4aBC17A9424b",
 	}
 	defaultConfigFileURL = map[string]string{
-		alice: "alice/session.yaml",
-		bob:   "bob/session.yaml",
+		alice: "charger/session.yaml",
+		bob:   "car/session.yaml",
 	}
 	defaultNodeURL  = "localhost:50001"
 	defaultChainURL = "ws://127.0.0.1:8545"

@@ -101,11 +101,10 @@ func SendPayChUpdate(pctx context.Context, ch perun.ChAPI, payments []Payment) (
 		updates[i] = newUpdate(payerIdx, payeeIdx, idxOfCurrencyInBals, parsedAmount)
 	}
 
-	chInfo, apiErr := ch.SendChUpdate(pctx, func(state *pchannel.State) error {
+	chInfo, apiErr := ch.SendChUpdate(pctx, func(state *pchannel.State) {
 		for i := range updates {
 			updates[i](state)
 		}
-		return nil
 	})
 	return toPayChInfo(chInfo), apiErr
 }

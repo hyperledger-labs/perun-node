@@ -44,6 +44,8 @@ const (
 	configfileF       = "configfile" // can only be specified in flag, not via config file.
 	grpcPortF         = "grpcport"   // can only be specified in flag, not via config file.
 
+	apiServerF = "apiserver" // ca only be specified in flag, not via config file.
+
 	// default values for flags in run command.
 	defaultConfigFile = "node.yaml"
 	defaultGrpcPort   = 50001
@@ -99,6 +101,8 @@ func defineFlags() {
 	runCmd.Flags().String(configfileF, defaultConfigFile, "node config file")
 	runCmd.Flags().Uint64(grpcPortF, defaultGrpcPort, "port for grpc payment channel API server to listen")
 
+	runCmd.Flags().Bool(apiServerF, false, "enable api server only mode")
+
 	// Default values of all these flags should be zero, as their only purpose is to allow the user to
 	// explicitly specify the configuration.
 	runCmd.Flags().String(loglevelF, "", "Log level. Supported levels: debug, info, error")
@@ -135,15 +139,22 @@ func run(cmd *cobra.Command, args []string) {
 	}
 	grpcAddr := fmt.Sprintf(":%d", grpcPort)
 
+	apiServerOnly, err := cmd.Flags().GetBool(apiServerF)
+	if err != nil {
+		panic("unknown flag port\n")
+	}
+
 	nodeAPI, err := node.New(nodeCfg)
 	if err != nil {
 		fmt.Printf("Error initializing nodeAPI: %v\n", err)
 		return
 	}
 
-	fmt.Printf("Running perun node with the below config:\n%s.\n\nServing payment channel API via grpc at port %s\n\n",
-		prettify(nodeCfg), grpcAddr)
-	if err := grpc.ListenAndServePayChAPI(nodeAPI, grpcAddr); err != nil {
+	if !apiServerOnly {
+		fmt.Printf("Running perun node with the below config:\n%s.\n\nServing payment channel API via grpc at port %s\n\n",
+			prettify(nodeCfg), grpcAddr)
+	}
+	if err := grpc.ListenAndServePayChAPI(nodeAPI, grpcAddr, apiServerOnly); err != nil {
 		fmt.Printf("Server returned with error: %v\n", err)
 	}
 }
@@ -164,7 +175,7 @@ func parseNodeConfig(fs *pflag.FlagSet, v *viper.Viper) perun.NodeConfig {
 			fmt.Printf("Error reading node config file: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Using node config file - %s\n", nodeCfgFile)
+		// fmt.Printf("Using node config file - %s\n", nodeCfgFile)
 	}
 
 	// Copy the configuration from viper to struct.
