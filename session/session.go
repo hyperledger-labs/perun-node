@@ -192,7 +192,6 @@ func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry
 	if apiErr != nil {
 		return nil, apiErr
 	}
-
 	offChainAddr, err := user.OffChainAddr.MarshalBinary()
 	if err != nil {
 		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain address"))

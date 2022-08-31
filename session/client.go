@@ -21,7 +21,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hyperledger-labs/perun-node"
 	"github.com/pkg/errors"
 	pchannel "perun.network/go-perun/channel"
 	ppersistence "perun.network/go-perun/channel/persistence"
@@ -33,6 +32,8 @@ import (
 	pnet "perun.network/go-perun/wire/net"
 	pperunioserializer "perun.network/go-perun/wire/perunio/serializer"
 	pleveldb "polycry.pt/poly-go/sortedkv/leveldb"
+
+	"github.com/hyperledger-labs/perun-node"
 )
 
 type (
