@@ -184,10 +184,8 @@ func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry
 		err = errors.WithMessage(err, "connecting to blockchain")
 		return nil, perun.NewAPIErrInvalidConfig(err, "chainURL", cfg.ChainURL)
 	}
-
 	funder := chain.NewFunder(contractRegistry.AssetETH(), user.OnChain.Addr)
 	adjudicator := chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
-
 	chClient, apiErr := newEthereumPaymentClient(funder, adjudicator, commBackend, cfg.User.CommAddr, user.OffChain)
 	if apiErr != nil {
 		return nil, apiErr
