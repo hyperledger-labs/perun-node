@@ -108,9 +108,7 @@ func Test_SendChUpdate(t *testing.T) {
 		Bals:       [][]string{{"1", "2"}},
 	}
 	ourIdx := 0
-	noopUpdater := func(s *pchannel.State) error {
-		return nil
-	}
+	noopUpdater := func(s *pchannel.State) {}
 
 	t.Run("happy", func(t *testing.T) {
 		pch, _ := newMockPCh()
@@ -119,7 +117,7 @@ func Test_SendChUpdate(t *testing.T) {
 
 		pch.On("Idx").Return(pchannel.Index(1))
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
+		pch.On("Update", mock.Anything, mock.Anything).Return(nil)
 		gotChInfo, err := ch.SendChUpdate(context.Background(), noopUpdater)
 		require.NoError(t, err)
 		assert.NotZero(t, gotChInfo)
@@ -138,7 +136,7 @@ func Test_SendChUpdate(t *testing.T) {
 		assert.Nil(t, err.AddInfo())
 	})
 
-	t.Run("UpdateBy_PeerRequestTimedOut", func(t *testing.T) {
+	t.Run("Update_PeerRequestTimedOut", func(t *testing.T) {
 		timeout := responseTimeout.String()
 		peerRequestTimedOutError := pclient.RequestTimedOutError("some-error")
 		pch, _ := newMockPCh()
@@ -147,14 +145,14 @@ func Test_SendChUpdate(t *testing.T) {
 
 		pch.On("Idx").Return(pchannel.Index(ourIdx))
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(peerRequestTimedOutError)
+		pch.On("Update", mock.Anything, mock.Anything).Return(peerRequestTimedOutError)
 		_, err := ch.SendChUpdate(context.Background(), noopUpdater)
 
 		peruntest.AssertAPIError(t, err, perun.ParticipantError, perun.ErrPeerRequestTimedOut)
 		peruntest.AssertErrInfoPeerRequestTimedOut(t, err.AddInfo(), peerAlias, timeout)
 	})
 
-	t.Run("UpdateBy_RejectedByPeer", func(t *testing.T) {
+	t.Run("Update_RejectedByPeer", func(t *testing.T) {
 		reason := "some random reason"
 		peerRejectedError := pclient.PeerRejectedError{
 			ItemType: "channel update",
@@ -166,7 +164,7 @@ func Test_SendChUpdate(t *testing.T) {
 
 		pch.On("Idx").Return(pchannel.Index(ourIdx))
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(peerRejectedError)
+		pch.On("Update", mock.Anything, mock.Anything).Return(peerRejectedError)
 		_, err := ch.SendChUpdate(context.Background(), noopUpdater)
 
 		peruntest.AssertAPIError(t, err, perun.ParticipantError, perun.ErrPeerRejected)
@@ -623,7 +621,7 @@ func Test_Close(t *testing.T) {
 		var finalizer perun.StateUpdater
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
 		pch.On("State").Return(finalizedState)
-		pch.On("UpdateBy", mock.Anything, mock.MatchedBy(func(gotFinalizer perun.StateUpdater) bool {
+		pch.On("Update", mock.Anything, mock.MatchedBy(func(gotFinalizer perun.StateUpdater) bool {
 			finalizer = gotFinalizer
 			return true
 		})).Return(nil)
@@ -644,9 +642,9 @@ func Test_Close(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotZero(t, gotChInfo)
 
-		// == Part 2: Check if finalizer sent to UpdateBy marks the channel as final.
+		// == Part 2: Check if finalizer sent to Update marks the channel as final.
 		emptyState := pchannel.State{}
-		assert.NoError(t, finalizer(&emptyState))
+		finalizer(&emptyState)
 		assert.True(t, emptyState.IsFinal)
 
 		// == Part 3: Check if notification was received with correct values.
@@ -695,7 +693,7 @@ func Test_Close(t *testing.T) {
 		// Setup channel mock
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
 		pch.On("State").Return(state)
-		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(assert.AnError)
+		pch.On("Update", mock.Anything, mock.Anything).Return(assert.AnError)
 		pch.On("Settle", mock.Anything, mock.Anything).Return(nil)
 		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
 			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
@@ -763,7 +761,7 @@ func Test_Close(t *testing.T) {
 
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
+		pch.On("Update", mock.Anything, mock.Anything).Return(nil)
 		pch.On("Settle", mock.Anything, mock.Anything).Return(assert.AnError)
 		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
 			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
@@ -785,7 +783,7 @@ func Test_Close(t *testing.T) {
 
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
+		pch.On("Update", mock.Anything, mock.Anything).Return(nil)
 		pch.On("Settle", mock.Anything, mock.Anything).Return(txTimedOutError)
 		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
 			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.
@@ -809,7 +807,7 @@ func Test_Close(t *testing.T) {
 
 		pch.On("Idx").Return(pchannel.Index(peerIdx))
 		pch.On("State").Return(makeState(t, validOpeningBalInfo, false))
-		pch.On("UpdateBy", mock.Anything, mock.Anything).Return(nil)
+		pch.On("Update", mock.Anything, mock.Anything).Return(nil)
 		pch.On("Settle", mock.Anything, mock.Anything).Return(chainNotReachableError)
 		pch.On("Close").Return(nil).Run(func(args mock.Arguments) {
 			watcherSignal <- time.Now() // Signal the watcher to return when pch is closed.

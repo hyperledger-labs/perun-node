@@ -23,6 +23,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	pethchannel "perun.network/go-perun/backend/ethereum/channel"
+	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	pwallet "perun.network/go-perun/wallet"
 
 	"github.com/hyperledger-labs/perun-node/blockchain"
@@ -53,7 +55,7 @@ func Test_ContractRegistry_Adjudicator_AssetETH(t *testing.T) {
 		assert.Equal(t, setup.AssetETH, r.AssetETH())
 		gotAssetETH, found := r.Asset("ETH")
 		assert.True(t, found)
-		assert.Equal(t, setup.AssetETH, gotAssetETH)
+		assert.Equal(t, pethchannel.NewAssetFromAddress(pethwallet.AsEthAddr(setup.AssetETH)), gotAssetETH)
 
 		// happy/registry.assets.
 		assets := r.Assets()
@@ -109,15 +111,15 @@ func Test_ContractRegistry_ERC20(t *testing.T) {
 		// happy/registry.Asset.
 		gotAsset, found := r.Asset(perunSymbol)
 		assert.True(t, found, "No ERC20 tokens should be registered during init")
-		require.True(t, assetERC20.Equals(gotAsset))
+		require.True(t, (pethchannel.NewAssetFromAddress(pethwallet.AsEthAddr(assetERC20))).Equal(gotAsset))
 
 		// happy/registry.Token.
 		gotToken, found := r.Token(perunSymbol)
 		assert.True(t, found, "No ERC20 tokens should be registered during init")
-		require.True(t, tokenERC20.Equals(gotToken))
+		require.True(t, tokenERC20.Equal(gotToken))
 
 		// happy/registry.Symbol.
-		gotSymbol, found := r.Symbol(assetERC20)
+		gotSymbol, found := r.Symbol(pethchannel.NewAssetFromAddress(pethwallet.AsEthAddr(assetERC20)))
 		assert.True(t, found, "No ERC20 tokens should be registered during init")
 		require.Equal(t, perunSymbol, gotSymbol)
 

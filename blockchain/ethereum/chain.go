@@ -75,7 +75,7 @@ func NewChainBackend(url string,
 	if err != nil {
 		return nil, err
 	}
-	tr := pkeystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(int64(chainID))))
+	tr := pkeystore.NewTransactor(*ksWallet, types.LatestSignerForChainID(big.NewInt(int64(chainID))))
 	cb := pethchannel.NewContractBackend(ethereumBackend, tr, txFinalityDepth)
 	return &internal.ChainBackend{Cb: &cb, TxTimeout: onChainTxTimeout}, nil
 }

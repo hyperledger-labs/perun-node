@@ -115,6 +115,6 @@ func newSimContractBackend(t *testing.T, accs []pwallet.Account, ks *keystore.Ke
 	ksWallet, err := pkeystore.NewWallet(ks, "") // Password for test accounts is always empty string.
 	require.NoError(t, err)
 
-	tr := pkeystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(int64(ChainID))))
+	tr := pkeystore.NewTransactor(*ksWallet, types.LatestSignerForChainID(big.NewInt(int64(ChainID))))
 	return pethchannel.NewContractBackend(simBackend, tr, txFinalityDepth)
 }

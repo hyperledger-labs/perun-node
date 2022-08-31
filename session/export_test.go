@@ -58,7 +58,11 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient, chainSetup *e
 		return nil, apiErr
 	}
 
-	sessionID := calcSessionID(user.OffChainAddr.Bytes())
+	offChainAddr, err := user.OffChainAddr.MarshalBinary()
+	if err != nil {
+		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain address"))
+	}
+	sessionID := calcSessionID(offChainAddr)
 	timeoutCfg := timeoutConfig{
 		onChainTx: cfg.OnChainTxTimeout,
 		response:  cfg.ResponseTimeout,

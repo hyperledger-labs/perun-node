@@ -85,7 +85,7 @@ type (
 		Phase() pchannel.Phase
 		State() *pchannel.State
 		OnUpdate(cb func(from, to *pchannel.State))
-		UpdateBy(ctx context.Context, update func(*pchannel.State) error) error
+		Update(ctx context.Context, update func(*pchannel.State)) error
 		Settle(ctx context.Context, isSecondary bool) error
 		Watch(pclient.AdjudicatorEventHandler) error
 	}
@@ -307,7 +307,7 @@ func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
 	defer cancel()
-	err := ch.pch.UpdateBy(ctx, updater)
+	err := ch.pch.Update(ctx, updater)
 	if err != nil {
 		apiErr = ch.handleSendChUpdateError(errors.WithMessage(err, "sending channel update"))
 		return perun.ChInfo{}, apiErr
@@ -662,13 +662,12 @@ func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, perun.APIError) {
 // If this fails, calling Settle consequently will close the channel non-collaboratively, by registering
 // the state on-chain and waiting for challenge duration to expire.
 func (ch *Channel) finalize(pctx context.Context) {
-	chFinalizer := func(state *pchannel.State) error {
+	chFinalizer := func(state *pchannel.State) {
 		state.IsFinal = true
-		return nil
 	}
 	ctx, cancel := context.WithTimeout(pctx, ch.timeoutCfg.chUpdate())
 	defer cancel()
-	err := ch.pch.UpdateBy(ctx, chFinalizer)
+	err := ch.pch.Update(ctx, chFinalizer)
 	if err != nil {
 		apiErr := ch.handleSendChUpdateError(err)
 		ch.WithFields(perun.APIErrAsMap("ChClose", apiErr)).Error(apiErr.Message())

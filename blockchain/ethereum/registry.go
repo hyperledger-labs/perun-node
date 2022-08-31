@@ -19,6 +19,9 @@ package ethereum
 import (
 	"sync"
 
+	pethchannel "perun.network/go-perun/backend/ethereum/channel"
+	pethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	pchannel "perun.network/go-perun/channel"
 	pwallet "perun.network/go-perun/wallet"
 
 	"github.com/hyperledger-labs/perun-node"
@@ -136,14 +139,14 @@ func (r *contractRegistry) Assets() map[string]string {
 }
 
 // Asset returns asset contract address for the given symbol.
-func (r *contractRegistry) Asset(symbol string) (pwallet.Address, bool) {
+func (r *contractRegistry) Asset(symbol string) (pchannel.Asset, bool) {
 	r.mtx.RLock()
 	idx, found := r.isSymbolRegistered(symbol)
 	r.mtx.RUnlock()
 	if !found || r.assets[idx] == nil {
 		return nil, false
 	}
-	return r.assets[idx], true
+	return pethchannel.NewAssetFromAddress(pethwallet.AsEthAddr(r.assets[idx])), true
 }
 
 // Token returns asset contract address for the given symbol.
@@ -163,10 +166,13 @@ func (r *contractRegistry) Token(symbol string) (pwallet.Address, bool) {
 }
 
 // Symbol returns symbol for the given asset contract address.
-func (r *contractRegistry) Symbol(asset pwallet.Address) (symbol string, found bool) {
+func (r *contractRegistry) Symbol(asset pchannel.Asset) (symbol string, found bool) {
 	r.mtx.RLock()
-	symbol, found = r.isAssetRegistered(asset)
-	r.mtx.RUnlock()
+	defer r.mtx.RUnlock()
+	ethAsset, ok := asset.(*pethchannel.Asset)
+	if ok {
+		symbol, found = r.isAssetRegistered(&ethAsset.Address)
+	}
 	return symbol, found
 }
 
@@ -177,7 +183,7 @@ func (r *contractRegistry) isSymbolRegistered(symbol string) (idx int, found boo
 
 func (r *contractRegistry) isAssetRegistered(asset pwallet.Address) (symbol string, found bool) {
 	for assetIdx, gotAsset := range r.assets {
-		if gotAsset.Equals(asset) {
+		if gotAsset.Equal(asset) {
 			for symbol, i := range r.currencies {
 				if assetIdx == i {
 					return symbol, true
