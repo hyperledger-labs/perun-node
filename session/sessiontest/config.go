@@ -133,6 +133,8 @@ func NewConfig(rng *rand.Rand, peerIDs ...perun.PeerID) (session.Config, error) 
 		FundingType: "local",
 		Adjudicator: adjudicator,
 		AssetETH:    assetETH,
+
+		WatcherType: "local",
 	}, nil
 }
 

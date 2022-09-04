@@ -30,6 +30,8 @@ import (
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
 	pwallet "perun.network/go-perun/wallet"
+	pwatcher "perun.network/go-perun/watcher"
+	plocal "perun.network/go-perun/watcher/local"
 	pwire "perun.network/go-perun/wire"
 	psync "polycry.pt/poly-go/sync"
 
@@ -80,6 +82,7 @@ type (
 		chain       perun.ChainBackend
 		funder      perun.Funder
 		adjudicator pchannel.Adjudicator
+		watcher     pwatcher.Watcher
 
 		chs              *chRegistry
 		contractRegistry perun.ContractRegistry
@@ -176,7 +179,16 @@ func New( //nolint: funlen
 		return nil, perun.NewAPIErrInvalidConfig(err, "fundingType", cfg.FundingAPIKey)
 	}
 
-	chClient, apiErr := newChClient(funder, adjudicator, commBackend, cfg.User.CommAddr, user.OffChain)
+	var watcher pwatcher.Watcher
+	switch cfg.WatcherType {
+	case "local":
+		watcher, err = plocal.NewWatcher(adjudicator)
+		if err != nil {
+			return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "initializing watcher"))
+		}
+	}
+
+	chClient, apiErr := newChClient(funder, adjudicator, watcher, commBackend, cfg.User.CommAddr, user.OffChain)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -199,6 +211,7 @@ func New( //nolint: funlen
 		chain:                chain,
 		funder:               funder,
 		adjudicator:          adjudicator,
+		watcher:              watcher,
 		chs:                  newChRegistry(initialChRegistrySize),
 		contractRegistry:     contractRegistry,
 		currencyRegistry:     currencyRegistry,
