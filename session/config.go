@@ -55,6 +55,12 @@ type (
 		// If funding type is remote, these two parameters are needed.
 		FundingURL    string
 		FundingAPIKey string
+
+		WatcherType string // Can take two values: local, grpc
+
+		// If watcher type is grpc, these two parameters are needed.
+		WatcherURL    string
+		WatcherAPIKey string
 	}
 
 	// UserConfig defines the parameters required to configure a user.

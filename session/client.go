@@ -27,7 +27,7 @@ import (
 	pkeyvalue "perun.network/go-perun/channel/persistence/keyvalue"
 	pclient "perun.network/go-perun/client"
 	plog "perun.network/go-perun/log"
-	"perun.network/go-perun/watcher/local"
+	pwatcher "perun.network/go-perun/watcher"
 	pwire "perun.network/go-perun/wire"
 	pnet "perun.network/go-perun/wire/net"
 	pperunioserializer "perun.network/go-perun/wire/perunio/serializer"
@@ -133,7 +133,7 @@ func (c *pclientWrapped) OnNewChannel(handler func(PChannel)) {
 // It establishes a connection to the blockchain and verifies the integrity of contracts at the given address.
 // It uses the comm backend to initialize adapters for off-chain communication network.
 func newChClient(
-	funder pchannel.Funder, adjudicator pchannel.Adjudicator,
+	funder pchannel.Funder, adjudicator pchannel.Adjudicator, watcher pwatcher.Watcher,
 	comm perun.CommBackend, commAddr string,
 	offChainCred perun.Credential) (
 	ChClient, perun.APIError,
@@ -145,11 +145,6 @@ func newChClient(
 
 	dialer := comm.NewDialer()
 	msgBus := pnet.NewBus(offChainAcc, dialer, pperunioserializer.Serializer())
-
-	watcher, err := local.NewWatcher(adjudicator)
-	if err != nil {
-		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "initializing watcher"))
-	}
 
 	pcClient, err := pclient.New(offChainAcc.Address(), msgBus, funder, adjudicator, offChainCred.Wallet, watcher)
 	if err != nil {
