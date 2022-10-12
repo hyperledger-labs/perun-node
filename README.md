@@ -1,7 +1,7 @@
-# Perun Node - Go implementation [![join the chat][rocketchat-image]][rocketchat-url]
+# Perun Node - Go implementation [![join the chat][discord-image]][discord-url]
 
-[rocketchat-url]: https://chat.hyperledger.org/channel/perun
-[rocketchat-image]: https://open.rocket.chat/images/join-chat.svg
+[discord-url]: https://discord.gg/hyperledger
+[discord-image]: https://img.shields.io/badge/DISCORD-JOIN%20CHAT-green
 
 | Develop | Main |
 | :----: | :----: |
