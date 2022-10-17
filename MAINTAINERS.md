@@ -9,11 +9,17 @@ single approval from a non-author maintainer for pull requests to be merged.
 
 | Name             | GitHub                                          | [Chat][_chat-url] |
 | ---------------- | ----------------------------------------------- | ----------------- |
-| Anagha Sukumaran | [anagha-ks](https://github.com/anagha-ks)       | anagha-ks         |
 | Chris Hoeppler   | [choeppler](https://github.com/choeppler)       | choeppler         |
 | Daniel Kunz      | [danielksan81](https://github.com/danielksan81) | danielksan81      |
 | Manoranjith      | [manoranjith](https://github.com/manoranjith)   | mano-ranjith      |
-| &nbsp;           |                                                 |                   |
+
+## Emeritus Maintainers
+
+<!-- Please keep this sorted alphabetically by github -->
+
+| Name             | GitHub                                          | [Chat][_chat-url] |
+| ---------------- | ----------------------------------------------- | ----------------- |
+| Anagha Sukumaran | [anagha-ks](https://github.com/anagha-ks)       | anagha-ks         |
 
 [_chat-url]: https://chat.hyperledger.org/channel/perun
 
