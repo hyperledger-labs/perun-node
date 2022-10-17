@@ -7,27 +7,21 @@ single approval from a non-author maintainer for pull requests to be merged.
 
 <!-- Please keep this sorted alphabetically by github -->
 
-| Name             | GitHub                                          | [Chat][_chat-url] |
-| ---------------- | ----------------------------------------------- | ----------------- |
-| Chris Hoeppler   | [choeppler](https://github.com/choeppler)       | choeppler         |
-| Daniel Kunz      | [danielksan81](https://github.com/danielksan81) | danielksan81      |
-| Manoranjith      | [manoranjith](https://github.com/manoranjith)   | mano-ranjith      |
+| Name             | GitHub                                          | [Discord][_chat-url] |
+| ---------------- | ----------------------------------------------- | -------------------- |
+| Chris Hoeppler   | [choeppler](https://github.com/choeppler)       | choeppler#8002       |
+| Daniel Kunz      | [danielksan81](https://github.com/danielksan81) | danielksan81#1327    |
+| Manoranjith      | [manoranjith](https://github.com/manoranjith)   | manoranjith#8124     |
 
 ## Emeritus Maintainers
 
 <!-- Please keep this sorted alphabetically by github -->
 
-| Name             | GitHub                                          | [Chat][_chat-url] |
-| ---------------- | ----------------------------------------------- | ----------------- |
-| Anagha Sukumaran | [anagha-ks](https://github.com/anagha-ks)       | anagha-ks         |
+| Name             | GitHub                                          | [Discord][_chat-url] |
+| ---------------- | ----------------------------------------------- | -------------------- |
+| Anagha Sukumaran | [anagha-ks](https://github.com/anagha-ks)       |                      |
 
-[_chat-url]: https://chat.hyperledger.org/channel/perun
-
-## Emeritus Maintainers
-
-| Name   | GitHub | Chat | Email |
-| ------ | ------ | ---- | ----- |
-| &nbsp; |        |      |       |
+[_chat-url]: https://discord.com/channels/905194001349627914/955484679635632148
 
 ---
 This work is licensed under a [Creative Commons Attribution 4.0 International
