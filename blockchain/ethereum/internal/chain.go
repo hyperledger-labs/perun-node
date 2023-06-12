@@ -146,7 +146,8 @@ func (cb *ChainBackend) ValidateAssetETH(adjAddr, assetETHAddr pwallet.Address) 
 // contracts at the given addresses. TokenERC20 is the address of ERC20 token
 // contract.
 func (cb *ChainBackend) ValidateAssetERC20(adj, tokenERC20, assetERC20 pwallet.Address) (
-	symbol string, decimals uint8, _ error) {
+	symbol string, decimals uint8, _ error,
+) {
 	ctx, cancel := context.WithTimeout(context.Background(), cb.TxTimeout)
 	defer cancel()
 	var err error
@@ -185,7 +186,8 @@ func (cb *ChainBackend) DeployAssetETH(adjAddr, txSender pwallet.Address) (pwall
 
 // DeployPerunToken deploys the perun ERC20 token contract.
 func (cb *ChainBackend) DeployPerunToken(initAccs []pwallet.Address, initBal *big.Int, txSender pwallet.Address) (
-	pwallet.Address, error) {
+	pwallet.Address, error,
+) {
 	initAccsETH := make([]common.Address, len(initAccs))
 	for i := range initAccs {
 		initAccsETH[i] = pethwallet.AsEthAddr(initAccs[i])

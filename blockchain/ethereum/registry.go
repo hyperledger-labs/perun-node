@@ -49,7 +49,8 @@ type contractRegistry struct {
 // - Standard error if the adjudicator address in the asset ETH contract does not
 // match the passed value.
 func NewContractRegistry(chain perun.ROChainBackend, adjudicator, assetETH pwallet.Address) (
-	perun.ContractRegistry, error) {
+	perun.ContractRegistry, error,
+) {
 	err := chain.ValidateAdjudicator(adjudicator)
 	if err != nil {
 		return nil, err
@@ -85,7 +86,8 @@ func NewContractRegistry(chain perun.ROChainBackend, adjudicator, assetETH pwall
 // blockchain or if the token address in the asset contract does not match the
 // passed value.
 func (r *contractRegistry) RegisterAssetERC20(token, asset pwallet.Address) (
-	string, uint8, error) {
+	string, uint8, error,
+) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 

@@ -155,7 +155,8 @@ type chProposalResponderWrapped struct {
 
 // Accept is a wrapper around the original function, that returns a channel of interface type instead of struct type.
 func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pclient.LedgerChannelProposalAccMsg) (
-	PChannel, error) {
+	PChannel, error,
+) {
 	return r.ProposalResponder.Accept(ctx, proposalAcc)
 }
 
@@ -163,7 +164,8 @@ func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pc
 // currency registry and returns an instance of it. All methods on it are safe
 // for concurrent use.
 func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry perun.ContractRegistry) (
-	*Session, perun.APIError) {
+	*Session, perun.APIError,
+) {
 	user, apiErr := NewUnlockedUser(walletBackend, cfg.User)
 	if apiErr != nil {
 		return nil, apiErr
@@ -229,7 +231,8 @@ func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry
 }
 
 func initIDProvider(idProviderType, idProviderURL string, wb perun.WalletBackend, own perun.PeerID) (
-	perun.IDProvider, perun.APIError) {
+	perun.IDProvider, perun.APIError,
+) {
 	if idProviderType != "local" {
 		return nil, perun.NewAPIErrInvalidConfig(ErrUnsupportedType, "idProviderType", idProviderType)
 	}
@@ -385,7 +388,8 @@ func (s *Session) GetPeerID(alias string) (perun.PeerID, perun.APIError) {
 // - ErrChainNotReachable when connection to blockchain drops while funding.
 // - ErrUnknownInternal.
 func (s *Session) OpenCh(pctx context.Context, openingBalInfo perun.BalInfo, app perun.App, challengeDurSecs uint64) (
-	perun.ChInfo, perun.APIError) {
+	perun.ChInfo, perun.APIError,
+) {
 	s.WithField("method", "OpenCh").Infof(
 		"\nReceived request with params %+v,%+v,%+v", openingBalInfo, app, challengeDurSecs)
 	// Session lock is not acquired at the beginning, but only when adding the channel to session.
@@ -564,7 +568,8 @@ func makeOffChainAddrs(partIDs []perun.PeerID) []pwire.Address {
 // interpreter corresponding to the currency.
 func makeAllocation(balInfo perun.BalInfo,
 	contractRegistry perun.ROContractRegistry, currencyRegistry perun.ROCurrencyRegistry) (
-	[]perun.Currency, *pchannel.Allocation, perun.APIError) {
+	[]perun.Currency, *pchannel.Allocation, perun.APIError,
+) {
 	if len(balInfo.Currencies) != len(balInfo.Bals) {
 		err := errors.New("length of currencies should match the outer length of bals")
 		return nil, nil, perun.NewAPIErrInvalidArgument(err, ArgNameCurrency, strings.Join(balInfo.Currencies, ","))
@@ -600,7 +605,8 @@ func makeAllocation(balInfo perun.BalInfo,
 }
 
 func updateAssetsInFunder(currs []perun.Currency, contractRegistry perun.ROContractRegistry,
-	f perun.Funder, onChainAcc pwallet.Address) {
+	f perun.Funder, onChainAcc pwallet.Address,
+) {
 	// Updating assets in funder is done only after constructing an allocation.
 	// So, all assets will be present in the registry,
 	for i := range currs {
@@ -698,7 +704,8 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 // But when working with multiple clients, the type underlying the asset should
 // be specified by the framework and all implementations should comply with it.
 func getCurrencies(assets []pchannel.Asset,
-	contractRegistry perun.ROContractRegistry, currencyRegistry perun.ROCurrencyRegistry) ([]perun.Currency, error) {
+	contractRegistry perun.ROContractRegistry, currencyRegistry perun.ROCurrencyRegistry,
+) ([]perun.Currency, error) {
 	currencies := make([]perun.Currency, len(assets))
 	for i := range assets {
 		symbol, found := contractRegistry.Symbol(assets[i])
@@ -712,7 +719,8 @@ func getCurrencies(assets []pchannel.Asset,
 }
 
 func chProposalNotif(parts []string, currencies []perun.Currency, chProposal *pclient.LedgerChannelProposalMsg,
-	expiry int64) perun.ChProposalNotif {
+	expiry int64,
+) perun.ChProposalNotif {
 	return perun.ChProposalNotif{
 		ProposalID:       fmt.Sprintf("%x", chProposal.ProposalID),
 		OpeningBalInfo:   makeBalInfoFromRawBal(parts, currencies, chProposal.InitBals.Balances),
@@ -817,7 +825,8 @@ func (s *Session) UnsubChProposals() perun.APIError {
 // - ErrChainNotReachable when connection to blockchain drops while funding.
 // - ErrUnknownInternal.
 func (s *Session) RespondChProposal(pctx context.Context, chProposalID string, accept bool) (
-	perun.ChInfo, perun.APIError) {
+	perun.ChInfo, perun.APIError,
+) {
 	s.WithField("method", "RespondChProposal").Infof("\nReceived request with Params %+v,%+v", chProposalID, accept)
 	// Session lock is not acquired at the beginning, but only when retrieving
 	// the proposal and when adding the opened channel to session.
@@ -863,7 +872,8 @@ func (s *Session) RespondChProposal(pctx context.Context, chProposalID string, a
 }
 
 func (s *Session) acceptChProposal(pctx context.Context, entry chProposalResponderEntry) (
-	perun.ChInfo, perun.APIError) {
+	perun.ChInfo, perun.APIError,
+) {
 	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.respChProposalAccept(entry.notif.ChallengeDurSecs))
 	defer cancel()
 
@@ -901,7 +911,8 @@ func (s *Session) handleChProposalAcceptError(parts []string, err error) perun.A
 }
 
 func (s *Session) rejectChProposal(pctx context.Context, responder ChProposalResponder,
-	reason string) perun.APIError {
+	reason string,
+) perun.APIError {
 	ctx, cancel := context.WithTimeout(pctx, s.timeoutCfg.respChProposalReject())
 	defer cancel()
 	err := responder.Reject(ctx, reason)
@@ -955,7 +966,8 @@ func (s *Session) GetCh(chID string) (perun.ChAPI, perun.APIError) {
 // channel to which update is received and invokes the handler for that
 // channel.
 func (s *Session) HandleUpdate(
-	currState *pchannel.State, chUpdate pclient.ChannelUpdate, responder *pclient.UpdateResponder) {
+	currState *pchannel.State, chUpdate pclient.ChannelUpdate, responder *pclient.UpdateResponder,
+) {
 	s.HandleUpdateWInterface(currState, chUpdate, responder)
 }
 
@@ -965,7 +977,8 @@ func (s *Session) HandleUpdate(
 //
 // If the session is closed, it drops the incoming updates.
 func (s *Session) HandleUpdateWInterface(
-	currState *pchannel.State, chUpdate pclient.ChannelUpdate, responder ChUpdateResponder) {
+	currState *pchannel.State, chUpdate pclient.ChannelUpdate, responder ChUpdateResponder,
+) {
 	s.Debugf("SDK Callback: HandleUpdate. Params: %+v", chUpdate)
 	s.Lock()
 	defer s.Unlock()

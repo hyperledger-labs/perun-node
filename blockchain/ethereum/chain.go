@@ -57,7 +57,8 @@ func NewChainBackend(url string,
 	chainConnTimeout,
 	onChainTxTimeout time.Duration,
 	cred perun.Credential) (
-	perun.ChainBackend, error) {
+	perun.ChainBackend, error,
+) {
 	ctx, cancel := context.WithTimeout(context.Background(), chainConnTimeout)
 	defer cancel()
 	ethereumBackend, err := ethclient.DialContext(ctx, url)
@@ -87,7 +88,8 @@ func NewChainBackend(url string,
 // project and types from std lib.  This enables the function to be loaded as
 // symbol without importing this package when it is compiled as plugin.
 func NewROChainBackend(url string, chainID int, chainConnTimeout time.Duration) (
-	perun.ROChainBackend, error) {
+	perun.ROChainBackend, error,
+) {
 	ctx, cancel := context.WithTimeout(context.Background(), chainConnTimeout)
 	defer cancel()
 	ethereumBackend, err := ethclient.DialContext(ctx, url)
@@ -101,7 +103,8 @@ func NewROChainBackend(url string, chainID int, chainConnTimeout time.Duration) 
 
 // BalanceAt reads the on-chain balance of the given address.
 func BalanceAt(url string, chainConnTimeout, onChainTxTimeout time.Duration, addr pwallet.Address) (
-	*big.Int, error) {
+	*big.Int, error,
+) {
 	ctx, cancel := context.WithTimeout(context.Background(), chainConnTimeout)
 	defer cancel()
 	ethereumBackend, err := ethclient.DialContext(ctx, url)

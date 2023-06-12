@@ -81,7 +81,8 @@ func ContractAddrs() (adjudicator, assetETH pwallet.Address, assetERC20s map[pwa
 // It uses the passed testing.T to handle the errors and registers the cleanup
 // functions on it.
 func SetupContractsT(t *testing.T,
-	chainURL string, chainID int, onChainTxTimeout time.Duration, incAssetERC20s bool) perun.ContractRegistry {
+	chainURL string, chainID int, onChainTxTimeout time.Duration, incAssetERC20s bool,
+) perun.ContractRegistry {
 	contracts, err := SetupContracts(chainURL, chainID, onChainTxTimeout, incAssetERC20s)
 	require.NoError(t, err)
 	return contracts
@@ -98,7 +99,8 @@ func SetupContractsT(t *testing.T,
 // Every calls returns a new instance of contract registry, so that modifying
 // the contract registry in one test does not affect other tests.
 func SetupContracts(chainURL string, chainID int, onChainTxTimeout time.Duration, incAssetERC20s bool) (
-	perun.ContractRegistry, error) {
+	perun.ContractRegistry, error,
+) {
 	var err error
 
 	if !isBlockchainRunning(chainURL) {
@@ -176,7 +178,8 @@ func newContractRegistry(chain perun.ROChainBackend, incAssetERC20s bool) (perun
 }
 
 func deployContracts(chain perun.ChainBackend, onChainCred perun.Credential,
-	initAccs []pwallet.Address, initBal *big.Int) error {
+	initAccs []pwallet.Address, initBal *big.Int,
+) error {
 	var err error
 	adjudicator, err := chain.DeployAdjudicator(onChainCred.Addr)
 	if err != nil {

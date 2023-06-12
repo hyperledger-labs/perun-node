@@ -96,7 +96,6 @@ func peerIDAddFn(c *ishell.Context) {
 	req := pb.AddPeerIDReq{
 		SessionID: sessionID,
 		PeerID: &pb.PeerID{
-
 			Alias:           c.Args[0],
 			OffChainAddress: c.Args[1],
 			CommAddress:     c.Args[2],
