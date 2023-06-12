@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	psync "perun.network/go-perun/pkg/sync"
+	psync "polycry.pt/poly-go/sync"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain"

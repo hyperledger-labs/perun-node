@@ -27,10 +27,10 @@ import (
 	pkeyvalue "perun.network/go-perun/channel/persistence/keyvalue"
 	pclient "perun.network/go-perun/client"
 	plog "perun.network/go-perun/log"
-	pleveldb "perun.network/go-perun/pkg/sortedkv/leveldb"
 	"perun.network/go-perun/watcher/local"
 	pwire "perun.network/go-perun/wire"
 	pnet "perun.network/go-perun/wire/net"
+	pleveldb "polycry.pt/poly-go/sortedkv/leveldb"
 
 	"github.com/hyperledger-labs/perun-node"
 )
