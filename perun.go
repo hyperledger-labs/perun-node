@@ -149,8 +149,8 @@ type ROChainBackend interface {
 // core abstraction.
 type Funder interface {
 	pchannel.Funder
-	RegisterAssetERC20(asset, token, acc pwallet.Address) bool
-	IsAssetRegistered(asset pwallet.Address) bool
+	RegisterAssetERC20(asset pchannel.Asset, token, acc pwallet.Address) bool
+	IsAssetRegistered(asset pchannel.Asset) bool
 }
 
 // WalletBackend wraps the methods for instantiating wallets and accounts that are specific to a blockchain platform.
@@ -195,9 +195,9 @@ type ContractRegistry interface {
 type ROContractRegistry interface {
 	Adjudicator() pwallet.Address
 	AssetETH() pwallet.Address
-	Asset(symbol string) (asset pwallet.Address, found bool)
+	Asset(symbol string) (asset pchannel.Asset, found bool)
 	Token(symbol string) (token pwallet.Address, found bool)
-	Symbol(asset pwallet.Address) (symbol string, found bool)
+	Symbol(asset pchannel.Asset) (symbol string, found bool)
 	Assets() map[string]string
 }
 
@@ -560,5 +560,5 @@ type (
 	}
 
 	// StateUpdater function is the function that will be used for applying state updates.
-	StateUpdater func(*pchannel.State) error
+	StateUpdater func(*pchannel.State)
 )

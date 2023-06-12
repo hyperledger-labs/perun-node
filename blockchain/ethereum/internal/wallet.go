@@ -90,7 +90,7 @@ func (wb *WalletBackend) ParseAddr(str string) (pwallet.Address, error) {
 	// zero value representation of the address type. Valid zero value representations are
 	// "", "0x", "0x00000" (any number of zeros) or the canonical form of forty zeros.
 	zeroValue := pethwallet.Address{}
-	if addr.Equals(&zeroValue) && !strings.Contains(zeroValue.String(), str) {
+	if addr.Equal(&zeroValue) && !strings.Contains(zeroValue.String(), str) {
 		return nil, errors.New("invalid string")
 	}
 	return addr, nil

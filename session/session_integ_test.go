@@ -40,6 +40,7 @@ import (
 	"github.com/hyperledger-labs/perun-node/peruntest"
 	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
+	pperunioserializer "perun.network/go-perun/wire/perunio/serializer"
 )
 
 func Test_Integ_New(t *testing.T) {
@@ -180,7 +181,7 @@ func Test_Integ_New(t *testing.T) {
 		listener, err := tcp.NewTCPBackend(1 * time.Second).NewListener(cfgCopy.User.CommAddr)
 		require.NoError(t, err)
 		go func() {
-			_, _ = listener.Accept() //nolint: errcheck		// no need to check error.
+			_, _ = listener.Accept(pperunioserializer.Serializer()) //nolint: errcheck		// no need to check error.
 		}()
 		defer listener.Close() //nolint: errcheck		// no need to check error.
 
