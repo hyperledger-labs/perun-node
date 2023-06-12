@@ -25,8 +25,8 @@ import (
 
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
-	psync "perun.network/go-perun/pkg/sync"
 	pwire "perun.network/go-perun/wire"
+	psync "polycry.pt/poly-go/sync"
 
 	"github.com/pkg/errors"
 

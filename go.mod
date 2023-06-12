@@ -25,7 +25,8 @@ require (
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	gotest.tools v2.2.0+incompatible
-	perun.network/go-perun v0.8.0
+	perun.network/go-perun v0.9.0
+	polycry.pt/poly-go v0.0.0-20211115212618-87069dfa360f
 )
 
 require (
