@@ -219,7 +219,6 @@ type NodeConfig struct {
 	CommTypes            []string // Communication protocols supported by the node for off-chain communication.
 	IDProviderTypes      []string // ID Provider types supported by the node.
 	CurrencyInterpreters []string // Currencies Interpreters supported by the node.
-
 }
 
 // APIError represents the newer version of error returned by node, session

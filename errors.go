@@ -224,7 +224,6 @@ func NewAPIErrFailedPreCondition(err error) APIError {
 // NewAPIErrFailedPreConditionUnclosedChs returns an ErrFailedPreCondition
 // API Error for the special case where channel close was closed with no-force
 // option and, one or more open channels exists.
-//
 func NewAPIErrFailedPreConditionUnclosedChs(err error, chs []ChInfo) APIError {
 	return newAPIErrFailedPreCondition(err,
 		ErrInfoFailedPreCondUnclosedChs{

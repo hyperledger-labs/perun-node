@@ -247,7 +247,7 @@ func Test_Integ_Role(t *testing.T) {
 			wg.Wait()
 		}
 
-		// nolint: govet	// it is okay to use unkeyed fields in Payment struct.
+		//nolint: govet	// it is okay to use unkeyed fields in Payment struct.
 		tests := []struct {
 			name     string
 			chID     string
@@ -464,7 +464,8 @@ func SubPayChProposal(t *testing.T, sessionID string) pb.Payment_API_SubPayChPro
 }
 
 func ReadPayChProposalNotif(t *testing.T, sessionID string, sub pb.Payment_API_SubPayChProposalsClient,
-	wantErr bool) *pb.SubPayChProposalsResp_Notify_ {
+	wantErr bool,
+) *pb.SubPayChProposalsResp_Notify_ {
 	notifMsg, err := sub.Recv()
 
 	if wantErr {
@@ -543,7 +544,8 @@ func SubPayChUpdate(t *testing.T, sessionID, chID string) pb.Payment_API_SubPayC
 }
 
 func ReadPayChUpdateNotif(t *testing.T, sessionID, chID string,
-	sub pb.Payment_API_SubPayChUpdatesClient) *pb.SubPayChUpdatesResp_Notify_ {
+	sub pb.Payment_API_SubPayChUpdatesClient,
+) *pb.SubPayChUpdatesResp_Notify_ {
 	notifMsg, err := sub.Recv()
 	require.NoErrorf(t, err, "subClient.Recv")
 	notif, ok := notifMsg.Response.(*pb.SubPayChUpdatesResp_Notify_)

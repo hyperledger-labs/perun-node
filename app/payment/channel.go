@@ -168,7 +168,8 @@ func UnsubPayChUpdates(ch perun.ChAPI) perun.APIError {
 //
 // See session.RespondChUpdate for the list of errors returned by this API.
 func RespondPayChUpdate(pctx context.Context, ch perun.ChAPI, updateID string, accept bool) (
-	PayChInfo, perun.APIError) {
+	PayChInfo, perun.APIError,
+) {
 	chInfo, err := ch.RespondChUpdate(pctx, updateID, accept)
 	return toPayChInfo(chInfo), err
 }

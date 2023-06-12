@@ -36,7 +36,8 @@ func SetWalletBackend(wb perun.WalletBackend) {
 }
 
 func NewClientForTest(pClient pClient,
-	bus perun.WireBus, msgBusRegistry perun.Registerer, dbConn Closer) ChClient {
+	bus perun.WireBus, msgBusRegistry perun.Registerer, dbConn Closer,
+) ChClient {
 	return &client{
 		pClient:        pClient,
 		msgBus:         bus,
@@ -46,7 +47,8 @@ func NewClientForTest(pClient pClient,
 }
 
 func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient, chainSetup *ethereumtest.ChainBackendSetup) (
-	*Session, error) {
+	*Session, error,
+) {
 	_ = chainSetup
 	user, apiErr := NewUnlockedUser(walletBackend, cfg.User)
 	if apiErr != nil {
@@ -94,7 +96,8 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient, chainSetup *e
 }
 
 func NewChForTest(pch PChannel,
-	currencySymbol string, parts []string, responseTimeout time.Duration, challengeDurSecs uint64, isOpen bool) *Channel {
+	currencySymbol string, parts []string, responseTimeout time.Duration, challengeDurSecs uint64, isOpen bool,
+) *Channel {
 	chainURL := ethereumtest.ChainURL
 	onChainTxTimeout := ethereumtest.OnChainTxTimeout
 	timeoutCfg := timeoutConfig{
@@ -114,7 +117,8 @@ func NewChForTest(pch PChannel,
 
 func MakeAllocation(openingBalInfo perun.BalInfo,
 	contractRegistry perun.ROContractRegistry, currencyRegistry perun.ROCurrencyRegistry) (
-	*pchannel.Allocation, error) {
+	*pchannel.Allocation, error,
+) {
 	_, allocation, err := makeAllocation(openingBalInfo, contractRegistry, currencyRegistry)
 	return allocation, err
 }

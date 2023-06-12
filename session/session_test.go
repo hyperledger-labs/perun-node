@@ -58,7 +58,8 @@ func Test_SessionAPI_Interface(t *testing.T) {
 }
 
 func newSessionWMockChClient(t *testing.T, isOpen bool, peerIDs ...perun.PeerID) (
-	*session.Session, *mocks.ChClient, *ethereumtest.ChainBackendSetup) {
+	*session.Session, *mocks.ChClient, *ethereumtest.ChainBackendSetup,
+) {
 	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 	cfg := sessiontest.NewConfigT(t, rng, peerIDs...)
 	chClient := &mocks.ChClient{}
@@ -937,7 +938,8 @@ func newChProposal(t *testing.T, ownAddr, peer perun.PeerID) pclient.ChannelProp
 }
 
 func newSessionWChProposal(t *testing.T, peerIDs []perun.PeerID) (
-	*session.Session, pclient.ChannelProposal, string) {
+	*session.Session, pclient.ChannelProposal, string,
+) {
 	session, _, _ := newSessionWMockChClient(t, true, peerIDs...)
 	ownPeerID, err := session.GetPeerID(perun.OwnAlias)
 	require.NoError(t, err)
@@ -947,7 +949,8 @@ func newSessionWChProposal(t *testing.T, peerIDs []perun.PeerID) (
 }
 
 func newSessionWCh(t *testing.T, peerIDs []perun.PeerID, openingBalInfo perun.BalInfo,
-	ch session.PChannel) *session.Session {
+	ch session.PChannel,
+) *session.Session {
 	app := perun.App{
 		Def:  pchannel.NoApp(),
 		Data: pchannel.NoData(),

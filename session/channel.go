@@ -112,7 +112,8 @@ type (
 // newCh initializes  a channel instance using the passed pchannel (controller)
 // and other channel parameters.
 func newCh(pch PChannel, chainURL string, currencies []perun.Currency, parts []string, timeoutCfg timeoutConfig,
-	challengeDurSecs uint64) *Channel {
+	challengeDurSecs uint64,
+) *Channel {
 	ch := &Channel{
 		params: params{
 			id:               fmt.Sprintf("%x", pch.ID()),
@@ -331,7 +332,8 @@ func (ch *Channel) handleSendChUpdateError(err error) perun.APIError {
 // centrazlied handler identifies the channel and then invokes this function to
 // process the update.
 func (ch *Channel) HandleUpdate(
-	currState *pchannel.State, chUpdate pclient.ChannelUpdate, responder ChUpdateResponder) {
+	currState *pchannel.State, chUpdate pclient.ChannelUpdate, responder ChUpdateResponder,
+) {
 	ch.Lock()
 	defer ch.Unlock()
 
@@ -370,7 +372,8 @@ func (ch *Channel) sendChUpdateNotif(notif perun.ChUpdateNotif) {
 }
 
 func (ch *Channel) makeChUpdateNotif(
-	currChInfo perun.ChInfo, proposedState *pchannel.State, expiry int64) perun.ChUpdateNotif {
+	currChInfo perun.ChInfo, proposedState *pchannel.State, expiry int64,
+) perun.ChUpdateNotif {
 	var chUpdateType perun.ChUpdateType
 	switch proposedState.IsFinal {
 	case true:
@@ -470,7 +473,8 @@ func (ch *Channel) unsubChUpdates() {
 // - ErrUserResponseTimedOut when user responded after time out expired.
 // - ErrUnknownInternal.
 func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept bool) (
-	perun.ChInfo, perun.APIError) {
+	perun.ChInfo, perun.APIError,
+) {
 	ch.WithField("method", "RespondChUpdate").Infof("\nReceived request with params %+v,%+v", updateID, accept)
 	ch.Lock()
 	defer ch.Unlock()

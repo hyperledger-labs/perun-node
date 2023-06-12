@@ -51,7 +51,8 @@ func OpenSession(n perun.NodeAPI, configFile string) (string, []PayChInfo, perun
 //
 // See session.OpenCh for the list of errors returned by this API.
 func OpenPayCh(pctx context.Context, s perun.SessionAPI, openingBalInfo perun.BalInfo, challengeDurSecs uint64) (
-	PayChInfo, perun.APIError) {
+	PayChInfo, perun.APIError,
+) {
 	paymentApp := perun.App{
 		Def:  pchannel.NoApp(),
 		Data: pchannel.NoData(),
@@ -100,7 +101,8 @@ func UnsubPayChProposals(s perun.SessionAPI) perun.APIError {
 //
 // See session.RespondChProposal for the list of errors returned by this API.
 func RespondPayChProposal(pctx context.Context, s perun.SessionAPI, proposalID string, accept bool) (PayChInfo,
-	perun.APIError) {
+	perun.APIError,
+) {
 	chInfo, apiErr := s.RespondChProposal(pctx, proposalID, accept)
 	return toPayChInfo(chInfo), apiErr
 }
