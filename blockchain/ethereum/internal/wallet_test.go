@@ -89,14 +89,14 @@ func Test_WalletBackend_ParseAddr(t *testing.T) {
 		gotAddr, err := wb.ParseAddr(validAddr.String())
 		assert.NoError(t, err)
 		require.NotNil(t, gotAddr)
-		assert.True(t, validAddr.Equals(gotAddr))
+		assert.True(t, validAddr.Equal(gotAddr))
 	})
 	t.Run("happy_zero_value", func(t *testing.T) {
 		validAddr := pethwallet.Address{}
 		gotAddr, err := wb.ParseAddr(validAddr.String())
 		assert.NoError(t, err)
 		require.NotNil(t, gotAddr)
-		assert.True(t, validAddr.Equals(gotAddr))
+		assert.True(t, validAddr.Equal(gotAddr))
 	})
 	t.Run("invalid_addr", func(t *testing.T) {
 		gotAddr, err := wb.ParseAddr("invalid-addr")

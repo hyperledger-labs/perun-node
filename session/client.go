@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hyperledger-labs/perun-node"
 	"github.com/pkg/errors"
 	pchannel "perun.network/go-perun/channel"
 	ppersistence "perun.network/go-perun/channel/persistence"
@@ -30,9 +31,8 @@ import (
 	"perun.network/go-perun/watcher/local"
 	pwire "perun.network/go-perun/wire"
 	pnet "perun.network/go-perun/wire/net"
+	pperunioserializer "perun.network/go-perun/wire/perunio/serializer"
 	pleveldb "polycry.pt/poly-go/sortedkv/leveldb"
-
-	"github.com/hyperledger-labs/perun-node"
 )
 
 type (
@@ -142,7 +142,7 @@ func newEthereumPaymentClient(
 	}
 
 	dialer := comm.NewDialer()
-	msgBus := pnet.NewBus(offChainAcc, dialer)
+	msgBus := pnet.NewBus(offChainAcc, dialer, pperunioserializer.Serializer())
 
 	watcher, err := local.NewWatcher(adjudicator)
 	if err != nil {
