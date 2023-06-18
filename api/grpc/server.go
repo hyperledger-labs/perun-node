@@ -29,10 +29,14 @@ import (
 // ListenAndServePayChAPI starts a payment channel API server that listens for incoming grpc
 // requests at the specified address and serves those requests using the node API instance.
 func ListenAndServePayChAPI(n perun.NodeAPI, grpcPort string) error {
-	apiServer := &payChAPIServer{
+	paymentChServer := &payChAPIServer{
 		n:                n,
 		chProposalsNotif: make(map[string]chan bool),
 		chUpdatesNotif:   make(map[string]map[string]chan bool),
+	}
+
+	fundingServer := &fundingServer{
+		n: n,
 	}
 
 	listener, err := net.Listen("tcp", grpcPort)
@@ -40,7 +44,8 @@ func ListenAndServePayChAPI(n perun.NodeAPI, grpcPort string) error {
 		return errors.Wrap(err, "starting listener")
 	}
 	grpcServer := grpclib.NewServer()
-	pb.RegisterPayment_APIServer(grpcServer, apiServer)
+	pb.RegisterPayment_APIServer(grpcServer, paymentChServer)
+	pb.RegisterFunding_APIServer(grpcServer, fundingServer)
 
 	return grpcServer.Serve(listener)
 }
