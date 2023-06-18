@@ -34,14 +34,11 @@ linters:
       # restrict dependencies
     - depguard
       # detect unused, duplicate code
-    - deadcode
     - dupl
     - goconst
-    - structcheck
     - unconvert
     - unparam
     - unused
-    - varcheck
       # check code complexity
     - funlen
     - gocognit
