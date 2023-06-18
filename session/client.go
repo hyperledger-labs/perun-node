@@ -129,10 +129,10 @@ func (c *pclientWrapped) OnNewChannel(handler func(PChannel)) {
 	})
 }
 
-// newEthereumPaymentClient initializes a two party, ethereum payment channel client for the given user.
+// newChClient initializes a two party, payment channel client for the given user.
 // It establishes a connection to the blockchain and verifies the integrity of contracts at the given address.
 // It uses the comm backend to initialize adapters for off-chain communication network.
-func newEthereumPaymentClient(
+func newChClient(
 	funder pchannel.Funder, adjudicator pchannel.Adjudicator,
 	comm perun.CommBackend, commAddr string,
 	offChainCred perun.Credential) (
