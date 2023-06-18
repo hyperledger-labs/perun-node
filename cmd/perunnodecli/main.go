@@ -14,6 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package perunnodecli implements a client with a command line interface for
+// interacting with the perun node.
 package main
 
 import (
