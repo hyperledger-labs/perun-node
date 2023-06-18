@@ -18,4 +18,4 @@
 // generated code for grpc server and client.
 package pb
 
-//go:generate protoc --go_out=plugins=grpc:. api.proto
+//go:generate protoc --go_out=. --go-grpc_out=. api.proto
