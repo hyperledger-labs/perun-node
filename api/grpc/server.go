@@ -31,6 +31,7 @@ import (
 
 // payChAPIServer represents a grpc server that can serve payment channel API.
 type payChAPIServer struct {
+	pb.UnimplementedPayment_APIServer
 	n perun.NodeAPI
 
 	// The mutex should be used when accessing the map data structures.
