@@ -58,11 +58,13 @@ linters-settings:
     check-blank: true
 
   depguard:
-    list-type: blacklist
-    include-go-root: true
-    packages-with-error-message:
-      - github.com/ethereum/go-ethereum: "It contains code licensed under LGPL, import is allowed only inside perun-node/blockchain/ethereum"
-      - perun.network/go-perun/backend/ethereum:  "It uses code licensed under LGPL, import is allowed only inside perun-node/blockchain/ethereum"
+    rules:
+      main:
+        deny:
+          - pkg: "github.com/ethereum/go-ethereum"
+            desc: It contains code licensed under LGPL, import is allowed only inside perun-node/blockchain/ethereum
+          - pkg: "perun.network/go-perun/backend/ethereum"
+            desc: It uses code licensed under LGPL, import is allowed only inside perun-node/blockchain/ethereum"
 
   dupl:
     # tokens count to trigger issue, 150 by default
