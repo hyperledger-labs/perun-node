@@ -189,7 +189,7 @@ func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry
 
 	funder := chain.NewFunder(contractRegistry.AssetETH(), user.OnChain.Addr)
 	adjudicator := chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
-	chClient, apiErr := newEthereumPaymentClient(funder, adjudicator, commBackend, cfg.User.CommAddr, user.OffChain)
+	chClient, apiErr := newChClient(funder, adjudicator, commBackend, cfg.User.CommAddr, user.OffChain)
 	if apiErr != nil {
 		return nil, apiErr
 	}
