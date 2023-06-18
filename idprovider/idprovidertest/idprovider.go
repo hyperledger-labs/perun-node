@@ -17,7 +17,6 @@
 package idprovidertest
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -44,7 +43,7 @@ func NewIDProviderT(t *testing.T, peerIDs ...perun.PeerID) string {
 // NewIDProvider sets up a local ID provider instance as a file in the system's temp directory with
 // the given list of peers IDs and returns the ID provider URL, which is path of the file. .
 func NewIDProvider(peerIDs ...perun.PeerID) (string, error) {
-	tempFile, err := ioutil.TempFile("", "")
+	tempFile, err := os.CreateTemp("", "")
 	if err != nil {
 		return "", errors.Wrap(err, "creating temp file for local idProvider")
 	}

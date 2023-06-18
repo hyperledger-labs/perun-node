@@ -18,7 +18,6 @@ package sessiontest
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"testing"
@@ -58,7 +57,7 @@ func NewConfigFileT(t *testing.T, config session.Config) string {
 // NewConfigFile creates a temporary file containing the given session configuration and
 // returns the path to it. It also registers a cleanup function on the passed test handler.
 func NewConfigFile(config interface{}) (string, error) {
-	tempFile, err := ioutil.TempFile("", "*.yaml")
+	tempFile, err := os.CreateTemp("", "*.yaml")
 	if err != nil {
 		return "", errors.Wrap(err, "creating temp file for config")
 	}
@@ -137,7 +136,7 @@ func NewConfig(rng *rand.Rand, peerIDs ...perun.PeerID) (session.Config, error) 
 }
 
 func newDatabaseDir() (string, error) {
-	databaseDir, err := ioutil.TempDir("", "")
+	databaseDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return "", errors.Wrap(err, "creating temp directory for database")
 	}
