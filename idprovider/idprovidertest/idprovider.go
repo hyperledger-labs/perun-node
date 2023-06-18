@@ -55,13 +55,13 @@ func NewIDProvider(peerIDs ...perun.PeerID) (string, error) {
 
 	encoder := yaml.NewEncoder(tempFile)
 	if err := encoder.Encode(idProvider); err != nil {
-		tempFile.Close()           // nolint: errcheck
-		os.Remove(tempFile.Name()) // nolint: errcheck
+		tempFile.Close()           //nolint:errcheck
+		os.Remove(tempFile.Name()) //nolint:errcheck
 		return "", errors.Wrap(err, "encoding idProvider")
 	}
 	if err := encoder.Close(); err != nil {
-		tempFile.Close()           // nolint: errcheck
-		os.Remove(tempFile.Name()) // nolint: errcheck
+		tempFile.Close()           //nolint:errcheck
+		os.Remove(tempFile.Name()) //nolint:errcheck
 		return "", errors.Wrap(err, "closing encoder")
 	}
 	return tempFile.Name(), tempFile.Close()

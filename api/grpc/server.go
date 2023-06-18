@@ -774,7 +774,7 @@ func ToGrpcBalInfo(src perun.BalInfo) *pb.BalInfo {
 
 // toGrpcError is a helper function to convert APIError struct defined in perun-node
 // to APIError struct defined in grpc package.
-func toGrpcError(err perun.APIError) *pb.MsgError { //nolint: funlen
+func toGrpcError(err perun.APIError) *pb.MsgError { //nolint:funlen
 	grpcErr := pb.MsgError{
 		Category: pb.ErrorCategory(err.Category()),
 		Code:     pb.ErrorCode(err.Code()),

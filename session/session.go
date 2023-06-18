@@ -189,7 +189,6 @@ func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry
 
 	funder := chain.NewFunder(contractRegistry.AssetETH(), user.OnChain.Addr)
 	adjudicator := chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
-
 	chClient, apiErr := newEthereumPaymentClient(funder, adjudicator, commBackend, cfg.User.CommAddr, user.OffChain)
 	if apiErr != nil {
 		return nil, apiErr
@@ -200,10 +199,7 @@ func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry
 		return nil, perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "off-chain address"))
 	}
 	sessionID := calcSessionID(offChainAddr)
-	timeoutCfg := timeoutConfig{
-		onChainTx: cfg.OnChainTxTimeout,
-		response:  cfg.ResponseTimeout,
-	}
+	timeoutCfg := timeoutConfig{onChainTx: cfg.OnChainTxTimeout, response: cfg.ResponseTimeout}
 	sess := &Session{
 		Logger:               log.NewLoggerWithField("session-id", sessionID),
 		id:                   sessionID,
@@ -658,7 +654,7 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 		p, ok := s.idProvider.ReadByOffChainAddr(ledgerChProposal.Peers[i])
 		if !ok {
 			s.Infof("Rejecting channel proposal with unknown peer ID: %v", ledgerChProposal.Peers[i])
-			// nolint: errcheck              // It is sufficient to just log this error.
+			//nolint:errcheck              // It is sufficient to just log this error.
 			s.rejectChProposal(context.Background(), responder, "unrecogonized peer ID")
 			expiry = 0
 			break
@@ -669,7 +665,7 @@ func (s *Session) HandleProposalWInterface(chProposal pclient.ChannelProposal, r
 	currencies, err := getCurrencies(ledgerChProposal.InitBals.Assets, s.contractRegistry, s.currencyRegistry)
 	if err != nil {
 		s.Infof("Rejecting channel proposal due to %v", err)
-		// nolint: errcheck              // It is sufficient to just log this error.
+		//nolint:errcheck              // It is sufficient to just log this error.
 		s.rejectChProposal(context.Background(), responder, "unrecogonized currency")
 	}
 

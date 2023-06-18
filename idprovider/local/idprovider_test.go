@@ -146,7 +146,7 @@ Bob:
 	return tempFile.Name()
 }
 
-// nolint:dupl  // False positive. ReadByAlias is diff from ReadByOffChainAddr.
+//nolint:dupl  // False positive. ReadByAlias is diff from ReadByOffChainAddr.
 func Test_YAML_ReadByAlias(t *testing.T) {
 	idProviderFile := idprovidertest.NewIDProviderT(t, peer1, peer2)
 	c, err := local.NewIDprovider(idProviderFile, walletBackend)
@@ -164,7 +164,7 @@ func Test_YAML_ReadByAlias(t *testing.T) {
 	})
 }
 
-// nolint:dupl  // False positive. ReadByOffChainAddr is diff from ReadByAlias.
+//nolint:dupl  // False positive. ReadByOffChainAddr is diff from ReadByAlias.
 func Test_YAML_ReadByOffChainAddr(t *testing.T) {
 	idProviderFile := idprovidertest.NewIDProviderT(t, peer1, peer2)
 	c, err := local.NewIDprovider(idProviderFile, walletBackend)

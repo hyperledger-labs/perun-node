@@ -155,7 +155,7 @@ func generateSessionConfig() error {
 
 	// Generate session config, the seed ethereumtest.RandSeedForTestAccs generates two accounts which were funded
 	// when starting the ganache cli node with the command documented in help message.
-	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs)) //nolint: gosec		// okay to use weak rand in tests.
+	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs)) //nolint:gosec		// okay to use weak rand in tests.
 	aliceCfg, err := sessiontest.NewConfig(prng)
 	if err != nil {
 		return err
