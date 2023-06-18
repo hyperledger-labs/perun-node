@@ -247,7 +247,7 @@ func Test_Integ_Role(t *testing.T) {
 			wg.Wait()
 		}
 
-		//nolint: govet	// it is okay to use unkeyed fields in Payment struct.
+		//nolint:govet	// it is okay to use unkeyed fields in Payment struct.
 		tests := []struct {
 			name     string
 			chID     string

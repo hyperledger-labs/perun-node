@@ -71,7 +71,7 @@ func InitLogger(levelStr, logFile string) error {
 // initialized to "debug" level and logs to the standard output (stdout).
 func NewLogger() Logger {
 	if logger == nil {
-		InitLogger("debug", "") // nolint: errcheck, gosec	// err will always be nil in this case.
+		InitLogger("debug", "") //nolint:errcheck, gosec	// err will always be nil in this case.
 	}
 	return logger
 }
@@ -84,7 +84,7 @@ func NewLogger() Logger {
 // initialized to "debug" level and logs to the standard output (stdout).
 func NewLoggerWithField(key string, value interface{}) Logger {
 	if logger == nil {
-		InitLogger("debug", "") // nolint: errcheck, gosec	// err will always be nil in this case.
+		InitLogger("debug", "") //nolint:errcheck, gosec	// err will always be nil in this case.
 	}
 	return logger.WithField(key, value)
 }

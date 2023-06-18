@@ -53,7 +53,7 @@ func NewIDprovider(filePath string, backend perun.WalletBackend) (*IDProvider, e
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close() // nolint: errcheck, gosec  // safe to defer f.Close() for files opened in read mode.
+	defer f.Close() //nolint:errcheck
 
 	cache := make(map[string]perun.PeerID)
 	decoder := yaml.NewDecoder(f)

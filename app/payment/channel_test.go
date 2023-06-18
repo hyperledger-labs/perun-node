@@ -34,7 +34,7 @@ import (
 
 func Test_SendPayChUpdate(t *testing.T) {
 	currencies := currency.NewRegistry()
-	//nolint: errcheck	// Safe to ignore the error, as it is first register after init.
+	//nolint:errcheck	// Safe to ignore the error, as it is first register after init.
 	ethCurrency, _ := currencies.Register(currency.ETHSymbol, currency.ETHMaxDecimals)
 
 	// Returns a mock with API calls set up for currency and parts.
@@ -269,7 +269,7 @@ func Test_ClosePayCh(t *testing.T) {
 	})
 }
 
-// nolint: unparam
+//nolint:unparam
 func makePayment(currency, payee, amount string) payment.Payment {
 	return payment.Payment{
 		Currency: currency,

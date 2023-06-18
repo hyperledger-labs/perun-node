@@ -427,8 +427,8 @@ func trimZeros(s *string) {
 // This is a hacky function, that computes the proposed state when sending an update.
 // Assumes, the version is an integer and will be incremented.
 func getProposedBalInfo(current balInfo, amountStr string, isPayeePeer bool) (balInfo, error) {
-	currOurs, _ := ethCurrency.Parse(current.ours)     // nolint: errcheck
-	currTheirs, _ := ethCurrency.Parse(current.theirs) // nolint: errcheck
+	currOurs, _ := ethCurrency.Parse(current.ours)     //nolint:errcheck
+	currTheirs, _ := ethCurrency.Parse(current.theirs) //nolint:errcheck
 	// Values received from node should parse without errors.
 
 	amount, err := ethCurrency.Parse(amountStr)

@@ -32,7 +32,7 @@ func Registry() *currency.Registry {
 		return r
 	}
 	r = currency.NewRegistry()
-	// nolint: errcheck		// Registering currencies on new registry will not fail.
+	//nolint: errcheck		// Registering currencies on new registry will not fail.
 	r.Register(currency.ETHSymbol, currency.ETHMaxDecimals)
 	return r
 }

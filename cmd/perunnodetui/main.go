@@ -215,30 +215,30 @@ func runEventLoop(c *termdash.Controller, keyEvents chan *terminalapi.Keyboard, 
 func logErrorf(format string, a ...interface{}) {
 	msg := fmt.Sprintf(format, a...)
 	logger.Error(msg)
-	logBox.Write("Error: "+msg+"\n", text.WriteCellOpts(cell.FgColor(cell.ColorRed))) // nolint: errcheck, gosec
+	logBox.Write("Error: "+msg+"\n", text.WriteCellOpts(cell.FgColor(cell.ColorRed))) //nolint:errcheck, gosec
 }
 
 func logInfof(format string, a ...interface{}) {
 	msg := fmt.Sprintf(format, a...)
 	logger.Info(msg)
-	logBox.Write(msg + "\n") // nolint: errcheck, gosec
+	logBox.Write(msg + "\n") //nolint:errcheck, gosec
 }
 
 func logError(a ...interface{}) {
 	msg := fmt.Sprint(a...)
 	logger.Error(msg)
-	logBox.Write("Error: "+msg+"\n", text.WriteCellOpts(cell.FgColor(cell.ColorRed))) // nolint: errcheck, gosec
+	logBox.Write("Error: "+msg+"\n", text.WriteCellOpts(cell.FgColor(cell.ColorRed))) //nolint:errcheck, gosec
 }
 
 func logInfo(a ...interface{}) {
 	msg := fmt.Sprint(a...)
 	logger.Error(msg)
-	logBox.Write(msg + "\n") // nolint: errcheck, gosec
+	logBox.Write(msg + "\n") //nolint:errcheck, gosec
 }
 
 // renderDummyDashboard is used to fill dummy data in the table for testing.
 // call this immediately after renderDashboard in main.
-func renderDummyDashboard(c *container.Container) { // nolint: unused,deadcode
+func renderDummyDashboard(c *container.Container) { //nolint:unused,deadcode
 	var err error
 	chainURL = defaultChainURL
 	onChainAddr, err = ethereum.NewWalletBackend().ParseAddr(defaultOnChainAddrs[alice])
@@ -262,20 +262,20 @@ func renderDummyDashboard(c *container.Container) { // nolint: unused,deadcode
 		theirs:  "2.6700000",
 		version: "1",
 	}
-	p1, _ := newIncomingChannel("", "peer", "", "", time.Now().Format("15:04:05")) // nolint: errcheck
+	p1, _ := newIncomingChannel("", "peer", "", "", time.Now().Format("15:04:05")) //nolint:errcheck
 	p1.status = waitingForPeer
-	p2, _ := newIncomingChannel("", "peer", "", "", time.Now().Format("15:04:05")) // nolint: errcheck
+	p2, _ := newIncomingChannel("", "peer", "", "", time.Now().Format("15:04:05")) //nolint:errcheck
 	p2.status = accepted
 	p2.phase = transact
-	p3, _ := newIncomingChannel("", "peer", "", "", time.Now().Format("15:04:05")) // nolint: errcheck
+	p3, _ := newIncomingChannel("", "peer", "", "", time.Now().Format("15:04:05")) //nolint:errcheck
 	p3.status = responding
 	p3.phase = register
-	p4, _ := newIncomingChannel("", "peer", "", "", time.Now().Format("15:04:05")) // nolint: errcheck
+	p4, _ := newIncomingChannel("", "peer", "", "", time.Now().Format("15:04:05")) //nolint:errcheck
 	p4.status = peerRejected
 	p4.phase = settle
-	p5, _ := newIncomingChannel("", "peer", "", "", time.Now().Format("15:04:05")) // nolint: errcheck
+	p5, _ := newIncomingChannel("", "peer", "", "", time.Now().Format("15:04:05")) //nolint:errcheck
 	p5.phase = closed
-	p6, _ := newIncomingChannel("", "peer", "", "", time.Now().Format("15:04:05")) // nolint: errcheck
+	p6, _ := newIncomingChannel("", "peer", "", "", time.Now().Format("15:04:05")) //nolint:errcheck
 	p6.phase = errorPhase
 	p1.current, p1.proposed = dummyBalInfo, dummyBalInfo
 	p2.current, p2.proposed = dummyBalInfo, dummyBalInfo

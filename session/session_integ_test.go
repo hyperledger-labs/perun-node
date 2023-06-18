@@ -115,7 +115,7 @@ func Test_Integ_New(t *testing.T) {
 	t.Run("invalidConfig_onChainAddr", func(t *testing.T) {
 		cfgCopy := cfg
 		cfgCopy.DatabaseDir = newDatabaseDir(t)
-		cfgCopy.User.OnChainAddr = "invalid-addr" //nolint: goconst	// it's okay to repeat this phrase.
+		cfgCopy.User.OnChainAddr = "invalid-addr" //nolint:goconst	// it's okay to repeat this phrase.
 		_, err := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, err)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidConfig, "")
@@ -181,9 +181,9 @@ func Test_Integ_New(t *testing.T) {
 		listener, err := tcp.NewTCPBackend(1 * time.Second).NewListener(cfgCopy.User.CommAddr)
 		require.NoError(t, err)
 		go func() {
-			_, _ = listener.Accept(pperunioserializer.Serializer()) //nolint: errcheck		// no need to check error.
+			_, _ = listener.Accept(pperunioserializer.Serializer()) //nolint:errcheck		// no need to check error.
 		}()
-		defer listener.Close() //nolint: errcheck		// no need to check error.
+		defer listener.Close() //nolint:errcheck		// no need to check error.
 
 		_, apiErr := session.New(cfgCopy, currencies, contracts)
 		require.Error(t, apiErr)
@@ -263,7 +263,7 @@ func Test_Integ_Persistence(t *testing.T) {
 		cfg := sessiontest.NewConfigT(t, prng) // Get a session config with no peerIDs in the ID provider.
 		tempFile, err := os.CreateTemp("", "")
 		require.NoError(t, err)
-		tempFile.Close() // nolint:errcheck
+		tempFile.Close() //nolint:errcheck
 		cfg.DatabaseDir = tempFile.Name()
 		contracts := ethereumtest.SetupContractsT(t, cfg.ChainURL, cfg.ChainID, cfg.OnChainTxTimeout, false)
 

@@ -108,7 +108,7 @@ func paymentFn(c *ishell.Context) {
 	c.Println(c.Cmd.HelpText())
 }
 
-// nolint: dupl		// not a duplicate of paymentRequestFn
+//nolint:dupl		// not a duplicate of paymentRequestFn
 func paymentSendFn(c *ishell.Context) {
 	if client == nil {
 		printNodeNotConnectedError(c)
@@ -155,7 +155,7 @@ func paymentSendFn(c *ishell.Context) {
 		chAlias, prettifyPayChInfo(msg.MsgSuccess.UpdatedPayChInfo)))
 }
 
-// nolint: dupl		// not a duplicate of paymentSendFn
+//nolint:dupl		// not a duplicate of paymentSendFn
 func paymentRequestFn(c *ishell.Context) {
 	if client == nil {
 		printNodeNotConnectedError(c)

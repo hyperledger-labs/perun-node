@@ -75,7 +75,7 @@ func NewWalletSetup(rng *rand.Rand, n uint) (*WalletSetup, error) {
 	ks := keystore.NewKeyStore(ksPath, internal.WeakScryptN, internal.WeakScryptP)
 	w, err := pkswallet.NewWallet(ks, "")
 	if err != nil {
-		os.RemoveAll(ksPath) // nolint: errcheck
+		os.RemoveAll(ksPath) //nolint:errcheck
 		return nil, errors.Wrap(err, "creating creating wallet")
 	}
 

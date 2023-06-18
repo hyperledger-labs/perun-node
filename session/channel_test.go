@@ -267,7 +267,7 @@ func Test_HandleUpdate_Sub(t *testing.T) {
 	nonFinalState := makeState(t, updatedBalInfo, false)
 	finalState := makeState(t, updatedBalInfo, true)
 
-	t.Run("happy_HandleSub_nonFinal", func(t *testing.T) { //nolint: dupl
+	t.Run("happy_HandleSub_nonFinal", func(t *testing.T) { //nolint:dupl
 		ch := session.NewChForTest(
 			pch, currency.ETHSymbol, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
@@ -291,7 +291,7 @@ func Test_HandleUpdate_Sub(t *testing.T) {
 		assert.Eventually(t, notifRecieved, 2*time.Second, 100*time.Millisecond)
 	})
 
-	t.Run("happy_HandleSub_Final", func(t *testing.T) { //nolint: dupl
+	t.Run("happy_HandleSub_Final", func(t *testing.T) { //nolint:dupl
 		ch := session.NewChForTest(
 			pch, currency.ETHSymbol, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, true)
 
@@ -592,7 +592,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 	})
 }
 
-// nolint: unparam
+//nolint:unparam
 func assertNotif(t *testing.T, notifs []perun.ChUpdateNotif, wantVersion uint64, wantExpiry int64) {
 	t.Helper()
 	require.Len(t, notifs, 1)

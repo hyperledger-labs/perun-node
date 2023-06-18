@@ -63,13 +63,13 @@ func NewConfigFile(config interface{}) (string, error) {
 	}
 	encoder := yaml.NewEncoder(tempFile)
 	if err := encoder.Encode(config); err != nil {
-		tempFile.Close()           // nolint: errcheck
-		os.Remove(tempFile.Name()) // nolint: errcheck
+		tempFile.Close()           //nolint:errcheck
+		os.Remove(tempFile.Name()) //nolint:errcheck
 		return "", errors.Wrap(err, "encoding config")
 	}
 	if err := encoder.Close(); err != nil {
-		tempFile.Close()           // nolint: errcheck
-		os.Remove(tempFile.Name()) // nolint: errcheck
+		tempFile.Close()           //nolint:errcheck
+		os.Remove(tempFile.Name()) //nolint:errcheck
 		return "", errors.Wrap(err, "closing encoder")
 	}
 	return tempFile.Name(), tempFile.Close()

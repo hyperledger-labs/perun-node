@@ -65,7 +65,7 @@ func (e apiError) Format(s fmt.State, verb rune) {
 		}
 		fallthrough
 	case 's':
-		//nolint: errcheck,gosec	// Error of ioString need not be checked.
+		//nolint:errcheck,gosec	// Error of ioString need not be checked.
 		io.WriteString(s, e.Error())
 	case 'q':
 		fmt.Fprintf(s, "%q", e.Error())
