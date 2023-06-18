@@ -163,7 +163,10 @@ func (r *chProposalResponderWrapped) Accept(ctx context.Context, proposalAcc *pc
 // New initializes a SessionAPI instance for the given configuration, read-only
 // currency registry and returns an instance of it. All methods on it are safe
 // for concurrent use.
-func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry perun.ContractRegistry) (
+func New( //nolint: funlen
+	cfg Config,
+	currencyRegistry perun.ROCurrencyRegistry,
+	contractRegistry perun.ContractRegistry) (
 	*Session, perun.APIError,
 ) {
 	user, apiErr := NewUnlockedUser(walletBackend, cfg.User)
@@ -187,8 +190,19 @@ func New(cfg Config, currencyRegistry perun.ROCurrencyRegistry, contractRegistry
 		return nil, perun.NewAPIErrInvalidConfig(err, "chainURL", cfg.ChainURL)
 	}
 
-	funder := chain.NewFunder(contractRegistry.AssetETH(), user.OnChain.Addr)
-	adjudicator := chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
+	var funder perun.Funder
+	var adjudicator pchannel.Adjudicator
+	switch cfg.FundingType {
+	case "local":
+		funder = chain.NewFunder(contractRegistry.AssetETH(), user.OnChain.Addr)
+		adjudicator = chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
+	case "remote":
+		// TODO: Init gprc funding client.
+	default:
+		err = errors.New("should be local or remote")
+		return nil, perun.NewAPIErrInvalidConfig(err, "fundingType", cfg.FundingAPIKey)
+	}
+
 	chClient, apiErr := newChClient(funder, adjudicator, commBackend, cfg.User.CommAddr, user.OffChain)
 	if apiErr != nil {
 		return nil, apiErr
