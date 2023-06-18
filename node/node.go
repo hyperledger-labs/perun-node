@@ -174,9 +174,14 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 		err = errors.WithMessage(err, "parsing config")
 		return "", nil, perun.NewAPIErrInvalidArgument(err, session.ArgNameConfigFile, configFile)
 	}
+
+	if sessionConfig.FundingType == "local" {
+		// AssetETH is set during contract registry init and will always be
+		// found, other assets will be added later.
+		sessionConfig.AssetETH = n.contractRegistry.AssetETH()
+	}
+	// Set adjudicator anyways until remote adjudicator is implemented.
 	sessionConfig.Adjudicator = n.contractRegistry.Adjudicator()
-	// AssetETH is set during contract registry init and will always be found.
-	sessionConfig.AssetETH = n.contractRegistry.AssetETH()
 	sess, apiErr := session.New(sessionConfig, n.currencyRegistry, n.contractRegistry)
 	if apiErr != nil {
 		return "", nil, apiErr
