@@ -1,0 +1,75 @@
+// Copyright (c) 2023 - for information on the respective copyright owner
+// see the NOTICE file and/or the repository at
+// https://github.com/hyperledger-labs/perun-node
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+// Package pb contains proto3 definitions for user API and the corresponding
+// generated code for grpc server and client.
+package pb;
+
+import "errors.proto";
+import "sdktypes.proto";
+
+// Option go_package is to specify the exact path where the generated go code should reside.
+option go_package = ".;pb";
+
+// Funding_API provides APIs for a user to deposit and withdraw funds for
+// payment channels on the blockchain.
+service Funding_API{
+    rpc RegisterAssetERC20(RegisterAssetERC20Req) returns (RegisterAssetERC20Resp){}
+    rpc IsAssetRegistered(IsAssetRegisteredReq) returns (IsAssetRegisteredResp){}
+
+    rpc Fund(FundReq) returns (FundResp){}
+
+}
+
+message RegisterAssetERC20Req {
+    string sessionID=1;
+    bytes asset = 2;
+    string tokenAddr = 3;
+    string deposiorAcc = 4;
+}
+
+message RegisterAssetERC20Resp {
+    bool msgSuccess = 1;
+}
+
+message IsAssetRegisteredReq {
+    string sessionID=1;
+    bytes asset = 2;
+}
+
+message IsAssetRegisteredResp {
+    oneof response{
+        MsgSuccess msgSuccess = 1;
+        MsgError error = 2;
+    }
+    message MsgSuccess {
+        bool isRegistered = 1;
+    }
+}
+
+message FundReq {
+    string sessionID=1;
+    Params params = 2;
+    State state = 3;
+    uint32 idx = 4;
+    Balances agreement = 5;
+}
+
+message FundResp {
+    MsgError error = 1;
+}

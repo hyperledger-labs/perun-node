@@ -1,0 +1,79 @@
+// Copyright (c) 2023 - for information on the respective copyright owner
+// see the NOTICE file and/or the repository at
+// https://github.com/hyperledger-labs/perun-node
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+// Package pb contains proto3 definitions for user API and the corresponding
+// generated code for grpc server and client.
+package pb;
+
+// Option go_package is to specify the exact path where the generated go code should reside.
+option go_package = ".;pb";
+
+// Balance represents the balance of a single asset, for all the channel
+// participants.
+message Balance {
+  repeated bytes balance = 1;
+}
+
+// Balances represents the balance of all the assets, for all the channel
+// participants.
+message Balances {
+  repeated Balance balances = 1;
+}
+
+// Params represents channel.Params.
+message Params {
+  bytes id = 1;
+  uint64 challenge_duration = 2;
+  repeated bytes parts = 3;
+  bytes app = 4;
+  bytes nonce = 5;
+  bool ledger_channel = 6;
+  bool virtual_channel = 7;
+}
+
+
+// IndexMap represents the mapping of a participant indices in a sub allocation
+// or a virtual channel funding proposal to the corresponding indices in the
+// parent channel.
+message IndexMap {
+  repeated uint32 index_map = 1;
+}
+
+// SubAlloc represts a sub allocation.
+message SubAlloc {
+  bytes id = 1;
+  Balance bals = 2;
+  IndexMap index_map = 3;
+}
+
+// Allocation represents channel.Allocation.
+message Allocation {
+  repeated bytes assets = 1;
+  Balances balances = 2;
+  repeated SubAlloc locked = 3;
+}
+
+// State represents channel.State.
+message State {
+  bytes id = 1;
+  uint64 version = 2;
+  bytes app = 3;
+  Allocation allocation = 4;
+  bytes data = 5;
+  bool is_final = 6;
+}
