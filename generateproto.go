@@ -14,8 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package pb contains proto3 definitions for user API and the corresponding
-// generated code for grpc server and client.
-package pb
+package perun
 
-//go:generate protoc --go_out=. --go-grpc_out=. api.proto
+//go:generate protoc --proto_path=proto --go_out=api/grpc/pb --go-grpc_out=api/grpc/pb proto/nodetypes.proto proto/errors.proto proto/payment_service.proto

@@ -14,33 +14,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package grpc
+package grpc_test
 
 import (
-	"net"
+	"testing"
 
-	"github.com/pkg/errors"
-	grpclib "google.golang.org/grpc"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
 )
 
-// ListenAndServePayChAPI starts a payment channel API server that listens for incoming grpc
-// requests at the specified address and serves those requests using the node API instance.
-func ListenAndServePayChAPI(n perun.NodeAPI, grpcPort string) error {
-	apiServer := &payChAPIServer{
-		n:                n,
-		chProposalsNotif: make(map[string]chan bool),
-		chUpdatesNotif:   make(map[string]map[string]chan bool),
-	}
-
-	listener, err := net.Listen("tcp", grpcPort)
-	if err != nil {
-		return errors.Wrap(err, "starting listener")
-	}
-	grpcServer := grpclib.NewServer()
-	pb.RegisterPayment_APIServer(grpcServer, apiServer)
-
-	return grpcServer.Serve(listener)
+func Test_ChUpdateType(t *testing.T) {
+	assert.EqualValues(t, perun.ChUpdateTypeOpen, pb.SubPayChUpdatesResp_Notify_open)
+	assert.EqualValues(t, perun.ChUpdateTypeFinal, pb.SubPayChUpdatesResp_Notify_final)
+	assert.EqualValues(t, perun.ChUpdateTypeClosed, pb.SubPayChUpdatesResp_Notify_closed)
 }
