@@ -18,7 +18,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v4.23.3
-// source: api.proto
+// source: payment_service.proto
 
 // Package pb contains proto3 definitions for user API and the corresponding
 // generated code for grpc server and client.
@@ -882,5 +882,5 @@ var Payment_API_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "api.proto",
+	Metadata: "payment_service.proto",
 }

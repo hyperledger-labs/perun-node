@@ -25,12 +25,6 @@ import (
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
 )
 
-func Test_ChUpdateType(t *testing.T) {
-	assert.EqualValues(t, perun.ChUpdateTypeOpen, pb.SubPayChUpdatesResp_Notify_open)
-	assert.EqualValues(t, perun.ChUpdateTypeFinal, pb.SubPayChUpdatesResp_Notify_final)
-	assert.EqualValues(t, perun.ChUpdateTypeClosed, pb.SubPayChUpdatesResp_Notify_closed)
-}
-
 func Test_ErrorCategory(t *testing.T) {
 	assert.Equal(t, pb.ErrorCategory_ParticipantError, pb.ErrorCategory(perun.ParticipantError))
 	assert.Equal(t, pb.ErrorCategory_ClientError, pb.ErrorCategory(perun.ClientError))
