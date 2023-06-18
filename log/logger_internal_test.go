@@ -17,7 +17,6 @@
 package log
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -56,7 +55,7 @@ func Test_NewLoggerWithField(t *testing.T) {
 	})
 	t.Run("happy_with_init_file", func(t *testing.T) {
 		setCleanup(t)
-		tempFile, err := ioutil.TempFile("", "")
+		tempFile, err := os.CreateTemp("", "")
 		require.NoError(t, err)
 		require.NoError(t, tempFile.Close())
 		t.Cleanup(func() {
@@ -104,7 +103,7 @@ func Test_InitLogger(t *testing.T) {
 
 	t.Run("err_setting_up_file", func(t *testing.T) {
 		setCleanup(t)
-		tempDir, err := ioutil.TempDir("", "")
+		tempDir, err := os.MkdirTemp("", "")
 		require.NoError(t, err)
 		logFile := filepath.Join(tempDir, "1")
 		f, err := os.OpenFile(logFile, os.O_RDONLY|os.O_CREATE, 0o000)

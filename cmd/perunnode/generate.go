@@ -18,7 +18,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -269,7 +268,7 @@ func handleDir(srcDir string, destDir string) error {
 	if err := os.Mkdir(destDir, dirFileMode); err != nil {
 		errs = append(errs, fmt.Sprintf("creating dir - %s: %v", destDir, err))
 	}
-	files, err := ioutil.ReadDir(srcDir)
+	files, err := os.ReadDir(srcDir)
 	if err != nil {
 		errs = append(errs, fmt.Sprintf("reading dir - %s: %v", srcDir, err))
 	}
