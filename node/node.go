@@ -51,7 +51,7 @@ func (e Error) Error() string {
 // This should be called only once, subsequent calls after the first non error
 // response will return an error.
 func New(cfg perun.NodeConfig) (perun.NodeAPI, error) {
-	chain, err := ethereum.NewROChainBackend(cfg.ChainURL, cfg.ChainID, cfg.ChainConnTimeout)
+	chain, err := ethereum.NewROChainBackend(cfg.ChainURL, cfg.ChainConnTimeout)
 	if err != nil {
 		return nil, errors.WithMessage(err, "connecting to blockchain")
 	}

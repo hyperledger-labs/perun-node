@@ -42,7 +42,7 @@ func Test_ROChainBackend_ValidateAdjudicator(t *testing.T) {
 	contracts := ethereumtest.SetupContractsT(t,
 		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout, false)
 	roChainBackend, err := ethereum.NewROChainBackend(
-		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.ChainConnTimeout)
+		ethereumtest.ChainURL, ethereumtest.ChainConnTimeout)
 	require.NoError(t, err)
 
 	t.Run("happy", func(t *testing.T) {
@@ -68,7 +68,7 @@ func Test_Integ_ROChainBackend_ValidateAssetETH(t *testing.T) {
 	contracts := ethereumtest.SetupContractsT(t,
 		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.OnChainTxTimeout, false)
 	roChainBackend, err := ethereum.NewROChainBackend(
-		ethereumtest.ChainURL, ethereumtest.ChainID, ethereumtest.ChainConnTimeout)
+		ethereumtest.ChainURL, ethereumtest.ChainConnTimeout)
 	require.NoError(t, err)
 	rng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs))
 

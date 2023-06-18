@@ -87,7 +87,7 @@ func NewChainBackend(url string,
 // The function signature uses only types defined in the root package of this
 // project and types from std lib.  This enables the function to be loaded as
 // symbol without importing this package when it is compiled as plugin.
-func NewROChainBackend(url string, chainID int, chainConnTimeout time.Duration) (
+func NewROChainBackend(url string, chainConnTimeout time.Duration) (
 	perun.ROChainBackend, error,
 ) {
 	ctx, cancel := context.WithTimeout(context.Background(), chainConnTimeout)

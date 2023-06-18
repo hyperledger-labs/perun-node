@@ -48,6 +48,6 @@ var versionCmd = &cobra.Command{
 	Run:   versionFn,
 }
 
-func versionFn(cmd *cobra.Command, args []string) {
+func versionFn(_ *cobra.Command, _ []string) {
 	fmt.Printf("%s Git revision: %s (go-perun version: %s)\n", version, gitCommitID, goperunVersion)
 }
