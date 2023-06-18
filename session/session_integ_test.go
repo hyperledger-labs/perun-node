@@ -32,6 +32,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pperunioserializer "perun.network/go-perun/wire/perunio/serializer"
+
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum/ethereumtest"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
@@ -40,7 +42,6 @@ import (
 	"github.com/hyperledger-labs/perun-node/peruntest"
 	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
-	pperunioserializer "perun.network/go-perun/wire/perunio/serializer"
 )
 
 func Test_Integ_New(t *testing.T) {
