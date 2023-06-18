@@ -17,3 +17,4 @@
 package perun
 
 //go:generate protoc --proto_path=proto --go_out=api/grpc/pb --go-grpc_out=api/grpc/pb proto/nodetypes.proto proto/errors.proto proto/payment_service.proto
+//go:generate protoc --proto_path=proto --go_out=api/grpc/pb --go-grpc_out=api/grpc/pb proto/sdktypes.proto proto/funding_service.proto
