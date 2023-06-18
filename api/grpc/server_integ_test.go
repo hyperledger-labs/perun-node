@@ -171,7 +171,7 @@ func Test_Integ_Role(t *testing.T) {
 				wg.Done()
 			}()
 			sub := SubPayChProposal(t, bobSessionID)
-			notif := ReadPayChProposalNotif(t, bobSessionID, sub, false)
+			notif := ReadPayChProposalNotif(t, sub, false)
 			RespondPayChProposal(t, bobSessionID, notif.Notify.ProposalID, true, false)
 			UnsubPayChProposal(t, bobSessionID, false)
 
@@ -220,7 +220,7 @@ func Test_Integ_Role(t *testing.T) {
 			wg.Done()
 		}()
 		sub := SubPayChProposal(t, aliceSessionID)
-		notif := ReadPayChProposalNotif(t, aliceSessionID, sub, false)
+		notif := ReadPayChProposalNotif(t, sub, false)
 		RespondPayChProposal(t, aliceSessionID, notif.Notify.ProposalID, false, false)
 		UnsubPayChProposal(t, aliceSessionID, false)
 
@@ -239,7 +239,7 @@ func Test_Integ_Role(t *testing.T) {
 			}()
 
 			sub := SubPayChUpdate(t, aliceSessionID, chID)
-			notif := ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
+			notif := ReadPayChUpdateNotif(t, sub)
 			assert.EqualValues(t, perun.ChUpdateTypeOpen, notif.Notify.Type)
 			RespondPayChUpdate(t, aliceSessionID, chID, notif.Notify.UpdateID, accept)
 			UnsubPayChUpdate(t, aliceSessionID, chID)
@@ -297,17 +297,17 @@ func Test_Integ_Role(t *testing.T) {
 			wg.Add(2)
 			go func() {
 				sub := SubPayChUpdate(t, aliceSessionID, chID)
-				notif := ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
+				notif := ReadPayChUpdateNotif(t, sub)
 				assert.EqualValues(t, perun.ChUpdateTypeFinal, notif.Notify.Type)
 				RespondPayChUpdate(t, aliceSessionID, chID, notif.Notify.UpdateID, true)
-				notif = ReadPayChUpdateNotif(t, aliceSessionID, chID, sub)
+				notif = ReadPayChUpdateNotif(t, sub)
 				assert.EqualValues(t, perun.ChUpdateTypeClosed, notif.Notify.Type)
 
 				wg.Done()
 			}()
 			go func() {
 				sub := SubPayChUpdate(t, bobSessionID, chID)
-				notif := ReadPayChUpdateNotif(t, bobSessionID, chID, sub)
+				notif := ReadPayChUpdateNotif(t, sub)
 				assert.EqualValues(t, perun.ChUpdateTypeClosed, notif.Notify.Type)
 				RespondPayChUpdateExpectError(t, bobSessionID, chID, notif.Notify.UpdateID, true)
 
@@ -343,7 +343,7 @@ func Test_Integ_Role(t *testing.T) {
 		OpenPayCh(t, bobSessionID,
 			[]string{"ETH"}, []string{perun.OwnAlias, aliceAlias}, [][]string{{"1", "2"}}, true)
 		sub := SubPayChProposal(t, aliceSessionID)
-		ReadPayChProposalNotif(t, aliceSessionID, sub, true)
+		ReadPayChProposalNotif(t, sub, true)
 		RespondPayChProposal(t, aliceSessionID, "", false, true)
 		UnsubPayChProposal(t, aliceSessionID, true)
 	})
@@ -463,7 +463,7 @@ func SubPayChProposal(t *testing.T, sessionID string) pb.Payment_API_SubPayChPro
 	return subClient
 }
 
-func ReadPayChProposalNotif(t *testing.T, sessionID string, sub pb.Payment_API_SubPayChProposalsClient,
+func ReadPayChProposalNotif(t *testing.T, sub pb.Payment_API_SubPayChProposalsClient,
 	wantErr bool,
 ) *pb.SubPayChProposalsResp_Notify_ {
 	notifMsg, err := sub.Recv()
@@ -543,7 +543,7 @@ func SubPayChUpdate(t *testing.T, sessionID, chID string) pb.Payment_API_SubPayC
 	return subClient
 }
 
-func ReadPayChUpdateNotif(t *testing.T, sessionID, chID string,
+func ReadPayChUpdateNotif(t *testing.T,
 	sub pb.Payment_API_SubPayChUpdatesClient,
 ) *pb.SubPayChUpdatesResp_Notify_ {
 	notifMsg, err := sub.Recv()

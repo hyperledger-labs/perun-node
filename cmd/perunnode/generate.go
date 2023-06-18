@@ -84,7 +84,7 @@ func defineGenerateCmdFlags() {
 	generateCmd.Flags().Bool(onlySessionF, false, "generate only session configuration artifacts for both alice & bob.")
 }
 
-func generate(cmd *cobra.Command, args []string) {
+func generate(cmd *cobra.Command, _ []string) {
 	genNodeConfig, err := cmd.Flags().GetBool(onlyNodeF)
 	if err != nil {
 		panic("unknown flag " + onlyNodeF + "\n")

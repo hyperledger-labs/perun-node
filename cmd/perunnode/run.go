@@ -127,7 +127,7 @@ all the config flags are specified, config file is ignored.`,
 	Run: run,
 }
 
-func run(cmd *cobra.Command, args []string) {
+func run(cmd *cobra.Command, _ []string) {
 	nodeCfg := parseNodeConfig(cmd.LocalNonPersistentFlags(), nodeCfgViper)
 	grpcPort, err := cmd.Flags().GetUint64(grpcPortF)
 	if err != nil {

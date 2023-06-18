@@ -137,7 +137,7 @@ func AssertErrInfoInvalidConfig(t *testing.T, info interface{}, name, value stri
 
 // AssertErrInfoInvalidContracts tests if additional info field is of
 // correct type and has expected values.
-func AssertErrInfoInvalidContracts(t *testing.T, info interface{}, contractErrInfos []perun.ContractErrInfo) {
+func AssertErrInfoInvalidContracts(t *testing.T, info interface{}, _ []perun.ContractErrInfo) {
 	t.Helper()
 
 	_, ok := info.(perun.ErrInfoInvalidContracts)
