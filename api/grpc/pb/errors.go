@@ -14,101 +14,100 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package grpc
+package pb
 
 import (
 	"github.com/hyperledger-labs/perun-node"
-	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
 	"github.com/hyperledger-labs/perun-node/app/payment"
 )
 
 // FromError is a helper function to convert APIError struct defined in perun-node
 // to APIError struct defined in grpc package.
-func FromError(err perun.APIError) *pb.MsgError { //nolint:funlen
-	grpcErr := pb.MsgError{
-		Category: pb.ErrorCategory(err.Category()),
-		Code:     pb.ErrorCode(err.Code()),
+func FromError(err perun.APIError) *MsgError { //nolint:funlen
+	grpcErr := MsgError{
+		Category: ErrorCategory(err.Category()),
+		Code:     ErrorCode(err.Code()),
 		Message:  err.Message(),
 	}
 	switch info := err.AddInfo().(type) {
 	case perun.ErrInfoPeerRequestTimedOut:
-		grpcErr.AddInfo = &pb.MsgError_ErrInfoPeerRequestTimedOut{
-			ErrInfoPeerRequestTimedOut: &pb.ErrInfoPeerRequestTimedOut{
+		grpcErr.AddInfo = &MsgError_ErrInfoPeerRequestTimedOut{
+			ErrInfoPeerRequestTimedOut: &ErrInfoPeerRequestTimedOut{
 				Timeout: info.Timeout,
 			},
 		}
 	case perun.ErrInfoPeerRejected:
-		grpcErr.AddInfo = &pb.MsgError_ErrInfoPeerRejected{
-			ErrInfoPeerRejected: &pb.ErrInfoPeerRejected{
+		grpcErr.AddInfo = &MsgError_ErrInfoPeerRejected{
+			ErrInfoPeerRejected: &ErrInfoPeerRejected{
 				PeerAlias: info.PeerAlias,
 				Reason:    info.Reason,
 			},
 		}
 	case perun.ErrInfoPeerNotFunded:
-		grpcErr.AddInfo = &pb.MsgError_ErrInfoPeerNotFunded{
-			ErrInfoPeerNotFunded: &pb.ErrInfoPeerNotFunded{
+		grpcErr.AddInfo = &MsgError_ErrInfoPeerNotFunded{
+			ErrInfoPeerNotFunded: &ErrInfoPeerNotFunded{
 				PeerAlias: info.PeerAlias,
 			},
 		}
 	case perun.ErrInfoUserResponseTimedOut:
-		grpcErr.AddInfo = &pb.MsgError_ErrInfoUserResponseTimedOut{
-			ErrInfoUserResponseTimedOut: &pb.ErrInfoUserResponseTimedOut{
+		grpcErr.AddInfo = &MsgError_ErrInfoUserResponseTimedOut{
+			ErrInfoUserResponseTimedOut: &ErrInfoUserResponseTimedOut{
 				Expiry:     info.Expiry,
 				ReceivedAt: info.ReceivedAt,
 			},
 		}
 	case perun.ErrInfoResourceNotFound:
-		grpcErr.AddInfo = &pb.MsgError_ErrInfoResourceNotFound{
-			ErrInfoResourceNotFound: &pb.ErrInfoResourceNotFound{
+		grpcErr.AddInfo = &MsgError_ErrInfoResourceNotFound{
+			ErrInfoResourceNotFound: &ErrInfoResourceNotFound{
 				Type: info.Type,
 				Id:   info.ID,
 			},
 		}
 	case perun.ErrInfoResourceExists:
-		grpcErr.AddInfo = &pb.MsgError_ErrInfoResourceExists{
-			ErrInfoResourceExists: &pb.ErrInfoResourceExists{
+		grpcErr.AddInfo = &MsgError_ErrInfoResourceExists{
+			ErrInfoResourceExists: &ErrInfoResourceExists{
 				Type: info.Type,
 				Id:   info.ID,
 			},
 		}
 	case perun.ErrInfoInvalidArgument:
-		grpcErr.AddInfo = &pb.MsgError_ErrInfoInvalidArgument{
-			ErrInfoInvalidArgument: &pb.ErrInfoInvalidArgument{
+		grpcErr.AddInfo = &MsgError_ErrInfoInvalidArgument{
+			ErrInfoInvalidArgument: &ErrInfoInvalidArgument{
 				Name:        info.Name,
 				Value:       info.Value,
 				Requirement: info.Requirement,
 			},
 		}
 	case payment.ErrInfoFailedPreCondUnclosedPayChs:
-		grpcErr.AddInfo = &pb.MsgError_ErrInfoFailedPreCondUnclosedChs{
-			ErrInfoFailedPreCondUnclosedChs: &pb.ErrInfoFailedPreCondUnclosedChs{
+		grpcErr.AddInfo = &MsgError_ErrInfoFailedPreCondUnclosedChs{
+			ErrInfoFailedPreCondUnclosedChs: &ErrInfoFailedPreCondUnclosedChs{
 				Chs: FromPayChsInfo(info.PayChs),
 			},
 		}
 	case perun.ErrInfoInvalidConfig:
-		grpcErr.AddInfo = &pb.MsgError_ErrInfoInvalidConfig{
-			ErrInfoInvalidConfig: &pb.ErrInfoInvalidConfig{
+		grpcErr.AddInfo = &MsgError_ErrInfoInvalidConfig{
+			ErrInfoInvalidConfig: &ErrInfoInvalidConfig{
 				Name:  info.Name,
 				Value: info.Value,
 			},
 		}
 	case perun.ErrInfoInvalidContracts:
-		grpcErr.AddInfo = &pb.MsgError_ErrInfoInvalidContracts{
-			ErrInfoInvalidContracts: &pb.ErrInfoInvalidContracts{
+		grpcErr.AddInfo = &MsgError_ErrInfoInvalidContracts{
+			ErrInfoInvalidContracts: &ErrInfoInvalidContracts{
 				ContractErrInfos: FromContractErrInfos(info.ContractErrInfos),
 			},
 		}
 	case perun.ErrInfoTxTimedOut:
-		grpcErr.AddInfo = &pb.MsgError_ErrInfoTxTimedOut{
-			ErrInfoTxTimedOut: &pb.ErrInfoTxTimedOut{
+		grpcErr.AddInfo = &MsgError_ErrInfoTxTimedOut{
+			ErrInfoTxTimedOut: &ErrInfoTxTimedOut{
 				TxType:    info.TxType,
 				TxID:      info.TxID,
 				TxTimeout: info.TxTimeout,
 			},
 		}
 	case perun.ErrInfoChainNotReachable:
-		grpcErr.AddInfo = &pb.MsgError_ErrInfoChainNotReachable{
-			ErrInfoChainNotReachable: &pb.ErrInfoChainNotReachable{
+		grpcErr.AddInfo = &MsgError_ErrInfoChainNotReachable{
+			ErrInfoChainNotReachable: &ErrInfoChainNotReachable{
 				ChainURL: info.ChainURL,
 			},
 		}
@@ -122,8 +121,8 @@ func FromError(err perun.APIError) *pb.MsgError { //nolint:funlen
 // FromContractErrInfos is a helper function to convert a slice of
 // ContractErrInfo struct defined in perun-node to a slice of ContractErrInfo
 // struct defined in grpc package.
-func FromContractErrInfos(src []perun.ContractErrInfo) []*pb.ContractErrInfo {
-	output := make([]*pb.ContractErrInfo, len(src))
+func FromContractErrInfos(src []perun.ContractErrInfo) []*ContractErrInfo {
+	output := make([]*ContractErrInfo, len(src))
 	for i := range src {
 		output[i].Name = src[i].Name
 		output[i].Address = src[i].Address
