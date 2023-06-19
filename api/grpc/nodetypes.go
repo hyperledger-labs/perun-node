@@ -22,20 +22,20 @@ import (
 	"github.com/hyperledger-labs/perun-node/app/payment"
 )
 
-// ToGrpcPayments is a helper function to convert slice of Payment struct
+// FromPayments is a helper function to convert slice of Payment struct
 // defined in perun-node package to slice of Payment struct defined in grpc
 // package.
-func ToGrpcPayments(payments []payment.Payment) []*pb.Payment {
+func FromPayments(payments []payment.Payment) []*pb.Payment {
 	grpcPayments := make([]*pb.Payment, len(payments))
 	for i := range payments {
-		grpcPayments[i] = ToGrpcPayment(payments[i])
+		grpcPayments[i] = FromPayment(payments[i])
 	}
 	return grpcPayments
 }
 
-// ToGrpcPayment is a helper function to convert Payment struct defined in
+// FromPayment is a helper function to convert Payment struct defined in
 // perun-node package to Payment struct defined in gprc package.
-func ToGrpcPayment(src payment.Payment) *pb.Payment {
+func FromPayment(src payment.Payment) *pb.Payment {
 	return &pb.Payment{
 		Currency: src.Currency,
 		Payee:    src.Payee,
@@ -45,17 +45,17 @@ func ToGrpcPayment(src payment.Payment) *pb.Payment {
 
 // fromGrpcPayment is a helper function to convert slice of Payment struct defined in
 // grpc package to slice of Payment struct defined in perun-node.
-func fromGrpcPayments(payments []*pb.Payment) []payment.Payment {
+func ToPayments(payments []*pb.Payment) []payment.Payment {
 	grpcPayments := make([]payment.Payment, len(payments))
 	for i := range payments {
-		grpcPayments[i] = fromGrpcPayment(payments[i])
+		grpcPayments[i] = ToPayment(payments[i])
 	}
 	return grpcPayments
 }
 
-// fromGrpcPayment is a helper function to convert Payment struct defined in
+// ToPayment is a helper function to convert Payment struct defined in
 // grpc package to Payment struct defined in perun-node.
-func fromGrpcPayment(src *pb.Payment) payment.Payment {
+func ToPayment(src *pb.Payment) payment.Payment {
 	return payment.Payment{
 		Currency: src.Currency,
 		Payee:    src.Payee,
@@ -65,27 +65,27 @@ func fromGrpcPayment(src *pb.Payment) payment.Payment {
 
 // toGrpcPayChInfo is a helper function to convert slice of PayChInfo struct defined in perun-node
 // to a slice of PayChInfo struct defined in grpc package.
-func toGrpcPayChsInfo(payChsInfo []payment.PayChInfo) []*pb.PayChInfo {
+func FromPayChsInfo(payChsInfo []payment.PayChInfo) []*pb.PayChInfo {
 	grpcPayChsInfo := make([]*pb.PayChInfo, len(payChsInfo))
 	for i := range payChsInfo {
-		grpcPayChsInfo[i] = toGrpcPayChInfo(payChsInfo[i])
+		grpcPayChsInfo[i] = FromPayChInfo(payChsInfo[i])
 	}
 	return grpcPayChsInfo
 }
 
-// toGrpcPayChInfo is a helper function to convert PayChInfo struct defined in perun-node
+// FromPayChInfo is a helper function to convert PayChInfo struct defined in perun-node
 // to PayChInfo struct defined in grpc package.
-func toGrpcPayChInfo(src payment.PayChInfo) *pb.PayChInfo {
+func FromPayChInfo(src payment.PayChInfo) *pb.PayChInfo {
 	return &pb.PayChInfo{
 		ChID:    src.ChID,
-		BalInfo: ToGrpcBalInfo(src.BalInfo),
+		BalInfo: FromBalInfo(src.BalInfo),
 		Version: src.Version,
 	}
 }
 
-// fromGrpcBalInfo is a helper function to convert BalInfo struct defined in grpc package
+// ToBalInfo is a helper function to convert BalInfo struct defined in grpc package
 // to BalInfo struct defined in perun-node.
-func fromGrpcBalInfo(src *pb.BalInfo) perun.BalInfo {
+func ToBalInfo(src *pb.BalInfo) perun.BalInfo {
 	bals := make([][]string, len(src.Bals))
 	for i := range src.Bals {
 		bals[i] = src.Bals[i].Bal
@@ -97,9 +97,9 @@ func fromGrpcBalInfo(src *pb.BalInfo) perun.BalInfo {
 	}
 }
 
-// ToGrpcBalInfo is a helper function to convert BalInfo struct defined in perun-node
+// FromBalInfo is a helper function to convert BalInfo struct defined in perun-node
 // to BalInfo struct defined in grpc package.
-func ToGrpcBalInfo(src perun.BalInfo) *pb.BalInfo {
+func FromBalInfo(src perun.BalInfo) *pb.BalInfo {
 	bals := make([]*pb.BalInfoBal, len(src.Bals))
 	for i := range src.Bals {
 		bals[i] = &pb.BalInfoBal{}

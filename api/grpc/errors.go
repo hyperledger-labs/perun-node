@@ -22,9 +22,9 @@ import (
 	"github.com/hyperledger-labs/perun-node/app/payment"
 )
 
-// toGrpcError is a helper function to convert APIError struct defined in perun-node
+// FromError is a helper function to convert APIError struct defined in perun-node
 // to APIError struct defined in grpc package.
-func toGrpcError(err perun.APIError) *pb.MsgError { //nolint:funlen
+func FromError(err perun.APIError) *pb.MsgError { //nolint:funlen
 	grpcErr := pb.MsgError{
 		Category: pb.ErrorCategory(err.Category()),
 		Code:     pb.ErrorCode(err.Code()),
@@ -82,7 +82,7 @@ func toGrpcError(err perun.APIError) *pb.MsgError { //nolint:funlen
 	case payment.ErrInfoFailedPreCondUnclosedPayChs:
 		grpcErr.AddInfo = &pb.MsgError_ErrInfoFailedPreCondUnclosedChs{
 			ErrInfoFailedPreCondUnclosedChs: &pb.ErrInfoFailedPreCondUnclosedChs{
-				Chs: toGrpcPayChsInfo(info.PayChs),
+				Chs: FromPayChsInfo(info.PayChs),
 			},
 		}
 	case perun.ErrInfoInvalidConfig:
@@ -95,7 +95,7 @@ func toGrpcError(err perun.APIError) *pb.MsgError { //nolint:funlen
 	case perun.ErrInfoInvalidContracts:
 		grpcErr.AddInfo = &pb.MsgError_ErrInfoInvalidContracts{
 			ErrInfoInvalidContracts: &pb.ErrInfoInvalidContracts{
-				ContractErrInfos: toGrpcContractErrInfos(info.ContractErrInfos),
+				ContractErrInfos: FromContractErrInfos(info.ContractErrInfos),
 			},
 		}
 	case perun.ErrInfoTxTimedOut:
@@ -119,10 +119,10 @@ func toGrpcError(err perun.APIError) *pb.MsgError { //nolint:funlen
 	return &grpcErr
 }
 
-// toGrpcContractErrInfos is a helper function to convert a slice of
+// FromContractErrInfos is a helper function to convert a slice of
 // ContractErrInfo struct defined in perun-node to a slice of ContractErrInfo
 // struct defined in grpc package.
-func toGrpcContractErrInfos(src []perun.ContractErrInfo) []*pb.ContractErrInfo {
+func FromContractErrInfos(src []perun.ContractErrInfo) []*pb.ContractErrInfo {
 	output := make([]*pb.ContractErrInfo, len(src))
 	for i := range src {
 		output[i].Name = src[i].Name
