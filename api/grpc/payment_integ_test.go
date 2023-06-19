@@ -433,7 +433,7 @@ func AddPeerID(t *testing.T, sessionID string, peerID *pb.PeerID) {
 func OpenPayCh(t *testing.T, sessionID string, currencies, parts []string, bals [][]string, wantErr bool) string {
 	req := pb.OpenPayChReq{
 		SessionID: sessionID,
-		OpeningBalInfo: grpc.ToGrpcBalInfo(perun.BalInfo{
+		OpeningBalInfo: grpc.FromBalInfo(perun.BalInfo{
 			Currencies: currencies,
 			Parts:      parts,
 			Bals:       bals,
@@ -519,7 +519,7 @@ func SendPayChUpdate(t *testing.T, sessionID, chID string, payments []payment.Pa
 	req := pb.SendPayChUpdateReq{
 		SessionID: sessionID,
 		ChID:      chID,
-		Payments:  grpc.ToGrpcPayments(payments),
+		Payments:  grpc.FromPayments(payments),
 	}
 	resp, err := client.SendPayChUpdate(ctx, &req)
 	require.NoErrorf(t, err, "SendPayChUpdate")

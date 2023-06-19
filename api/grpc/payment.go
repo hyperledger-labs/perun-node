@@ -125,7 +125,7 @@ func (a *payChAPIServer) OpenSession(_ context.Context, req *pb.OpenSessionReq) 
 		Response: &pb.OpenSessionResp_MsgSuccess_{
 			MsgSuccess: &pb.OpenSessionResp_MsgSuccess{
 				SessionID:   sessionID,
-				RestoredChs: toGrpcPayChsInfo(restoredChs),
+				RestoredChs: FromPayChsInfo(restoredChs),
 			},
 		},
 	}, nil
@@ -211,7 +211,7 @@ func (a *payChAPIServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*
 	if err != nil {
 		return errResponse(err), nil
 	}
-	openingBalInfo := fromGrpcBalInfo(req.OpeningBalInfo)
+	openingBalInfo := ToBalInfo(req.OpeningBalInfo)
 	payChInfo, err := payment.OpenPayCh(ctx, sess, openingBalInfo, req.ChallengeDurSecs)
 	if err != nil {
 		return errResponse(err), nil
@@ -222,7 +222,7 @@ func (a *payChAPIServer) OpenPayCh(ctx context.Context, req *pb.OpenPayChReq) (*
 			MsgSuccess: &pb.OpenPayChResp_MsgSuccess{
 				OpenedPayChInfo: &pb.PayChInfo{
 					ChID:    payChInfo.ChID,
-					BalInfo: ToGrpcBalInfo(payChInfo.BalInfo),
+					BalInfo: FromBalInfo(payChInfo.BalInfo),
 					Version: payChInfo.Version,
 				},
 			},
@@ -252,7 +252,7 @@ func (a *payChAPIServer) GetPayChsInfo(_ context.Context, req *pb.GetPayChsInfoR
 	return &pb.GetPayChsInfoResp{
 		Response: &pb.GetPayChsInfoResp_MsgSuccess_{
 			MsgSuccess: &pb.GetPayChsInfoResp_MsgSuccess{
-				OpenPayChsInfo: toGrpcPayChsInfo(openPayChsInfo),
+				OpenPayChsInfo: FromPayChsInfo(openPayChsInfo),
 			},
 		},
 	}, nil
@@ -272,7 +272,7 @@ func (a *payChAPIServer) SubPayChProposals(req *pb.SubPayChProposalsReq,
 		err := srv.Send(&pb.SubPayChProposalsResp{Response: &pb.SubPayChProposalsResp_Notify_{
 			Notify: &pb.SubPayChProposalsResp_Notify{
 				ProposalID:       notif.ProposalID,
-				OpeningBalInfo:   ToGrpcBalInfo(notif.OpeningBalInfo),
+				OpeningBalInfo:   FromBalInfo(notif.OpeningBalInfo),
 				ChallengeDurSecs: notif.ChallengeDurSecs,
 				Expiry:           notif.Expiry,
 			},
@@ -361,7 +361,7 @@ func (a *payChAPIServer) RespondPayChProposal(ctx context.Context, req *pb.Respo
 	return &pb.RespondPayChProposalResp{
 		Response: &pb.RespondPayChProposalResp_MsgSuccess_{
 			MsgSuccess: &pb.RespondPayChProposalResp_MsgSuccess{
-				OpenedPayChInfo: toGrpcPayChInfo(openedPayChInfo),
+				OpenedPayChInfo: FromPayChInfo(openedPayChInfo),
 			},
 		},
 	}, nil
@@ -389,7 +389,7 @@ func (a *payChAPIServer) CloseSession(_ context.Context, req *pb.CloseSessionReq
 	return &pb.CloseSessionResp{
 		Response: &pb.CloseSessionResp_MsgSuccess_{
 			MsgSuccess: &pb.CloseSessionResp_MsgSuccess{
-				OpenPayChsInfo: toGrpcPayChsInfo(openPayChsInfo),
+				OpenPayChsInfo: FromPayChsInfo(openPayChsInfo),
 			},
 		},
 	}, nil
@@ -445,7 +445,7 @@ func (a *payChAPIServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChU
 	if err != nil {
 		return errResponse(err), nil
 	}
-	updatedPayChInfo, err := payment.SendPayChUpdate(ctx, ch, fromGrpcPayments(req.Payments))
+	updatedPayChInfo, err := payment.SendPayChUpdate(ctx, ch, ToPayments(req.Payments))
 	if err != nil {
 		return errResponse(err), nil
 	}
@@ -453,7 +453,7 @@ func (a *payChAPIServer) SendPayChUpdate(ctx context.Context, req *pb.SendPayChU
 	return &pb.SendPayChUpdateResp{
 		Response: &pb.SendPayChUpdateResp_MsgSuccess_{
 			MsgSuccess: &pb.SendPayChUpdateResp_MsgSuccess{
-				UpdatedPayChInfo: toGrpcPayChInfo(updatedPayChInfo),
+				UpdatedPayChInfo: FromPayChInfo(updatedPayChInfo),
 			},
 		},
 	}, nil
@@ -480,7 +480,7 @@ func (a *payChAPIServer) SubPayChUpdates(req *pb.SubpayChUpdatesReq, srv pb.Paym
 		err := srv.Send(&pb.SubPayChUpdatesResp{Response: &pb.SubPayChUpdatesResp_Notify_{
 			Notify: &pb.SubPayChUpdatesResp_Notify{
 				UpdateID:          notif.UpdateID,
-				ProposedPayChInfo: toGrpcPayChInfo(notif.ProposedPayChInfo),
+				ProposedPayChInfo: FromPayChInfo(notif.ProposedPayChInfo),
 				Type:              ToGrpcChUpdateType[notif.Type],
 				Expiry:            notif.Expiry,
 				Error:             notifErr,
@@ -589,7 +589,7 @@ func (a *payChAPIServer) RespondPayChUpdate(ctx context.Context, req *pb.Respond
 	return &pb.RespondPayChUpdateResp{
 		Response: &pb.RespondPayChUpdateResp_MsgSuccess_{
 			MsgSuccess: &pb.RespondPayChUpdateResp_MsgSuccess{
-				UpdatedPayChInfo: toGrpcPayChInfo(updatedPayChInfo),
+				UpdatedPayChInfo: FromPayChInfo(updatedPayChInfo),
 			},
 		},
 	}, nil
@@ -623,7 +623,7 @@ func (a *payChAPIServer) GetPayChInfo(_ context.Context, req *pb.GetPayChInfoReq
 	return &pb.GetPayChInfoResp{
 		Response: &pb.GetPayChInfoResp_MsgSuccess_{
 			MsgSuccess: &pb.GetPayChInfoResp_MsgSuccess{
-				PayChInfo: toGrpcPayChInfo(payChInfo),
+				PayChInfo: FromPayChInfo(payChInfo),
 			},
 		},
 	}, nil
@@ -655,7 +655,7 @@ func (a *payChAPIServer) ClosePayCh(ctx context.Context, req *pb.ClosePayChReq) 
 	return &pb.ClosePayChResp{
 		Response: &pb.ClosePayChResp_MsgSuccess_{
 			MsgSuccess: &pb.ClosePayChResp_MsgSuccess{
-				ClosedPayChInfo: toGrpcPayChInfo(closedPayChInfo),
+				ClosedPayChInfo: FromPayChInfo(closedPayChInfo),
 			},
 		},
 	}, nil
