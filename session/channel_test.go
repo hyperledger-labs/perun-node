@@ -131,7 +131,7 @@ func Test_SendChUpdate(t *testing.T) {
 
 		_, err := ch.SendChUpdate(context.Background(), noopUpdater)
 
-		wantMessage := session.ErrChClosed.Error()
+		wantMessage := perun.ErrChClosed.Error()
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
@@ -219,7 +219,7 @@ func Test_SubUnsubChUpdate(t *testing.T) {
 	require.Error(t, err)
 
 	peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceExists)
-	peruntest.AssertErrInfoResourceExists(t, err.AddInfo(), session.ResTypeUpdateSub, ch.ID())
+	peruntest.AssertErrInfoResourceExists(t, err.AddInfo(), perun.ResTypeUpdateSub, ch.ID())
 
 	// SubTest 3: UnSub successfully ==
 	err = ch.UnsubChUpdates()
@@ -230,14 +230,14 @@ func Test_SubUnsubChUpdate(t *testing.T) {
 	require.Error(t, err)
 
 	peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound)
-	peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypeUpdateSub, ch.ID())
+	peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), perun.ResTypeUpdateSub, ch.ID())
 
 	t.Run("Sub_channelClosed", func(t *testing.T) {
 		ch := session.NewChForTest(
 			pch, currency.ETHSymbol, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
 		err = ch.SubChUpdates(dummyNotifier)
 
-		wantMessage := session.ErrChClosed.Error()
+		wantMessage := perun.ErrChClosed.Error()
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
@@ -246,7 +246,7 @@ func Test_SubUnsubChUpdate(t *testing.T) {
 			pch, currency.ETHSymbol, validOpeningBalInfo.Parts, responseTimeout, challengeDurSecs, false)
 		err = ch.UnsubChUpdates()
 
-		wantMessage := session.ErrChClosed.Error()
+		wantMessage := perun.ErrChClosed.Error()
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
@@ -439,7 +439,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 
 		_, err := ch.RespondChUpdate(context.Background(), updateID, true)
 
-		wantMessage := session.ErrChClosed.Error()
+		wantMessage := perun.ErrChClosed.Error()
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
@@ -458,7 +458,7 @@ func Test_HandleUpdate_Respond(t *testing.T) {
 		_, err := ch.RespondChUpdate(context.Background(), unknownUpdateID, true)
 
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound)
-		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypeUpdate, unknownUpdateID)
+		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), perun.ResTypeUpdate, unknownUpdateID)
 	})
 
 	t.Run("response_timeout_expired", func(t *testing.T) {
@@ -932,7 +932,7 @@ func Test_Close(t *testing.T) {
 		_, err := ch.Close(context.Background())
 		require.Error(t, err)
 
-		wantMessage := session.ErrChClosed.Error()
+		wantMessage := perun.ErrChClosed.Error()
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})

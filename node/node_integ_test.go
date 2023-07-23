@@ -32,7 +32,6 @@ import (
 	"github.com/hyperledger-labs/perun-node/node"
 	"github.com/hyperledger-labs/perun-node/node/nodetest"
 	"github.com/hyperledger-labs/perun-node/peruntest"
-	"github.com/hyperledger-labs/perun-node/session"
 	"github.com/hyperledger-labs/perun-node/session/sessiontest"
 )
 
@@ -167,7 +166,7 @@ func Test_Integ_Node_OpenSession_GetSession(t *testing.T) {
 
 		_, apiErr := n.GetSession(unknownSessID)
 		peruntest.AssertAPIError(t, apiErr, perun.ClientError, perun.ErrResourceNotFound)
-		peruntest.AssertErrInfoResourceNotFound(t, apiErr.AddInfo(), session.ResTypeSession, unknownSessID)
+		peruntest.AssertErrInfoResourceNotFound(t, apiErr.AddInfo(), perun.ResTypeSession, unknownSessID)
 	})
 }
 
@@ -198,7 +197,7 @@ func Test_Integ_Node_RegisterCurrency(t *testing.T) {
 			require.Error(t, apiErr)
 
 			peruntest.AssertAPIError(t, apiErr, perun.ClientError, perun.ErrResourceExists)
-			peruntest.AssertErrInfoResourceExists(t, apiErr.AddInfo(), session.ResTypeCurrency, "PRN")
+			peruntest.AssertErrInfoResourceExists(t, apiErr.AddInfo(), perun.ResTypeCurrency, "PRN")
 		}
 	})
 }

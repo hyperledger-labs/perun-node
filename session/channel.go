@@ -302,7 +302,7 @@ func (ch *Channel) SendChUpdate(pctx context.Context, updater perun.StateUpdater
 	}()
 
 	if ch.status == closed {
-		apiErr = perun.NewAPIErrFailedPreCondition(ErrChClosed)
+		apiErr = perun.NewAPIErrFailedPreCondition(perun.ErrChClosed)
 		return ch.getChInfo(), apiErr
 	}
 
@@ -414,13 +414,13 @@ func (ch *Channel) SubChUpdates(notifier perun.ChUpdateNotifier) perun.APIError 
 	defer ch.Unlock()
 
 	if ch.status == closed {
-		apiErr := perun.NewAPIErrFailedPreCondition(ErrChClosed)
+		apiErr := perun.NewAPIErrFailedPreCondition(perun.ErrChClosed)
 		ch.WithFields(perun.APIErrAsMap("SubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
 
 	if ch.chUpdateNotifier != nil {
-		apiErr := perun.NewAPIErrResourceExists(ResTypeUpdateSub, ch.ID())
+		apiErr := perun.NewAPIErrResourceExists(perun.ResTypeUpdateSub, ch.ID())
 		ch.WithFields(perun.APIErrAsMap("SubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
@@ -445,13 +445,13 @@ func (ch *Channel) UnsubChUpdates() perun.APIError {
 	defer ch.Unlock()
 
 	if ch.status == closed {
-		apiErr := perun.NewAPIErrFailedPreCondition(ErrChClosed)
+		apiErr := perun.NewAPIErrFailedPreCondition(perun.ErrChClosed)
 		ch.WithFields(perun.APIErrAsMap("UnsubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
 
 	if ch.chUpdateNotifier == nil {
-		apiErr := perun.NewAPIErrResourceNotFound(ResTypeUpdateSub, ch.ID())
+		apiErr := perun.NewAPIErrResourceNotFound(perun.ResTypeUpdateSub, ch.ID())
 		ch.WithFields(perun.APIErrAsMap("UnsubChUpdates", apiErr)).Error(apiErr.Message())
 		return apiErr
 	}
@@ -487,13 +487,13 @@ func (ch *Channel) RespondChUpdate(pctx context.Context, updateID string, accept
 	}()
 
 	if ch.status == closed {
-		apiErr = perun.NewAPIErrFailedPreCondition(ErrChClosed)
+		apiErr = perun.NewAPIErrFailedPreCondition(perun.ErrChClosed)
 		return ch.getChInfo(), apiErr
 	}
 
 	entry, ok := ch.chUpdateResponders[updateID]
 	if !ok {
-		apiErr = perun.NewAPIErrResourceNotFound(ResTypeUpdate, updateID)
+		apiErr = perun.NewAPIErrResourceNotFound(perun.ResTypeUpdate, updateID)
 		return ch.getChInfo(), apiErr
 	}
 	delete(ch.chUpdateResponders, updateID)
@@ -641,7 +641,7 @@ func (ch *Channel) Close(pctx context.Context) (perun.ChInfo, perun.APIError) {
 	}()
 
 	if ch.status == closed {
-		apiErr = perun.NewAPIErrFailedPreCondition(ErrChClosed)
+		apiErr = perun.NewAPIErrFailedPreCondition(perun.ErrChClosed)
 		return ch.getChInfo(), apiErr
 	}
 
