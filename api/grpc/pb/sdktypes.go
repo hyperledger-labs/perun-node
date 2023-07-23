@@ -171,3 +171,136 @@ func toIndexMap(protoIndexMap []uint32) (indexMap []pchannel.Index, err error) {
 	}
 	return indexMap, nil
 }
+
+// FromParams converts perun's Params definition to protobuf's Params
+// definition.
+func FromParams(params *pchannel.Params) (protoParams *Params, err error) {
+	protoParams = &Params{}
+
+	protoParams.Nonce = params.Nonce.Bytes()
+	protoParams.ChallengeDuration = params.ChallengeDuration
+	protoParams.LedgerChannel = params.LedgerChannel
+	protoParams.VirtualChannel = params.VirtualChannel
+	protoParams.Parts, err = fromWalletAddrs(params.Parts)
+	if err != nil {
+		return nil, errors.WithMessage(err, "parts")
+	}
+	protoParams.App, err = fromApp(params.App)
+	return protoParams, err
+}
+
+func fromWalletAddrs(addrs []pwallet.Address) (protoAddrs [][]byte, err error) {
+	protoAddrs = make([][]byte, len(addrs))
+	for i := range addrs {
+		protoAddrs[i], err = addrs[i].MarshalBinary()
+		if err != nil {
+			return nil, errors.WithMessagef(err, "%d'th address", i)
+		}
+	}
+	return protoAddrs, nil
+}
+
+func fromApp(app pchannel.App) (protoApp []byte, err error) {
+	if pchannel.IsNoApp(app) {
+		return []byte{}, nil
+	}
+	protoApp, err = app.Def().MarshalBinary()
+	return protoApp, err
+}
+
+// FromState converts perun's State definition to protobuf's State
+// definition.
+func FromState(state *pchannel.State) (protoState *State, err error) {
+	protoState = &State{}
+
+	protoState.Id = make([]byte, len(state.ID))
+	copy(protoState.Id, state.ID[:])
+	protoState.Version = state.Version
+	protoState.IsFinal = state.IsFinal
+	protoState.Allocation, err = fromAllocation(state.Allocation)
+	if err != nil {
+		return nil, errors.WithMessage(err, "allocation")
+	}
+	protoState.App, protoState.Data, err = fromAppAndData(state.App, state.Data)
+	return protoState, err
+}
+
+func fromAllocation(alloc pchannel.Allocation) (protoAlloc *Allocation, err error) {
+	protoAlloc = &Allocation{}
+	protoAlloc.Assets = make([][]byte, len(alloc.Assets))
+	for i := range alloc.Assets {
+		protoAlloc.Assets[i], err = alloc.Assets[i].MarshalBinary()
+		if err != nil {
+			return nil, errors.WithMessagef(err, "%d'th asset", i)
+		}
+	}
+	locked := make([]*SubAlloc, len(alloc.Locked))
+	for i := range alloc.Locked {
+		locked[i], err = fromSubAlloc(alloc.Locked[i])
+		if err != nil {
+			return nil, errors.WithMessagef(err, "%d'th sub alloc", i)
+		}
+	}
+	protoAlloc.Balances, err = FromBalances(alloc.Balances)
+	return protoAlloc, err
+}
+
+// FromBalances converts perun's Balances definition to protobuf's Balances
+// definition.
+func FromBalances(balances pchannel.Balances) (protoBalances *Balances, err error) {
+	protoBalances = &Balances{
+		Balances: make([]*Balance, len(balances)),
+	}
+	for i := range balances {
+		protoBalances.Balances[i], err = fromBalance(balances[i])
+		if err != nil {
+			return nil, errors.WithMessagef(err, "%d'th balance", i)
+		}
+	}
+	return protoBalances, nil
+}
+
+func fromBalance(balance []pchannel.Bal) (protoBalance *Balance, err error) {
+	protoBalance = &Balance{
+		Balance: make([][]byte, len(balance)),
+	}
+	for i := range balance {
+		if balance[i] == nil {
+			return nil, fmt.Errorf("%d'th amount is nil", i) //nolint:goerr113  // constant error is not needed.
+		}
+		if balance[i].Sign() == -1 {
+			return nil, fmt.Errorf("%d'th amount is negative", i) //nolint:goerr113  // constant error is not needed.
+		}
+		protoBalance.Balance[i] = balance[i].Bytes()
+	}
+	return protoBalance, nil
+}
+
+func fromAppAndData(app pchannel.App, data pchannel.Data) (protoApp, protoData []byte, err error) {
+	if pchannel.IsNoApp(app) {
+		return []byte{}, []byte{}, nil
+	}
+	protoApp, err = app.Def().MarshalBinary()
+	if err != nil {
+		return []byte{}, []byte{}, err
+	}
+	protoData, err = data.MarshalBinary()
+	return protoApp, protoData, err
+}
+
+func fromSubAlloc(subAlloc pchannel.SubAlloc) (protoSubAlloc *SubAlloc, err error) {
+	protoSubAlloc = &SubAlloc{}
+	protoSubAlloc.Id = make([]byte, len(subAlloc.ID))
+	copy(protoSubAlloc.Id, subAlloc.ID[:])
+	protoSubAlloc.IndexMap = &IndexMap{IndexMap: fromIndexMap(subAlloc.IndexMap)}
+	protoSubAlloc.Bals, err = fromBalance(subAlloc.Bals)
+	return protoSubAlloc, err
+}
+
+func fromIndexMap(indexMap []pchannel.Index) (protoIndexMap []uint32) {
+	protoIndexMap = make([]uint32, len(indexMap))
+	for i := range indexMap {
+		protoIndexMap[i] = uint32(indexMap[i])
+	}
+	return protoIndexMap
+}

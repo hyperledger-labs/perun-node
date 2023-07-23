@@ -17,6 +17,7 @@
 package pb
 
 import (
+	"github.com/pkg/errors"
 	pchannel "perun.network/go-perun/channel"
 )
 
@@ -33,4 +34,24 @@ func ToFundingReq(protoReq *FundReq) (req pchannel.FundingReq, err error) {
 	req.Idx = pchannel.Index(protoReq.Idx)
 	req.Agreement = ToBalances(protoReq.Agreement.Balances)
 	return req, nil
+}
+
+// FromFundingReq converts perun's FundingReq definition to protobuf's
+// FundingReq definition.
+func FromFundingReq(req pchannel.FundingReq) (protoReq *FundReq, err error) {
+	protoReq = &FundReq{}
+
+	if protoReq.Params, err = FromParams(req.Params); err != nil {
+		return protoReq, err
+	}
+	if protoReq.State, err = FromState(req.State); err != nil {
+		return protoReq, err
+	}
+
+	protoReq.Idx = uint32(req.Idx)
+	protoReq.Agreement, err = FromBalances(req.Agreement)
+	if err != nil {
+		return nil, errors.WithMessage(err, "agreement")
+	}
+	return protoReq, nil
 }
