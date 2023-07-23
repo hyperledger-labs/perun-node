@@ -147,79 +147,53 @@ func generateNodeConfig() error {
 // Each directory would have: session.yaml, idprovider.yaml and keystore (containing 2 key files - on-chain
 // & off-chain). To use this configuration, start the node from same directory containing the session config artifacts
 // directory and pass the path "alice/session.yaml" and "bob/session.yaml" for alice and bob respectively.
-func generateSessionConfig() error { //nolint: funlen
-	if isPresent, dirName := isAnyDirPresent(aliceAlias, bobAlias); isPresent {
+func generateSessionConfig() error {
+	if isPresent, dirName := isAnyDirPresent(aliceAlias, bobAlias, apiAlias); isPresent {
 		return errors.New("dir exists - " + dirName)
 	}
-	if err := makeDirs(aliceAlias, bobAlias, apiAlias); err != nil {
+	err := makeDirs(aliceAlias, bobAlias, apiAlias)
+	if err != nil {
 		return err
 	}
+
+	const count = 3
+	aliases := [count]string{aliceAlias, bobAlias, apiAlias}
+	cfgs := [count]session.Config{}
+	providersFile := [count]string{}
+	cfgFile := [count]string{}
 
 	// Generate session config, the seed ethereumtest.RandSeedForTestAccs generates two accounts which were funded
 	// when starting the ganache cli node with the command documented in help message.
 	prng := rand.New(rand.NewSource(ethereumtest.RandSeedForTestAccs)) //nolint:gosec		// okay to use weak rand in tests.
-	aliceCfg, err := sessiontest.NewConfig(prng)
-	if err != nil {
-		return err
-	}
-	aliceCfg.User.Alias = aliceAlias
-
-	bobCfg, err := sessiontest.NewConfig(prng)
-	if err != nil {
-		return err
-	}
-	bobCfg.User.Alias = bobAlias
-
-	apiCfg, err := sessiontest.NewConfig(prng)
-	if err != nil {
-		return err
-	}
-	apiCfg.User.Alias = apiAlias
-
-	// Create IDProvider file.
-	aliceIDProviderFile, err := idprovidertest.NewIDProvider(peerID(bobCfg.User))
-	if err != nil {
-		return err
-	}
-	bobIDProviderFile, err := idprovidertest.NewIDProvider(peerID(aliceCfg.User))
-	if err != nil {
-		return err
-	}
-	apiIDProviderFile, err := idprovidertest.NewIDProvider()
-	if err != nil {
-		return err
+	for i := 0; i < count; i++ {
+		cfgs[i], err = sessiontest.NewConfig(prng)
+		if err != nil {
+			return err
+		}
+		cfgs[i].User.Alias = aliases[i]
 	}
 
-	// Create session config file.
-	aliceCfgFile, err := sessiontest.NewConfigFile(updatedConfigCopy(aliceCfg))
-	if err != nil {
-		return err
+	for i := 0; i < count; i++ {
+		providersFile[i], err = idprovidertest.NewIDProvider(peerID(cfgs[i].User))
+		if err != nil {
+			return err
+		}
 	}
-	bobCfgFile, err := sessiontest.NewConfigFile(updatedConfigCopy(bobCfg))
-	if err != nil {
-		return err
-	}
-	apiCfgFile, err := sessiontest.NewConfigFile(updatedConfigCopy(apiCfg))
-	if err != nil {
-		return err
+
+	for i := 0; i < count; i++ {
+		cfgFile[i], err = sessiontest.NewConfigFile(updatedConfigCopy(cfgs[i]))
+		if err != nil {
+			return err
+		}
 	}
 
 	// Move the artifacts to currenct directory.
-	filesToMove := map[string]string{
-		aliceCfgFile:                             filepath.Join(aliceAlias, sessionConfigFile),
-		aliceIDProviderFile:                      filepath.Join(aliceAlias, idProviderFile),
-		aliceCfg.DatabaseDir:                     filepath.Join(aliceAlias, databaseDir),
-		aliceCfg.User.OnChainWallet.KeystorePath: filepath.Join(aliceAlias, keystoreDir),
-
-		bobCfgFile:                             filepath.Join(bobAlias, sessionConfigFile),
-		bobCfg.DatabaseDir:                     filepath.Join(bobAlias, databaseDir),
-		bobIDProviderFile:                      filepath.Join(bobAlias, idProviderFile),
-		bobCfg.User.OnChainWallet.KeystorePath: filepath.Join(bobAlias, keystoreDir),
-
-		apiCfgFile:                             filepath.Join(apiAlias, sessionConfigFile),
-		apiCfg.DatabaseDir:                     filepath.Join(apiAlias, databaseDir),
-		apiIDProviderFile:                      filepath.Join(apiAlias, idProviderFile),
-		apiCfg.User.OnChainWallet.KeystorePath: filepath.Join(apiAlias, keystoreDir),
+	filesToMove := make(map[string]string)
+	for i := 0; i < count; i++ {
+		cfgFile[i] = filepath.Join(aliases[i], sessionConfigFile)
+		providersFile[i] = filepath.Join(aliases[i], idProviderFile)
+		cfgs[i].DatabaseDir = filepath.Join(aliases[i], databaseDir)
+		cfgs[i].User.OnChainWallet.KeystorePath = filepath.Join(aliases[i], keystoreDir)
 	}
 	return moveFiles(filesToMove)
 }
