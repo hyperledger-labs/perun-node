@@ -25,6 +25,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	grpclib "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	pchannel "perun.network/go-perun/channel"
 	pclient "perun.network/go-perun/client"
 	pwallet "perun.network/go-perun/wallet"
@@ -32,6 +34,7 @@ import (
 	psync "polycry.pt/poly-go/sync"
 
 	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
 	"github.com/hyperledger-labs/perun-node/comm/tcp/tcptest"
@@ -146,17 +149,27 @@ func New( //nolint: funlen
 	}
 
 	var funder perun.Funder
-	var adjudicator pchannel.Adjudicator
 	switch cfg.FundingType {
 	case "local":
 		funder = chain.NewFunder(contractRegistry.AssetETH(), user.OnChain.Addr)
-		adjudicator = chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
 	case "remote":
-		// TODO: Init gprc funding client.
+		conn, grpcErr := grpclib.Dial(cfg.FundingURL, grpclib.WithTransportCredentials(insecure.NewCredentials()))
+		if grpcErr != nil {
+			grpcErr = errors.WithMessage(grpcErr, "connecting to funding api")
+			return nil, perun.NewAPIErrUnknownInternal(grpcErr)
+		}
+		funderClient := pb.NewFunding_APIClient(conn)
+		funder = &grpcFunder{
+			apiKey: cfg.FundingAPIKey,
+			client: funderClient,
+		}
+
 	default:
 		err = errors.New("should be local or remote")
 		return nil, perun.NewAPIErrInvalidConfig(err, "fundingType", cfg.FundingAPIKey)
 	}
+
+	adjudicator := chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
 
 	chClient, apiErr := newChClient(funder, adjudicator, commBackend, cfg.User.CommAddr, user.OffChain)
 	if apiErr != nil {
