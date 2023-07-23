@@ -335,3 +335,48 @@ func APIErrAsMap(method string, err APIError) map[string]interface{} {
 		"code":     err.Code(),
 	}
 }
+
+// Error type is used to define error constants for this package.
+type Error string
+
+// Error implements error interface.
+func (e Error) Error() string {
+	return string(e)
+}
+
+// Definition of error constants for this package.
+const (
+	// For failed pre-condition.
+	ErrChClosed      Error = "action not allowed on a closed channel"
+	ErrSessionClosed Error = "action not allowed on a closed session"
+
+	// For invalid config.
+	ErrUnsupportedType      Error = "type not supported, see node config for supported types"
+	ErrRepeatedPeerAlias    Error = "found repeated entries but each value should be unique"
+	ErrEntryForSelfNotFound Error = "own peer alias (self) not found"
+)
+
+// Enumeration of valid resource types for used in ResourceNotFound and
+// ResourceExists errors.
+const (
+	ResTypeUpdate      ResourceType = "update"
+	ResTypeUpdateSub   ResourceType = "updatesSub"
+	ResTypeChannel     ResourceType = "channel"
+	ResTypeProposal    ResourceType = "proposal"
+	ResTypeProposalSub ResourceType = "proposalsSub"
+	ResTypePeerID      ResourceType = "peerID"
+	ResTypeSession     ResourceType = "session"
+	ResTypeCurrency    ResourceType = "currency"
+)
+
+// Enumeration of valid argument names for using in InvalidArgument error.
+const (
+	ArgNameAmount       ArgumentName = "amount"
+	ArgNameCurrency     ArgumentName = "currency"
+	ArgNamePeerAlias    ArgumentName = "peerAlias"
+	ArgNameOffChainAddr ArgumentName = "offChainAddress"
+	ArgNameConfigFile   ArgumentName = "configFile"
+	ArgNamePayee        ArgumentName = "payee"
+	ArgNameToken        ArgumentName = "token"
+	ArgNameAsset        ArgumentName = "asset"
+)

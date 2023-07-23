@@ -91,14 +91,14 @@ func Test_Session_AddPeerID(t *testing.T) {
 		err := openSession.AddPeerID(peer1WithAlias0)
 
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidArgument)
-		peruntest.AssertErrInfoInvalidArgument(t, err.AddInfo(), session.ArgNamePeerAlias, peer1WithAlias0.Alias)
+		peruntest.AssertErrInfoInvalidArgument(t, err.AddInfo(), perun.ArgNamePeerAlias, peer1WithAlias0.Alias)
 	})
 
 	t.Run("peerID_already_registered", func(t *testing.T) {
 		err := openSession.AddPeerID(peerIDs[0])
 
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceExists)
-		peruntest.AssertErrInfoResourceExists(t, err.AddInfo(), session.ResTypePeerID, peerIDs[0].Alias)
+		peruntest.AssertErrInfoResourceExists(t, err.AddInfo(), perun.ResTypePeerID, peerIDs[0].Alias)
 	})
 
 	t.Run("peerID_address_string_too_long", func(t *testing.T) {
@@ -108,7 +108,7 @@ func Test_Session_AddPeerID(t *testing.T) {
 
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidArgument)
 		argumentValue := peer1WithInvalidAddrString.OffChainAddrString
-		peruntest.AssertErrInfoInvalidArgument(t, err.AddInfo(), session.ArgNameOffChainAddr, argumentValue)
+		peruntest.AssertErrInfoInvalidArgument(t, err.AddInfo(), perun.ArgNameOffChainAddr, argumentValue)
 	})
 
 	t.Run("session_closed", func(t *testing.T) {
@@ -135,14 +135,14 @@ func Test_Session_GetPeerID(t *testing.T) {
 		unknownAlias := "unknown-alias"
 		_, err := openSession.GetPeerID(unknownAlias)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound)
-		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypePeerID, unknownAlias)
+		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), perun.ResTypePeerID, unknownAlias)
 	})
 
 	t.Run("session_closed", func(t *testing.T) {
 		_, err := closedSession.GetPeerID(peerIDs[0].Alias)
 		require.Error(t, err)
 
-		wantMessage := session.ErrSessionClosed.Error()
+		wantMessage := perun.ErrSessionClosed.Error()
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
@@ -196,7 +196,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		_, err := sess.OpenCh(context.Background(), validOpeningBalInfo, app, 10)
 		require.Error(t, err)
 
-		wantMessage := session.ErrSessionClosed.Error()
+		wantMessage := perun.ErrSessionClosed.Error()
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
@@ -210,7 +210,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound)
-		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypePeerID, unknownAlias)
+		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), perun.ResTypePeerID, unknownAlias)
 	})
 
 	t.Run("two_unknown_peer_aliases", func(t *testing.T) {
@@ -225,7 +225,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		require.Error(t, err)
 
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound)
-		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypePeerID, partsList)
+		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), perun.ResTypePeerID, partsList)
 	})
 
 	t.Run("repeated_peer_aliases", func(t *testing.T) {
@@ -237,9 +237,9 @@ func Test_Session_OpenCh(t *testing.T) {
 
 		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 
-		wantMessage := session.ErrRepeatedPeerAlias.Error()
+		wantMessage := perun.ErrRepeatedPeerAlias.Error()
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidArgument, wantMessage)
-		peruntest.AssertErrInfoInvalidArgument(t, err.AddInfo(), session.ArgNamePeerAlias, partsList)
+		peruntest.AssertErrInfoInvalidArgument(t, err.AddInfo(), perun.ArgNamePeerAlias, partsList)
 	})
 
 	t.Run("missing_own_alias", func(t *testing.T) {
@@ -251,9 +251,9 @@ func Test_Session_OpenCh(t *testing.T) {
 		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 		require.Error(t, err)
 
-		wantMessage := session.ErrEntryForSelfNotFound.Error()
+		wantMessage := perun.ErrEntryForSelfNotFound.Error()
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidArgument, wantMessage)
-		peruntest.AssertErrInfoInvalidArgument(t, err.AddInfo(), session.ArgNamePeerAlias, partsList)
+		peruntest.AssertErrInfoInvalidArgument(t, err.AddInfo(), perun.ArgNamePeerAlias, partsList)
 	})
 
 	t.Run("unsupported_currency", func(t *testing.T) {
@@ -266,7 +266,7 @@ func Test_Session_OpenCh(t *testing.T) {
 
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound)
 		peruntest.AssertErrInfoResourceNotFound(
-			t, err.AddInfo(), session.ResTypeCurrency, invalidOpeningBalInfo.Currencies[0])
+			t, err.AddInfo(), perun.ResTypeCurrency, invalidOpeningBalInfo.Currencies[0])
 	})
 
 	t.Run("invalid_amount", func(t *testing.T) {
@@ -278,7 +278,7 @@ func Test_Session_OpenCh(t *testing.T) {
 		_, err := sess.OpenCh(context.Background(), invalidOpeningBalInfo, app, 10)
 
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrInvalidArgument)
-		peruntest.AssertErrInfoInvalidArgument(t, err.AddInfo(), session.ArgNameAmount, invalidOpeningBalInfo.Bals[0][0])
+		peruntest.AssertErrInfoInvalidArgument(t, err.AddInfo(), perun.ArgNameAmount, invalidOpeningBalInfo.Bals[0][0])
 	})
 
 	t.Run("chClient_proposeChannel_AnError", func(t *testing.T) {
@@ -419,7 +419,7 @@ func Test_SubUnsubChProposal(t *testing.T) {
 	// == SubTest 2: Sub again, should error ==
 	err = openSession.SubChProposals(dummyNotifier)
 	peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceExists)
-	peruntest.AssertErrInfoResourceExists(t, err.AddInfo(), session.ResTypeProposalSub, openSession.ID())
+	peruntest.AssertErrInfoResourceExists(t, err.AddInfo(), perun.ResTypeProposalSub, openSession.ID())
 
 	// == SubTest 3: Unsub successfully ==
 	err = openSession.UnsubChProposals()
@@ -428,11 +428,11 @@ func Test_SubUnsubChProposal(t *testing.T) {
 	// == SubTest 4: Unsub again, should error ==
 	err = openSession.UnsubChProposals()
 	peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound)
-	peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypeProposalSub, openSession.ID())
+	peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), perun.ResTypeProposalSub, openSession.ID())
 
 	t.Run("Sub_sessionClosed", func(t *testing.T) {
 		err = closedSession.SubChProposals(dummyNotifier)
-		wantMessage := session.ErrSessionClosed.Error()
+		wantMessage := perun.ErrSessionClosed.Error()
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
@@ -440,7 +440,7 @@ func Test_SubUnsubChProposal(t *testing.T) {
 	t.Run("Unsub_sessionClosed", func(t *testing.T) {
 		err = closedSession.UnsubChProposals()
 		require.Error(t, err)
-		wantMessage := session.ErrSessionClosed.Error()
+		wantMessage := perun.ErrSessionClosed.Error()
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
@@ -528,7 +528,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		chProposalID := "any-proposal-id" // A closed session returns error irrespective of proposal id.
 		_, err := sess.RespondChProposal(context.Background(), chProposalID, true)
 
-		wantMessage := session.ErrSessionClosed.Error()
+		wantMessage := perun.ErrSessionClosed.Error()
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, wantMessage)
 		assert.Nil(t, err.AddInfo())
 	})
@@ -540,7 +540,7 @@ func Test_HandleProposalWInterface_Respond(t *testing.T) {
 		_, err := sess.RespondChProposal(context.Background(), unknownProposalID, true)
 
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound)
-		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypeProposal, unknownProposalID)
+		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), perun.ResTypeProposal, unknownProposalID)
 	})
 
 	t.Run("response_timeout_expired", func(t *testing.T) {
@@ -752,7 +752,7 @@ func Test_ProposeCh_GetCh(t *testing.T) {
 		unknownChID := "unknown-ch-ID"
 		_, err := sess.GetCh(unknownChID)
 		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrResourceNotFound)
-		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), session.ResTypeChannel, unknownChID)
+		peruntest.AssertErrInfoResourceNotFound(t, err.AddInfo(), perun.ResTypeChannel, unknownChID)
 	})
 }
 
@@ -813,7 +813,7 @@ func Test_ProposeCh_CloseSession(t *testing.T) {
 
 		_, err := sess.Close(false)
 		require.Error(t, err)
-		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, session.ErrSessionClosed.Error())
+		peruntest.AssertAPIError(t, err, perun.ClientError, perun.ErrFailedPreCondition, perun.ErrSessionClosed.Error())
 		assert.Nil(t, err.AddInfo())
 	})
 }

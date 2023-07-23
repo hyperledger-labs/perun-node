@@ -172,7 +172,7 @@ func (n *node) OpenSession(configFile string) (string, []perun.ChInfo, perun.API
 	sessionConfig, err := session.ParseConfig(configFile)
 	if err != nil {
 		err = errors.WithMessage(err, "parsing config")
-		return "", nil, perun.NewAPIErrInvalidArgument(err, session.ArgNameConfigFile, configFile)
+		return "", nil, perun.NewAPIErrInvalidArgument(err, perun.ArgNameConfigFile, configFile)
 	}
 
 	if sessionConfig.FundingType == "local" {
@@ -217,13 +217,13 @@ func (n *node) RegisterCurrency(tokenERC20Addr, assetERC20Addr string) (symbol s
 	walletBackend := ethereum.NewWalletBackend()
 	assetERC20, err := walletBackend.ParseAddr(assetERC20Addr)
 	if err != nil {
-		apiErr = perun.NewAPIErrInvalidArgument(err, session.ArgNameAsset, assetERC20Addr)
+		apiErr = perun.NewAPIErrInvalidArgument(err, perun.ArgNameAsset, assetERC20Addr)
 		return "", apiErr
 	}
 
 	tokenERC20, err := walletBackend.ParseAddr(tokenERC20Addr)
 	if err != nil {
-		apiErr = perun.NewAPIErrInvalidArgument(err, session.ArgNameToken, tokenERC20Addr)
+		apiErr = perun.NewAPIErrInvalidArgument(err, perun.ArgNameToken, tokenERC20Addr)
 		return "", apiErr
 	}
 
@@ -233,7 +233,7 @@ func (n *node) RegisterCurrency(tokenERC20Addr, assetERC20Addr string) (symbol s
 		invalidContractError := blockchain.InvalidContractError{}
 		switch {
 		case errors.As(err, &assetERC20RegisteredError):
-			apiErr = perun.NewAPIErrResourceExists(session.ResTypeCurrency, assetERC20RegisteredError.Symbol)
+			apiErr = perun.NewAPIErrResourceExists(perun.ResTypeCurrency, assetERC20RegisteredError.Symbol)
 			return "", apiErr
 		case errors.As(err, &invalidContractError):
 			contractErrorInfo := perun.ContractErrInfo{
@@ -254,7 +254,7 @@ func (n *node) RegisterCurrency(tokenERC20Addr, assetERC20Addr string) (symbol s
 		// Ideally, code should not reach here, because currency registry is
 		// only updated after contracts registry, this condition would have
 		// already been detected when registering to contract registry.
-		return "", perun.NewAPIErrResourceExists(session.ResTypeCurrency, symbol)
+		return "", perun.NewAPIErrResourceExists(perun.ResTypeCurrency, symbol)
 	}
 	return symbol, nil
 }
@@ -279,7 +279,7 @@ func (n *node) GetSession(sessionID string) (perun.SessionAPI, perun.APIError) {
 	sess, ok := n.sessions[sessionID]
 	n.Unlock()
 	if !ok {
-		apiErr := perun.NewAPIErrResourceNotFound(session.ResTypeSession, sessionID)
+		apiErr := perun.NewAPIErrResourceNotFound(perun.ResTypeSession, sessionID)
 		n.WithFields(perun.APIErrAsMap("GetSession (internal)", apiErr)).Error(apiErr.Message())
 		return nil, apiErr
 	}
