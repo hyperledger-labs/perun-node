@@ -76,6 +76,7 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient, chainSetup *e
 	}
 
 	funder := chainSetup.ChainBackend.NewFunder(contracts.AssetETH(), user.OnChain.Addr)
+	adjudicator := chainSetup.ChainBackend.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
 
 	return &Session{
 		Logger:               log.NewLoggerWithField("session-id", sessionID),
@@ -88,6 +89,7 @@ func NewSessionForTest(cfg Config, isOpen bool, chClient ChClient, chainSetup *e
 		idProvider:           idProvider,
 		chain:                chainSetup.ChainBackend,
 		funder:               funder,
+		adjudicator:          adjudicator,
 		chs:                  newChRegistry(initialChRegistrySize),
 		contractRegistry:     contracts,
 		currencyRegistry:     currencytest.Registry(),
