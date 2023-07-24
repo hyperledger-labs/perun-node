@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	grpclib "google.golang.org/grpc"
+	pchannel "perun.network/go-perun/channel"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
@@ -36,7 +37,8 @@ func ListenAndServePayChAPI(n perun.NodeAPI, grpcPort string) error {
 	}
 
 	fundingServer := &fundingServer{
-		n: n,
+		n:          n,
+		subscribes: make(map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription),
 	}
 
 	listener, err := net.Listen("tcp", grpcPort)

@@ -20,11 +20,62 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	reflect "reflect"
 
 	"github.com/pkg/errors"
 	pchannel "perun.network/go-perun/channel"
 	pwallet "perun.network/go-perun/wallet"
+
+	"github.com/hyperledger-labs/perun-node"
 )
+
+// ToAdjReq converts protobuf's AdjReq definition to perun's AdjReq definition.
+func ToAdjReq(protoReq *AdjudicatorReq) (req perun.AdjudicatorReq, err error) {
+	if req.Params, err = ToParams(protoReq.Params); err != nil {
+		return req, err
+	}
+	if req.Tx, err = toTransaction(protoReq.Tx); err != nil {
+		return req, err
+	}
+	req.Acc = pwallet.NewAddress()
+	err = req.Acc.UnmarshalBinary(protoReq.Acc)
+	if err != nil {
+		return req, err
+	}
+	req.Idx = pchannel.Index(protoReq.Idx)
+	req.Secondary = protoReq.Secondary
+	return req, nil
+}
+
+// ToTransaction converts protobuf's Transaction definition to perun's Transaction definition.
+func toTransaction(protoSignedState *Transaction) (transaction pchannel.Transaction, err error) {
+	transaction.State, err = ToState(protoSignedState.State)
+	if err != nil {
+		return transaction, err
+	}
+	transaction.Sigs = make([]pwallet.Sig, len(protoSignedState.Sigs))
+	for i := range transaction.Sigs {
+		transaction.Sigs[i] = protoSignedState.Sigs[i]
+	}
+	return transaction, nil
+}
+
+// ToSignedState converts protobuf's SignedState definition to perun's SignedState definition.
+func ToSignedState(protoSignedState *SignedState) (signedState pchannel.SignedState, err error) {
+	signedState.Params, err = ToParams(protoSignedState.Params)
+	if err != nil {
+		return signedState, err
+	}
+	signedState.State, err = ToState(protoSignedState.State)
+	if err != nil {
+		return signedState, err
+	}
+	signedState.Sigs = make([]pwallet.Sig, len(protoSignedState.Sigs))
+	for i := range signedState.Sigs {
+		signedState.Sigs[i] = protoSignedState.Sigs[i]
+	}
+	return signedState, nil
+}
 
 // ToParams converts protobuf's Params definition to perun's Params definition.
 func ToParams(protoParams *Params) (*pchannel.Params, error) {
@@ -170,6 +221,84 @@ func toIndexMap(protoIndexMap []uint32) (indexMap []pchannel.Index, err error) {
 		indexMap[i] = pchannel.Index(uint16(protoIndexMap[i]))
 	}
 	return indexMap, nil
+}
+
+// SubscribeResponseFromAdjEvent converts perun's AdjudicatorEvent to protobuf's
+// Subscribe Response.
+func SubscribeResponseFromAdjEvent(adjEvent pchannel.AdjudicatorEvent) (*SubscribeResp, error) {
+	protoResponse := &SubscribeResp{}
+	switch e := adjEvent.(type) {
+	case *pchannel.RegisteredEvent:
+		registeredEvent, err := fromRegisteredEvent(e)
+		protoResponse.Response = &SubscribeResp_RegisteredEvent{registeredEvent}
+		return protoResponse, err
+	case *pchannel.ProgressedEvent:
+		progressedEvent, err := fromProgressedEvent(e)
+		protoResponse.Response = &SubscribeResp_ProgressedEvent{progressedEvent}
+		return protoResponse, err
+	case *pchannel.ConcludedEvent:
+		concludedEvent, err := fromConcludedEvent(e)
+		protoResponse.Response = &SubscribeResp_ConcludedEvent{concludedEvent}
+		return protoResponse, err
+	default:
+		apiErr := perun.NewAPIErrUnknownInternal(errors.New("unknown even type"))
+		protoResponse.Response = &SubscribeResp_Error{
+			Error: FromError(apiErr),
+		}
+		return protoResponse, nil
+	}
+}
+
+func fromRegisteredEvent(event *pchannel.RegisteredEvent) (grpcEvent *RegisteredEvent, err error) {
+	grpcEvent = &RegisteredEvent{}
+	grpcEvent.AdjudicatorEventBase = fromAdjudicatorEventBase(&event.AdjudicatorEventBase)
+	grpcEvent.Sigs = make([][]byte, len(event.Sigs))
+	copy(grpcEvent.Sigs, event.Sigs)
+	grpcEvent.State, err = FromState(event.State)
+	return grpcEvent, errors.WithMessage(err, "parsing state")
+}
+
+func fromProgressedEvent(event *pchannel.ProgressedEvent) (grpcEvent *ProgressedEvent, err error) {
+	grpcEvent = &ProgressedEvent{}
+	grpcEvent.AdjudicatorEventBase = fromAdjudicatorEventBase(&event.AdjudicatorEventBase)
+	grpcEvent.Idx = uint32(event.Idx)
+	grpcEvent.State, err = FromState(event.State)
+	return grpcEvent, errors.WithMessage(err, "parsing state")
+}
+
+func fromConcludedEvent(event *pchannel.ConcludedEvent) (grpcEvent *ConcludedEvent, err error) {
+	grpcEvent = &ConcludedEvent{}
+	grpcEvent.AdjudicatorEventBase = fromAdjudicatorEventBase(&event.AdjudicatorEventBase)
+	return grpcEvent, errors.WithMessage(err, "parsing adjudicator event base")
+}
+
+func fromAdjudicatorEventBase(event *pchannel.AdjudicatorEventBase) (protoEvent *AdjudicatorEventBase) {
+	// Does a type switch on the underlying timeout type, because timeout cannot be passed as such
+	// TODO: Make timeout wire friendly.
+	protoEvent = &AdjudicatorEventBase{}
+	protoEvent.ChID = event.IDV[:]
+	protoEvent.Version = event.VersionV
+	protoEvent.Timeout = &AdjudicatorEventBase_Timeout{}
+	switch t := event.TimeoutV.(type) {
+	case *pchannel.ElapsedTimeout:
+		protoEvent.Timeout.Sec = -1
+		protoEvent.Timeout.Type = AdjudicatorEventBase_elapsed
+	case *pchannel.TimeTimeout:
+		protoEvent.Timeout.Sec = t.Unix()
+		protoEvent.Timeout.Type = AdjudicatorEventBase_time
+	default:
+		// In this case, it is pethchannel.BlockTimeout. We don't
+		// directly make it a case of the type switch, because this
+		// will import pethchannel package, which has transient
+		// dependency to go-ethereum package, which has copy left
+		// license and cannot be used in the perun-node project,
+		// outside of ethereum adapter.
+		// TODO: Validate if number is less than int64max before type casting.
+		val := reflect.ValueOf(event.TimeoutV).FieldByName("Time")
+		protoEvent.Timeout.Sec = int64(val.Uint())
+		protoEvent.Timeout.Type = AdjudicatorEventBase_ethBlock
+	}
+	return protoEvent
 }
 
 // FromParams converts perun's Params definition to protobuf's Params
