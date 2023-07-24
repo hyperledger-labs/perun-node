@@ -77,8 +77,9 @@ type (
 		timeoutCfg timeoutConfig
 		chainURL   string // used for annotating error messages.
 
-		chain  perun.ChainBackend
-		funder perun.Funder
+		chain       perun.ChainBackend
+		funder      perun.Funder
+		adjudicator pchannel.Adjudicator
 
 		chs              *chRegistry
 		contractRegistry perun.ContractRegistry
@@ -193,6 +194,7 @@ func New( //nolint: funlen
 		idProvider:           idProvider,
 		chain:                chain,
 		funder:               funder,
+		adjudicator:          adjudicator,
 		chs:                  newChRegistry(initialChRegistrySize),
 		contractRegistry:     contractRegistry,
 		currencyRegistry:     currencyRegistry,
