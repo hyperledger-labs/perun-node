@@ -39,6 +39,55 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type AdjudicatorEventBase_TimeoutType int32
+
+const (
+	AdjudicatorEventBase_elapsed  AdjudicatorEventBase_TimeoutType = 0
+	AdjudicatorEventBase_time     AdjudicatorEventBase_TimeoutType = 1
+	AdjudicatorEventBase_ethBlock AdjudicatorEventBase_TimeoutType = 2
+)
+
+// Enum value maps for AdjudicatorEventBase_TimeoutType.
+var (
+	AdjudicatorEventBase_TimeoutType_name = map[int32]string{
+		0: "elapsed",
+		1: "time",
+		2: "ethBlock",
+	}
+	AdjudicatorEventBase_TimeoutType_value = map[string]int32{
+		"elapsed":  0,
+		"time":     1,
+		"ethBlock": 2,
+	}
+)
+
+func (x AdjudicatorEventBase_TimeoutType) Enum() *AdjudicatorEventBase_TimeoutType {
+	p := new(AdjudicatorEventBase_TimeoutType)
+	*p = x
+	return p
+}
+
+func (x AdjudicatorEventBase_TimeoutType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AdjudicatorEventBase_TimeoutType) Descriptor() protoreflect.EnumDescriptor {
+	return file_sdktypes_proto_enumTypes[0].Descriptor()
+}
+
+func (AdjudicatorEventBase_TimeoutType) Type() protoreflect.EnumType {
+	return &file_sdktypes_proto_enumTypes[0]
+}
+
+func (x AdjudicatorEventBase_TimeoutType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AdjudicatorEventBase_TimeoutType.Descriptor instead.
+func (AdjudicatorEventBase_TimeoutType) EnumDescriptor() ([]byte, []int) {
+	return file_sdktypes_proto_rawDescGZIP(), []int{8, 0}
+}
+
 // Balance represents the balance of a single asset, for all the channel
 // participants.
 type Balance struct {
@@ -499,6 +548,557 @@ func (x *State) GetIsFinal() bool {
 	return false
 }
 
+// AdjudicatorReq represents channel.AdjudicatorReq.
+type AdjudicatorReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Params    *Params      `protobuf:"bytes,1,opt,name=params,proto3" json:"params,omitempty"`
+	Acc       []byte       `protobuf:"bytes,2,opt,name=acc,proto3" json:"acc,omitempty"`
+	Tx        *Transaction `protobuf:"bytes,3,opt,name=tx,proto3" json:"tx,omitempty"`
+	Idx       uint32       `protobuf:"varint,4,opt,name=idx,proto3" json:"idx,omitempty"`
+	Secondary bool         `protobuf:"varint,5,opt,name=secondary,proto3" json:"secondary,omitempty"`
+}
+
+func (x *AdjudicatorReq) Reset() {
+	*x = AdjudicatorReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sdktypes_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AdjudicatorReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdjudicatorReq) ProtoMessage() {}
+
+func (x *AdjudicatorReq) ProtoReflect() protoreflect.Message {
+	mi := &file_sdktypes_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdjudicatorReq.ProtoReflect.Descriptor instead.
+func (*AdjudicatorReq) Descriptor() ([]byte, []int) {
+	return file_sdktypes_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *AdjudicatorReq) GetParams() *Params {
+	if x != nil {
+		return x.Params
+	}
+	return nil
+}
+
+func (x *AdjudicatorReq) GetAcc() []byte {
+	if x != nil {
+		return x.Acc
+	}
+	return nil
+}
+
+func (x *AdjudicatorReq) GetTx() *Transaction {
+	if x != nil {
+		return x.Tx
+	}
+	return nil
+}
+
+func (x *AdjudicatorReq) GetIdx() uint32 {
+	if x != nil {
+		return x.Idx
+	}
+	return 0
+}
+
+func (x *AdjudicatorReq) GetSecondary() bool {
+	if x != nil {
+		return x.Secondary
+	}
+	return false
+}
+
+// AdjudicatorEventBase represents channel.AdjudicatorEventBase.
+type AdjudicatorEventBase struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ChID    []byte                        `protobuf:"bytes,1,opt,name=chID,proto3" json:"chID,omitempty"`
+	Timeout *AdjudicatorEventBase_Timeout `protobuf:"bytes,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	Version uint64                        `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+}
+
+func (x *AdjudicatorEventBase) Reset() {
+	*x = AdjudicatorEventBase{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sdktypes_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AdjudicatorEventBase) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdjudicatorEventBase) ProtoMessage() {}
+
+func (x *AdjudicatorEventBase) ProtoReflect() protoreflect.Message {
+	mi := &file_sdktypes_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdjudicatorEventBase.ProtoReflect.Descriptor instead.
+func (*AdjudicatorEventBase) Descriptor() ([]byte, []int) {
+	return file_sdktypes_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *AdjudicatorEventBase) GetChID() []byte {
+	if x != nil {
+		return x.ChID
+	}
+	return nil
+}
+
+func (x *AdjudicatorEventBase) GetTimeout() *AdjudicatorEventBase_Timeout {
+	if x != nil {
+		return x.Timeout
+	}
+	return nil
+}
+
+func (x *AdjudicatorEventBase) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+// RegisteredEvent represents channel.RegisteredEvent.
+type RegisteredEvent struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	AdjudicatorEventBase *AdjudicatorEventBase `protobuf:"bytes,1,opt,name=adjudicatorEventBase,proto3" json:"adjudicatorEventBase,omitempty"`
+	State                *State                `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	Sigs                 [][]byte              `protobuf:"bytes,3,rep,name=sigs,proto3" json:"sigs,omitempty"`
+}
+
+func (x *RegisteredEvent) Reset() {
+	*x = RegisteredEvent{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sdktypes_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RegisteredEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisteredEvent) ProtoMessage() {}
+
+func (x *RegisteredEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_sdktypes_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisteredEvent.ProtoReflect.Descriptor instead.
+func (*RegisteredEvent) Descriptor() ([]byte, []int) {
+	return file_sdktypes_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *RegisteredEvent) GetAdjudicatorEventBase() *AdjudicatorEventBase {
+	if x != nil {
+		return x.AdjudicatorEventBase
+	}
+	return nil
+}
+
+func (x *RegisteredEvent) GetState() *State {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+func (x *RegisteredEvent) GetSigs() [][]byte {
+	if x != nil {
+		return x.Sigs
+	}
+	return nil
+}
+
+// ProgressedEvent represents channel.ProgressedEvent.
+type ProgressedEvent struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	AdjudicatorEventBase *AdjudicatorEventBase `protobuf:"bytes,1,opt,name=adjudicatorEventBase,proto3" json:"adjudicatorEventBase,omitempty"`
+	State                *State                `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	Idx                  uint32                `protobuf:"varint,3,opt,name=idx,proto3" json:"idx,omitempty"`
+}
+
+func (x *ProgressedEvent) Reset() {
+	*x = ProgressedEvent{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sdktypes_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ProgressedEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProgressedEvent) ProtoMessage() {}
+
+func (x *ProgressedEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_sdktypes_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProgressedEvent.ProtoReflect.Descriptor instead.
+func (*ProgressedEvent) Descriptor() ([]byte, []int) {
+	return file_sdktypes_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ProgressedEvent) GetAdjudicatorEventBase() *AdjudicatorEventBase {
+	if x != nil {
+		return x.AdjudicatorEventBase
+	}
+	return nil
+}
+
+func (x *ProgressedEvent) GetState() *State {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+func (x *ProgressedEvent) GetIdx() uint32 {
+	if x != nil {
+		return x.Idx
+	}
+	return 0
+}
+
+// ConcludedEvent represents channel.ConcludedEvent.
+type ConcludedEvent struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	AdjudicatorEventBase *AdjudicatorEventBase `protobuf:"bytes,1,opt,name=adjudicatorEventBase,proto3" json:"adjudicatorEventBase,omitempty"`
+}
+
+func (x *ConcludedEvent) Reset() {
+	*x = ConcludedEvent{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sdktypes_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ConcludedEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConcludedEvent) ProtoMessage() {}
+
+func (x *ConcludedEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_sdktypes_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConcludedEvent.ProtoReflect.Descriptor instead.
+func (*ConcludedEvent) Descriptor() ([]byte, []int) {
+	return file_sdktypes_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ConcludedEvent) GetAdjudicatorEventBase() *AdjudicatorEventBase {
+	if x != nil {
+		return x.AdjudicatorEventBase
+	}
+	return nil
+}
+
+// Transaction represents channel.Transaction.
+type Transaction struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	State *State   `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
+	Sigs  [][]byte `protobuf:"bytes,2,rep,name=sigs,proto3" json:"sigs,omitempty"`
+}
+
+func (x *Transaction) Reset() {
+	*x = Transaction{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sdktypes_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Transaction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Transaction) ProtoMessage() {}
+
+func (x *Transaction) ProtoReflect() protoreflect.Message {
+	mi := &file_sdktypes_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Transaction.ProtoReflect.Descriptor instead.
+func (*Transaction) Descriptor() ([]byte, []int) {
+	return file_sdktypes_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *Transaction) GetState() *State {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+func (x *Transaction) GetSigs() [][]byte {
+	if x != nil {
+		return x.Sigs
+	}
+	return nil
+}
+
+// SignedState represents channel.SignedState.
+type SignedState struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Params *Params  `protobuf:"bytes,1,opt,name=params,proto3" json:"params,omitempty"`
+	State  *State   `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	Sigs   [][]byte `protobuf:"bytes,3,rep,name=sigs,proto3" json:"sigs,omitempty"`
+}
+
+func (x *SignedState) Reset() {
+	*x = SignedState{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sdktypes_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SignedState) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignedState) ProtoMessage() {}
+
+func (x *SignedState) ProtoReflect() protoreflect.Message {
+	mi := &file_sdktypes_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignedState.ProtoReflect.Descriptor instead.
+func (*SignedState) Descriptor() ([]byte, []int) {
+	return file_sdktypes_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *SignedState) GetParams() *Params {
+	if x != nil {
+		return x.Params
+	}
+	return nil
+}
+
+func (x *SignedState) GetState() *State {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+func (x *SignedState) GetSigs() [][]byte {
+	if x != nil {
+		return x.Sigs
+	}
+	return nil
+}
+
+// StateMap represents channel.StateMap.
+type StateMap struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id    []byte `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	State *State `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+}
+
+func (x *StateMap) Reset() {
+	*x = StateMap{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sdktypes_proto_msgTypes[14]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *StateMap) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StateMap) ProtoMessage() {}
+
+func (x *StateMap) ProtoReflect() protoreflect.Message {
+	mi := &file_sdktypes_proto_msgTypes[14]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StateMap.ProtoReflect.Descriptor instead.
+func (*StateMap) Descriptor() ([]byte, []int) {
+	return file_sdktypes_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *StateMap) GetId() []byte {
+	if x != nil {
+		return x.Id
+	}
+	return nil
+}
+
+func (x *StateMap) GetState() *State {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+type AdjudicatorEventBase_Timeout struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Sec  int64                            `protobuf:"varint,1,opt,name=sec,proto3" json:"sec,omitempty"`
+	Type AdjudicatorEventBase_TimeoutType `protobuf:"varint,3,opt,name=type,proto3,enum=pb.AdjudicatorEventBase_TimeoutType" json:"type,omitempty"`
+}
+
+func (x *AdjudicatorEventBase_Timeout) Reset() {
+	*x = AdjudicatorEventBase_Timeout{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sdktypes_proto_msgTypes[15]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AdjudicatorEventBase_Timeout) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdjudicatorEventBase_Timeout) ProtoMessage() {}
+
+func (x *AdjudicatorEventBase_Timeout) ProtoReflect() protoreflect.Message {
+	mi := &file_sdktypes_proto_msgTypes[15]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdjudicatorEventBase_Timeout.ProtoReflect.Descriptor instead.
+func (*AdjudicatorEventBase_Timeout) Descriptor() ([]byte, []int) {
+	return file_sdktypes_proto_rawDescGZIP(), []int{8, 0}
+}
+
+func (x *AdjudicatorEventBase_Timeout) GetSec() int64 {
+	if x != nil {
+		return x.Sec
+	}
+	return 0
+}
+
+func (x *AdjudicatorEventBase_Timeout) GetType() AdjudicatorEventBase_TimeoutType {
+	if x != nil {
+		return x.Type
+	}
+	return AdjudicatorEventBase_elapsed
+}
+
 var File_sdktypes_proto protoreflect.FileDescriptor
 
 var file_sdktypes_proto_rawDesc = []byte{
@@ -549,8 +1149,73 @@ var file_sdktypes_proto_rawDesc = []byte{
 	0x69, 0x6f, 0x6e, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x05, 0x20, 0x01, 0x28,
 	0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x12, 0x19, 0x0a, 0x08, 0x69, 0x73, 0x5f, 0x66, 0x69,
 	0x6e, 0x61, 0x6c, 0x18, 0x06, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x69, 0x73, 0x46, 0x69, 0x6e,
-	0x61, 0x6c, 0x42, 0x06, 0x5a, 0x04, 0x2e, 0x3b, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x61, 0x6c, 0x22, 0x97, 0x01, 0x0a, 0x0e, 0x41, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74,
+	0x6f, 0x72, 0x52, 0x65, 0x71, 0x12, 0x22, 0x0a, 0x06, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x70, 0x62, 0x2e, 0x50, 0x61, 0x72, 0x61, 0x6d,
+	0x73, 0x52, 0x06, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x12, 0x10, 0x0a, 0x03, 0x61, 0x63, 0x63,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x03, 0x61, 0x63, 0x63, 0x12, 0x1f, 0x0a, 0x02, 0x74,
+	0x78, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x54, 0x72, 0x61,
+	0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x02, 0x74, 0x78, 0x12, 0x10, 0x0a, 0x03,
+	0x69, 0x64, 0x78, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x03, 0x69, 0x64, 0x78, 0x12, 0x1c,
+	0x0a, 0x09, 0x73, 0x65, 0x63, 0x6f, 0x6e, 0x64, 0x61, 0x72, 0x79, 0x18, 0x05, 0x20, 0x01, 0x28,
+	0x08, 0x52, 0x09, 0x73, 0x65, 0x63, 0x6f, 0x6e, 0x64, 0x61, 0x72, 0x79, 0x22, 0x8b, 0x02, 0x0a,
+	0x14, 0x41, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x45, 0x76, 0x65, 0x6e,
+	0x74, 0x42, 0x61, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x68, 0x49, 0x44, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0c, 0x52, 0x04, 0x63, 0x68, 0x49, 0x44, 0x12, 0x3a, 0x0a, 0x07, 0x74, 0x69, 0x6d,
+	0x65, 0x6f, 0x75, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x20, 0x2e, 0x70, 0x62, 0x2e,
+	0x41, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74,
+	0x42, 0x61, 0x73, 0x65, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x6f, 0x75, 0x74, 0x52, 0x07, 0x74, 0x69,
+	0x6d, 0x65, 0x6f, 0x75, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x04, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x1a,
+	0x55, 0x0a, 0x07, 0x54, 0x69, 0x6d, 0x65, 0x6f, 0x75, 0x74, 0x12, 0x10, 0x0a, 0x03, 0x73, 0x65,
+	0x63, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x03, 0x73, 0x65, 0x63, 0x12, 0x38, 0x0a, 0x04,
+	0x74, 0x79, 0x70, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x24, 0x2e, 0x70, 0x62, 0x2e,
+	0x41, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74,
+	0x42, 0x61, 0x73, 0x65, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x6f, 0x75, 0x74, 0x54, 0x79, 0x70, 0x65,
+	0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0x32, 0x0a, 0x0b, 0x54, 0x69, 0x6d, 0x65, 0x6f, 0x75,
+	0x74, 0x54, 0x79, 0x70, 0x65, 0x12, 0x0b, 0x0a, 0x07, 0x65, 0x6c, 0x61, 0x70, 0x73, 0x65, 0x64,
+	0x10, 0x00, 0x12, 0x08, 0x0a, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x10, 0x01, 0x12, 0x0c, 0x0a, 0x08,
+	0x65, 0x74, 0x68, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x10, 0x02, 0x22, 0x94, 0x01, 0x0a, 0x0f, 0x52,
+	0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x65, 0x64, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x4c,
+	0x0a, 0x14, 0x61, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x45, 0x76, 0x65,
+	0x6e, 0x74, 0x42, 0x61, 0x73, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x70,
+	0x62, 0x2e, 0x41, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x45, 0x76, 0x65,
+	0x6e, 0x74, 0x42, 0x61, 0x73, 0x65, 0x52, 0x14, 0x61, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61,
+	0x74, 0x6f, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x42, 0x61, 0x73, 0x65, 0x12, 0x1f, 0x0a, 0x05,
+	0x73, 0x74, 0x61, 0x74, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x70, 0x62,
+	0x2e, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52, 0x05, 0x73, 0x74, 0x61, 0x74, 0x65, 0x12, 0x12, 0x0a,
+	0x04, 0x73, 0x69, 0x67, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0c, 0x52, 0x04, 0x73, 0x69, 0x67,
+	0x73, 0x22, 0x92, 0x01, 0x0a, 0x0f, 0x50, 0x72, 0x6f, 0x67, 0x72, 0x65, 0x73, 0x73, 0x65, 0x64,
+	0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x4c, 0x0a, 0x14, 0x61, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63,
+	0x61, 0x74, 0x6f, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x42, 0x61, 0x73, 0x65, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x70, 0x62, 0x2e, 0x41, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63,
+	0x61, 0x74, 0x6f, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x42, 0x61, 0x73, 0x65, 0x52, 0x14, 0x61,
+	0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x42,
+	0x61, 0x73, 0x65, 0x12, 0x1f, 0x0a, 0x05, 0x73, 0x74, 0x61, 0x74, 0x65, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x09, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52, 0x05, 0x73,
+	0x74, 0x61, 0x74, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x69, 0x64, 0x78, 0x18, 0x03, 0x20, 0x01, 0x28,
+	0x0d, 0x52, 0x03, 0x69, 0x64, 0x78, 0x22, 0x5e, 0x0a, 0x0e, 0x43, 0x6f, 0x6e, 0x63, 0x6c, 0x75,
+	0x64, 0x65, 0x64, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x4c, 0x0a, 0x14, 0x61, 0x64, 0x6a, 0x75,
+	0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x42, 0x61, 0x73, 0x65,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x70, 0x62, 0x2e, 0x41, 0x64, 0x6a, 0x75,
+	0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x42, 0x61, 0x73, 0x65,
+	0x52, 0x14, 0x61, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x45, 0x76, 0x65,
+	0x6e, 0x74, 0x42, 0x61, 0x73, 0x65, 0x22, 0x42, 0x0a, 0x0b, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61,
+	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x1f, 0x0a, 0x05, 0x73, 0x74, 0x61, 0x74, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52,
+	0x05, 0x73, 0x74, 0x61, 0x74, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x73, 0x69, 0x67, 0x73, 0x18, 0x02,
+	0x20, 0x03, 0x28, 0x0c, 0x52, 0x04, 0x73, 0x69, 0x67, 0x73, 0x22, 0x66, 0x0a, 0x0b, 0x53, 0x69,
+	0x67, 0x6e, 0x65, 0x64, 0x53, 0x74, 0x61, 0x74, 0x65, 0x12, 0x22, 0x0a, 0x06, 0x70, 0x61, 0x72,
+	0x61, 0x6d, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x70, 0x62, 0x2e, 0x50,
+	0x61, 0x72, 0x61, 0x6d, 0x73, 0x52, 0x06, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x12, 0x1f, 0x0a,
+	0x05, 0x73, 0x74, 0x61, 0x74, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x70,
+	0x62, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52, 0x05, 0x73, 0x74, 0x61, 0x74, 0x65, 0x12, 0x12,
+	0x0a, 0x04, 0x73, 0x69, 0x67, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0c, 0x52, 0x04, 0x73, 0x69,
+	0x67, 0x73, 0x22, 0x3b, 0x0a, 0x08, 0x53, 0x74, 0x61, 0x74, 0x65, 0x4d, 0x61, 0x70, 0x12, 0x0e,
+	0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x02, 0x69, 0x64, 0x12, 0x1f,
+	0x0a, 0x05, 0x73, 0x74, 0x61, 0x74, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x09, 0x2e,
+	0x70, 0x62, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52, 0x05, 0x73, 0x74, 0x61, 0x74, 0x65, 0x42,
+	0x06, 0x5a, 0x04, 0x2e, 0x3b, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -565,28 +1230,52 @@ func file_sdktypes_proto_rawDescGZIP() []byte {
 	return file_sdktypes_proto_rawDescData
 }
 
-var file_sdktypes_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_sdktypes_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_sdktypes_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_sdktypes_proto_goTypes = []interface{}{
-	(*Balance)(nil),    // 0: pb.Balance
-	(*Balances)(nil),   // 1: pb.Balances
-	(*Params)(nil),     // 2: pb.Params
-	(*IndexMap)(nil),   // 3: pb.IndexMap
-	(*SubAlloc)(nil),   // 4: pb.SubAlloc
-	(*Allocation)(nil), // 5: pb.Allocation
-	(*State)(nil),      // 6: pb.State
+	(AdjudicatorEventBase_TimeoutType)(0), // 0: pb.AdjudicatorEventBase.TimeoutType
+	(*Balance)(nil),                       // 1: pb.Balance
+	(*Balances)(nil),                      // 2: pb.Balances
+	(*Params)(nil),                        // 3: pb.Params
+	(*IndexMap)(nil),                      // 4: pb.IndexMap
+	(*SubAlloc)(nil),                      // 5: pb.SubAlloc
+	(*Allocation)(nil),                    // 6: pb.Allocation
+	(*State)(nil),                         // 7: pb.State
+	(*AdjudicatorReq)(nil),                // 8: pb.AdjudicatorReq
+	(*AdjudicatorEventBase)(nil),          // 9: pb.AdjudicatorEventBase
+	(*RegisteredEvent)(nil),               // 10: pb.RegisteredEvent
+	(*ProgressedEvent)(nil),               // 11: pb.ProgressedEvent
+	(*ConcludedEvent)(nil),                // 12: pb.ConcludedEvent
+	(*Transaction)(nil),                   // 13: pb.Transaction
+	(*SignedState)(nil),                   // 14: pb.SignedState
+	(*StateMap)(nil),                      // 15: pb.StateMap
+	(*AdjudicatorEventBase_Timeout)(nil),  // 16: pb.AdjudicatorEventBase.Timeout
 }
 var file_sdktypes_proto_depIdxs = []int32{
-	0, // 0: pb.Balances.balances:type_name -> pb.Balance
-	0, // 1: pb.SubAlloc.bals:type_name -> pb.Balance
-	3, // 2: pb.SubAlloc.index_map:type_name -> pb.IndexMap
-	1, // 3: pb.Allocation.balances:type_name -> pb.Balances
-	4, // 4: pb.Allocation.locked:type_name -> pb.SubAlloc
-	5, // 5: pb.State.allocation:type_name -> pb.Allocation
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	1,  // 0: pb.Balances.balances:type_name -> pb.Balance
+	1,  // 1: pb.SubAlloc.bals:type_name -> pb.Balance
+	4,  // 2: pb.SubAlloc.index_map:type_name -> pb.IndexMap
+	2,  // 3: pb.Allocation.balances:type_name -> pb.Balances
+	5,  // 4: pb.Allocation.locked:type_name -> pb.SubAlloc
+	6,  // 5: pb.State.allocation:type_name -> pb.Allocation
+	3,  // 6: pb.AdjudicatorReq.params:type_name -> pb.Params
+	13, // 7: pb.AdjudicatorReq.tx:type_name -> pb.Transaction
+	16, // 8: pb.AdjudicatorEventBase.timeout:type_name -> pb.AdjudicatorEventBase.Timeout
+	9,  // 9: pb.RegisteredEvent.adjudicatorEventBase:type_name -> pb.AdjudicatorEventBase
+	7,  // 10: pb.RegisteredEvent.state:type_name -> pb.State
+	9,  // 11: pb.ProgressedEvent.adjudicatorEventBase:type_name -> pb.AdjudicatorEventBase
+	7,  // 12: pb.ProgressedEvent.state:type_name -> pb.State
+	9,  // 13: pb.ConcludedEvent.adjudicatorEventBase:type_name -> pb.AdjudicatorEventBase
+	7,  // 14: pb.Transaction.state:type_name -> pb.State
+	3,  // 15: pb.SignedState.params:type_name -> pb.Params
+	7,  // 16: pb.SignedState.state:type_name -> pb.State
+	7,  // 17: pb.StateMap.state:type_name -> pb.State
+	0,  // 18: pb.AdjudicatorEventBase.Timeout.type:type_name -> pb.AdjudicatorEventBase.TimeoutType
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_sdktypes_proto_init() }
@@ -679,19 +1368,128 @@ func file_sdktypes_proto_init() {
 				return nil
 			}
 		}
+		file_sdktypes_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AdjudicatorReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sdktypes_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AdjudicatorEventBase); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sdktypes_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RegisteredEvent); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sdktypes_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ProgressedEvent); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sdktypes_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ConcludedEvent); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sdktypes_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Transaction); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sdktypes_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SignedState); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sdktypes_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*StateMap); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sdktypes_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AdjudicatorEventBase_Timeout); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_sdktypes_proto_rawDesc,
-			NumEnums:      0,
-			NumMessages:   7,
+			NumEnums:      1,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_sdktypes_proto_goTypes,
 		DependencyIndexes: file_sdktypes_proto_depIdxs,
+		EnumInfos:         file_sdktypes_proto_enumTypes,
 		MessageInfos:      file_sdktypes_proto_msgTypes,
 	}.Build()
 	File_sdktypes_proto = out.File

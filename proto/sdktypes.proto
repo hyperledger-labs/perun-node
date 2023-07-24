@@ -77,3 +77,67 @@ message State {
   bytes data = 5;
   bool is_final = 6;
 }
+
+// AdjudicatorReq represents channel.AdjudicatorReq.
+message AdjudicatorReq {
+    Params params = 1;
+    bytes acc = 2;
+    Transaction tx = 3;
+    uint32 idx = 4;
+    bool secondary = 5;
+}
+
+// AdjudicatorEventBase represents channel.AdjudicatorEventBase.
+message AdjudicatorEventBase {
+    bytes chID = 1;
+    Timeout timeout = 2;
+    uint64 version = 3;
+
+    enum TimeoutType {
+        elapsed = 0;
+        time = 1;
+        ethBlock = 2;
+    }
+    message Timeout {
+	int64 sec = 1;
+        TimeoutType type = 3;
+    }
+}
+
+// RegisteredEvent represents channel.RegisteredEvent.
+message RegisteredEvent {
+    AdjudicatorEventBase adjudicatorEventBase = 1;
+    State state = 2;
+    repeated bytes sigs = 3;
+}
+
+// ProgressedEvent represents channel.ProgressedEvent.
+message ProgressedEvent {
+    AdjudicatorEventBase adjudicatorEventBase = 1;
+    State state = 2;
+    uint32 idx = 3;
+}
+
+// ConcludedEvent represents channel.ConcludedEvent.
+message ConcludedEvent {
+    AdjudicatorEventBase adjudicatorEventBase = 1;
+}
+
+// Transaction represents channel.Transaction.
+message Transaction {
+    State state = 1;
+    repeated bytes sigs = 2;
+}
+
+// SignedState represents channel.SignedState.
+message SignedState {
+    Params params = 1;
+    State state = 2;
+    repeated bytes sigs = 3;
+}
+
+// StateMap represents channel.StateMap.
+message StateMap {
+    bytes id = 1;
+    State state = 2;
+}
