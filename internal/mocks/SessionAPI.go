@@ -212,6 +212,38 @@ func (_m *SessionAPI) OpenCh(_a0 context.Context, _a1 perun.BalInfo, _a2 perun.A
 	return r0, r1
 }
 
+// Progress provides a mock function with given fields: _a0, _a1
+func (_m *SessionAPI) Progress(_a0 context.Context, _a1 perun.ProgressReq) perun.APIError {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 perun.APIError
+	if rf, ok := ret.Get(0).(func(context.Context, perun.ProgressReq) perun.APIError); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(perun.APIError)
+		}
+	}
+
+	return r0
+}
+
+// Register provides a mock function with given fields: _a0, _a1, _a2
+func (_m *SessionAPI) Register(_a0 context.Context, _a1 perun.AdjudicatorReq, _a2 []channel.SignedState) perun.APIError {
+	ret := _m.Called(_a0, _a1, _a2)
+
+	var r0 perun.APIError
+	if rf, ok := ret.Get(0).(func(context.Context, perun.AdjudicatorReq, []channel.SignedState) perun.APIError); ok {
+		r0 = rf(_a0, _a1, _a2)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(perun.APIError)
+		}
+	}
+
+	return r0
+}
+
 // RegisterAssetERC20 provides a mock function with given fields: asset, token, acc
 func (_m *SessionAPI) RegisterAssetERC20(asset channel.Asset, token wallet.Address, acc wallet.Address) bool {
 	ret := _m.Called(asset, token, acc)
@@ -265,6 +297,31 @@ func (_m *SessionAPI) SubChProposals(_a0 perun.ChProposalNotifier) perun.APIErro
 	return r0
 }
 
+// Subscribe provides a mock function with given fields: _a0, _a1
+func (_m *SessionAPI) Subscribe(_a0 context.Context, _a1 [32]byte) (channel.AdjudicatorSubscription, perun.APIError) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 channel.AdjudicatorSubscription
+	if rf, ok := ret.Get(0).(func(context.Context, [32]byte) channel.AdjudicatorSubscription); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(channel.AdjudicatorSubscription)
+		}
+	}
+
+	var r1 perun.APIError
+	if rf, ok := ret.Get(1).(func(context.Context, [32]byte) perun.APIError); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(perun.APIError)
+		}
+	}
+
+	return r0, r1
+}
+
 // UnsubChProposals provides a mock function with given fields:
 func (_m *SessionAPI) UnsubChProposals() perun.APIError {
 	ret := _m.Called()
@@ -272,6 +329,22 @@ func (_m *SessionAPI) UnsubChProposals() perun.APIError {
 	var r0 perun.APIError
 	if rf, ok := ret.Get(0).(func() perun.APIError); ok {
 		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(perun.APIError)
+		}
+	}
+
+	return r0
+}
+
+// Withdraw provides a mock function with given fields: _a0, _a1, _a2
+func (_m *SessionAPI) Withdraw(_a0 context.Context, _a1 perun.AdjudicatorReq, _a2 channel.StateMap) perun.APIError {
+	ret := _m.Called(_a0, _a1, _a2)
+
+	var r0 perun.APIError
+	if rf, ok := ret.Get(0).(func(context.Context, perun.AdjudicatorReq, channel.StateMap) perun.APIError); ok {
+		r0 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(perun.APIError)
