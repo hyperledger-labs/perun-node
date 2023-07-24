@@ -20,7 +20,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	pchannel "perun.network/go-perun/channel"
+	psync "polycry.pt/poly-go/sync"
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
@@ -30,6 +32,10 @@ import (
 type fundingServer struct {
 	pb.UnimplementedFunding_APIServer
 	n perun.NodeAPI
+
+	// The mutex should be used when accessing the map data structures.
+	psync.Mutex
+	subscribes map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription
 }
 
 // Fund wraps session.Fund.
@@ -103,5 +109,185 @@ func (a *payChAPIServer) IsAssetRegistered(_ context.Context, req *pb.IsAssetReg
 				IsRegistered: isRegistered,
 			},
 		},
+	}, nil
+}
+
+// Register wraps session.Register.
+func (a *fundingServer) Register(ctx context.Context, req *pb.RegisterReq) (*pb.RegisterResp, error) {
+	errResponse := func(err perun.APIError) *pb.RegisterResp {
+		return &pb.RegisterResp{
+			Error: pb.FromError(err),
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	adjReq, err2 := pb.ToAdjReq(req.AdjReq)
+	if err2 != nil {
+		return errResponse(perun.NewAPIErrUnknownInternal(err2)), nil
+	}
+	signedStates := make([]pchannel.SignedState, len(req.SignedStates))
+	for i := range signedStates {
+		signedStates[i], err2 = pb.ToSignedState(req.SignedStates[i])
+		if err2 != nil {
+			return errResponse(perun.NewAPIErrUnknownInternal(err2)), nil
+		}
+	}
+
+	err2 = sess.Register(ctx, adjReq, signedStates)
+	if err2 != nil {
+		return errResponse(perun.NewAPIErrUnknownInternal(err2)), nil
+	}
+
+	return &pb.RegisterResp{
+		Error: nil,
+	}, nil
+}
+
+// Withdraw wraps session.Withdraw.
+func (a *fundingServer) Withdraw(ctx context.Context, req *pb.WithdrawReq) (*pb.WithdrawResp, error) {
+	errResponse := func(err perun.APIError) *pb.WithdrawResp {
+		return &pb.WithdrawResp{
+			Error: pb.FromError(err),
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	adjReq, err2 := pb.ToAdjReq(req.AdjReq)
+	if err2 != nil {
+		return errResponse(perun.NewAPIErrUnknownInternal(err2)), nil
+	}
+	stateMap := pchannel.StateMap(make(map[pchannel.ID]*pchannel.State))
+
+	for i := range req.StateMap {
+		var id pchannel.ID
+		copy(id[:], req.StateMap[i].Id)
+		stateMap[id], err2 = pb.ToState(req.StateMap[i].State)
+		if err2 != nil {
+			return errResponse(err), nil
+		}
+	}
+
+	err2 = sess.Withdraw(ctx, adjReq, stateMap)
+	if err2 != nil {
+		return errResponse(perun.NewAPIErrUnknownInternal(err2)), nil
+	}
+
+	return &pb.WithdrawResp{
+		Error: nil,
+	}, nil
+}
+
+// Progress wraps session.Progress.
+func (a *fundingServer) Progress(ctx context.Context, req *pb.ProgressReq) (*pb.ProgressResp, error) {
+	errResponse := func(err perun.APIError) *pb.ProgressResp {
+		return &pb.ProgressResp{
+			Error: pb.FromError(err),
+		}
+	}
+
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errResponse(err), nil
+	}
+	var progReq perun.ProgressReq
+	var err2 error
+	progReq.AdjudicatorReq, err2 = pb.ToAdjReq(req.AdjReq)
+	if err2 != nil {
+		return errResponse(perun.NewAPIErrUnknownInternal(err2)), nil
+	}
+	progReq.NewState, err2 = pb.ToState(req.NewState)
+	if err2 != nil {
+		return errResponse(err), nil
+	}
+	copy(progReq.Sig, req.Sig)
+
+	err2 = sess.Progress(ctx, progReq)
+	if err2 != nil {
+		return errResponse(perun.NewAPIErrUnknownInternal(err2)), nil
+	}
+
+	return &pb.ProgressResp{
+		Error: nil,
+	}, nil
+}
+
+// Subscribe wraps session.Subscribe.
+
+func (a *fundingServer) Subscribe(req *pb.SubscribeReq, stream pb.Funding_API_SubscribeServer) error {
+	sess, err := a.n.GetSession(req.SessionID)
+	if err != nil {
+		return errors.WithMessage(err, "retrieving session")
+	}
+
+	var chID pchannel.ID
+	copy(chID[:], req.ChID)
+
+	adjSub, err := sess.Subscribe(context.Background(), chID)
+	if err != nil {
+		return errors.WithMessage(err, "setting up subscription")
+	}
+
+	a.Lock()
+	a.subscribes[req.SessionID][chID] = adjSub
+	a.Unlock()
+
+	// This stream is anyways closed when StopWatching is called for.
+	// Hence, that will act as the exit condition for the loop.
+	go func() {
+		// will return nil, when the sub is closed.
+		// so, we need a mechanism to call close on the server side.
+		// so, add a call Unsubscribe, which simply calls close.
+		for {
+			adjEvent := adjSub.Next()
+			if adjEvent == nil {
+				err := errors.WithMessage(adjSub.Err(), "sub closed with error")
+				notif := &pb.SubscribeResp_Error{
+					Error: pb.FromError(perun.NewAPIErrUnknownInternal(err)),
+				}
+				// TODO: Proper error handling. For now, ignore this error.
+				_ = stream.Send(&pb.SubscribeResp{Response: notif}) //nolint: errcheck
+				return
+			}
+			notif, err := pb.SubscribeResponseFromAdjEvent(adjEvent)
+			if err != nil {
+				return
+			}
+			err = stream.Send(notif)
+			if err != nil {
+				return
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (a *fundingServer) Unsubscribe(_ context.Context, req *pb.UnsubscribeReq) (*pb.UnsubscribeResp, error) {
+	errResponse := func(err perun.APIError) *pb.UnsubscribeResp {
+		return &pb.UnsubscribeResp{
+			Error: pb.FromError(err),
+		}
+	}
+
+	var chID pchannel.ID
+	copy(chID[:], req.ChID)
+
+	a.Lock()
+	adjSub := a.subscribes[req.SessionID][chID]
+	delete(a.subscribes[req.SessionID], chID)
+	a.Unlock()
+
+	if err := adjSub.Close(); err != nil {
+		return errResponse(perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "retrieving session"))), nil
+	}
+
+	return &pb.UnsubscribeResp{
+		Error: nil,
 	}, nil
 }
