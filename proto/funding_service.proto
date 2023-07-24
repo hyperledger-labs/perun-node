@@ -34,6 +34,11 @@ service Funding_API{
 
     rpc Fund(FundReq) returns (FundResp){}
 
+    rpc Register(RegisterReq) returns (RegisterResp){}
+    rpc Withdraw(WithdrawReq) returns (WithdrawResp){}
+    rpc Progress(ProgressReq) returns (ProgressResp){}
+    rpc Subscribe(SubscribeReq) returns (stream SubscribeResp){}
+    rpc Unsubscribe(UnsubscribeReq) returns (UnsubscribeResp){}
 }
 
 message RegisterAssetERC20Req {
@@ -71,5 +76,59 @@ message FundReq {
 }
 
 message FundResp {
+    MsgError error = 1;
+}
+
+message RegisterReq {
+    string sessionID = 1;
+    AdjudicatorReq adjReq = 2;
+    repeated SignedState signedStates = 3;
+}
+
+message RegisterResp {
+    MsgError error = 1;
+}
+
+message WithdrawReq {
+    string sessionID = 1;
+    AdjudicatorReq adjReq = 2;
+    repeated StateMap stateMap = 3;
+}
+
+message WithdrawResp {
+    MsgError error = 1;
+}
+
+message ProgressReq {
+    string sessionID = 1;
+    AdjudicatorReq adjReq = 2;
+    State newState = 3;
+    bytes sig = 4;
+}
+
+message ProgressResp {
+    MsgError error = 1;
+}
+
+message SubscribeReq {
+    string sessionID = 1;
+    bytes chID = 2;
+}
+
+message SubscribeResp {
+    oneof response{
+        RegisteredEvent registeredEvent = 1;
+        ProgressedEvent progressedEvent = 2;
+        ConcludedEvent concludedEvent = 3;
+        MsgError error = 4;
+    }
+}
+
+message UnsubscribeReq {
+    string sessionID = 1;
+    bytes chID = 2;
+}
+
+message UnsubscribeResp {
     MsgError error = 1;
 }

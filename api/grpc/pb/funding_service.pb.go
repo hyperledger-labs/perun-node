@@ -419,6 +419,610 @@ func (x *FundResp) GetError() *MsgError {
 	return nil
 }
 
+type RegisterReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SessionID    string          `protobuf:"bytes,1,opt,name=sessionID,proto3" json:"sessionID,omitempty"`
+	AdjReq       *AdjudicatorReq `protobuf:"bytes,2,opt,name=adjReq,proto3" json:"adjReq,omitempty"`
+	SignedStates []*SignedState  `protobuf:"bytes,3,rep,name=signedStates,proto3" json:"signedStates,omitempty"`
+}
+
+func (x *RegisterReq) Reset() {
+	*x = RegisterReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_funding_service_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RegisterReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterReq) ProtoMessage() {}
+
+func (x *RegisterReq) ProtoReflect() protoreflect.Message {
+	mi := &file_funding_service_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterReq.ProtoReflect.Descriptor instead.
+func (*RegisterReq) Descriptor() ([]byte, []int) {
+	return file_funding_service_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RegisterReq) GetSessionID() string {
+	if x != nil {
+		return x.SessionID
+	}
+	return ""
+}
+
+func (x *RegisterReq) GetAdjReq() *AdjudicatorReq {
+	if x != nil {
+		return x.AdjReq
+	}
+	return nil
+}
+
+func (x *RegisterReq) GetSignedStates() []*SignedState {
+	if x != nil {
+		return x.SignedStates
+	}
+	return nil
+}
+
+type RegisterResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Error *MsgError `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+}
+
+func (x *RegisterResp) Reset() {
+	*x = RegisterResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_funding_service_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RegisterResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterResp) ProtoMessage() {}
+
+func (x *RegisterResp) ProtoReflect() protoreflect.Message {
+	mi := &file_funding_service_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterResp.ProtoReflect.Descriptor instead.
+func (*RegisterResp) Descriptor() ([]byte, []int) {
+	return file_funding_service_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RegisterResp) GetError() *MsgError {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+type WithdrawReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SessionID string          `protobuf:"bytes,1,opt,name=sessionID,proto3" json:"sessionID,omitempty"`
+	AdjReq    *AdjudicatorReq `protobuf:"bytes,2,opt,name=adjReq,proto3" json:"adjReq,omitempty"`
+	StateMap  []*StateMap     `protobuf:"bytes,3,rep,name=stateMap,proto3" json:"stateMap,omitempty"`
+}
+
+func (x *WithdrawReq) Reset() {
+	*x = WithdrawReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_funding_service_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *WithdrawReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WithdrawReq) ProtoMessage() {}
+
+func (x *WithdrawReq) ProtoReflect() protoreflect.Message {
+	mi := &file_funding_service_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WithdrawReq.ProtoReflect.Descriptor instead.
+func (*WithdrawReq) Descriptor() ([]byte, []int) {
+	return file_funding_service_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *WithdrawReq) GetSessionID() string {
+	if x != nil {
+		return x.SessionID
+	}
+	return ""
+}
+
+func (x *WithdrawReq) GetAdjReq() *AdjudicatorReq {
+	if x != nil {
+		return x.AdjReq
+	}
+	return nil
+}
+
+func (x *WithdrawReq) GetStateMap() []*StateMap {
+	if x != nil {
+		return x.StateMap
+	}
+	return nil
+}
+
+type WithdrawResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Error *MsgError `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+}
+
+func (x *WithdrawResp) Reset() {
+	*x = WithdrawResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_funding_service_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *WithdrawResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WithdrawResp) ProtoMessage() {}
+
+func (x *WithdrawResp) ProtoReflect() protoreflect.Message {
+	mi := &file_funding_service_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WithdrawResp.ProtoReflect.Descriptor instead.
+func (*WithdrawResp) Descriptor() ([]byte, []int) {
+	return file_funding_service_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *WithdrawResp) GetError() *MsgError {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+type ProgressReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SessionID string          `protobuf:"bytes,1,opt,name=sessionID,proto3" json:"sessionID,omitempty"`
+	AdjReq    *AdjudicatorReq `protobuf:"bytes,2,opt,name=adjReq,proto3" json:"adjReq,omitempty"`
+	NewState  *State          `protobuf:"bytes,3,opt,name=newState,proto3" json:"newState,omitempty"`
+	Sig       []byte          `protobuf:"bytes,4,opt,name=sig,proto3" json:"sig,omitempty"`
+}
+
+func (x *ProgressReq) Reset() {
+	*x = ProgressReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_funding_service_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ProgressReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProgressReq) ProtoMessage() {}
+
+func (x *ProgressReq) ProtoReflect() protoreflect.Message {
+	mi := &file_funding_service_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProgressReq.ProtoReflect.Descriptor instead.
+func (*ProgressReq) Descriptor() ([]byte, []int) {
+	return file_funding_service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ProgressReq) GetSessionID() string {
+	if x != nil {
+		return x.SessionID
+	}
+	return ""
+}
+
+func (x *ProgressReq) GetAdjReq() *AdjudicatorReq {
+	if x != nil {
+		return x.AdjReq
+	}
+	return nil
+}
+
+func (x *ProgressReq) GetNewState() *State {
+	if x != nil {
+		return x.NewState
+	}
+	return nil
+}
+
+func (x *ProgressReq) GetSig() []byte {
+	if x != nil {
+		return x.Sig
+	}
+	return nil
+}
+
+type ProgressResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Error *MsgError `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+}
+
+func (x *ProgressResp) Reset() {
+	*x = ProgressResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_funding_service_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ProgressResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProgressResp) ProtoMessage() {}
+
+func (x *ProgressResp) ProtoReflect() protoreflect.Message {
+	mi := &file_funding_service_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProgressResp.ProtoReflect.Descriptor instead.
+func (*ProgressResp) Descriptor() ([]byte, []int) {
+	return file_funding_service_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ProgressResp) GetError() *MsgError {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+type SubscribeReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SessionID string `protobuf:"bytes,1,opt,name=sessionID,proto3" json:"sessionID,omitempty"`
+	ChID      []byte `protobuf:"bytes,2,opt,name=chID,proto3" json:"chID,omitempty"`
+}
+
+func (x *SubscribeReq) Reset() {
+	*x = SubscribeReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_funding_service_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SubscribeReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeReq) ProtoMessage() {}
+
+func (x *SubscribeReq) ProtoReflect() protoreflect.Message {
+	mi := &file_funding_service_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeReq.ProtoReflect.Descriptor instead.
+func (*SubscribeReq) Descriptor() ([]byte, []int) {
+	return file_funding_service_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *SubscribeReq) GetSessionID() string {
+	if x != nil {
+		return x.SessionID
+	}
+	return ""
+}
+
+func (x *SubscribeReq) GetChID() []byte {
+	if x != nil {
+		return x.ChID
+	}
+	return nil
+}
+
+type SubscribeResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Types that are assignable to Response:
+	//
+	//	*SubscribeResp_RegisteredEvent
+	//	*SubscribeResp_ProgressedEvent
+	//	*SubscribeResp_ConcludedEvent
+	//	*SubscribeResp_Error
+	Response isSubscribeResp_Response `protobuf_oneof:"response"`
+}
+
+func (x *SubscribeResp) Reset() {
+	*x = SubscribeResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_funding_service_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SubscribeResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeResp) ProtoMessage() {}
+
+func (x *SubscribeResp) ProtoReflect() protoreflect.Message {
+	mi := &file_funding_service_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeResp.ProtoReflect.Descriptor instead.
+func (*SubscribeResp) Descriptor() ([]byte, []int) {
+	return file_funding_service_proto_rawDescGZIP(), []int{13}
+}
+
+func (m *SubscribeResp) GetResponse() isSubscribeResp_Response {
+	if m != nil {
+		return m.Response
+	}
+	return nil
+}
+
+func (x *SubscribeResp) GetRegisteredEvent() *RegisteredEvent {
+	if x, ok := x.GetResponse().(*SubscribeResp_RegisteredEvent); ok {
+		return x.RegisteredEvent
+	}
+	return nil
+}
+
+func (x *SubscribeResp) GetProgressedEvent() *ProgressedEvent {
+	if x, ok := x.GetResponse().(*SubscribeResp_ProgressedEvent); ok {
+		return x.ProgressedEvent
+	}
+	return nil
+}
+
+func (x *SubscribeResp) GetConcludedEvent() *ConcludedEvent {
+	if x, ok := x.GetResponse().(*SubscribeResp_ConcludedEvent); ok {
+		return x.ConcludedEvent
+	}
+	return nil
+}
+
+func (x *SubscribeResp) GetError() *MsgError {
+	if x, ok := x.GetResponse().(*SubscribeResp_Error); ok {
+		return x.Error
+	}
+	return nil
+}
+
+type isSubscribeResp_Response interface {
+	isSubscribeResp_Response()
+}
+
+type SubscribeResp_RegisteredEvent struct {
+	RegisteredEvent *RegisteredEvent `protobuf:"bytes,1,opt,name=registeredEvent,proto3,oneof"`
+}
+
+type SubscribeResp_ProgressedEvent struct {
+	ProgressedEvent *ProgressedEvent `protobuf:"bytes,2,opt,name=progressedEvent,proto3,oneof"`
+}
+
+type SubscribeResp_ConcludedEvent struct {
+	ConcludedEvent *ConcludedEvent `protobuf:"bytes,3,opt,name=concludedEvent,proto3,oneof"`
+}
+
+type SubscribeResp_Error struct {
+	Error *MsgError `protobuf:"bytes,4,opt,name=error,proto3,oneof"`
+}
+
+func (*SubscribeResp_RegisteredEvent) isSubscribeResp_Response() {}
+
+func (*SubscribeResp_ProgressedEvent) isSubscribeResp_Response() {}
+
+func (*SubscribeResp_ConcludedEvent) isSubscribeResp_Response() {}
+
+func (*SubscribeResp_Error) isSubscribeResp_Response() {}
+
+type UnsubscribeReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SessionID string `protobuf:"bytes,1,opt,name=sessionID,proto3" json:"sessionID,omitempty"`
+	ChID      []byte `protobuf:"bytes,2,opt,name=chID,proto3" json:"chID,omitempty"`
+}
+
+func (x *UnsubscribeReq) Reset() {
+	*x = UnsubscribeReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_funding_service_proto_msgTypes[14]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UnsubscribeReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnsubscribeReq) ProtoMessage() {}
+
+func (x *UnsubscribeReq) ProtoReflect() protoreflect.Message {
+	mi := &file_funding_service_proto_msgTypes[14]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnsubscribeReq.ProtoReflect.Descriptor instead.
+func (*UnsubscribeReq) Descriptor() ([]byte, []int) {
+	return file_funding_service_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *UnsubscribeReq) GetSessionID() string {
+	if x != nil {
+		return x.SessionID
+	}
+	return ""
+}
+
+func (x *UnsubscribeReq) GetChID() []byte {
+	if x != nil {
+		return x.ChID
+	}
+	return nil
+}
+
+type UnsubscribeResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Error *MsgError `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+}
+
+func (x *UnsubscribeResp) Reset() {
+	*x = UnsubscribeResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_funding_service_proto_msgTypes[15]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UnsubscribeResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnsubscribeResp) ProtoMessage() {}
+
+func (x *UnsubscribeResp) ProtoReflect() protoreflect.Message {
+	mi := &file_funding_service_proto_msgTypes[15]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnsubscribeResp.ProtoReflect.Descriptor instead.
+func (*UnsubscribeResp) Descriptor() ([]byte, []int) {
+	return file_funding_service_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *UnsubscribeResp) GetError() *MsgError {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
 type IsAssetRegisteredResp_MsgSuccess struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -430,7 +1034,7 @@ type IsAssetRegisteredResp_MsgSuccess struct {
 func (x *IsAssetRegisteredResp_MsgSuccess) Reset() {
 	*x = IsAssetRegisteredResp_MsgSuccess{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_funding_service_proto_msgTypes[6]
+		mi := &file_funding_service_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -443,7 +1047,7 @@ func (x *IsAssetRegisteredResp_MsgSuccess) String() string {
 func (*IsAssetRegisteredResp_MsgSuccess) ProtoMessage() {}
 
 func (x *IsAssetRegisteredResp_MsgSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_funding_service_proto_msgTypes[6]
+	mi := &file_funding_service_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -516,20 +1120,101 @@ var file_funding_service_proto_rawDesc = []byte{
 	0x22, 0x2e, 0x0a, 0x08, 0x46, 0x75, 0x6e, 0x64, 0x52, 0x65, 0x73, 0x70, 0x12, 0x22, 0x0a, 0x05,
 	0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x70, 0x62,
 	0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72,
-	0x32, 0xcd, 0x01, 0x0a, 0x0b, 0x46, 0x75, 0x6e, 0x64, 0x69, 0x6e, 0x67, 0x5f, 0x41, 0x50, 0x49,
-	0x12, 0x4d, 0x0a, 0x12, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x41, 0x73, 0x73, 0x65,
-	0x74, 0x45, 0x52, 0x43, 0x32, 0x30, 0x12, 0x19, 0x2e, 0x70, 0x62, 0x2e, 0x52, 0x65, 0x67, 0x69,
-	0x73, 0x74, 0x65, 0x72, 0x41, 0x73, 0x73, 0x65, 0x74, 0x45, 0x52, 0x43, 0x32, 0x30, 0x52, 0x65,
-	0x71, 0x1a, 0x1a, 0x2e, 0x70, 0x62, 0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x41,
-	0x73, 0x73, 0x65, 0x74, 0x45, 0x52, 0x43, 0x32, 0x30, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x12,
-	0x4a, 0x0a, 0x11, 0x49, 0x73, 0x41, 0x73, 0x73, 0x65, 0x74, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74,
-	0x65, 0x72, 0x65, 0x64, 0x12, 0x18, 0x2e, 0x70, 0x62, 0x2e, 0x49, 0x73, 0x41, 0x73, 0x73, 0x65,
-	0x74, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x65, 0x64, 0x52, 0x65, 0x71, 0x1a, 0x19,
-	0x2e, 0x70, 0x62, 0x2e, 0x49, 0x73, 0x41, 0x73, 0x73, 0x65, 0x74, 0x52, 0x65, 0x67, 0x69, 0x73,
-	0x74, 0x65, 0x72, 0x65, 0x64, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x12, 0x23, 0x0a, 0x04, 0x46,
-	0x75, 0x6e, 0x64, 0x12, 0x0b, 0x2e, 0x70, 0x62, 0x2e, 0x46, 0x75, 0x6e, 0x64, 0x52, 0x65, 0x71,
-	0x1a, 0x0c, 0x2e, 0x70, 0x62, 0x2e, 0x46, 0x75, 0x6e, 0x64, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00,
-	0x42, 0x06, 0x5a, 0x04, 0x2e, 0x3b, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x22, 0x8c, 0x01, 0x0a, 0x0b, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x71,
+	0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x12, 0x2a,
+	0x0a, 0x06, 0x61, 0x64, 0x6a, 0x52, 0x65, 0x71, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12,
+	0x2e, 0x70, 0x62, 0x2e, 0x41, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x52,
+	0x65, 0x71, 0x52, 0x06, 0x61, 0x64, 0x6a, 0x52, 0x65, 0x71, 0x12, 0x33, 0x0a, 0x0c, 0x73, 0x69,
+	0x67, 0x6e, 0x65, 0x64, 0x53, 0x74, 0x61, 0x74, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x69, 0x67, 0x6e, 0x65, 0x64, 0x53, 0x74, 0x61, 0x74,
+	0x65, 0x52, 0x0c, 0x73, 0x69, 0x67, 0x6e, 0x65, 0x64, 0x53, 0x74, 0x61, 0x74, 0x65, 0x73, 0x22,
+	0x32, 0x0a, 0x0c, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x12,
+	0x22, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c,
+	0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x05, 0x65, 0x72,
+	0x72, 0x6f, 0x72, 0x22, 0x81, 0x01, 0x0a, 0x0b, 0x57, 0x69, 0x74, 0x68, 0x64, 0x72, 0x61, 0x77,
+	0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49,
+	0x44, 0x12, 0x2a, 0x0a, 0x06, 0x61, 0x64, 0x6a, 0x52, 0x65, 0x71, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x12, 0x2e, 0x70, 0x62, 0x2e, 0x41, 0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74,
+	0x6f, 0x72, 0x52, 0x65, 0x71, 0x52, 0x06, 0x61, 0x64, 0x6a, 0x52, 0x65, 0x71, 0x12, 0x28, 0x0a,
+	0x08, 0x73, 0x74, 0x61, 0x74, 0x65, 0x4d, 0x61, 0x70, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32,
+	0x0c, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x65, 0x4d, 0x61, 0x70, 0x52, 0x08, 0x73,
+	0x74, 0x61, 0x74, 0x65, 0x4d, 0x61, 0x70, 0x22, 0x32, 0x0a, 0x0c, 0x57, 0x69, 0x74, 0x68, 0x64,
+	0x72, 0x61, 0x77, 0x52, 0x65, 0x73, 0x70, 0x12, 0x22, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45,
+	0x72, 0x72, 0x6f, 0x72, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x22, 0x90, 0x01, 0x0a, 0x0b,
+	0x50, 0x72, 0x6f, 0x67, 0x72, 0x65, 0x73, 0x73, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73,
+	0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09,
+	0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x12, 0x2a, 0x0a, 0x06, 0x61, 0x64, 0x6a,
+	0x52, 0x65, 0x71, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x70, 0x62, 0x2e, 0x41,
+	0x64, 0x6a, 0x75, 0x64, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72, 0x52, 0x65, 0x71, 0x52, 0x06, 0x61,
+	0x64, 0x6a, 0x52, 0x65, 0x71, 0x12, 0x25, 0x0a, 0x08, 0x6e, 0x65, 0x77, 0x53, 0x74, 0x61, 0x74,
+	0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x74, 0x61,
+	0x74, 0x65, 0x52, 0x08, 0x6e, 0x65, 0x77, 0x53, 0x74, 0x61, 0x74, 0x65, 0x12, 0x10, 0x0a, 0x03,
+	0x73, 0x69, 0x67, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x03, 0x73, 0x69, 0x67, 0x22, 0x32,
+	0x0a, 0x0c, 0x50, 0x72, 0x6f, 0x67, 0x72, 0x65, 0x73, 0x73, 0x52, 0x65, 0x73, 0x70, 0x12, 0x22,
+	0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e,
+	0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x05, 0x65, 0x72, 0x72,
+	0x6f, 0x72, 0x22, 0x40, 0x0a, 0x0c, 0x53, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x62, 0x65, 0x52,
+	0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44,
+	0x12, 0x12, 0x0a, 0x04, 0x63, 0x68, 0x49, 0x44, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04,
+	0x63, 0x68, 0x49, 0x44, 0x22, 0x81, 0x02, 0x0a, 0x0d, 0x53, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69,
+	0x62, 0x65, 0x52, 0x65, 0x73, 0x70, 0x12, 0x3f, 0x0a, 0x0f, 0x72, 0x65, 0x67, 0x69, 0x73, 0x74,
+	0x65, 0x72, 0x65, 0x64, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x13, 0x2e, 0x70, 0x62, 0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x65, 0x64, 0x45,
+	0x76, 0x65, 0x6e, 0x74, 0x48, 0x00, 0x52, 0x0f, 0x72, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72,
+	0x65, 0x64, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x3f, 0x0a, 0x0f, 0x70, 0x72, 0x6f, 0x67, 0x72,
+	0x65, 0x73, 0x73, 0x65, 0x64, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x13, 0x2e, 0x70, 0x62, 0x2e, 0x50, 0x72, 0x6f, 0x67, 0x72, 0x65, 0x73, 0x73, 0x65, 0x64,
+	0x45, 0x76, 0x65, 0x6e, 0x74, 0x48, 0x00, 0x52, 0x0f, 0x70, 0x72, 0x6f, 0x67, 0x72, 0x65, 0x73,
+	0x73, 0x65, 0x64, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x3c, 0x0a, 0x0e, 0x63, 0x6f, 0x6e, 0x63,
+	0x6c, 0x75, 0x64, 0x65, 0x64, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x12, 0x2e, 0x70, 0x62, 0x2e, 0x43, 0x6f, 0x6e, 0x63, 0x6c, 0x75, 0x64, 0x65, 0x64, 0x45,
+	0x76, 0x65, 0x6e, 0x74, 0x48, 0x00, 0x52, 0x0e, 0x63, 0x6f, 0x6e, 0x63, 0x6c, 0x75, 0x64, 0x65,
+	0x64, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x24, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18,
+	0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72,
+	0x72, 0x6f, 0x72, 0x48, 0x00, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x42, 0x0a, 0x0a, 0x08,
+	0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x42, 0x0a, 0x0e, 0x55, 0x6e, 0x73, 0x75,
+	0x62, 0x73, 0x63, 0x72, 0x69, 0x62, 0x65, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65,
+	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73,
+	0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x68, 0x49, 0x44,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x63, 0x68, 0x49, 0x44, 0x22, 0x35, 0x0a, 0x0f,
+	0x55, 0x6e, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x62, 0x65, 0x52, 0x65, 0x73, 0x70, 0x12,
+	0x22, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c,
+	0x2e, 0x70, 0x62, 0x2e, 0x4d, 0x73, 0x67, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x52, 0x05, 0x65, 0x72,
+	0x72, 0x6f, 0x72, 0x32, 0xd0, 0x03, 0x0a, 0x0b, 0x46, 0x75, 0x6e, 0x64, 0x69, 0x6e, 0x67, 0x5f,
+	0x41, 0x50, 0x49, 0x12, 0x4d, 0x0a, 0x12, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x41,
+	0x73, 0x73, 0x65, 0x74, 0x45, 0x52, 0x43, 0x32, 0x30, 0x12, 0x19, 0x2e, 0x70, 0x62, 0x2e, 0x52,
+	0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x41, 0x73, 0x73, 0x65, 0x74, 0x45, 0x52, 0x43, 0x32,
+	0x30, 0x52, 0x65, 0x71, 0x1a, 0x1a, 0x2e, 0x70, 0x62, 0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74,
+	0x65, 0x72, 0x41, 0x73, 0x73, 0x65, 0x74, 0x45, 0x52, 0x43, 0x32, 0x30, 0x52, 0x65, 0x73, 0x70,
+	0x22, 0x00, 0x12, 0x4a, 0x0a, 0x11, 0x49, 0x73, 0x41, 0x73, 0x73, 0x65, 0x74, 0x52, 0x65, 0x67,
+	0x69, 0x73, 0x74, 0x65, 0x72, 0x65, 0x64, 0x12, 0x18, 0x2e, 0x70, 0x62, 0x2e, 0x49, 0x73, 0x41,
+	0x73, 0x73, 0x65, 0x74, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x65, 0x64, 0x52, 0x65,
+	0x71, 0x1a, 0x19, 0x2e, 0x70, 0x62, 0x2e, 0x49, 0x73, 0x41, 0x73, 0x73, 0x65, 0x74, 0x52, 0x65,
+	0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x65, 0x64, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x12, 0x23,
+	0x0a, 0x04, 0x46, 0x75, 0x6e, 0x64, 0x12, 0x0b, 0x2e, 0x70, 0x62, 0x2e, 0x46, 0x75, 0x6e, 0x64,
+	0x52, 0x65, 0x71, 0x1a, 0x0c, 0x2e, 0x70, 0x62, 0x2e, 0x46, 0x75, 0x6e, 0x64, 0x52, 0x65, 0x73,
+	0x70, 0x22, 0x00, 0x12, 0x2f, 0x0a, 0x08, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x12,
+	0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x71,
+	0x1a, 0x10, 0x2e, 0x70, 0x62, 0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65,
+	0x73, 0x70, 0x22, 0x00, 0x12, 0x2f, 0x0a, 0x08, 0x57, 0x69, 0x74, 0x68, 0x64, 0x72, 0x61, 0x77,
+	0x12, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x57, 0x69, 0x74, 0x68, 0x64, 0x72, 0x61, 0x77, 0x52, 0x65,
+	0x71, 0x1a, 0x10, 0x2e, 0x70, 0x62, 0x2e, 0x57, 0x69, 0x74, 0x68, 0x64, 0x72, 0x61, 0x77, 0x52,
+	0x65, 0x73, 0x70, 0x22, 0x00, 0x12, 0x2f, 0x0a, 0x08, 0x50, 0x72, 0x6f, 0x67, 0x72, 0x65, 0x73,
+	0x73, 0x12, 0x0f, 0x2e, 0x70, 0x62, 0x2e, 0x50, 0x72, 0x6f, 0x67, 0x72, 0x65, 0x73, 0x73, 0x52,
+	0x65, 0x71, 0x1a, 0x10, 0x2e, 0x70, 0x62, 0x2e, 0x50, 0x72, 0x6f, 0x67, 0x72, 0x65, 0x73, 0x73,
+	0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x12, 0x34, 0x0a, 0x09, 0x53, 0x75, 0x62, 0x73, 0x63, 0x72,
+	0x69, 0x62, 0x65, 0x12, 0x10, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69,
+	0x62, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x11, 0x2e, 0x70, 0x62, 0x2e, 0x53, 0x75, 0x62, 0x73, 0x63,
+	0x72, 0x69, 0x62, 0x65, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x30, 0x01, 0x12, 0x38, 0x0a, 0x0b,
+	0x55, 0x6e, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x62, 0x65, 0x12, 0x12, 0x2e, 0x70, 0x62,
+	0x2e, 0x55, 0x6e, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x62, 0x65, 0x52, 0x65, 0x71, 0x1a,
+	0x13, 0x2e, 0x70, 0x62, 0x2e, 0x55, 0x6e, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x62, 0x65,
+	0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x42, 0x06, 0x5a, 0x04, 0x2e, 0x3b, 0x70, 0x62, 0x62, 0x06,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -544,7 +1229,7 @@ func file_funding_service_proto_rawDescGZIP() []byte {
 	return file_funding_service_proto_rawDescData
 }
 
-var file_funding_service_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_funding_service_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_funding_service_proto_goTypes = []interface{}{
 	(*RegisterAssetERC20Req)(nil),            // 0: pb.RegisterAssetERC20Req
 	(*RegisterAssetERC20Resp)(nil),           // 1: pb.RegisterAssetERC20Resp
@@ -552,30 +1237,70 @@ var file_funding_service_proto_goTypes = []interface{}{
 	(*IsAssetRegisteredResp)(nil),            // 3: pb.IsAssetRegisteredResp
 	(*FundReq)(nil),                          // 4: pb.FundReq
 	(*FundResp)(nil),                         // 5: pb.FundResp
-	(*IsAssetRegisteredResp_MsgSuccess)(nil), // 6: pb.IsAssetRegisteredResp.MsgSuccess
-	(*MsgError)(nil),                         // 7: pb.MsgError
-	(*Params)(nil),                           // 8: pb.Params
-	(*State)(nil),                            // 9: pb.State
-	(*Balances)(nil),                         // 10: pb.Balances
+	(*RegisterReq)(nil),                      // 6: pb.RegisterReq
+	(*RegisterResp)(nil),                     // 7: pb.RegisterResp
+	(*WithdrawReq)(nil),                      // 8: pb.WithdrawReq
+	(*WithdrawResp)(nil),                     // 9: pb.WithdrawResp
+	(*ProgressReq)(nil),                      // 10: pb.ProgressReq
+	(*ProgressResp)(nil),                     // 11: pb.ProgressResp
+	(*SubscribeReq)(nil),                     // 12: pb.SubscribeReq
+	(*SubscribeResp)(nil),                    // 13: pb.SubscribeResp
+	(*UnsubscribeReq)(nil),                   // 14: pb.UnsubscribeReq
+	(*UnsubscribeResp)(nil),                  // 15: pb.UnsubscribeResp
+	(*IsAssetRegisteredResp_MsgSuccess)(nil), // 16: pb.IsAssetRegisteredResp.MsgSuccess
+	(*MsgError)(nil),                         // 17: pb.MsgError
+	(*Params)(nil),                           // 18: pb.Params
+	(*State)(nil),                            // 19: pb.State
+	(*Balances)(nil),                         // 20: pb.Balances
+	(*AdjudicatorReq)(nil),                   // 21: pb.AdjudicatorReq
+	(*SignedState)(nil),                      // 22: pb.SignedState
+	(*StateMap)(nil),                         // 23: pb.StateMap
+	(*RegisteredEvent)(nil),                  // 24: pb.RegisteredEvent
+	(*ProgressedEvent)(nil),                  // 25: pb.ProgressedEvent
+	(*ConcludedEvent)(nil),                   // 26: pb.ConcludedEvent
 }
 var file_funding_service_proto_depIdxs = []int32{
-	6,  // 0: pb.IsAssetRegisteredResp.msgSuccess:type_name -> pb.IsAssetRegisteredResp.MsgSuccess
-	7,  // 1: pb.IsAssetRegisteredResp.error:type_name -> pb.MsgError
-	8,  // 2: pb.FundReq.params:type_name -> pb.Params
-	9,  // 3: pb.FundReq.state:type_name -> pb.State
-	10, // 4: pb.FundReq.agreement:type_name -> pb.Balances
-	7,  // 5: pb.FundResp.error:type_name -> pb.MsgError
-	0,  // 6: pb.Funding_API.RegisterAssetERC20:input_type -> pb.RegisterAssetERC20Req
-	2,  // 7: pb.Funding_API.IsAssetRegistered:input_type -> pb.IsAssetRegisteredReq
-	4,  // 8: pb.Funding_API.Fund:input_type -> pb.FundReq
-	1,  // 9: pb.Funding_API.RegisterAssetERC20:output_type -> pb.RegisterAssetERC20Resp
-	3,  // 10: pb.Funding_API.IsAssetRegistered:output_type -> pb.IsAssetRegisteredResp
-	5,  // 11: pb.Funding_API.Fund:output_type -> pb.FundResp
-	9,  // [9:12] is the sub-list for method output_type
-	6,  // [6:9] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	16, // 0: pb.IsAssetRegisteredResp.msgSuccess:type_name -> pb.IsAssetRegisteredResp.MsgSuccess
+	17, // 1: pb.IsAssetRegisteredResp.error:type_name -> pb.MsgError
+	18, // 2: pb.FundReq.params:type_name -> pb.Params
+	19, // 3: pb.FundReq.state:type_name -> pb.State
+	20, // 4: pb.FundReq.agreement:type_name -> pb.Balances
+	17, // 5: pb.FundResp.error:type_name -> pb.MsgError
+	21, // 6: pb.RegisterReq.adjReq:type_name -> pb.AdjudicatorReq
+	22, // 7: pb.RegisterReq.signedStates:type_name -> pb.SignedState
+	17, // 8: pb.RegisterResp.error:type_name -> pb.MsgError
+	21, // 9: pb.WithdrawReq.adjReq:type_name -> pb.AdjudicatorReq
+	23, // 10: pb.WithdrawReq.stateMap:type_name -> pb.StateMap
+	17, // 11: pb.WithdrawResp.error:type_name -> pb.MsgError
+	21, // 12: pb.ProgressReq.adjReq:type_name -> pb.AdjudicatorReq
+	19, // 13: pb.ProgressReq.newState:type_name -> pb.State
+	17, // 14: pb.ProgressResp.error:type_name -> pb.MsgError
+	24, // 15: pb.SubscribeResp.registeredEvent:type_name -> pb.RegisteredEvent
+	25, // 16: pb.SubscribeResp.progressedEvent:type_name -> pb.ProgressedEvent
+	26, // 17: pb.SubscribeResp.concludedEvent:type_name -> pb.ConcludedEvent
+	17, // 18: pb.SubscribeResp.error:type_name -> pb.MsgError
+	17, // 19: pb.UnsubscribeResp.error:type_name -> pb.MsgError
+	0,  // 20: pb.Funding_API.RegisterAssetERC20:input_type -> pb.RegisterAssetERC20Req
+	2,  // 21: pb.Funding_API.IsAssetRegistered:input_type -> pb.IsAssetRegisteredReq
+	4,  // 22: pb.Funding_API.Fund:input_type -> pb.FundReq
+	6,  // 23: pb.Funding_API.Register:input_type -> pb.RegisterReq
+	8,  // 24: pb.Funding_API.Withdraw:input_type -> pb.WithdrawReq
+	10, // 25: pb.Funding_API.Progress:input_type -> pb.ProgressReq
+	12, // 26: pb.Funding_API.Subscribe:input_type -> pb.SubscribeReq
+	14, // 27: pb.Funding_API.Unsubscribe:input_type -> pb.UnsubscribeReq
+	1,  // 28: pb.Funding_API.RegisterAssetERC20:output_type -> pb.RegisterAssetERC20Resp
+	3,  // 29: pb.Funding_API.IsAssetRegistered:output_type -> pb.IsAssetRegisteredResp
+	5,  // 30: pb.Funding_API.Fund:output_type -> pb.FundResp
+	7,  // 31: pb.Funding_API.Register:output_type -> pb.RegisterResp
+	9,  // 32: pb.Funding_API.Withdraw:output_type -> pb.WithdrawResp
+	11, // 33: pb.Funding_API.Progress:output_type -> pb.ProgressResp
+	13, // 34: pb.Funding_API.Subscribe:output_type -> pb.SubscribeResp
+	15, // 35: pb.Funding_API.Unsubscribe:output_type -> pb.UnsubscribeResp
+	28, // [28:36] is the sub-list for method output_type
+	20, // [20:28] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_funding_service_proto_init() }
@@ -659,6 +1384,126 @@ func file_funding_service_proto_init() {
 			}
 		}
 		file_funding_service_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RegisterReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_funding_service_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RegisterResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_funding_service_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*WithdrawReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_funding_service_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*WithdrawResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_funding_service_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ProgressReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_funding_service_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ProgressResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_funding_service_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SubscribeReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_funding_service_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SubscribeResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_funding_service_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UnsubscribeReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_funding_service_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UnsubscribeResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_funding_service_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*IsAssetRegisteredResp_MsgSuccess); i {
 			case 0:
 				return &v.state
@@ -675,13 +1520,19 @@ func file_funding_service_proto_init() {
 		(*IsAssetRegisteredResp_MsgSuccess_)(nil),
 		(*IsAssetRegisteredResp_Error)(nil),
 	}
+	file_funding_service_proto_msgTypes[13].OneofWrappers = []interface{}{
+		(*SubscribeResp_RegisteredEvent)(nil),
+		(*SubscribeResp_ProgressedEvent)(nil),
+		(*SubscribeResp_ConcludedEvent)(nil),
+		(*SubscribeResp_Error)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_funding_service_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

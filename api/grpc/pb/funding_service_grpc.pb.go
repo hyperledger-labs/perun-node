@@ -41,6 +41,11 @@ const (
 	Funding_API_RegisterAssetERC20_FullMethodName = "/pb.Funding_API/RegisterAssetERC20"
 	Funding_API_IsAssetRegistered_FullMethodName  = "/pb.Funding_API/IsAssetRegistered"
 	Funding_API_Fund_FullMethodName               = "/pb.Funding_API/Fund"
+	Funding_API_Register_FullMethodName           = "/pb.Funding_API/Register"
+	Funding_API_Withdraw_FullMethodName           = "/pb.Funding_API/Withdraw"
+	Funding_API_Progress_FullMethodName           = "/pb.Funding_API/Progress"
+	Funding_API_Subscribe_FullMethodName          = "/pb.Funding_API/Subscribe"
+	Funding_API_Unsubscribe_FullMethodName        = "/pb.Funding_API/Unsubscribe"
 )
 
 // Funding_APIClient is the client API for Funding_API service.
@@ -50,6 +55,11 @@ type Funding_APIClient interface {
 	RegisterAssetERC20(ctx context.Context, in *RegisterAssetERC20Req, opts ...grpc.CallOption) (*RegisterAssetERC20Resp, error)
 	IsAssetRegistered(ctx context.Context, in *IsAssetRegisteredReq, opts ...grpc.CallOption) (*IsAssetRegisteredResp, error)
 	Fund(ctx context.Context, in *FundReq, opts ...grpc.CallOption) (*FundResp, error)
+	Register(ctx context.Context, in *RegisterReq, opts ...grpc.CallOption) (*RegisterResp, error)
+	Withdraw(ctx context.Context, in *WithdrawReq, opts ...grpc.CallOption) (*WithdrawResp, error)
+	Progress(ctx context.Context, in *ProgressReq, opts ...grpc.CallOption) (*ProgressResp, error)
+	Subscribe(ctx context.Context, in *SubscribeReq, opts ...grpc.CallOption) (Funding_API_SubscribeClient, error)
+	Unsubscribe(ctx context.Context, in *UnsubscribeReq, opts ...grpc.CallOption) (*UnsubscribeResp, error)
 }
 
 type funding_APIClient struct {
@@ -87,6 +97,74 @@ func (c *funding_APIClient) Fund(ctx context.Context, in *FundReq, opts ...grpc.
 	return out, nil
 }
 
+func (c *funding_APIClient) Register(ctx context.Context, in *RegisterReq, opts ...grpc.CallOption) (*RegisterResp, error) {
+	out := new(RegisterResp)
+	err := c.cc.Invoke(ctx, Funding_API_Register_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *funding_APIClient) Withdraw(ctx context.Context, in *WithdrawReq, opts ...grpc.CallOption) (*WithdrawResp, error) {
+	out := new(WithdrawResp)
+	err := c.cc.Invoke(ctx, Funding_API_Withdraw_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *funding_APIClient) Progress(ctx context.Context, in *ProgressReq, opts ...grpc.CallOption) (*ProgressResp, error) {
+	out := new(ProgressResp)
+	err := c.cc.Invoke(ctx, Funding_API_Progress_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *funding_APIClient) Subscribe(ctx context.Context, in *SubscribeReq, opts ...grpc.CallOption) (Funding_API_SubscribeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Funding_API_ServiceDesc.Streams[0], Funding_API_Subscribe_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &funding_APISubscribeClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Funding_API_SubscribeClient interface {
+	Recv() (*SubscribeResp, error)
+	grpc.ClientStream
+}
+
+type funding_APISubscribeClient struct {
+	grpc.ClientStream
+}
+
+func (x *funding_APISubscribeClient) Recv() (*SubscribeResp, error) {
+	m := new(SubscribeResp)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *funding_APIClient) Unsubscribe(ctx context.Context, in *UnsubscribeReq, opts ...grpc.CallOption) (*UnsubscribeResp, error) {
+	out := new(UnsubscribeResp)
+	err := c.cc.Invoke(ctx, Funding_API_Unsubscribe_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Funding_APIServer is the server API for Funding_API service.
 // All implementations must embed UnimplementedFunding_APIServer
 // for forward compatibility
@@ -94,6 +172,11 @@ type Funding_APIServer interface {
 	RegisterAssetERC20(context.Context, *RegisterAssetERC20Req) (*RegisterAssetERC20Resp, error)
 	IsAssetRegistered(context.Context, *IsAssetRegisteredReq) (*IsAssetRegisteredResp, error)
 	Fund(context.Context, *FundReq) (*FundResp, error)
+	Register(context.Context, *RegisterReq) (*RegisterResp, error)
+	Withdraw(context.Context, *WithdrawReq) (*WithdrawResp, error)
+	Progress(context.Context, *ProgressReq) (*ProgressResp, error)
+	Subscribe(*SubscribeReq, Funding_API_SubscribeServer) error
+	Unsubscribe(context.Context, *UnsubscribeReq) (*UnsubscribeResp, error)
 	mustEmbedUnimplementedFunding_APIServer()
 }
 
@@ -109,6 +192,21 @@ func (UnimplementedFunding_APIServer) IsAssetRegistered(context.Context, *IsAsse
 }
 func (UnimplementedFunding_APIServer) Fund(context.Context, *FundReq) (*FundResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Fund not implemented")
+}
+func (UnimplementedFunding_APIServer) Register(context.Context, *RegisterReq) (*RegisterResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
+}
+func (UnimplementedFunding_APIServer) Withdraw(context.Context, *WithdrawReq) (*WithdrawResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Withdraw not implemented")
+}
+func (UnimplementedFunding_APIServer) Progress(context.Context, *ProgressReq) (*ProgressResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Progress not implemented")
+}
+func (UnimplementedFunding_APIServer) Subscribe(*SubscribeReq, Funding_API_SubscribeServer) error {
+	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
+}
+func (UnimplementedFunding_APIServer) Unsubscribe(context.Context, *UnsubscribeReq) (*UnsubscribeResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Unsubscribe not implemented")
 }
 func (UnimplementedFunding_APIServer) mustEmbedUnimplementedFunding_APIServer() {}
 
@@ -177,6 +275,99 @@ func _Funding_API_Fund_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Funding_API_Register_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(Funding_APIServer).Register(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Funding_API_Register_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(Funding_APIServer).Register(ctx, req.(*RegisterReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Funding_API_Withdraw_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WithdrawReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(Funding_APIServer).Withdraw(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Funding_API_Withdraw_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(Funding_APIServer).Withdraw(ctx, req.(*WithdrawReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Funding_API_Progress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProgressReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(Funding_APIServer).Progress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Funding_API_Progress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(Funding_APIServer).Progress(ctx, req.(*ProgressReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Funding_API_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(Funding_APIServer).Subscribe(m, &funding_APISubscribeServer{stream})
+}
+
+type Funding_API_SubscribeServer interface {
+	Send(*SubscribeResp) error
+	grpc.ServerStream
+}
+
+type funding_APISubscribeServer struct {
+	grpc.ServerStream
+}
+
+func (x *funding_APISubscribeServer) Send(m *SubscribeResp) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Funding_API_Unsubscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnsubscribeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(Funding_APIServer).Unsubscribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Funding_API_Unsubscribe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(Funding_APIServer).Unsubscribe(ctx, req.(*UnsubscribeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Funding_API_ServiceDesc is the grpc.ServiceDesc for Funding_API service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -196,7 +387,29 @@ var Funding_API_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Fund",
 			Handler:    _Funding_API_Fund_Handler,
 		},
+		{
+			MethodName: "Register",
+			Handler:    _Funding_API_Register_Handler,
+		},
+		{
+			MethodName: "Withdraw",
+			Handler:    _Funding_API_Withdraw_Handler,
+		},
+		{
+			MethodName: "Progress",
+			Handler:    _Funding_API_Progress_Handler,
+		},
+		{
+			MethodName: "Unsubscribe",
+			Handler:    _Funding_API_Unsubscribe_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Subscribe",
+			Handler:       _Funding_API_Subscribe_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "funding_service.proto",
 }
