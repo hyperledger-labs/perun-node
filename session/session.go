@@ -150,9 +150,11 @@ func New( //nolint: funlen
 	}
 
 	var funder perun.Funder
+	var adjudicator pchannel.Adjudicator
 	switch cfg.FundingType {
 	case "local":
 		funder = chain.NewFunder(contractRegistry.AssetETH(), user.OnChain.Addr)
+		adjudicator = chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
 	case "remote":
 		conn, grpcErr := grpclib.Dial(cfg.FundingURL, grpclib.WithTransportCredentials(insecure.NewCredentials()))
 		if grpcErr != nil {
@@ -164,13 +166,15 @@ func New( //nolint: funlen
 			apiKey: cfg.FundingAPIKey,
 			client: funderClient,
 		}
+		adjudicator = &grpcAdjudicator{
+			apiKey: cfg.FundingAPIKey,
+			client: funderClient,
+		}
 
 	default:
 		err = errors.New("should be local or remote")
 		return nil, perun.NewAPIErrInvalidConfig(err, "fundingType", cfg.FundingAPIKey)
 	}
-
-	adjudicator := chain.NewAdjudicator(cfg.Adjudicator, user.OnChain.Addr)
 
 	chClient, apiErr := newChClient(funder, adjudicator, commBackend, cfg.User.CommAddr, user.OffChain)
 	if apiErr != nil {

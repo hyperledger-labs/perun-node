@@ -21,13 +21,82 @@ import (
 	"math"
 	"math/big"
 	reflect "reflect"
+	"time"
 
 	"github.com/pkg/errors"
+	pethchannel "perun.network/go-perun/backend/ethereum/channel"
 	pchannel "perun.network/go-perun/channel"
 	pwallet "perun.network/go-perun/wallet"
 
 	"github.com/hyperledger-labs/perun-node"
 )
+
+// SubscribeResponseToAdjEvent converts protobuf's Subscribe Response to
+// perun's AdjudicatorEvent.
+func SubscribeResponseToAdjEvent(protoResponse *SubscribeResp,
+) (adjEvent pchannel.AdjudicatorEvent, err error) {
+	switch e := protoResponse.Response.(type) {
+	case *SubscribeResp_RegisteredEvent:
+		adjEvent, err = toRegisteredEvent(e.RegisteredEvent)
+	case *SubscribeResp_ProgressedEvent:
+		adjEvent, err = toProgressedEvent(e.ProgressedEvent)
+	case *SubscribeResp_ConcludedEvent:
+		adjEvent, err = toConcludedEvent(e.ConcludedEvent)
+	case *SubscribeResp_Error:
+		return nil, err
+	default:
+		return nil, errors.New("unknown even type")
+	}
+	return adjEvent, nil
+}
+
+func toRegisteredEvent(protoEvent *RegisteredEvent) (event *pchannel.RegisteredEvent, err error) {
+	event = &pchannel.RegisteredEvent{}
+	event.AdjudicatorEventBase = toAdjudicatorEventBase(protoEvent.AdjudicatorEventBase)
+	event.State, err = ToState(protoEvent.State)
+	if err != nil {
+		return nil, errors.WithMessage(err, "parsing state")
+	}
+	event.Sigs = make([]pwallet.Sig, len(protoEvent.Sigs))
+	for i := range protoEvent.Sigs {
+		event.Sigs[i] = pwallet.Sig(protoEvent.Sigs[i])
+	}
+	return event, nil
+}
+
+func toProgressedEvent(protoEvent *ProgressedEvent) (event *pchannel.ProgressedEvent, err error) {
+	event = &pchannel.ProgressedEvent{}
+	event.AdjudicatorEventBase = toAdjudicatorEventBase(protoEvent.AdjudicatorEventBase)
+	event.State, err = ToState(protoEvent.State)
+	if err != nil {
+		return nil, errors.WithMessage(err, "parsing state")
+	}
+	event.Idx = pchannel.Index(protoEvent.Idx)
+	return event, nil
+}
+
+func toConcludedEvent(protoEvent *ConcludedEvent) (event *pchannel.ConcludedEvent, err error) {
+	event = &pchannel.ConcludedEvent{}
+	event.AdjudicatorEventBase = toAdjudicatorEventBase(protoEvent.AdjudicatorEventBase)
+	return event, nil
+}
+
+func toAdjudicatorEventBase(protoEvent *AdjudicatorEventBase,
+) (event pchannel.AdjudicatorEventBase) {
+	copy(event.IDV[:], protoEvent.ChID)
+	event.VersionV = protoEvent.Version
+	switch protoEvent.Timeout.Type {
+	case AdjudicatorEventBase_elapsed:
+		event.TimeoutV = &pchannel.ElapsedTimeout{}
+	case AdjudicatorEventBase_time:
+		event.TimeoutV = &pchannel.TimeTimeout{time.Unix(protoEvent.Timeout.Sec, 0)}
+	case AdjudicatorEventBase_ethBlock:
+		//nolint:depgaurd // should not use pethchannel here.
+		// TODO: Avoid usage of pethchannel.
+		event.TimeoutV = &pethchannel.BlockTimeout{Time: uint64(protoEvent.Timeout.Sec)}
+	}
+	return event
+}
 
 // ToAdjReq converts protobuf's AdjReq definition to perun's AdjReq definition.
 func ToAdjReq(protoReq *AdjudicatorReq) (req perun.AdjudicatorReq, err error) {
@@ -299,6 +368,76 @@ func fromAdjudicatorEventBase(event *pchannel.AdjudicatorEventBase) (protoEvent 
 		protoEvent.Timeout.Type = AdjudicatorEventBase_ethBlock
 	}
 	return protoEvent
+}
+
+// FromStateMap converts perun's StateMap definition to protobuf's StateMap
+// definition.
+func FromStateMap(req pchannel.StateMap) (protoReq []*StateMap, err error) {
+	protoReq = make([]*StateMap, len(req))
+
+	i := 0
+	for id, state := range req {
+		protoReq[i].Id = id[:]
+		protoReq[i].State, err = FromState(state)
+		if err != nil {
+			return nil, err
+		}
+		i++
+	}
+	return protoReq, nil
+}
+
+// FromAdjReq converts perun's AdjReq definition to protobuf's AdjReq
+// definition.
+func FromAdjReq(req pchannel.AdjudicatorReq) (protoReq *AdjudicatorReq, err error) {
+	protoReq = &AdjudicatorReq{}
+
+	if protoReq.Params, err = FromParams(req.Params); err != nil {
+		return protoReq, err
+	}
+	if protoReq.Tx, err = fromTx(req.Tx); err != nil {
+		return protoReq, err
+	}
+	if protoReq.Acc, err = req.Acc.Address().MarshalBinary(); err != nil {
+		return protoReq, err
+	}
+
+	protoReq.Idx = uint32(protoReq.Idx)
+	protoReq.Secondary = req.Secondary
+	return protoReq, nil
+}
+
+func fromTx(req pchannel.Transaction) (protoReq *Transaction, err error) {
+	protoReq = &Transaction{}
+
+	if protoReq.State, err = FromState(req.State); err != nil {
+		return protoReq, err
+	}
+	protoReq.Sigs = make([][]byte, len(req.Sigs))
+	for i := range req.Sigs {
+		protoReq.Sigs[i] = []byte(req.Sigs[i])
+	}
+	return protoReq, nil
+}
+
+// FromSignedState converts perun's SignedState definition to protobuf's
+// SignedState definition.
+func FromSignedState(signedState *pchannel.SignedState) (protoSignedState *SignedState, err error) {
+	protoSignedState = &SignedState{}
+	protoSignedState.Params, err = FromParams(signedState.Params)
+	if err != nil {
+		return nil, err
+	}
+	protoSignedState.State, err = FromState(signedState.State)
+	if err != nil {
+		return nil, err
+	}
+	protoSignedState.Sigs = make([][]byte, len(signedState.Sigs))
+	for i := range protoSignedState.Sigs {
+		protoSignedState.Sigs[i] = []byte(signedState.Sigs[i])
+	}
+	return protoSignedState, nil
+
 }
 
 // FromParams converts perun's Params definition to protobuf's Params
