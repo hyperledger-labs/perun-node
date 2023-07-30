@@ -40,6 +40,10 @@ func ListenAndServePayChAPI(n perun.NodeAPI, grpcPort string) error {
 		n:          n,
 		subscribes: make(map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription),
 	}
+	watchingServer := &watchingServer{
+		n:          n,
+		subscribes: make(map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription),
+	}
 
 	listener, err := net.Listen("tcp", grpcPort)
 	if err != nil {
@@ -48,6 +52,7 @@ func ListenAndServePayChAPI(n perun.NodeAPI, grpcPort string) error {
 	grpcServer := grpclib.NewServer()
 	pb.RegisterPayment_APIServer(grpcServer, paymentChServer)
 	pb.RegisterFunding_APIServer(grpcServer, fundingServer)
+	pb.RegisterWatching_APIServer(grpcServer, watchingServer)
 
 	return grpcServer.Serve(listener)
 }
