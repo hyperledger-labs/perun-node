@@ -1,0 +1,59 @@
+// Copyright (c) 2023 - for information on the respective copyright owner
+// see the NOTICE file and/or the repository at
+// https://github.com/hyperledger-labs/perun-node
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+// Package pb contains proto3 definitions for user API and the corresponding
+// generated code for grpc server and client.
+package pb;
+
+import "errors.proto";
+import "sdktypes.proto";
+
+// Option go_package is to specify the exact path where the generated go code should reside.
+option go_package = ".;pb";
+
+// Watching_API provides APIs for a user to watch for events from the
+// blockchain related to payment channels.
+service Watching_API{
+    rpc StartWatchingLedgerChannel(stream StartWatchingLedgerChannelReq) returns (stream StartWatchingLedgerChannelResp) {}
+    rpc StopWatching(StopWatchingReq) returns (StopWatchingResp) {}
+}
+
+message StartWatchingLedgerChannelReq {
+    string sessionID = 1;
+    Params params = 2;
+    State state = 3;
+    repeated bytes sigs = 4;
+}
+
+message StartWatchingLedgerChannelResp {
+    oneof response{
+        RegisteredEvent registeredEvent = 1;
+        ProgressedEvent progressedEvent = 2;
+        ConcludedEvent concludedEvent = 3;
+        MsgError error = 4;
+    }
+}
+
+message StopWatchingReq {
+    string sessionID = 1;
+    bytes chID = 2;
+}
+
+message StopWatchingResp {
+    MsgError error = 1;
+}
