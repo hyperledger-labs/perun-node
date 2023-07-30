@@ -37,11 +37,11 @@ func SubscribeResponseToAdjEvent(protoResponse *SubscribeResp,
 ) (adjEvent pchannel.AdjudicatorEvent, err error) {
 	switch e := protoResponse.Response.(type) {
 	case *SubscribeResp_RegisteredEvent:
-		adjEvent, err = toRegisteredEvent(e.RegisteredEvent)
+		adjEvent, err = ToRegisteredEvent(e.RegisteredEvent)
 	case *SubscribeResp_ProgressedEvent:
-		adjEvent, err = toProgressedEvent(e.ProgressedEvent)
+		adjEvent, err = ToProgressedEvent(e.ProgressedEvent)
 	case *SubscribeResp_ConcludedEvent:
-		adjEvent = toConcludedEvent(e.ConcludedEvent)
+		adjEvent = ToConcludedEvent(e.ConcludedEvent)
 	case *SubscribeResp_Error:
 		return nil, err
 	default:
@@ -50,7 +50,9 @@ func SubscribeResponseToAdjEvent(protoResponse *SubscribeResp,
 	return adjEvent, err
 }
 
-func toRegisteredEvent(protoEvent *RegisteredEvent) (event *pchannel.RegisteredEvent, err error) {
+// ToRegisteredEvent converts a protobuf's RegisteredEvent to its corresponding
+// perun's RegisteredEvent representation.
+func ToRegisteredEvent(protoEvent *RegisteredEvent) (event *pchannel.RegisteredEvent, err error) {
 	event = &pchannel.RegisteredEvent{}
 	event.AdjudicatorEventBase = toAdjudicatorEventBase(protoEvent.AdjudicatorEventBase)
 	event.State, err = ToState(protoEvent.State)
@@ -64,7 +66,9 @@ func toRegisteredEvent(protoEvent *RegisteredEvent) (event *pchannel.RegisteredE
 	return event, nil
 }
 
-func toProgressedEvent(protoEvent *ProgressedEvent) (event *pchannel.ProgressedEvent, err error) {
+// ToProgressedEvent converts a protobuf's ProgressedEvent to its corresponding
+// perun's ProgressedEvent representation.
+func ToProgressedEvent(protoEvent *ProgressedEvent) (event *pchannel.ProgressedEvent, err error) {
 	event = &pchannel.ProgressedEvent{}
 	event.AdjudicatorEventBase = toAdjudicatorEventBase(protoEvent.AdjudicatorEventBase)
 	event.State, err = ToState(protoEvent.State)
@@ -75,7 +79,9 @@ func toProgressedEvent(protoEvent *ProgressedEvent) (event *pchannel.ProgressedE
 	return event, nil
 }
 
-func toConcludedEvent(protoEvent *ConcludedEvent) (event *pchannel.ConcludedEvent) {
+// ToConcludedEvent converts a protobuf's ConcludedEvent to its corresponding
+// perun's ConcludedEvent representation.
+func ToConcludedEvent(protoEvent *ConcludedEvent) (event *pchannel.ConcludedEvent) {
 	event = &pchannel.ConcludedEvent{}
 	event.AdjudicatorEventBase = toAdjudicatorEventBase(protoEvent.AdjudicatorEventBase)
 	return event
