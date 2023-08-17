@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pethchannel "perun.network/go-perun/backend/ethereum/channel"
+	pethchannel "perun.network/go-perun/backend/ethereum/channel" //nolint: depguard // This should be replaced.
 	pchannel "perun.network/go-perun/channel"
 	pwallet "perun.network/go-perun/wallet"
 
@@ -41,13 +41,13 @@ func SubscribeResponseToAdjEvent(protoResponse *SubscribeResp,
 	case *SubscribeResp_ProgressedEvent:
 		adjEvent, err = toProgressedEvent(e.ProgressedEvent)
 	case *SubscribeResp_ConcludedEvent:
-		adjEvent, err = toConcludedEvent(e.ConcludedEvent)
+		adjEvent = toConcludedEvent(e.ConcludedEvent)
 	case *SubscribeResp_Error:
 		return nil, err
 	default:
 		return nil, errors.New("unknown even type")
 	}
-	return adjEvent, nil
+	return adjEvent, err
 }
 
 func toRegisteredEvent(protoEvent *RegisteredEvent) (event *pchannel.RegisteredEvent, err error) {
@@ -59,7 +59,7 @@ func toRegisteredEvent(protoEvent *RegisteredEvent) (event *pchannel.RegisteredE
 	}
 	event.Sigs = make([]pwallet.Sig, len(protoEvent.Sigs))
 	for i := range protoEvent.Sigs {
-		event.Sigs[i] = pwallet.Sig(protoEvent.Sigs[i])
+		copy(event.Sigs[i], protoEvent.Sigs[i])
 	}
 	return event, nil
 }
@@ -75,10 +75,10 @@ func toProgressedEvent(protoEvent *ProgressedEvent) (event *pchannel.ProgressedE
 	return event, nil
 }
 
-func toConcludedEvent(protoEvent *ConcludedEvent) (event *pchannel.ConcludedEvent, err error) {
+func toConcludedEvent(protoEvent *ConcludedEvent) (event *pchannel.ConcludedEvent) {
 	event = &pchannel.ConcludedEvent{}
 	event.AdjudicatorEventBase = toAdjudicatorEventBase(protoEvent.AdjudicatorEventBase)
-	return event, nil
+	return event
 }
 
 func toAdjudicatorEventBase(protoEvent *AdjudicatorEventBase,
@@ -89,9 +89,9 @@ func toAdjudicatorEventBase(protoEvent *AdjudicatorEventBase,
 	case AdjudicatorEventBase_elapsed:
 		event.TimeoutV = &pchannel.ElapsedTimeout{}
 	case AdjudicatorEventBase_time:
+		//nolint: govet // struct defined in go-perun library uses unkeyed fields.
 		event.TimeoutV = &pchannel.TimeTimeout{time.Unix(protoEvent.Timeout.Sec, 0)}
 	case AdjudicatorEventBase_ethBlock:
-		//nolint:depgaurd // should not use pethchannel here.
 		// TODO: Avoid usage of pethchannel.
 		event.TimeoutV = &pethchannel.BlockTimeout{Time: uint64(protoEvent.Timeout.Sec)}
 	}
@@ -402,7 +402,7 @@ func FromAdjReq(req pchannel.AdjudicatorReq) (protoReq *AdjudicatorReq, err erro
 		return protoReq, err
 	}
 
-	protoReq.Idx = uint32(protoReq.Idx)
+	protoReq.Idx = uint32(req.Idx)
 	protoReq.Secondary = req.Secondary
 	return protoReq, nil
 }
@@ -415,7 +415,7 @@ func fromTx(req pchannel.Transaction) (protoReq *Transaction, err error) {
 	}
 	protoReq.Sigs = make([][]byte, len(req.Sigs))
 	for i := range req.Sigs {
-		protoReq.Sigs[i] = []byte(req.Sigs[i])
+		copy(protoReq.Sigs[i], req.Sigs[i])
 	}
 	return protoReq, nil
 }
@@ -434,10 +434,9 @@ func FromSignedState(signedState *pchannel.SignedState) (protoSignedState *Signe
 	}
 	protoSignedState.Sigs = make([][]byte, len(signedState.Sigs))
 	for i := range protoSignedState.Sigs {
-		protoSignedState.Sigs[i] = []byte(signedState.Sigs[i])
+		protoSignedState.Sigs[i] = signedState.Sigs[i]
 	}
 	return protoSignedState, nil
-
 }
 
 // FromParams converts perun's Params definition to protobuf's Params

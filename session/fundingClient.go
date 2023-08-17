@@ -21,11 +21,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/hyperledger-labs/perun-node"
-	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
 	"github.com/pkg/errors"
+
 	pchannel "perun.network/go-perun/channel"
 	pwallet "perun.network/go-perun/wallet"
+
+	"github.com/hyperledger-labs/perun-node"
+	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
 )
 
 type grpcFunder struct {
@@ -144,7 +146,7 @@ func (a *grpcAdjudicator) Register(
 }
 
 func (a *grpcAdjudicator) Withdraw(
-	ctx context.Context,
+	_ context.Context,
 	adjReq pchannel.AdjudicatorReq,
 	stateMap pchannel.StateMap,
 ) (err error) {
@@ -175,7 +177,7 @@ func (a *grpcAdjudicator) Withdraw(
 }
 
 func (a *grpcAdjudicator) Progress(
-	ctx context.Context,
+	_ context.Context,
 	progReq pchannel.ProgressReq,
 ) (err error) {
 	protoReq := pb.ProgressReq{}
@@ -228,7 +230,6 @@ func (a *grpcAdjudicator) Subscribe(
 			return
 		}
 		adjSubRelay.publish(adjEvent)
-
 	}()
 	return adjSubRelay, nil
 }
