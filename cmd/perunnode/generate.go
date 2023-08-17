@@ -159,6 +159,7 @@ func generateSessionConfig() error {
 	const count = 3
 	aliases := [count]string{aliceAlias, bobAlias, apiAlias}
 	cfgs := [count]session.Config{}
+	peers := [count][]perun.PeerID{}
 	providersFile := [count]string{}
 	cfgFile := [count]string{}
 
@@ -173,8 +174,17 @@ func generateSessionConfig() error {
 		cfgs[i].User.Alias = aliases[i]
 	}
 
+	for i := 0; i < count; i++ { // Everyone except the self is a peer.
+		peers[i] = make([]perun.PeerID, 0, count-1)
+		for j := 0; j < count; j++ {
+			if i != j {
+				peers[i] = append(peers[i], peerID(cfgs[j].User))
+			}
+		}
+	}
+
 	for i := 0; i < count; i++ {
-		providersFile[i], err = idprovidertest.NewIDProvider(peerID(cfgs[i].User))
+		providersFile[i], err = idprovidertest.NewIDProvider(peers[i]...)
 		if err != nil {
 			return err
 		}
@@ -190,10 +200,10 @@ func generateSessionConfig() error {
 	// Move the artifacts to currenct directory.
 	filesToMove := make(map[string]string)
 	for i := 0; i < count; i++ {
-		cfgFile[i] = filepath.Join(aliases[i], sessionConfigFile)
-		providersFile[i] = filepath.Join(aliases[i], idProviderFile)
-		cfgs[i].DatabaseDir = filepath.Join(aliases[i], databaseDir)
-		cfgs[i].User.OnChainWallet.KeystorePath = filepath.Join(aliases[i], keystoreDir)
+		filesToMove[cfgFile[i]] = filepath.Join(aliases[i], sessionConfigFile)
+		filesToMove[providersFile[i]] = filepath.Join(aliases[i], idProviderFile)
+		filesToMove[cfgs[i].DatabaseDir] = filepath.Join(aliases[i], databaseDir)
+		filesToMove[cfgs[i].User.OnChainWallet.KeystorePath] = filepath.Join(aliases[i], keystoreDir)
 	}
 	return moveFiles(filesToMove)
 }
