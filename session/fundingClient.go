@@ -137,8 +137,8 @@ func (a *grpcAdjudicator) Register(
 	}
 	if resp.Error != nil && resp.Error.Message != "" {
 		// TODO: Proper error handling
-		err = errors.WithMessage(err, "registering the channel the channel")
-		return perun.NewAPIErrUnknownInternal(errors.New(resp.Error.Message))
+		err = errors.WithMessage(pb.ToError(resp.Error), "registering the channel the channel")
+		return perun.NewAPIErrUnknownInternal(err)
 	}
 	return nil
 }
@@ -168,8 +168,8 @@ func (a *grpcAdjudicator) Withdraw(
 	}
 	if resp.Error != nil && resp.Error.Message != "" {
 		// TODO: Proper error handling
-		err = errors.WithMessage(err, "withdrawing the channel the channel")
-		return perun.NewAPIErrUnknownInternal(errors.New(resp.Error.Message))
+		err = errors.WithMessage(pb.ToError(resp.Error), "withdrawing the channel the channel")
+		return perun.NewAPIErrUnknownInternal(err)
 	}
 	return nil
 }
@@ -199,8 +199,8 @@ func (a *grpcAdjudicator) Progress(
 	}
 	if resp.Error != nil && resp.Error.Message != "" {
 		// TODO: Proper error handling
-		err = errors.WithMessage(err, "progressing the channel the channel")
-		return perun.NewAPIErrUnknownInternal(errors.New(resp.Error.Message))
+		err = errors.WithMessage(pb.ToError(resp.Error), "progressing the channel the channel")
+		return perun.NewAPIErrUnknownInternal(err)
 	}
 	return nil
 }
@@ -284,10 +284,17 @@ func (a *adjudicatorSub) Close() error {
 		SessionID: a.grpcAdj.apiKey,
 		ChID:      a.chID[:],
 	}
-	a.grpcAdj.client.Unsubscribe(context.Background(), unsubReq)
-	// TODO: Handle error.
+	unSubResp, err := a.grpcAdj.client.Unsubscribe(context.Background(), unsubReq)
+	if err != nil {
+		return errors.Wrap(err, "sending unsubscribe request")
+	}
+	if unSubResp.Error != nil && unSubResp.Error.Message != "" {
+		// TODO: Proper error handling
+		err = errors.WithMessage(pb.ToError(unSubResp.Error), "unsubscribing from responses")
+		return perun.NewAPIErrUnknownInternal(err)
+	}
 
-	return nil
+	return err
 }
 
 // EventStream returns a channel for consuming the published adjudicator
