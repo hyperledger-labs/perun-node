@@ -234,7 +234,7 @@ func (a *grpcAdjudicator) Subscribe(
 	return adjSubRelay, nil
 }
 
-const adjPubSubBufferSize = 10
+const adjEventsSubBufferSize = 10
 
 var _ pchannel.AdjudicatorSubscription = &adjudicatorSub{}
 
@@ -252,7 +252,7 @@ type (
 func newAdjudicatorEventsSub(chID pchannel.ID, grpcAdj *grpcAdjudicator) *adjudicatorSub {
 	return &adjudicatorSub{
 		isOpen:  true,
-		pipe:    make(chan pchannel.AdjudicatorEvent, adjPubSubBufferSize),
+		pipe:    make(chan pchannel.AdjudicatorEvent, adjEventsSubBufferSize),
 		chID:    chID,
 		grpcAdj: grpcAdj,
 	}
