@@ -11,12 +11,19 @@ CLI_BIN := perunnodecli
 TUI_PKG := ./cmd/perunnodetui
 TUI_BIN := perunnodetui
 
+DEMO_DIR := demo
+
 LDFLAGS=-ldflags "-X 'main.version=$(VERSION)' -X 'main.gitCommitID=$(GIT_COMMIT_ID)' -X 'main.goperunVersion=$(GOPERUN_VERSION)'"
 
-build:
-	go build $(LDFLAGS) $(NODE_PKG)
-	go build $(CLI_PKG)
-	go build $(TUI_PKG)
+install:
+	go install $(LDFLAGS) $(NODE_PKG)
+	go install $(CLI_PKG)
+	go install $(TUI_PKG)
+
+generate: install
+	@mkdir $(DEMO_DIR)
+	@cd $(DEMO_DIR) && $(NODE_BIN) generate
+	@echo "Configuration files for demo generated in ./$(DEMO_DIR)"
 
 clean:
-	rm -rf $(NODE_BIN) $(CLI_BIN) $(TUI_BIN) node.yaml alice bob
+	rm -rf demo
