@@ -111,3 +111,23 @@ func FromBalInfo(src perun.BalInfo) *BalInfo {
 		Bals:       bals,
 	}
 }
+
+// ToPayChsInfo is a helper function to convert a slice of PayChInfo struct
+// defined in grpc package to a slice of PayChInfo struct defined in perun-node package.
+func ToPayChsInfo(grpcPayChsInfo []*PayChInfo) []payment.PayChInfo {
+	payChsInfo := make([]payment.PayChInfo, len(grpcPayChsInfo))
+	for i := range grpcPayChsInfo {
+		payChsInfo[i] = ToPayChInfo(grpcPayChsInfo[i])
+	}
+	return payChsInfo
+}
+
+// ToPayChInfo is a helper function to convert PayChInfo struct defined in grpc
+// package to PayChInfo struct defined in perun-node package.
+func ToPayChInfo(src *PayChInfo) payment.PayChInfo {
+	return payment.PayChInfo{
+		ChID:    src.ChID,
+		BalInfo: ToBalInfo(src.BalInfo),
+		Version: src.Version,
+	}
+}
