@@ -374,9 +374,13 @@ func fromAdjudicatorEventBase(event *pchannel.AdjudicatorEventBase) (protoEvent 
 		// license and cannot be used in the perun-node project,
 		// outside of ethereum adapter.
 		// TODO: Validate if number is less than int64max before type casting.
-		val := reflect.ValueOf(event.TimeoutV).FieldByName("Time")
-		protoEvent.Timeout.Sec = int64(val.Uint())
-		protoEvent.Timeout.Type = AdjudicatorEventBase_ethBlock
+
+		timeoutValue := reflect.ValueOf(event.TimeoutV).Elem()
+		time := timeoutValue.FieldByName("Time")
+		if time.IsValid() {
+			protoEvent.Timeout.Sec = int64(time.Uint())
+			protoEvent.Timeout.Type = AdjudicatorEventBase_ethBlock
+		}
 	}
 	return protoEvent
 }
