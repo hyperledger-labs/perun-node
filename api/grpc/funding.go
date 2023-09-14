@@ -234,6 +234,9 @@ func (a *fundingServer) Subscribe(req *pb.SubscribeReq, stream pb.Funding_API_Su
 	}
 
 	a.Lock()
+	if a.subscribes[req.SessionID] == nil {
+		a.subscribes[req.SessionID] = make(map[pchannel.ID]pchannel.AdjudicatorSubscription)
+	}
 	a.subscribes[req.SessionID][chID] = adjSub
 	a.Unlock()
 
@@ -279,12 +282,18 @@ func (a *fundingServer) Unsubscribe(_ context.Context, req *pb.UnsubscribeReq) (
 	copy(chID[:], req.ChID)
 
 	a.Lock()
-	adjSub := a.subscribes[req.SessionID][chID]
+	if _, ok := a.subscribes[req.SessionID]; !ok {
+		return errResponse(perun.NewAPIErrUnknownInternal(errors.New("unknown session id"))), nil
+	}
+	adjSub, ok := a.subscribes[req.SessionID][chID]
+	if !ok {
+		return errResponse(perun.NewAPIErrUnknownInternal(errors.New("unknown channel id"))), nil
+	}
 	delete(a.subscribes[req.SessionID], chID)
 	a.Unlock()
 
 	if err := adjSub.Close(); err != nil {
-		return errResponse(perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "retrieving session"))), nil
+		return errResponse(perun.NewAPIErrUnknownInternal(errors.WithMessage(err, "closing sub"))), nil
 	}
 
 	return &pb.UnsubscribeResp{
