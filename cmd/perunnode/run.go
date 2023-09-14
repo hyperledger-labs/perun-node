@@ -43,10 +43,12 @@ const (
 	responsetimeoutF  = "responsetimeout"
 	configfileF       = "configfile" // can only be specified in flag, not via config file.
 	grpcPortF         = "grpcport"   // can only be specified in flag, not via config file.
+	serviceF          = "service"    // can only be specified in flag, not via config file.
 
 	// default values for flags in run command.
 	defaultConfigFile = "node.yaml"
 	defaultGrpcPort   = 50001
+	defaultService    = "payment"
 )
 
 var (
@@ -98,6 +100,7 @@ func init() {
 func defineFlags() {
 	runCmd.Flags().String(configfileF, defaultConfigFile, "node config file")
 	runCmd.Flags().Uint64(grpcPortF, defaultGrpcPort, "port for grpc payment channel API server to listen")
+	runCmd.Flags().String(serviceF, defaultService, "service to be enabled (payment or fundwatch)")
 
 	// Default values of all these flags should be zero, as their only purpose is to allow the user to
 	// explicitly specify the configuration.
@@ -141,10 +144,27 @@ func run(cmd *cobra.Command, _ []string) {
 		return
 	}
 
-	fmt.Printf("Running perun node with the below config:\n%s.\n\nServing payment channel API via grpc at port %s\n\n",
-		prettify(nodeCfg), grpcAddr)
-	if err := grpc.ListenAndServePayChAPI(nodeAPI, grpcAddr); err != nil {
-		fmt.Printf("Server returned with error: %v\n", err)
+	service, err := cmd.Flags().GetString(serviceF)
+	if err != nil {
+		panic("unknown flag service\n")
+	}
+	switch service {
+	case "payment":
+		fmt.Printf("Running perun node with the below config:\n%s.\n\nServing payment channel API via grpc at port %s\n\n",
+			prettify(nodeCfg), grpcAddr)
+		if err := grpc.ServePaymentAPI(nodeAPI, grpcAddr); err != nil {
+			fmt.Printf("Server returned with error: %v\n", err)
+		}
+	case "fundwatch":
+		fmt.Printf(
+			"Running perun node with the below config:\n%s.\n\nServing funding and watching API via grpc at port %s\n\n",
+			prettify(nodeCfg), grpcAddr)
+		if err := grpc.ServeFundingWatchingAPI(nodeAPI, grpcAddr); err != nil {
+			fmt.Printf("Server returned with error: %v\n", err)
+		}
+	default:
+		panic("invalid value for service flag\n")
+
 	}
 }
 
