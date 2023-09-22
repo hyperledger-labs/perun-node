@@ -25,6 +25,7 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
+	"github.com/hyperledger-labs/perun-node/api/handlers"
 )
 
 // ServePaymentAPI starts a payment channel API server that listens for incoming grpc
@@ -55,8 +56,10 @@ func ServeFundingWatchingAPI(n perun.NodeAPI, grpcPort string) error {
 		chUpdatesNotif:   make(map[string]map[string]chan bool),
 	}
 	fundingServer := &fundingServer{
-		n:          n,
-		subscribes: make(map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription),
+		FundingHandler: &handlers.FundingHandler{
+			N:          n,
+			Subscribes: make(map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription),
+		},
 	}
 	watchingServer := &watchingServer{
 		n:          n,
