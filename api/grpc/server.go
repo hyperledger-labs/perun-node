@@ -49,6 +49,11 @@ func ServePaymentAPI(n perun.NodeAPI, grpcPort string) error {
 // ServeFundingWatchingAPI starts a payment channel API server that listens for incoming grpc
 // requests at the specified address and serves those requests using the node API instance.
 func ServeFundingWatchingAPI(n perun.NodeAPI, grpcPort string) error {
+	paymentChServer := &payChAPIServer{
+		n:                n,
+		chProposalsNotif: make(map[string]chan bool),
+		chUpdatesNotif:   make(map[string]map[string]chan bool),
+	}
 	fundingServer := &fundingServer{
 		n:          n,
 		subscribes: make(map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription),
@@ -65,6 +70,7 @@ func ServeFundingWatchingAPI(n perun.NodeAPI, grpcPort string) error {
 	grpcServer := grpclib.NewServer()
 	pb.RegisterFunding_APIServer(grpcServer, fundingServer)
 	pb.RegisterWatching_APIServer(grpcServer, watchingServer)
+	pb.RegisterPayment_APIServer(grpcServer, paymentChServer)
 
 	return grpcServer.Serve(listener)
 }
