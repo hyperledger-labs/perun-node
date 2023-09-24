@@ -62,8 +62,10 @@ func ServeFundingWatchingAPI(n perun.NodeAPI, grpcPort string) error {
 		},
 	}
 	watchingServer := &watchingServer{
-		n:          n,
-		subscribes: make(map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription),
+		WatchingHandler: &handlers.WatchingHandler{
+			N:          n,
+			Subscribes: make(map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription),
+		},
 	}
 
 	listener, err := net.Listen("tcp", grpcPort)
