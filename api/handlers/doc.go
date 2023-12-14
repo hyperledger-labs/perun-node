@@ -1,4 +1,4 @@
-// Copyright (c) 2020 - for information on the respective copyright owner
+// Copyright (c) 2023 - for information on the respective copyright owner
 // see the NOTICE file and/or the repository at
 // https://github.com/hyperledger-labs/perun-node
 //
@@ -14,7 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package perun
-
-//go:generate protoc --proto_path=proto --go_out=api/grpc/pb --go-grpc_out=api/grpc/pb proto/nodetypes.proto proto/errors.proto proto/payment_service.proto
-//go:generate protoc --proto_path=proto --go_out=api/grpc/pb --go-grpc_out=api/grpc/pb proto/sdktypes.proto proto/watching_service.proto proto/funding_service.proto proto/api_messages.proto
+// Package handlers implements a the handlers for payment, funding and watching API.
+// This is used by different network adapters such as grpc and tcp.
+package handlers

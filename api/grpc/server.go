@@ -25,24 +25,16 @@ import (
 
 	"github.com/hyperledger-labs/perun-node"
 	"github.com/hyperledger-labs/perun-node/api/grpc/pb"
+	"github.com/hyperledger-labs/perun-node/api/handlers"
 )
 
-// ListenAndServePayChAPI starts a payment channel API server that listens for incoming grpc
+// ServePaymentAPI starts a payment channel API server that listens for incoming grpc
 // requests at the specified address and serves those requests using the node API instance.
-func ListenAndServePayChAPI(n perun.NodeAPI, grpcPort string) error {
+func ServePaymentAPI(n perun.NodeAPI, grpcPort string) error {
 	paymentChServer := &payChAPIServer{
 		n:                n,
 		chProposalsNotif: make(map[string]chan bool),
 		chUpdatesNotif:   make(map[string]map[string]chan bool),
-	}
-
-	fundingServer := &fundingServer{
-		n:          n,
-		subscribes: make(map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription),
-	}
-	watchingServer := &watchingServer{
-		n:          n,
-		subscribes: make(map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription),
 	}
 
 	listener, err := net.Listen("tcp", grpcPort)
@@ -51,8 +43,39 @@ func ListenAndServePayChAPI(n perun.NodeAPI, grpcPort string) error {
 	}
 	grpcServer := grpclib.NewServer()
 	pb.RegisterPayment_APIServer(grpcServer, paymentChServer)
+
+	return grpcServer.Serve(listener)
+}
+
+// ServeFundingWatchingAPI starts a payment channel API server that listens for incoming grpc
+// requests at the specified address and serves those requests using the node API instance.
+func ServeFundingWatchingAPI(n perun.NodeAPI, grpcPort string) error {
+	paymentChServer := &payChAPIServer{
+		n:                n,
+		chProposalsNotif: make(map[string]chan bool),
+		chUpdatesNotif:   make(map[string]map[string]chan bool),
+	}
+	fundingServer := &fundingServer{
+		FundingHandler: &handlers.FundingHandler{
+			N:          n,
+			Subscribes: make(map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription),
+		},
+	}
+	watchingServer := &watchingServer{
+		WatchingHandler: &handlers.WatchingHandler{
+			N:          n,
+			Subscribes: make(map[string]map[pchannel.ID]pchannel.AdjudicatorSubscription),
+		},
+	}
+
+	listener, err := net.Listen("tcp", grpcPort)
+	if err != nil {
+		return errors.Wrap(err, "starting listener")
+	}
+	grpcServer := grpclib.NewServer()
 	pb.RegisterFunding_APIServer(grpcServer, fundingServer)
 	pb.RegisterWatching_APIServer(grpcServer, watchingServer)
+	pb.RegisterPayment_APIServer(grpcServer, paymentChServer)
 
 	return grpcServer.Serve(listener)
 }

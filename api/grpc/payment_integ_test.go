@@ -60,9 +60,9 @@ func StartServer(t *testing.T, nodeCfg perun.NodeConfig, grpcPort string) {
 	nodeAPI, err := node.New(nodeCfg)
 	require.NoErrorf(t, err, "initializing nodeAPI")
 
-	t.Log("Started ListenAndServePayChAPI")
+	t.Log("Started grpc service")
 	go func() {
-		if err := grpc.ListenAndServePayChAPI(nodeAPI, grpcPort); err != nil {
+		if err := grpc.ServePaymentAPI(nodeAPI, grpcPort); err != nil {
 			t.Logf("server returned with error: %v", err)
 		}
 	}()

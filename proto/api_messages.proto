@@ -1,0 +1,43 @@
+// Copyright (c) 2023 - for information on the respective copyright owner
+// see the NOTICE file and/or the repository at
+// https://github.com/hyperledger-labs/perun-node
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+// Package pb contains proto3 definitions for user API and the corresponding
+// generated code for grpc server and client.
+package pb;
+
+import "funding_service.proto";
+import "watching_service.proto";
+
+// Option go_package is to specify the exact path where the generated go code should reside.
+option go_package = ".;pb";
+
+// This type is defined as the enumeration of all messages in funding and
+// watching service, in order to be able to parse the messages in api/tcp
+// package.
+message APIMessage{
+    oneof msg {
+      FundReq fund_req = 1;
+      FundResp fund_resp = 2;
+      RegisterReq register_req = 3;
+      RegisterResp register_resp = 4;
+      WithdrawReq withdraw_req = 5;
+      WithdrawResp withdraw_resp = 6;
+      StartWatchingLedgerChannelReq start_watching_ledger_channel_req = 7;
+      StopWatchingReq stop_watching_req = 8;
+    }
+}

@@ -40,6 +40,7 @@ import (
 	"github.com/hyperledger-labs/perun-node/blockchain/ethereum"
 	"github.com/hyperledger-labs/perun-node/comm/tcp"
 	"github.com/hyperledger-labs/perun-node/comm/tcp/tcptest"
+	"github.com/hyperledger-labs/perun-node/currency"
 	"github.com/hyperledger-labs/perun-node/idprovider"
 	"github.com/hyperledger-labs/perun-node/idprovider/local"
 	"github.com/hyperledger-labs/perun-node/log"
@@ -619,7 +620,7 @@ func updateAssetsInFunder(currs []perun.Currency, contractRegistry perun.ROContr
 	// So, all assets will be present in the registry,
 	for i := range currs {
 		asset, _ := contractRegistry.Asset(currs[i].Symbol())
-		if !f.IsAssetRegistered(asset) {
+		if !f.IsAssetRegistered(asset) && currs[i].Symbol() != currency.ETHSymbol {
 			token, _ := contractRegistry.Token(currs[i].Symbol())
 			f.RegisterAssetERC20(asset, token, onChainAcc)
 		}
