@@ -87,6 +87,7 @@ Install the following pre-requisites.
 
     1. Go (v1.19 or later).
     2. ganache-cli (v6.9.1 or later).
+    3. golangci-lint (v1.53.3)
 
 Clone the project and sync the dependencies:
 
